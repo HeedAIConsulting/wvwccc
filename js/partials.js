@@ -116,7 +116,8 @@ window.ChamberPartials = (function () {
           <li><a href="${p(depth,'events/index.html')}">${t.events}</a></li>
           <li><a href="${p(depth,'jobs/index.html')}">${t.jobs}</a></li>
           <li><a href="${p(depth,'donate.html')}">${t.donate}</a></li>
-          <li><a href="${p(depth,'sponsor.html')}">${t.sponsor}</a></li>
+          <li><a href="${p(depth,'inquire.html')}?type=sponsorship">${t.sponsor}</a></li>
+          <li><a href="${p(depth,'inquire.html')}?type=membership">${L?'Consultas':'Inquiries'}</a></li>
         </ul>
       </div>
       <div>

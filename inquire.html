@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Make an Inquiry — West Valley · Warner Center Chamber of Commerce</title>
+  <meta name="description" content="Membership, sponsorship & advertising, events, and press inquiries for the West Valley · Warner Center Chamber of Commerce." />
+  <link rel="canonical" href="https://woodlandhillscc.net/inquire.html" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="css/chamber.css" />
+</head>
+<body>
+  <div data-partial="header"></div>
+  <section class="section">
+    <div class="container container-narrow">
+      <span class="kicker">Get in touch</span>
+      <h1 id="inquiryTitle">Make an inquiry</h1>
+      <p class="lead" id="inquiryBlurb">How can the Chamber help?</p>
+
+      <form id="inquiryForm" class="card mt-5">
+        <div class="field">
+          <label>Inquiry type</label>
+          <select name="type" class="field">
+            <option value="membership">Membership</option>
+            <option value="sponsorship">Sponsorship &amp; advertising</option>
+            <option value="events">Events &amp; venue</option>
+            <option value="press">Press &amp; partnerships</option>
+            <option value="general">General</option>
+          </select>
+        </div>
+        <div class="grid grid-2" style="gap:var(--s-3)">
+          <div class="field"><label>Name</label><input name="name" required autocomplete="name" /></div>
+          <div class="field"><label>Company / organization</label><input name="company" /></div>
+        </div>
+        <div class="grid grid-2" style="gap:var(--s-3)">
+          <div class="field"><label>Email</label><input name="email" type="email" required autocomplete="email" /></div>
+          <div class="field"><label>Phone</label><input name="phone" type="tel" autocomplete="tel" /></div>
+        </div>
+        <div class="field"><label>How can we help?</label><textarea name="message" rows="5" required></textarea></div>
+        <!-- Formspree honeypot -->
+        <input type="text" name="_gotcha" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px" aria-hidden="true" />
+        <p id="inquiryMsg" class="notice" hidden></p>
+        <button class="btn btn--forest btn--lg" type="submit">Send inquiry</button>
+      </form>
+
+      <div class="grid grid-4 mt-7" style="gap:var(--s-3)">
+        <a class="chip" href="inquire.html?type=membership">Membership</a>
+        <a class="chip" href="inquire.html?type=sponsorship">Sponsorship</a>
+        <a class="chip" href="inquire.html?type=events">Events</a>
+        <a class="chip" href="inquire.html?type=press">Press</a>
+      </div>
+    </div>
+  </section>
+  <div data-partial="footer"></div>
+  <script src="js/partials.js"></script>
+  <script src="js/api-base.js"></script>
+  <script src="js/forms.js"></script>
+  <script>
+    ChamberPartials.mount({ active: '', depth: 0, lang: 'en' });
+    ChamberForms.initInquiry();
+  </script>
+</body>
+</html>
