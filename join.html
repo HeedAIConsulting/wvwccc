@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Join the Chamber — West Valley · Warner Center Chamber of Commerce</title>
+  <meta name="description" content="Join the West Valley · Warner Center Chamber of Commerce. Get listed in the directory, attend events, and grow your business in the community since 1930." />
+  <link rel="canonical" href="https://woodlandhillscc.net/join.html" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="css/chamber.css" />
+</head>
+<body>
+  <div data-partial="header"></div>
+
+  <section class="section-sm bg-forest">
+    <div class="container">
+      <span class="kicker">Membership</span>
+      <h1 style="color:#fff">Grow with the West Valley</h1>
+      <p class="lead" style="color:rgba(255,255,255,.85);max-width:62ch">
+        Membership connects your business to the community the Chamber has championed since 1930 —
+        a directory listing, events and referrals, and a voice in the Valley.
+      </p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="grid grid-3 mt-2">
+        <article class="card"><div class="card__icon">◎</div><h3>Get found</h3><p>A geo-aware directory listing puts you in front of neighbors searching for what you do.</p></article>
+        <article class="card"><div class="card__icon">⤴</div><h3>Network</h3><p>Monthly breakfasts, mixers, ribbon cuttings, and referral groups across the Valley.</p></article>
+        <article class="card"><div class="card__icon">◆</div><h3>Belong</h3><p>Sponsorships, committees, and a community that has your back.</p></article>
+      </div>
+
+      <div class="grid" style="grid-template-columns:1.1fr .9fr;gap:var(--s-7);margin-top:var(--s-8);align-items:start">
+        <div class="card">
+          <h2>Apply for membership</h2>
+          <p class="member-tile__meta">Dues are based on your number of employees. Submit below and the Chamber office will confirm your tier and dues, or proceed to payment if you know your amount.</p>
+          <form id="joinForm" class="mt-5">
+            <div class="grid grid-2" style="gap:var(--s-3)">
+              <div class="field"><label>Company</label><input name="company" required /></div>
+              <div class="field"><label>No. of employees</label><input name="employees" type="number" min="1" /></div>
+            </div>
+            <div class="grid grid-2" style="gap:var(--s-3)">
+              <div class="field"><label>First name</label><input name="firstName" required /></div>
+              <div class="field"><label>Last name</label><input name="lastName" required /></div>
+            </div>
+            <div class="grid grid-2" style="gap:var(--s-3)">
+              <div class="field"><label>Email</label><input name="email" type="email" required /></div>
+              <div class="field"><label>Phone</label><input name="phone" type="tel" /></div>
+            </div>
+            <div class="field"><label>Type of business</label><input name="businessType" /></div>
+            <p id="joinMsg" class="notice" hidden></p>
+            <div class="btn-row mt-3">
+              <button class="btn btn--forest btn--lg" type="submit">Submit application</button>
+              <a class="btn btn--gold btn--lg" href="checkout.html?type=membership&tier=annual">Pay dues →</a>
+            </div>
+          </form>
+        </div>
+        <aside class="card bg-forest" style="color:#fff">
+          <h3 style="color:#fff">What members get</h3>
+          <ul style="list-style:none;display:flex;flex-direction:column;gap:10px;margin-top:var(--s-3)">
+            <li>✓ Searchable directory profile</li>
+            <li>✓ Member-to-member referrals</li>
+            <li>✓ Event &amp; ribbon-cutting access</li>
+            <li>✓ Community advocacy &amp; visibility</li>
+            <li>✓ Sponsorship &amp; marketing options</li>
+          </ul>
+          <p style="color:rgba(255,255,255,.8);margin-top:var(--s-4)">Questions? Call the office at <strong>(818) 347-4737</strong>.</p>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <div data-partial="footer"></div>
+
+  <script src="js/partials.js"></script>
+  <script src="js/api-base.js"></script>
+  <script src="js/chamber.js"></script>
+  <script>
+    ChamberPartials.mount({ active: '', depth: 0, lang: 'en' });
+    Chamber.initLeadForm('joinForm', 'joinMsg', 'membership-application');
+  </script>
+</body>
+</html>

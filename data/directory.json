@@ -1,0 +1,117 @@
+{
+  "_meta": {
+    "status": "PARTIAL — verified-real anchors only. Replace/extend with the official ChamberWare member export before launch.",
+    "rule": "NEVER invent members, phone numbers, or websites. Omit a field rather than fabricate it.",
+    "source": "Seeded from POC entries that are independently verifiable (real businesses / real numbers). All (818) 555-01xx placeholder entries were removed.",
+    "needs": "Full ChamberWare directory export (name, category, tier, neighborhood, contact, website, phone, email) — Diana / Rob (TheWebCorner) migration.",
+    "schema_version": 1
+  },
+  "tiers": ["platinum", "gold", "silver", "bronze", "supporter", "member"],
+  "members": [
+    {
+      "id": "providence-tarzana",
+      "name": "Providence Cedars-Sinai Tarzana Medical Center",
+      "category": "Healthcare",
+      "tier": "platinum",
+      "neighborhood": "Tarzana",
+      "address": "18321 Clark St, Tarzana, CA 91356",
+      "phone": "(818) 881-0800",
+      "website": "https://providence.org",
+      "tagline": "Award-winning hospital serving the West Valley for over 50 years.",
+      "seal": "P",
+      "featured": true,
+      "tags": ["hospital", "emergency", "maternity", "cardiology"]
+    },
+    {
+      "id": "marriott-warner",
+      "name": "Warner Center Marriott Woodland Hills",
+      "category": "Hospitality",
+      "tier": "platinum",
+      "neighborhood": "Woodland Hills",
+      "address": "21850 Oxnard St, Woodland Hills, CA 91367",
+      "phone": "(818) 887-4800",
+      "website": "https://marriott.com",
+      "tagline": "Premier hotel and event venue in the heart of Warner Center.",
+      "seal": "M",
+      "featured": true,
+      "tags": ["hotel", "events", "weddings", "conferences"]
+    },
+    {
+      "id": "wh-camera",
+      "name": "Woodland Hills Camera & Telescopes",
+      "category": "Retail",
+      "tier": "gold",
+      "neighborhood": "Woodland Hills",
+      "address": "5348 Topanga Canyon Blvd, Woodland Hills, CA 91364",
+      "phone": "(818) 347-2270",
+      "website": "https://whcamera.com",
+      "tagline": "70 years of optics expertise. Cameras, telescopes, and more.",
+      "seal": "W",
+      "featured": true,
+      "tags": ["cameras", "telescopes", "photography", "astronomy"]
+    },
+    {
+      "id": "fogo-de-chao",
+      "name": "Fogo de Chão Brazilian Steakhouse",
+      "category": "Restaurant",
+      "tier": "gold",
+      "neighborhood": "Woodland Hills",
+      "address": "6373 Topanga Canyon Blvd, Woodland Hills, CA 91367",
+      "phone": "(818) 887-3007",
+      "website": "https://fogodechao.com",
+      "tagline": "Authentic churrasco experience, hand-carved tableside.",
+      "seal": "F",
+      "featured": true,
+      "tags": ["steakhouse", "brazilian", "fine dining"]
+    },
+    {
+      "id": "corbin-bowl",
+      "name": "Corbin Bowl",
+      "category": "Entertainment",
+      "tier": "gold",
+      "neighborhood": "Tarzana",
+      "address": "19616 Ventura Blvd, Tarzana, CA 91356",
+      "phone": "(818) 996-2695",
+      "website": "https://corbinbowl.net",
+      "tagline": "Tarzana's classic bowling, events, and hospitality venue.",
+      "seal": "C",
+      "featured": false,
+      "tags": ["bowling", "events", "hospitality", "family"]
+    },
+    {
+      "id": "wh-country-club",
+      "name": "Woodland Hills Country Club",
+      "category": "Recreation",
+      "tier": "gold",
+      "neighborhood": "Woodland Hills",
+      "phone": "(818) 347-1511",
+      "tagline": "Private golf, tennis, and event venue since 1925.",
+      "seal": "W",
+      "featured": false,
+      "tags": ["golf", "tennis", "private club", "weddings"]
+    },
+    {
+      "id": "cryohealthcare-wh",
+      "name": "Cryohealthcare Woodland Hills",
+      "category": "Health & Wellness",
+      "tier": "silver",
+      "neighborhood": "Woodland Hills",
+      "tagline": "Whole-body cryotherapy, red-light therapy, and recovery suites.",
+      "seal": "C",
+      "featured": false,
+      "tags": ["cryotherapy", "recovery", "wellness"]
+    },
+    {
+      "id": "winnetka-bowl",
+      "name": "Winnetka Bowl",
+      "category": "Entertainment",
+      "tier": "supporter",
+      "neighborhood": "Reseda",
+      "phone": "(818) 340-5190",
+      "tagline": "Family bowling and the West Valley's favorite mixer venue.",
+      "seal": "W",
+      "featured": false,
+      "tags": ["bowling", "events", "family"]
+    }
+  ]
+}

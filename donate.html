@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Donate — West Valley · Warner Center Chamber of Commerce</title>
+  <meta name="description" content="Support the West Valley · Warner Center Chamber's community programs — scholarships, festivals, Grateful Hearts, and neighborhood cleanups. Donations are tax-deductible." />
+  <link rel="canonical" href="https://woodlandhillscc.net/donate.html" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="css/chamber.css" />
+</head>
+<body>
+  <div data-partial="header"></div>
+
+  <section class="section-sm bg-forest">
+    <div class="container">
+      <span class="kicker">Give back</span>
+      <h1 style="color:#fff">Support the West Valley</h1>
+      <p class="lead" style="color:rgba(255,255,255,.85);max-width:62ch">
+        Your tax-deductible gift funds scholarships, cultural festivals, first-responder appreciation,
+        and neighborhood programs across Tarzana, Woodland Hills, Reseda, and the Warner Center.
+      </p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="grid grid-2" id="donateProjects"></div>
+    </div>
+  </section>
+
+  <div data-partial="footer"></div>
+
+  <script src="js/partials.js"></script>
+  <script src="js/chamber.js"></script>
+  <script>
+    ChamberPartials.mount({ active: '', depth: 0, lang: 'en' });
+    // Real donation projects from the live ChamberWare site.
+    const PROJECTS = [
+      { key: 'Community Benefit Foundation', desc: 'Community cleanup supplies and equipment for a cleaner, greener Valley.' },
+      { key: 'Grateful Hearts', desc: 'Honoring and supporting our local LAPD and LAFD first responders.' },
+      { key: 'Valley Asian Cultural Festival', desc: 'Celebrating the Valley’s vibrant Asian and Pacific Islander communities.' },
+      { key: 'Education', desc: 'Youth and adult education programs and scholarships across the West Valley.' },
+    ];
+    const AMOUNTS = [25, 60, 125, 200, 300, 600];
+    document.getElementById('donateProjects').innerHTML = PROJECTS.map((p) => `
+      <article class="card card--hover">
+        <div class="card__icon">♥</div>
+        <h3>${p.key}</h3>
+        <p>${p.desc}</p>
+        <div class="chips mt-4">
+          ${AMOUNTS.map((a) => `<a class="chip" href="checkout.html?type=donation&project=${encodeURIComponent(p.key)}&amount=${a}">$${a}</a>`).join('')}
+          <a class="chip" href="checkout.html?type=donation&project=${encodeURIComponent(p.key)}">Other</a>
+        </div>
+      </article>`).join('');
+  </script>
+</body>
+</html>

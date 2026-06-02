@@ -1,0 +1,84 @@
+/* ============================================================
+   WVWCCC Admin Console — layout on top of the brand tokens
+   (load css/chamber.css first for variables, buttons, badges)
+   ============================================================ */
+body.admin { background: var(--cream-deep); }
+
+.admin-shell { display: grid; grid-template-columns: 248px 1fr; min-height: 100vh; }
+
+/* ── Sidebar ── */
+.admin-sidebar { background: var(--green-ink); color: rgba(255,255,255,.8); display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; }
+.admin-brand { display: flex; align-items: center; gap: 10px; padding: var(--s-4) var(--s-5); border-bottom: 1px solid rgba(255,255,255,.1); }
+.admin-brand img { width: 40px; height: 40px; border-radius: 50%; box-shadow: 0 0 0 2px var(--gold); }
+.admin-brand b { color: #fff; font-family: var(--display); font-size: 1rem; line-height: 1.1; }
+.admin-brand span { display: block; font-family: var(--mono); font-size: .6rem; letter-spacing: .12em; text-transform: uppercase; color: var(--gold-bright); }
+.admin-nav { padding: var(--s-4) var(--s-3); display: flex; flex-direction: column; gap: 2px; overflow-y: auto; flex: 1; }
+.admin-nav a { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: var(--r-md); color: rgba(255,255,255,.78); font-weight: 500; font-size: .94rem; }
+.admin-nav a:hover { background: rgba(255,255,255,.06); color: #fff; }
+.admin-nav a.active { background: var(--green); color: #fff; }
+.admin-nav a .ico { width: 18px; text-align: center; opacity: .9; }
+.admin-nav .grp { font-family: var(--mono); font-size: .62rem; letter-spacing: .14em; text-transform: uppercase; color: rgba(255,255,255,.4); padding: var(--s-4) 14px 6px; }
+.admin-sidebar__foot { padding: var(--s-4) var(--s-5); border-top: 1px solid rgba(255,255,255,.1); font-size: .8rem; }
+.admin-sidebar__foot a { color: var(--gold-bright); }
+
+/* ── Main ── */
+.admin-main { padding: 0 0 var(--s-8); }
+.admin-topbar { background: var(--paper); border-bottom: 1px solid var(--line); padding: var(--s-4) var(--s-6); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 10; }
+.admin-topbar h1 { font-size: 1.5rem; margin: 0; }
+.admin-content { padding: var(--s-6); }
+.admin-notice { background: var(--gold-soft); color: var(--gold-deep); border-left: 3px solid var(--gold); padding: 10px 14px; border-radius: 0 8px 8px 0; font-size: .88rem; margin-bottom: var(--s-5); }
+
+/* ── Stat cards ── */
+.stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: var(--s-4); margin-bottom: var(--s-6); }
+.stat-card { background: var(--paper); border: 1px solid var(--line); border-radius: var(--r-lg); padding: var(--s-5); }
+.stat-card .num { font-family: var(--display); font-size: 2.1rem; font-weight: 600; color: var(--green-deep); line-height: 1; }
+.stat-card .lbl { font-size: .82rem; color: var(--muted); margin-top: 6px; }
+.stat-card.accent .num { color: var(--gold-deep); }
+
+/* ── Panels & tables ── */
+.panel { background: var(--paper); border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; margin-bottom: var(--s-6); }
+.panel__head { padding: var(--s-4) var(--s-5); border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; gap: var(--s-4); flex-wrap: wrap; }
+.panel__head h3 { margin: 0; }
+.admin-table { width: 100%; border-collapse: collapse; font-size: .92rem; }
+.admin-table th { text-align: left; font-family: var(--mono); font-size: .68rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding: 10px var(--s-5); border-bottom: 1px solid var(--line); background: var(--cream); position: sticky; top: 0; }
+.admin-table td { padding: 12px var(--s-5); border-bottom: 1px solid var(--line-soft); vertical-align: middle; }
+.admin-table tr:hover td { background: var(--cream); }
+.admin-table .name { font-weight: 600; color: var(--green-deep); }
+.admin-table .sub { font-size: .8rem; color: var(--muted); }
+
+/* ── Status radios (Diana's requirement) ── */
+.radio-group { display: inline-flex; flex-wrap: wrap; gap: 4px; }
+.radio-group label { font-size: .76rem; padding: 4px 9px; border: 1px solid var(--line); border-radius: var(--r-full); cursor: pointer; color: var(--slate-mid); transition: all var(--tr); user-select: none; }
+.radio-group input { position: absolute; opacity: 0; pointer-events: none; }
+.radio-group input:checked + label { background: var(--green-deep); border-color: var(--green-deep); color: #fff; }
+.radio-group label:hover { border-color: var(--green); }
+
+.admin-select { padding: 6px 10px; border: 1.5px solid var(--line); border-radius: var(--r-md); background: var(--paper); font-size: .86rem; }
+
+/* ── Toggle ── */
+.toggle { position: relative; width: 42px; height: 24px; display: inline-block; }
+.toggle input { opacity: 0; width: 0; height: 0; }
+.toggle .track { position: absolute; inset: 0; background: var(--line); border-radius: var(--r-full); transition: var(--tr); cursor: pointer; }
+.toggle .track::before { content: ""; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: var(--tr); box-shadow: var(--sh-sm); }
+.toggle input:checked + .track { background: var(--green); }
+.toggle input:checked + .track::before { transform: translateX(18px); }
+
+/* ── status pills ── */
+.pill { font-size: .7rem; font-weight: 600; padding: 3px 9px; border-radius: var(--r-full); text-transform: capitalize; }
+.pill--approved { background: var(--green-soft); color: var(--green); }
+.pill--pending { background: var(--gold-soft); color: var(--gold-deep); }
+.pill--suspended { background: #fbeaea; color: var(--red); }
+.pill--inactive { background: #eceef1; color: var(--slate-mid); }
+.pill--new { background: var(--leaf-soft); color: var(--green-deep); }
+.pill--read { background: #eceef1; color: var(--slate-mid); }
+.pill--done { background: var(--green-soft); color: var(--green); }
+
+.saved-flash { color: var(--green); font-size: .78rem; opacity: 0; transition: opacity .2s; }
+.saved-flash.show { opacity: 1; }
+
+@media (max-width: 860px) {
+  .admin-shell { grid-template-columns: 1fr; }
+  .admin-sidebar { position: static; height: auto; flex-direction: column; }
+  .admin-nav { flex-direction: row; flex-wrap: wrap; }
+  .admin-nav .grp { display: none; }
+}

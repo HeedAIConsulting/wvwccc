@@ -1,0 +1,42 @@
+# West Valley · Warner Center Chamber of Commerce — production blueprint.
+# POC stays on its own separate Render service; this is a NEW, independent service.
+
+databases:
+  - name: wvwccc-db
+    plan: basic-256mb        # bump to standard as the roster + orders grow
+    region: oregon
+    postgresMajorVersion: "16"
+
+services:
+  - type: web
+    name: wvwccc-production
+    runtime: node
+    plan: standard            # NOT free — public site cannot tolerate cold starts
+    region: oregon
+    rootDir: websites/wvwccc
+    buildCommand: npm install
+    preDeployCommand: npm run migrate    # apply backend/schema.sql before traffic flips
+    startCommand: npm start
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: wvwccc-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true   # Render generates a strong secret once
+      # ── AI Concierge ──
+      - key: GEMINI_API_KEY        # Heed key; always gemini-flash-latest
+        sync: false
+      - key: ANTHROPIC_API_KEY     # fallback, optional
+        sync: false
+      # ── Payments: AGMS on the NMI gateway ──
+      - key: AGMS_SECURITY_KEY     # gateway → Settings → Security Keys
+        sync: false
+      - key: AGMS_API_BASE         # sandbox: https://sandbox.nmi.com | prod: https://agms.transactiongateway.com
+        sync: false
+      - key: AGMS_USERNAME
+        value: heedaisolutions

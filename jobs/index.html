@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Jobs Board — West Valley · Warner Center Chamber of Commerce</title>
+  <meta name="description" content="Local jobs from West Valley · Warner Center Chamber member businesses. Find your next role or post an opening." />
+  <link rel="canonical" href="https://woodlandhillscc.net/jobs/index.html" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="../css/chamber.css" />
+</head>
+<body>
+  <div data-partial="header"></div>
+
+  <section class="section-sm bg-forest">
+    <div class="container">
+      <span class="kicker">Careers in the Valley</span>
+      <h1 style="color:#fff">Jobs Board</h1>
+      <p class="lead" style="color:rgba(255,255,255,.85);max-width:62ch">
+        Local openings from Chamber member businesses across the West Valley and Warner Center.
+      </p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--s-5);flex-wrap:wrap;gap:var(--s-3)">
+        <div id="jobsCount" class="member-tile__meta"></div>
+        <a class="btn btn--gold" href="../contact.html?reason=Jobs">Post a job →</a>
+      </div>
+      <div id="jobsList" class="grid" style="gap:var(--s-4)"></div>
+    </div>
+  </section>
+
+  <div data-partial="footer"></div>
+
+  <script src="../js/partials.js"></script>
+  <script src="../js/chamber.js"></script>
+  <script>
+    ChamberPartials.mount({ active: 'jobs', depth: 1, lang: 'en' });
+    Chamber.initJobs();
+  </script>
+</body>
+</html>

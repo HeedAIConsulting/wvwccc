@@ -1,0 +1,8 @@
+{
+  "_meta": {
+    "status": "PLACEHOLDER — the live ChamberWare board has ~150 active jobs + 38 resumes. Import the real listings from the DB export before launch.",
+    "rule": "Do not fabricate employers or positions. Show the post-a-job CTA until real data lands.",
+    "schema_version": 1
+  },
+  "jobs": []
+}

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Member Login — West Valley · Warner Center Chamber of Commerce</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="../css/chamber.css" />
+</head>
+<body>
+  <div data-partial="header"></div>
+  <section class="section">
+    <div class="container" style="display:grid;place-items:center">
+      <main class="card" style="width:min(440px,94vw)">
+        <div style="text-align:center">
+          <img src="../images/wvwccc-logo.png" alt="WVWCCC" width="72" height="72" style="border-radius:50%;margin:0 auto var(--s-3);box-shadow:0 0 0 2px var(--gold)" />
+          <h1 style="font-size:1.6rem">Member Login</h1>
+          <p class="member-tile__meta">Manage your profile, events, and listings.</p>
+        </div>
+        <form id="loginForm" class="mt-5">
+          <div class="field"><label>Email</label><input name="email" type="email" required autocomplete="username" /></div>
+          <div class="field"><label>Password</label><input name="password" type="password" required autocomplete="current-password" /></div>
+          <p id="msg" class="notice" hidden></p>
+          <button class="btn btn--forest btn--lg" type="submit" style="width:100%">Sign in</button>
+        </form>
+        <p class="member-tile__meta mt-4" style="text-align:center">
+          Not a member yet? <a href="../join.html">Join the Chamber →</a>
+        </p>
+      </main>
+    </div>
+  </section>
+  <div data-partial="footer"></div>
+  <script src="../js/partials.js"></script>
+  <script src="../js/api-base.js"></script>
+  <script>
+    ChamberPartials.mount({ active: '', depth: 1, lang: 'en' });
+    const form = document.getElementById('loginForm');
+    const msg = document.getElementById('msg');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      msg.hidden = true;
+      const body = Object.fromEntries(new FormData(form));
+      const btn = form.querySelector('button'); btn.disabled = true; btn.textContent = 'Signing in…';
+      try {
+        const r = await fetch(ChamberAPI.url('/api/auth/login'), {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin', body: JSON.stringify(body),
+        });
+        const data = await r.json();
+        if (!r.ok || !data.ok) {
+          msg.textContent = data.needsReset
+            ? 'Your account needs a new password. Please use “Forgot password” (coming soon) or contact the office.'
+            : (data.error || 'Sign in failed.');
+          msg.style.borderColor = 'var(--red)'; msg.hidden = false; return;
+        }
+        location.href = '../index.html';
+      } catch (err) { msg.textContent = 'Could not sign in right now.'; msg.hidden = false; }
+      finally { btn.disabled = false; btn.textContent = 'Sign in'; }
+    });
+  </script>
+</body>
+</html>

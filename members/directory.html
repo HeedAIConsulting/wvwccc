@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Member Directory — West Valley · Warner Center Chamber of Commerce</title>
+  <meta name="description" content="Search the West Valley · Warner Center Chamber member directory — vetted local businesses across Tarzana, Woodland Hills, Reseda, and the Warner Center." />
+  <link rel="canonical" href="https://woodlandhillscc.net/members/directory.html" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="../css/chamber.css" />
+</head>
+<body>
+  <div data-partial="header"></div>
+
+  <!-- page header -->
+  <section class="section-sm bg-forest">
+    <div class="container">
+      <span class="kicker">The Directory</span>
+      <h1 style="color:#fff">Find a vetted local business</h1>
+      <p class="lead" style="color:rgba(255,255,255,.85);max-width:60ch">
+        Every listing is a Chamber member — local, accountable, and part of the community since 1930.
+      </p>
+    </div>
+  </section>
+
+  <!-- search + filters -->
+  <section class="section">
+    <div class="container">
+      <form id="dirSearch" class="hero__concierge" style="max-width:640px;margin:0 0 var(--s-6)">
+        <div class="pill-input" style="box-shadow:var(--sh-sm)">
+          <span aria-hidden="true">🔎</span>
+          <input id="dirQuery" type="search" placeholder="Search by name, category, or service…" autocomplete="off" />
+          <button class="btn btn--forest btn--sm" type="submit">Search</button>
+        </div>
+      </form>
+
+      <div class="grid" style="grid-template-columns:240px 1fr;gap:var(--s-7);align-items:start">
+        <!-- facets -->
+        <aside id="facets" aria-label="Filters">
+          <h4 style="margin-bottom:var(--s-3)">Category</h4>
+          <div id="categoryFacet" class="chips" style="flex-direction:column;align-items:flex-start;gap:6px"></div>
+          <h4 style="margin:var(--s-5) 0 var(--s-3)">Neighborhood</h4>
+          <div id="hoodFacet" class="chips" style="flex-direction:column;align-items:flex-start;gap:6px"></div>
+        </aside>
+
+        <!-- results -->
+        <div>
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:var(--s-4)">
+            <div id="resultCount" class="member-tile__meta"></div>
+            <div id="dataNotice"></div>
+          </div>
+          <div class="grid grid-2" id="memberGrid" style="gap:var(--s-4)"></div>
+          <div id="emptyState" hidden class="notice" style="margin-top:var(--s-5)">No members match those filters. <button type="button" id="clearFilters" style="color:var(--green);font-weight:600;text-decoration:underline">Clear filters</button></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div data-partial="footer"></div>
+
+  <script src="../js/partials.js"></script>
+  <script src="../js/api-base.js"></script>
+  <script src="../js/chamber.js"></script>
+  <script>
+    ChamberPartials.mount({ active: 'members', depth: 1, lang: 'en' });
+    Chamber.initDirectory();
+  </script>
+</body>
+</html>

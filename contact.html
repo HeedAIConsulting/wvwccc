@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Contact — West Valley · Warner Center Chamber of Commerce</title>
+  <meta name="description" content="Contact the West Valley · Warner Center Chamber of Commerce. Call (818) 347-4737 or send a message — we'll get back to you." />
+  <link rel="canonical" href="https://woodlandhillscc.net/contact.html" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="css/chamber.css" />
+</head>
+<body>
+  <div data-partial="header"></div>
+
+  <section class="section">
+    <div class="container">
+      <div class="grid" style="grid-template-columns:1fr 1fr;gap:var(--s-8);align-items:start">
+        <div>
+          <span class="kicker">Get in touch</span>
+          <h1>Contact the Chamber</h1>
+          <p class="lead">Questions about membership, events, sponsorships, or the community? We're here.</p>
+          <ul style="list-style:none;display:flex;flex-direction:column;gap:var(--s-3);margin-top:var(--s-5)">
+            <li>📞 <strong>(818) 347-4737</strong></li>
+            <li>📍 Serving Tarzana · Woodland Hills · Reseda · Warner Center</li>
+            <li>🕒 The West Valley's Chamber since 1930</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Send a message</h3>
+          <form id="contactForm" class="mt-4">
+            <div class="field"><label>Name</label><input name="name" required /></div>
+            <div class="field"><label>Email</label><input name="email" type="email" required /></div>
+            <div class="field"><label>Phone</label><input name="phone" type="tel" /></div>
+            <div class="field"><label>Reason</label>
+              <select name="reason">
+                <option>General inquiry</option>
+                <option>Membership</option>
+                <option>Event / RSVP</option>
+                <option>Sponsorship</option>
+                <option>Press / partnership</option>
+              </select>
+            </div>
+            <div class="field"><label>Message</label><textarea name="message" rows="4" required></textarea></div>
+            <p id="contactMsg" class="notice" hidden></p>
+            <button class="btn btn--forest btn--lg" type="submit" style="width:100%">Send message</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div data-partial="footer"></div>
+
+  <script src="js/partials.js"></script>
+  <script src="js/api-base.js"></script>
+  <script src="js/chamber.js"></script>
+  <script>
+    ChamberPartials.mount({ active: '', depth: 0, lang: 'en' });
+    Chamber.initLeadForm('contactForm', 'contactMsg', 'contact');
+  </script>
+</body>
+</html>

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex" />
+  <title>Inquiries — WVWCCC Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="../css/chamber.css" />
+  <link rel="stylesheet" href="admin.css" />
+</head>
+<body class="admin">
+  <div class="admin-shell">
+    <aside class="admin-sidebar" data-admin-nav></aside>
+    <div class="admin-main">
+      <div class="admin-topbar"><h1>Inquiries &amp; notifications</h1></div>
+      <div class="admin-content">
+        <p id="adminError" class="admin-notice" hidden></p>
+        <p class="admin-notice">Every contact-form and membership inquiry lands here. Email notifications to the office + felicia@ wire in with Microsoft 365 in Phase 3.</p>
+        <div class="panel">
+          <div class="panel__head"><h3>All inquiries</h3></div>
+          <div style="overflow-x:auto">
+            <table class="admin-table"><thead><tr><th>From</th><th>Reason</th><th>Message</th><th>Status</th><th>Mark</th></tr></thead><tbody id="leadRows"></tbody></table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="../js/api-base.js"></script>
+  <script src="admin.js"></script>
+  <script>Admin.initLeads();</script>
+</body>
+</html>

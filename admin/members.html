@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex" />
+  <title>Members — WVWCCC Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="../css/chamber.css" />
+  <link rel="stylesheet" href="admin.css" />
+</head>
+<body class="admin">
+  <div class="admin-shell">
+    <aside class="admin-sidebar" data-admin-nav></aside>
+    <div class="admin-main">
+      <div class="admin-topbar"><h1>Members</h1><span id="memberCount" class="sub"></span></div>
+      <div class="admin-content">
+        <p id="adminError" class="admin-notice" hidden></p>
+        <div class="panel">
+          <div class="panel__head">
+            <h3>Member roster</h3>
+            <input id="memberSearch" class="admin-select" type="search" placeholder="Search members…" style="min-width:240px" />
+          </div>
+          <div style="overflow-x:auto">
+            <table class="admin-table">
+              <thead><tr><th>Member</th><th>Tier</th><th>Status</th><th>Designation</th><th>Featured</th><th></th></tr></thead>
+              <tbody id="memberRows"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="../js/api-base.js"></script>
+  <script src="admin.js"></script>
+  <script>Admin.initMembers();</script>
+</body>
+</html>

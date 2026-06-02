@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Events & Tickets — West Valley · Warner Center Chamber of Commerce</title>
+  <meta name="description" content="Chamber breakfasts, mixers, ribbon cuttings, and the annual Gala. RSVP and buy tickets for West Valley · Warner Center Chamber events." />
+  <link rel="canonical" href="https://woodlandhillscc.net/events/index.html" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="../css/chamber.css" />
+</head>
+<body>
+  <div data-partial="header"></div>
+
+  <section class="section-sm bg-forest">
+    <div class="container">
+      <span class="kicker">What's happening</span>
+      <h1 style="color:#fff">Chamber events &amp; tickets</h1>
+      <p class="lead" style="color:rgba(255,255,255,.85);max-width:62ch">
+        Monthly breakfasts, networking groups, ribbon cuttings, and our signature Gala —
+        <em>Black, White &amp; Bold!</em> on July 25. RSVP and buy tickets right here.
+      </p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div style="display:flex;justify-content:flex-end;margin-bottom:var(--s-5)">
+        <div class="view-toggle" role="tablist" aria-label="Calendar view">
+          <button data-view="list" class="active" type="button">List</button>
+          <button data-view="grid" type="button">Month</button>
+        </div>
+      </div>
+
+      <div id="eventsList" class="grid" style="gap:var(--s-4)"></div>
+      <div id="eventsGrid" hidden></div>
+    </div>
+  </section>
+
+  <div data-partial="footer"></div>
+
+  <script src="../js/partials.js"></script>
+  <script src="../js/chamber.js"></script>
+  <script>
+    ChamberPartials.mount({ active: 'events', depth: 1, lang: 'en' });
+    Chamber.initEvents();
+  </script>
+</body>
+</html>

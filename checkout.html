@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Secure Checkout — West Valley · Warner Center Chamber of Commerce</title>
+  <meta name="robots" content="noindex" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="css/chamber.css" />
+  <style>
+    /* Collect.js hosted fields land inside these boxes */
+    .cc-field { border: 1.5px solid var(--line); border-radius: var(--r-md); height: 46px; background: var(--paper); padding: 0 12px; }
+    .cc-field iframe { height: 44px !important; }
+    .pay-grid { display: grid; grid-template-columns: 1.1fr .9fr; gap: var(--s-7); align-items: start; }
+    @media (max-width: 820px) { .pay-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div data-partial="header"></div>
+
+  <section class="section">
+    <div class="container container-narrow">
+      <span class="kicker">Secure Checkout</span>
+      <h1 id="coTitle">Checkout</h1>
+      <p class="lead" id="coSubtitle">Complete your purchase below. Payments are processed securely by AGMS.</p>
+
+      <div id="sandboxNotice" class="notice mt-4" hidden>
+        Payment sandbox not yet configured — add the AGMS <code>tokenization key</code> to enable live card entry. The form below is otherwise complete.
+      </div>
+
+      <form id="payForm" class="pay-grid mt-6">
+        <!-- left: payer + card -->
+        <div>
+          <h3 style="margin-bottom:var(--s-4)">Your details</h3>
+          <div class="grid grid-2" style="gap:var(--s-3)">
+            <div class="field"><label>First name</label><input name="firstName" required /></div>
+            <div class="field"><label>Last name</label><input name="lastName" required /></div>
+          </div>
+          <div class="field"><label>Email (receipt)</label><input name="email" type="email" required /></div>
+
+          <h3 style="margin:var(--s-5) 0 var(--s-4)">Payment</h3>
+          <div class="field"><label>Card number</label><div class="cc-field" id="ccnumber"></div></div>
+          <div class="grid grid-2" style="gap:var(--s-3)">
+            <div class="field"><label>Expiration</label><div class="cc-field" id="ccexp"></div></div>
+            <div class="field"><label>CVV</label><div class="cc-field" id="cvv"></div></div>
+          </div>
+          <p id="payError" class="notice" style="border-color:var(--red);background:#fbeaea;color:var(--red)" hidden></p>
+        </div>
+
+        <!-- right: order summary -->
+        <aside class="card" style="position:sticky;top:100px">
+          <h3>Order summary</h3>
+          <div id="orderSummary" class="mt-3"></div>
+          <div class="field mt-4" id="amountField">
+            <label id="amountLabel">Amount (USD)</label>
+            <input name="amount" id="amount" type="number" min="1" step="0.01" inputmode="decimal" required />
+          </div>
+          <button class="btn btn--gold btn--lg" type="submit" id="payBtn" style="width:100%">Pay securely</button>
+          <p class="member-tile__meta mt-3" style="text-align:center">🔒 Card details are encrypted and tokenized — they never touch our servers.</p>
+        </aside>
+      </form>
+
+      <div id="paySuccess" hidden class="card mt-6" style="border-color:var(--green);background:var(--leaf-soft)">
+        <h3 style="color:var(--green-deep)">Payment received — thank you!</h3>
+        <p>A receipt has been emailed to you. Confirmation: <strong id="txnId"></strong></p>
+        <a class="btn btn--forest mt-3" href="index.html">Back to home</a>
+      </div>
+    </div>
+  </section>
+
+  <div data-partial="footer"></div>
+
+  <!-- AGMS / NMI Collect.js — set the real tokenization key to enable live entry -->
+  <script>
+    window.WVWCCC_PAY = {
+      // From the gateway: Settings → Security Keys → "tokenization" (public) key.
+      tokenizationKey: '',                 // <-- paste sandbox tokenization key
+      collectSrc: 'https://agms.transactiongateway.com/token/Collect.js',
+    };
+  </script>
+  <script src="js/partials.js"></script>
+  <script src="js/api-base.js"></script>
+  <script src="js/chamber.js"></script>
+  <script>
+    ChamberPartials.mount({ active: '', depth: 0, lang: 'en' });
+    Chamber.initCheckout();
+  </script>
+</body>
+</html>

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex" />
+  <title>Dashboard — WVWCCC Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="../css/chamber.css" />
+  <link rel="stylesheet" href="admin.css" />
+</head>
+<body class="admin">
+  <div class="admin-shell">
+    <aside class="admin-sidebar" data-admin-nav></aside>
+    <div class="admin-main">
+      <div class="admin-topbar"><h1>Dashboard</h1><a class="btn btn--gold btn--sm" href="../index.html">View site ↗</a></div>
+      <div class="admin-content">
+        <p id="adminError" class="admin-notice" hidden></p>
+        <p id="dashNotice" class="admin-notice" hidden></p>
+        <div class="stat-row" id="statRow"></div>
+        <div class="panel">
+          <div class="panel__head"><h3>Recent inquiries</h3><a class="btn btn--ghost btn--sm" href="leads.html">View all</a></div>
+          <table class="admin-table"><thead><tr><th>From</th><th>Reason</th><th>Status</th></tr></thead><tbody id="recentLeads"></tbody></table>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="../js/api-base.js"></script>
+  <script src="admin.js"></script>
+  <script>Admin.initDashboard();</script>
+</body>
+</html>

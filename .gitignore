@@ -1,0 +1,12 @@
+node_modules/
+.env
+.env.local
+.env.*.local
+data/_store/
+# real DB dumps contain member PII — never commit (the synthetic sample-chamberware.sql is fine)
+woodlandhills*.sql
+*-db.sql
+*.dump
+*.log
+.DS_Store
+Thumbs.db

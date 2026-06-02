@@ -1,0 +1,25 @@
+{
+  "name": "wvwccc-production",
+  "version": "1.0.0",
+  "private": true,
+  "description": "West Valley · Warner Center Chamber of Commerce — production platform (Heed Business Solutions)",
+  "type": "module",
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "migrate": "node scripts/migrate.js",
+    "create-staff": "node scripts/create-staff.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "compression": "^1.7.4",
+    "cors": "^2.8.5",
+    "helmet": "^7.1.0",
+    "cookie-parser": "^1.4.7",
+    "express-rate-limit": "^7.4.1",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.13.1"
+  }
+}
