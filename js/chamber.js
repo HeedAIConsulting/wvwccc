@@ -136,6 +136,16 @@ window.Chamber = (function () {
       const wrap = document.getElementById('featuredMembers');
       if (wrap) wrap.innerHTML = show.map((m) => memberTile(m, 0)).join('');
 
+      // recently active members (members who signed in most recently)
+      try {
+        const recent = (await getJSON(ChamberAPI.url('/api/members/recent'))).members || [];
+        const rwrap = document.getElementById('recentMembers');
+        if (rwrap && recent.length) {
+          rwrap.innerHTML = recent.slice(0, 8).map((m) => memberTile(m, 0)).join('');
+          document.getElementById('recentSection').hidden = false;
+        }
+      } catch (e) { /* no recent logins yet */ }
+
       // hero spotlight = first featured
       const hero = document.getElementById('heroFeature');
       if (hero && show[0]) {
@@ -577,5 +587,40 @@ window.Chamber = (function () {
   const initDeals = () => initPostsFeed('discount', 'dealsList', offerCard, 'No member offers yet — check back soon, or members can post one from their portal.');
   const initCommunity = () => initPostsFeed('member_post', 'communityList', postCard, 'No community posts yet. Members can post the first one from their portal.');
 
-  return { initHome, initDirectory, initProfile, initEvents, initCheckout, initLeadForm, initJobs, initDeals, initCommunity, offerCard, postCard, memberTile, eventCard, getJSON, esc };
+  // ── Dining Guide — Chamber member restaurants only ──
+  const DINING_RE = /restaurant|dining|food|caf[eé]|bakery|steak|grill|eatery|coffee|catering|\bbar\b|brewery|deli|pizza|cuisine|kitchen|bistro|diner|\bpub\b|juice|dessert|ice ?cream|hoagie|sandwich|taco|sushi|bbq|churrasc/i;
+  function diningCard(m) {
+    const seal = m.logo
+      ? `<img src="${esc(m.logo)}" alt="" loading="lazy" style="width:64px;height:64px;border-radius:12px;object-fit:cover">`
+      : `<div class="member-tile__seal">${esc(m.seal || m.name[0])}</div>`;
+    const phoneDigits = (m.phone || '').replace(/[^\d]/g, '');
+    const tags = (m.tags || []).slice(0, 4).map((t) => `<span class="chip">${esc(t)}</span>`).join('');
+    return `
+      <article class="card card--hover member-tile">
+        <div class="member-tile__head">${seal}
+          <div><a class="member-tile__name" href="members/profile.html?id=${encodeURIComponent(m.id)}">${esc(m.name)}</a>
+          <div class="member-tile__meta">${esc(m.category || 'Dining')}${m.neighborhood ? ' · ' + esc(m.neighborhood) : ''}</div></div>
+        </div>
+        <p class="member-tile__tag">${esc(m.tagline || '')}</p>
+        ${tags ? `<div class="chips">${tags}</div>` : ''}
+        <div class="member-tile__links">
+          ${m.phone ? `<a href="tel:${phoneDigits}">${esc(m.phone)}</a>` : ''}
+          ${m.website ? `<a href="${esc(m.website)}" target="_blank" rel="noopener">Menu / site ↗</a>` : ''}
+        </div>
+      </article>`;
+  }
+  async function initDining() {
+    const grid = document.getElementById('diningGrid');
+    if (!grid) return;
+    let members = [];
+    try { members = (await getJSON(ChamberAPI.url('/api/members'))).members || []; } catch (e) {}
+    const dining = members.filter((m) => DINING_RE.test(m.category || '') || (m.tags || []).some((t) => DINING_RE.test(t)));
+    const cnt = document.getElementById('diningCount');
+    if (cnt) cnt.textContent = dining.length ? `${dining.length} member dining spot${dining.length === 1 ? '' : 's'}` : '';
+    grid.innerHTML = dining.length
+      ? dining.map(diningCard).join('')
+      : '<div class="notice">Member restaurants will appear here as the directory fills in. Are you a Chamber-member eatery? <a href="join.html">Join the Chamber</a>.</div>';
+  }
+
+  return { initHome, initDirectory, initProfile, initEvents, initCheckout, initLeadForm, initJobs, initDeals, initCommunity, initDining, offerCard, postCard, memberTile, eventCard, getJSON, esc };
 })();

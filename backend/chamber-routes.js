@@ -35,6 +35,7 @@ router.post('/auth/login', async (req, res) => {
     const { ok, rehash } = auth.verifyPassword(password, user.passwordHash, user.passwordAlgo);
     if (!ok) return res.status(401).json({ error: 'Invalid email or password.' });
     if (rehash) { try { await users.updatePassword(email, rehash); } catch (e) { console.error('rehash failed', e.message); } }
+    users.setLastLogin(email).catch(() => {});
     auth.setCookie(res, auth.signSession(user));
     res.json({ ok: true, role: user.role || 'member' });
   } catch (e) { console.error('login error', e); res.status(500).json({ error: 'login failed' }); }
@@ -209,6 +210,17 @@ async function loadMembersPublic() {
 router.get('/members', async (_req, res) => {
   try { res.json(await loadMembersPublic()); }
   catch (e) { console.error(e); res.status(500).json({ error: 'directory unavailable' }); }
+});
+
+// Recently active members (signed in most recently) — for the homepage rotation.
+router.get('/members/recent', async (_req, res) => {
+  try {
+    const ids = await users.recentMemberIds(8);
+    const all = (await loadMembersPublic()).members;
+    const byId = Object.fromEntries(all.map((m) => [m.id, m]));
+    const members = ids.map((id) => byId[id]).filter(Boolean); // approved + public only
+    res.json({ members });
+  } catch (e) { res.status(500).json({ error: 'failed' }); }
 });
 
 router.get('/members/:id', async (req, res) => {

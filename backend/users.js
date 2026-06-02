@@ -31,6 +31,38 @@ export async function getUserByEmail(email) {
   return storeUsers().find((u) => lc(u.email) === email) || null;
 }
 
+export async function setLastLogin(email) {
+  email = lc(email);
+  if (db.enabled) { try { await db.query('UPDATE users SET last_login=now() WHERE lower(email)=$1', [email]); } catch (e) {} return; }
+  const now = new Date().toISOString();
+  for (const fname of ['staff.json', 'users.json']) {
+    if (fname === 'users.json') {
+      const mu = store.read('users.json', { users: [] }); const arr = mu.users || [];
+      const i = arr.findIndex((u) => lc(u.email) === email);
+      if (i >= 0) { arr[i].lastLogin = now; store.write('users.json', { ...mu, users: arr }); return; }
+    } else {
+      const s = store.read('staff.json', []); const i = s.findIndex((u) => lc(u.email) === email);
+      if (i >= 0) { s[i].lastLogin = now; store.write('staff.json', s); return; }
+    }
+  }
+}
+
+// Members whose linked login was used most recently (for "recently active" on home).
+export async function recentMemberIds(limit = 8) {
+  if (db.enabled) {
+    const r = await db.query(
+      "SELECT member_id FROM users WHERE role='member' AND member_id IS NOT NULL AND last_login IS NOT NULL ORDER BY last_login DESC LIMIT $1",
+      [limit]);
+    return r.rows.map((x) => x.member_id);
+  }
+  const mu = store.read('users.json', { users: [] });
+  return (mu.users || [])
+    .filter((u) => u.memberId && u.lastLogin)
+    .sort((a, b) => String(b.lastLogin).localeCompare(String(a.lastLogin)))
+    .slice(0, limit)
+    .map((u) => u.memberId);
+}
+
 export async function updatePassword(email, bcryptHash) {
   email = lc(email);
   if (db.enabled) {

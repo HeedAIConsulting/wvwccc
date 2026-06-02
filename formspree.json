@@ -1,5 +1,4 @@
 {
-  "$schema": "https://formspree.io/schemas/project.json",
   "forms": {
     "membership":  { "name": "WVWCCC — Membership Inquiry" },
     "sponsorship": { "name": "WVWCCC — Sponsorship & Advertising" },

@@ -4,17 +4,12 @@
    /api/contact (admin Inquiries panel).
    ============================================================ */
 window.ChamberForms = (function () {
-  // Formspree form IDs per inquiry type.
-  // Until the 4 separate forms are deployed (Formspree CLI / dashboard),
-  // they all fall back to the existing form. Replace each id below with the
-  // per-type hashid after deploy — that's the only change needed.
-  var FORMSPREE = {
-    general:     'mojbggnq',
-    membership:  'mojbggnq',
-    sponsorship: 'mojbggnq',
-    events:      'mojbggnq',
-    press:       'mojbggnq',
-  };
+  // Separate Formspree forms per inquiry type, deployed via the Formspree CLI
+  // (project forms). They submit to the project endpoint /p/{project}/f/{key}.
+  // 'general' uses the standalone form. (Public IDs — not secrets.)
+  var FORMSPREE_PROJECT = '3015387617890926306';
+  var FORM_KEY = { membership: 'membership', sponsorship: 'sponsorship', events: 'events', press: 'press' };
+  var GENERAL_FORM = 'mojbggnq';
 
   var TYPES = {
     membership:  { title: 'Membership Inquiry',        blurb: 'Tell us about your business and we’ll be in touch about joining.' },
@@ -24,7 +19,11 @@ window.ChamberForms = (function () {
     general:     { title: 'General Inquiry',           blurb: 'How can the Chamber help?' },
   };
 
-  function fsEndpoint(type) { return 'https://formspree.io/f/' + (FORMSPREE[type] || FORMSPREE.general); }
+  function fsEndpoint(type) {
+    return FORM_KEY[type]
+      ? 'https://formspree.io/p/' + FORMSPREE_PROJECT + '/f/' + FORM_KEY[type]
+      : 'https://formspree.io/f/' + GENERAL_FORM;
+  }
 
   async function submitDual(type, data) {
     var meta = TYPES[type] || TYPES.general;
@@ -87,5 +86,5 @@ window.ChamberForms = (function () {
     });
   }
 
-  return { initInquiry, FORMSPREE, TYPES };
+  return { initInquiry, fsEndpoint, TYPES };
 })();

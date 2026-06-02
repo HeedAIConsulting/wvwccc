@@ -279,11 +279,11 @@ a.member-tile__name:hover { color: var(--green); }
   object-fit: cover; background: var(--green-char);
   box-shadow: 0 0 0 2px var(--gold), var(--sh-sm);
 }
-.brand__name { font-family: var(--display); font-weight: 600; font-size: 1.12rem; color: #fff; line-height: 1.05; }
+.brand__name { font-family: var(--display); font-weight: 600; font-size: 1rem; color: #fff; line-height: 1.05; }
 .brand__sub { font-family: var(--mono); font-size: .66rem; letter-spacing: .14em; text-transform: uppercase; color: var(--gold-bright); }
 
-.nav { display: flex; align-items: center; gap: 16px; }
-.nav > a { color: rgba(255,255,255,.82); font-weight: 500; font-size: .88rem; position: relative; white-space: nowrap; }
+.nav { display: flex; align-items: center; gap: 13px; }
+.nav > a { color: rgba(255,255,255,.82); font-weight: 500; font-size: .85rem; position: relative; white-space: nowrap; }
 .nav > a:hover { color: #fff; }
 .nav > a.active { color: var(--gold-bright); }
 .nav > a:not(.nav-cta).active::after {
@@ -296,7 +296,7 @@ a.member-tile__name:hover { color: var(--green); }
 .lang-switch a { color: rgba(255,255,255,.7); font-family: var(--mono); font-size: .72rem; font-weight: 500; padding: 2px 5px; border-radius: 4px; }
 .lang-switch a.active { color: var(--green-ink); background: var(--gold-bright); }
 
-@media (max-width: 1200px) {
+@media (max-width: 1260px) {
   .nav { position: fixed; inset: 118px 0 auto 0; flex-direction: column; align-items: stretch;
     background: var(--green-ink); padding: var(--s-5); gap: var(--s-2); border-bottom: 2px solid var(--gold);
     box-shadow: var(--sh-lg);

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dine West Valley — West Valley · Warner Center Chamber of Commerce</title>
+  <meta name="description" content="Dine West Valley — restaurants, cafés, and eateries that are members of the West Valley · Warner Center Chamber of Commerce. Eat local, support members." />
+  <link rel="canonical" href="https://woodlandhillscc.net/dining.html" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="css/chamber.css" />
+</head>
+<body>
+  <div data-partial="header"></div>
+  <section class="section-sm bg-forest">
+    <div class="container">
+      <span class="kicker">Dine West Valley</span>
+      <h1 style="color:#fff">Eat local. Eat member.</h1>
+      <p class="lead" style="color:rgba(255,255,255,.85);max-width:62ch">
+        Every restaurant here is a Chamber member — from Tarzana to Woodland Hills, Reseda, and the Warner Center. <span id="diningCount"></span>
+      </p>
+    </div>
+  </section>
+  <section class="section">
+    <div class="container">
+      <div id="diningGrid" class="grid grid-3" style="gap:var(--s-5)"><p class="member-tile__meta">Loading member restaurants…</p></div>
+    </div>
+  </section>
+  <div data-partial="footer"></div>
+  <script src="js/partials.js"></script>
+  <script src="js/api-base.js"></script>
+  <script src="js/chamber.js"></script>
+  <script>ChamberPartials.mount({ active: 'dining', depth: 0, lang: 'en' }); Chamber.initDining();</script>
+</body>
+</html>

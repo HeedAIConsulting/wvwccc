@@ -11,6 +11,12 @@ The site already works today: every type falls back to the existing form
 form IDs back and they get dropped into `js/forms.js` → `FORMSPREE`.
 
 Project ID: `3015387617890926306`
+Deploy Key: **secret — kept out of this repo.** (Rotate it in Formspree, since it was shared.)
+
+> ✅ **Done.** The four forms are deployed and live. The site submits each
+> inquiry type to the project endpoint
+> `https://formspree.io/p/3015387617890926306/f/{membership|sponsorship|events|press}`
+> (handled in `js/forms.js`). No per-form hashids or further wiring needed.
 
 ## Option A — Formspree CLI (forms-as-code, uses the Deploy Key)
 The Deploy Key is a **secret** — never commit it or paste it in chat.
