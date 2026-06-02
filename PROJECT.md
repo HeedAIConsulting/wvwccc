@@ -4,6 +4,12 @@
 Render Web Service `wvwccc-web` (srv-d8f8pci8qa3s738nsib0) + Postgres `wvwccc-db`, Oregon, from repo **HeedAIConsulting/wvwccc** branch `main` (standalone repo; subtree of `websites/wvwccc`). Migration applied, auth live, verified (/healthz, members API, admin 401, _store 403, HSTS). The old `srv-d8f88m42m8qs73dvgekg` was a Static Site — unused.
 **Durability:** ✅ DONE — auth users, leads, orders, member admin-overrides, AND member self-edits all persist to **Postgres** (via `backend/repo.js`; JSON store only in dev). Verified live.
 **Member portal:** ✅ DONE — `/member/` (dashboard, edit listing, change password). Members edit their own directory profile (`/api/me`, `/api/me/profile`); edits merge into the public directory (base < member edits < admin overrides). Create member logins with `scripts/create-member.js`.
+**Rich profiles + content + AI (2026-06-02):** ✅ DONE & live —
+- Detailed profiles: logo + photos (Postgres `assets` store, served `/api/assets/:id`), social links, CTA buttons, Google/Yelp review links, occupation/type/year/employees/hours.
+- Member **offers/discounts** + **member-to-member community posts** (`posts` table) with **admin approval gate**. Public **Deals** page + **Community** board; offers also render on member profiles.
+- Admin **Content console** (`admin/content.html`): create news/announcements/messaging + approve/reject/feature/delete; `pendingPosts` on dashboard.
+- **ElevenLabs ConvAI** agent `agent_8201kqnjhzyrfpdvtqwgf9e0034y` on all public pages (pulled from POC).
+- Nav adds Deals + Community.
 
 
 **West Valley · Warner Center Chamber of Commerce** — production platform.

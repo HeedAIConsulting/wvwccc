@@ -188,6 +188,12 @@ router.get('/posts', async (req, res) => {
   } catch (e) { res.status(500).json({ error: 'failed' }); }
 });
 
+// Homepage hero slider (admin-managed event photos).
+router.get('/slides', async (_req, res) => {
+  try { res.json({ slides: (await repo.listPosts({ type: 'slide', status: 'approved' })).filter((s) => s.imageUrl) }); }
+  catch (e) { res.status(500).json({ error: 'failed' }); }
+});
+
 async function loadMembersPublic() {
   const { source, members } = await loadMembersFull();
   const pub = members
@@ -345,6 +351,19 @@ router.get('/admin/options', requireAdmin, (_req, res) => {
   res.json({ leaderOptions: LEADER_OPTS, statusOptions: STATUS_OPTS });
 });
 
+// Create / update a staff or member login.
+router.post('/admin/users', requireAdmin, async (req, res) => {
+  const b = req.body || {};
+  if (!b.email || !b.password || String(b.password).length < 8) {
+    return res.status(400).json({ error: 'email and an 8+ character password are required' });
+  }
+  try {
+    if (b.role === 'member') await users.upsertMember(b.email, auth.hashPassword(b.password), b.memberId || null, b.name);
+    else await users.upsertStaff(b.email, auth.hashPassword(b.password), b.name);
+    res.json({ ok: true, email: b.email, role: b.role === 'member' ? 'member' : 'staff' });
+  } catch (e) { console.error(e); res.status(500).json({ error: 'could not create user' }); }
+});
+
 // ── Admin content & approvals (posts: news/announcements/discounts/member posts) ──
 router.get('/admin/posts', requireAdmin, async (req, res) => {
   try {
@@ -354,7 +373,7 @@ router.get('/admin/posts', requireAdmin, async (req, res) => {
   } catch (e) { res.status(500).json({ error: 'failed' }); }
 });
 
-const ADMIN_POST_TYPES = ['news', 'announcement', 'discount', 'member_post', 'event'];
+const ADMIN_POST_TYPES = ['news', 'announcement', 'discount', 'member_post', 'event', 'slide'];
 router.post('/admin/posts', requireAdmin, async (req, res) => {
   const b = req.body || {};
   if (!ADMIN_POST_TYPES.includes(b.type)) return res.status(400).json({ error: 'Invalid type.' });

@@ -263,12 +263,29 @@ window.Admin = (function () {
         tr.querySelector('[data-del]')?.addEventListener('click', async () => { await api('/api/admin/posts/' + encodeURIComponent(id), { method: 'DELETE' }); load(); });
       });
     }
+    // image upload (event photos for slider, or any post image)
+    let imageUrl = '';
+    const imgInput = document.getElementById('postImage');
+    if (imgInput) imgInput.addEventListener('change', (e) => {
+      const f = e.target.files[0]; if (!f) return;
+      const r = new FileReader();
+      r.onload = async () => {
+        try {
+          const up = await api('/api/me/asset', { method: 'POST', body: JSON.stringify({ kind: 'photo', dataUrl: r.result }) });
+          imageUrl = up.url;
+          document.getElementById('postImgPrev').innerHTML = `<img src="${imageUrl}" style="max-width:220px;border-radius:8px">`;
+        } catch (err) { msg.hidden = false; msg.textContent = 'Image upload failed.'; }
+      };
+      r.readAsDataURL(f);
+    });
+
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const fd = new FormData(form);
-      const body = { type: fd.get('type'), title: fd.get('title'), body: fd.get('body'), linkUrl: fd.get('linkUrl'), featuredHome: fd.get('featuredHome') === 'on' };
+      if (fd.get('type') === 'slide' && !imageUrl) { msg.hidden = false; msg.textContent = 'A slider photo needs an image.'; return; }
+      const body = { type: fd.get('type'), title: fd.get('title'), body: fd.get('body'), linkUrl: fd.get('linkUrl'), imageUrl, featuredHome: fd.get('featuredHome') === 'on' };
       const btn = form.querySelector('button[type="submit"]'); btn.disabled = true;
-      try { await api('/api/admin/posts', { method: 'POST', body: JSON.stringify(body) }); form.reset(); msg.hidden = false; msg.textContent = 'Published.'; load(); }
+      try { await api('/api/admin/posts', { method: 'POST', body: JSON.stringify(body) }); form.reset(); document.getElementById('postImgPrev').innerHTML = ''; imageUrl = ''; msg.hidden = false; msg.textContent = 'Published.'; load(); }
       catch (err) { msg.hidden = false; msg.textContent = 'Could not publish (title required).'; }
       finally { btn.disabled = false; }
     });

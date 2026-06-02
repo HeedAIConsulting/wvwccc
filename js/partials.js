@@ -155,6 +155,15 @@ window.ChamberPartials = (function () {
     }
   }
 
+  // ADA / WCAG accessibility toolkit on every page except the admin console.
+  function mountAccessibility(depth) {
+    if (/\/admin\//.test(window.location.pathname)) return;
+    if (document.querySelector('script[src*="accessibility.js"]')) return;
+    var s = document.createElement('script');
+    s.src = p(depth, 'js/accessibility.js'); s.async = true;
+    document.body.appendChild(s);
+  }
+
   function mount({ active = '', depth = 0, lang = 'en' } = {}) {
     const h = document.querySelector('[data-partial="header"]');
     const f = document.querySelector('[data-partial="footer"]');
@@ -171,6 +180,7 @@ window.ChamberPartials = (function () {
       });
     }
     mountElevenLabs();
+    mountAccessibility(depth);
   }
 
   return { mount };

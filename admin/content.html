@@ -29,12 +29,14 @@
                     <option value="announcement">Announcement / message</option>
                     <option value="discount">Offer</option>
                     <option value="event">Event note</option>
+                    <option value="slide">Home slider photo (event image)</option>
                   </select>
                 </div>
                 <div class="field"><label>Link (optional)</label><input name="linkUrl" type="url" placeholder="https://" /></div>
               </div>
-              <div class="field"><label>Title</label><input name="title" required /></div>
+              <div class="field"><label>Title / caption</label><input name="title" required /></div>
               <div class="field"><label>Body</label><textarea name="body" rows="3"></textarea></div>
+              <div class="field"><label>Image <span class="sub">(required for slider photos; optional elsewhere)</span></label><input id="postImage" type="file" accept="image/*" /><div id="postImgPrev" style="margin-top:8px"></div></div>
               <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" name="featuredHome"> Feature on the home page</label>
               <p id="postMsg" class="admin-notice" hidden></p>
               <button class="btn btn--forest" type="submit" style="width:fit-content">Publish</button>

@@ -90,9 +90,36 @@ window.Chamber = (function () {
     });
   }
 
+  // ── Hero event-photo slider (admin-managed) ──
+  async function initHomeSlider() {
+    const hero = document.querySelector('.hero');
+    if (!hero) return;
+    let slides = [];
+    try { slides = (await getJSON(ChamberAPI.url('/api/slides'))).slides || []; } catch (e) { return; }
+    if (!slides.length) return; // keep the solid green hero
+    const layer = document.createElement('div');
+    layer.className = 'hero__slides';
+    layer.innerHTML = slides.map((s, i) =>
+      `<div class="hero__slide${i === 0 ? ' is-active' : ''}" style="background-image:url('${esc(s.imageUrl)}')"></div>`).join('')
+      + '<div class="hero__overlay"></div>';
+    hero.prepend(layer);
+    if (slides.length < 2) return;
+    const dots = document.createElement('div');
+    dots.className = 'hero__dots';
+    dots.innerHTML = slides.map((_, i) => `<button class="${i === 0 ? 'is-active' : ''}" aria-label="Slide ${i + 1}"></button>`).join('');
+    hero.appendChild(dots);
+    const slideEls = [...layer.querySelectorAll('.hero__slide')];
+    const dotEls = [...dots.querySelectorAll('button')];
+    let idx = 0;
+    const go = (n) => { idx = (n + slides.length) % slides.length; slideEls.forEach((el, i) => el.classList.toggle('is-active', i === idx)); dotEls.forEach((el, i) => el.classList.toggle('is-active', i === idx)); };
+    dotEls.forEach((d, i) => d.addEventListener('click', () => go(i)));
+    setInterval(() => go(idx + 1), 5500);
+  }
+
   async function initHome() {
     initGeoBanner();
     initConcierge();
+    initHomeSlider();
     try {
       const [dir, evd] = await Promise.all([
         getJSON(ChamberAPI.url('/api/members')),

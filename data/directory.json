@@ -9,6 +9,20 @@
   "tiers": ["platinum", "gold", "silver", "bronze", "supporter", "member"],
   "members": [
     {
+      "id": "heed-ai",
+      "name": "Heed AI Solutions",
+      "category": "Professional Services",
+      "tier": "gold",
+      "neighborhood": "Woodland Hills",
+      "status": "pending",
+      "phone": "(844) 659-1333",
+      "website": "https://heedbusinesssolutions.com",
+      "tagline": "AI-powered systems for local business — and the team behind this site.",
+      "seal": "H",
+      "featured": false,
+      "tags": ["AI", "automation", "web", "consulting"]
+    },
+    {
       "id": "providence-tarzana",
       "name": "Providence Cedars-Sinai Tarzana Medical Center",
       "category": "Healthcare",
