@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex" />
+  <title>Account — WVWCCC Member</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="../css/chamber.css" />
+</head>
+<body>
+  <div data-partial="header"></div>
+  <section class="section">
+    <div class="container container-narrow">
+      <p class="member-tile__meta"><a href="index.html">← My Chamber</a></p>
+      <span class="kicker">Account</span>
+      <h1>Change password</h1>
+      <form id="pwForm" class="card mt-5">
+        <div class="field"><label>New password</label><input name="password" type="password" minlength="8" required autocomplete="new-password" /></div>
+        <div class="field"><label>Confirm password</label><input name="confirm" type="password" minlength="8" required autocomplete="new-password" /></div>
+        <p id="pwMsg" class="notice" hidden></p>
+        <button class="btn btn--forest btn--lg" type="submit">Update password</button>
+      </form>
+    </div>
+  </section>
+  <div data-partial="footer"></div>
+  <script src="../js/partials.js"></script>
+  <script src="../js/api-base.js"></script>
+  <script src="member.js"></script>
+  <script>
+    ChamberPartials.mount({ active: '', depth: 1, lang: 'en' });
+    MemberPortal.initAccount();
+  </script>
+</body>
+</html>

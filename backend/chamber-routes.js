@@ -70,11 +70,36 @@ function rawMembers() {
   return { source: usingStore ? 'imported' : 'seed', members: raw.members || [] };
 }
 
+// Merge precedence: base directory  <  member self-edits  <  admin overrides.
 async function loadMembersFull() {
   const { source, members } = rawMembers();
-  const overrides = await repo.getOverrides();
-  return { source, members: members.map((m) => ({ ...m, ...(overrides[m.id] || {}) })) };
+  const [edits, overrides] = await Promise.all([repo.getMemberEdits(), repo.getOverrides()]);
+  return { source, members: members.map((m) => ({ ...m, ...(edits[m.id] || {}), ...(overrides[m.id] || {}) })) };
 }
+
+// Fields a member may edit on their own listing (admin-only: status/tier/leader/featured).
+const MEMBER_EDITABLE = ['name', 'category', 'neighborhood', 'contactName', 'phone', 'fax',
+  'website', 'address', 'city', 'state', 'zip', 'tagline', 'description', 'hours'];
+
+// ── Member portal (any signed-in user) ──────────────────────
+router.get('/me', auth.requireAuth(), async (req, res) => {
+  try {
+    const mid = req.user.mid;
+    const member = mid ? (await loadMembersFull()).members.find((x) => x.id === mid) || null : null;
+    res.json({ user: { email: req.user.sub, role: req.user.role }, member });
+  } catch (e) { res.status(500).json({ error: 'profile unavailable' }); }
+});
+
+router.patch('/me/profile', auth.requireAuth(), async (req, res) => {
+  const mid = req.user.mid;
+  if (!mid) return res.status(400).json({ error: 'No member listing is linked to this account.' });
+  const b = req.body || {};
+  const patch = {};
+  for (const f of MEMBER_EDITABLE) if (b[f] !== undefined) patch[f] = String(b[f]).slice(0, 4000);
+  if (!Object.keys(patch).length) return res.status(400).json({ error: 'No editable fields provided.' });
+  try { await repo.setMemberEdit(mid, patch); res.json({ ok: true, applied: patch }); }
+  catch (e) { console.error(e); res.status(500).json({ error: 'could not save profile' }); }
+});
 
 async function loadMembersPublic() {
   const { source, members } = await loadMembersFull();

@@ -54,6 +54,32 @@ export async function listOrders() {
   return store.read('orders.json', []).slice().reverse();
 }
 
+// ── Member self-service profile edits ──────────────────────
+export async function getMemberEdits() {
+  if (db.enabled) {
+    const r = await db.query('SELECT id, data FROM member_profiles');
+    const map = {};
+    for (const row of r.rows) map[row.id] = row.data || {};
+    return map;
+  }
+  return store.read('member-profiles.json', {});
+}
+export async function setMemberEdit(id, patch) {
+  if (db.enabled) {
+    await db.query(
+      `INSERT INTO member_profiles (id, data, updated_at)
+       VALUES ($1, $2::jsonb, now())
+       ON CONFLICT (id) DO UPDATE SET
+         data = member_profiles.data || EXCLUDED.data,
+         updated_at = now()`,
+      [id, JSON.stringify(patch)]);
+    return;
+  }
+  const all = store.read('member-profiles.json', {});
+  all[id] = { ...(all[id] || {}), ...patch };
+  store.write('member-profiles.json', all);
+}
+
 // ── Member admin overrides ──────────────────────────────────
 export async function getOverrides() {
   if (db.enabled) {

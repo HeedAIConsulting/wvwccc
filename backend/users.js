@@ -65,3 +65,21 @@ export async function upsertStaff(email, bcryptHash, name) {
   if (i >= 0) staff[i] = { ...staff[i], ...rec }; else staff.push(rec);
   store.write('staff.json', staff);
 }
+
+export async function upsertMember(email, bcryptHash, memberId, name) {
+  email = lc(email);
+  if (db.enabled) {
+    await db.query(
+      `INSERT INTO users (id, member_id, email, username, password_hash, password_algo, role, status)
+       VALUES ($1,$2,$3,$4,$5,'bcrypt','member','approved')
+       ON CONFLICT (email) DO UPDATE SET password_hash=EXCLUDED.password_hash, member_id=EXCLUDED.member_id, role='member'`,
+      ['mu-' + Date.now().toString(36), memberId || null, email, name || email, bcryptHash]);
+    return;
+  }
+  const mu = store.read('users.json', { users: [] });
+  const arr = mu.users || [];
+  const rec = { id: 'mu-' + Date.now().toString(36), memberId: memberId || null, email, username: name || email, passwordHash: bcryptHash, passwordAlgo: 'bcrypt', role: 'member', status: 'approved', needsReset: false };
+  const i = arr.findIndex((u) => lc(u.email) === email);
+  if (i >= 0) arr[i] = { ...arr[i], ...rec }; else arr.push(rec);
+  store.write('users.json', { ...mu, users: arr });
+}

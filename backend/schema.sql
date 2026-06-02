@@ -91,6 +91,14 @@ CREATE TABLE IF NOT EXISTS leads (
   received    timestamptz DEFAULT now()
 );
 
+-- ── Member self-service profile edits (member portal) ─────
+-- Stores only the fields a member changed; merged onto the base directory record.
+CREATE TABLE IF NOT EXISTS member_profiles (
+  id          text PRIMARY KEY,                -- member id
+  data        jsonb NOT NULL DEFAULT '{}',     -- { tagline, description, phone, website, hours, ... }
+  updated_at  timestamptz DEFAULT now()
+);
+
 -- ── Admin overrides on directory members (status radios, featured, tier) ──
 CREATE TABLE IF NOT EXISTS member_overrides (
   id            text PRIMARY KEY,              -- member id from directory/import

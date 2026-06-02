@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex" />
+  <title>My Chamber — West Valley · Warner Center Chamber of Commerce</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="../css/chamber.css" />
+</head>
+<body>
+  <div data-partial="header"></div>
+  <section class="section">
+    <div class="container">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:var(--s-4);flex-wrap:wrap;margin-bottom:var(--s-6)">
+        <div>
+          <span class="kicker">Member Portal</span>
+          <h1 style="margin-top:6px">Welcome back, <span id="welcome">member</span></h1>
+        </div>
+        <button class="btn btn--ghost btn--sm" data-logout type="button">Sign out</button>
+      </div>
+      <div id="memberBody"><p class="member-tile__meta">Loading…</p></div>
+    </div>
+  </section>
+  <div data-partial="footer"></div>
+  <script src="../js/partials.js"></script>
+  <script src="../js/api-base.js"></script>
+  <script src="member.js"></script>
+  <script>
+    ChamberPartials.mount({ active: '', depth: 1, lang: 'en' });
+    MemberPortal.initDashboard();
+  </script>
+</body>
+</html>

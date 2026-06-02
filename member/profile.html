@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex" />
+  <title>Edit My Profile — WVWCCC Member</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="../css/chamber.css" />
+</head>
+<body>
+  <div data-partial="header"></div>
+  <section class="section">
+    <div class="container container-narrow">
+      <p class="member-tile__meta"><a href="index.html">← My Chamber</a></p>
+      <span class="kicker">Your listing</span>
+      <h1>Edit my profile</h1>
+      <p class="lead">Update how your business appears in the Chamber directory.</p>
+      <form id="profileForm" class="card mt-5">
+        <div class="grid grid-2" style="gap:var(--s-3)">
+          <div class="field"><label>Business name</label><input data-field="name" /></div>
+          <div class="field"><label>Category</label><input data-field="category" /></div>
+        </div>
+        <div class="grid grid-2" style="gap:var(--s-3)">
+          <div class="field"><label>Neighborhood</label><input data-field="neighborhood" /></div>
+          <div class="field"><label>Contact name</label><input data-field="contactName" /></div>
+        </div>
+        <div class="grid grid-2" style="gap:var(--s-3)">
+          <div class="field"><label>Phone</label><input data-field="phone" /></div>
+          <div class="field"><label>Website</label><input data-field="website" type="url" placeholder="https://" /></div>
+        </div>
+        <div class="field"><label>Address</label><input data-field="address" /></div>
+        <div class="grid grid-2" style="gap:var(--s-3)">
+          <div class="field"><label>City</label><input data-field="city" /></div>
+          <div class="field"><label>ZIP</label><input data-field="zip" /></div>
+        </div>
+        <div class="field"><label>Tagline <span class="member-tile__meta">(one line shown on your card)</span></label><input data-field="tagline" maxlength="160" /></div>
+        <div class="field"><label>Description</label><textarea data-field="description" rows="4"></textarea></div>
+        <div class="field"><label>Hours</label><input data-field="hours" placeholder="Mon–Fri 9–5" /></div>
+        <p id="profileMsg" class="notice" hidden></p>
+        <button class="btn btn--forest btn--lg" type="submit">Save changes</button>
+      </form>
+    </div>
+  </section>
+  <div data-partial="footer"></div>
+  <script src="../js/partials.js"></script>
+  <script src="../js/api-base.js"></script>
+  <script src="member.js"></script>
+  <script>
+    ChamberPartials.mount({ active: '', depth: 1, lang: 'en' });
+    MemberPortal.initProfile();
+  </script>
+</body>
+</html>
