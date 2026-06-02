@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex" />
+  <title>Post an Offer or Update — WVWCCC Member</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="../css/chamber.css" />
+</head>
+<body>
+  <div data-partial="header"></div>
+  <section class="section">
+    <div class="container container-narrow">
+      <p class="member-tile__meta"><a href="index.html">← My Chamber</a></p>
+      <span class="kicker">Share with the community</span>
+      <h1>Post an offer or update</h1>
+      <p class="lead">Offers appear on the Deals page; community posts appear on the Community board. Everything is reviewed by the Chamber before it goes live.</p>
+      <form id="postForm" class="card mt-5">
+        <div class="field">
+          <label>Type</label>
+          <div class="chips">
+            <label class="chip"><input type="radio" name="type" value="discount" checked style="margin-right:6px">Member offer / discount</label>
+            <label class="chip"><input type="radio" name="type" value="member_post" style="margin-right:6px">Community post</label>
+          </div>
+        </div>
+        <div class="field"><label>Title</label><input name="title" required maxlength="160" /></div>
+        <div class="field"><label>Details</label><textarea name="body" rows="4" required></textarea></div>
+        <div class="field"><label>Discount code <span class="member-tile__meta">(offers only, optional)</span></label><input name="code" maxlength="80" /></div>
+        <div class="grid grid-2" style="gap:var(--s-3)">
+          <div class="field"><label>Button label</label><input name="ctaLabel" placeholder="Redeem / Learn more" /></div>
+          <div class="field"><label>Button link</label><input name="ctaUrl" type="url" placeholder="https://" /></div>
+        </div>
+        <div class="field"><label>Image (optional)</label><input id="postImage" type="file" accept="image/*" /></div>
+        <p id="postMsg" class="notice" hidden></p>
+        <button class="btn btn--gold btn--lg" type="submit">Submit for review</button>
+      </form>
+      <h3 class="mt-7">My posts</h3>
+      <div id="myPosts" class="grid" style="gap:var(--s-3)"></div>
+    </div>
+  </section>
+  <div data-partial="footer"></div>
+  <script src="../js/partials.js"></script>
+  <script src="../js/api-base.js"></script>
+  <script src="member.js"></script>
+  <script>ChamberPartials.mount({ active: '', depth: 1, lang: 'en' }); MemberPortal.initPost();</script>
+</body>
+</html>

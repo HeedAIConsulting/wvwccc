@@ -91,6 +91,39 @@ CREATE TABLE IF NOT EXISTS leads (
   received    timestamptz DEFAULT now()
 );
 
+-- ── Content posts: member offers/discounts, member-to-member board,
+--    and staff-created news/announcements/messaging. Approval-gated. ──
+CREATE TABLE IF NOT EXISTS posts (
+  id            text PRIMARY KEY,              -- 'post-...'
+  type          text NOT NULL,                 -- discount | member_post | news | announcement | event
+  author_id     text,                          -- user email or staff id
+  author_name   text,
+  member_id     text,                          -- linked listing (for member posts/discounts)
+  title         text,
+  body          text,
+  image_url     text,
+  link_url      text,
+  cta_label     text,
+  cta_url       text,
+  code          text,                          -- discount code / terms
+  status        text DEFAULT 'pending',        -- pending | approved | rejected
+  featured_home boolean DEFAULT false,
+  expires_at    timestamptz,
+  created       timestamptz DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS posts_type_status_idx ON posts (type, status);
+
+-- ── Image assets (logos, photos) stored in Postgres so they survive
+--    Render's ephemeral disk. Served via /api/assets/:id. ──
+CREATE TABLE IF NOT EXISTS assets (
+  id          text PRIMARY KEY,                -- 'asset-...'
+  member_id   text,
+  kind        text,                            -- logo | photo
+  mime        text,
+  bytes       bytea,
+  created     timestamptz DEFAULT now()
+);
+
 -- ── Member self-service profile edits (member portal) ─────
 -- Stores only the fields a member changed; merged onto the base directory record.
 CREATE TABLE IF NOT EXISTS member_profiles (

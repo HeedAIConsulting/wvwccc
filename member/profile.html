@@ -16,8 +16,9 @@
       <p class="member-tile__meta"><a href="index.html">← My Chamber</a></p>
       <span class="kicker">Your listing</span>
       <h1>Edit my profile</h1>
-      <p class="lead">Update how your business appears in the Chamber directory.</p>
+      <p class="lead">Everything here appears on your public directory page.</p>
       <form id="profileForm" class="card mt-5">
+        <h3>Basics</h3>
         <div class="grid grid-2" style="gap:var(--s-3)">
           <div class="field"><label>Business name</label><input data-field="name" /></div>
           <div class="field"><label>Category</label><input data-field="category" /></div>
@@ -35,9 +36,51 @@
           <div class="field"><label>City</label><input data-field="city" /></div>
           <div class="field"><label>ZIP</label><input data-field="zip" /></div>
         </div>
-        <div class="field"><label>Tagline <span class="member-tile__meta">(one line shown on your card)</span></label><input data-field="tagline" maxlength="160" /></div>
+        <div class="field"><label>Tagline <span class="member-tile__meta">(one line on your card)</span></label><input data-field="tagline" maxlength="160" /></div>
         <div class="field"><label>Description</label><textarea data-field="description" rows="4"></textarea></div>
+
+        <h3 class="mt-5">Details</h3>
+        <div class="grid grid-2" style="gap:var(--s-3)">
+          <div class="field"><label>Occupation / Title</label><input data-field="occupation" /></div>
+          <div class="field"><label>Type of business</label><input data-field="typeOfBusiness" /></div>
+        </div>
+        <div class="grid grid-2" style="gap:var(--s-3)">
+          <div class="field"><label>Year established</label><input data-field="yearEstablished" /></div>
+          <div class="field"><label>No. of employees</label><input data-field="employees" /></div>
+        </div>
         <div class="field"><label>Hours</label><input data-field="hours" placeholder="Mon–Fri 9–5" /></div>
+
+        <h3 class="mt-5">Logo &amp; photos</h3>
+        <div class="grid grid-2" style="gap:var(--s-4);align-items:center">
+          <div class="field"><label>Logo</label><input id="logoFile" type="file" accept="image/*" /></div>
+          <div id="logoPreview"></div>
+        </div>
+        <div class="field"><label>Photos (up to 3)</label><input id="photoFile" type="file" accept="image/*" multiple /></div>
+        <div id="photoPreview" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+
+        <h3 class="mt-5">Links &amp; social</h3>
+        <div class="grid grid-2" style="gap:var(--s-3)">
+          <div class="field"><label>Facebook</label><input data-social="facebook" type="url" placeholder="https://" /></div>
+          <div class="field"><label>Instagram</label><input data-social="instagram" type="url" placeholder="https://" /></div>
+          <div class="field"><label>LinkedIn</label><input data-social="linkedin" type="url" placeholder="https://" /></div>
+          <div class="field"><label>YouTube</label><input data-social="youtube" type="url" placeholder="https://" /></div>
+        </div>
+        <div class="grid grid-2" style="gap:var(--s-3)">
+          <div class="field"><label>Google reviews link</label><input data-review="google" type="url" placeholder="https://" /></div>
+          <div class="field"><label>Yelp reviews link</label><input data-review="yelp" type="url" placeholder="https://" /></div>
+        </div>
+
+        <h3 class="mt-5">Call-to-action buttons</h3>
+        <p class="member-tile__meta">e.g. "Book now", "Get a quote", "Order online".</p>
+        <div class="grid grid-2" style="gap:var(--s-3)">
+          <div class="field"><label>Button 1 label</label><input data-cta-label /></div>
+          <div class="field"><label>Button 1 link</label><input data-cta-url type="url" placeholder="https://" /></div>
+        </div>
+        <div class="grid grid-2" style="gap:var(--s-3)">
+          <div class="field"><label>Button 2 label</label><input data-cta-label /></div>
+          <div class="field"><label>Button 2 link</label><input data-cta-url type="url" placeholder="https://" /></div>
+        </div>
+
         <p id="profileMsg" class="notice" hidden></p>
         <button class="btn btn--forest btn--lg" type="submit">Save changes</button>
       </form>
@@ -47,9 +90,6 @@
   <script src="../js/partials.js"></script>
   <script src="../js/api-base.js"></script>
   <script src="member.js"></script>
-  <script>
-    ChamberPartials.mount({ active: '', depth: 1, lang: 'en' });
-    MemberPortal.initProfile();
-  </script>
+  <script>ChamberPartials.mount({ active: '', depth: 1, lang: 'en' }); MemberPortal.initProfile();</script>
 </body>
 </html>

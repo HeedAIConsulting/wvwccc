@@ -234,30 +234,66 @@ window.Chamber = (function () {
     }
     document.title = `${m.name} — WVWCCC Member`;
     const tier = (m.tier || 'member').toLowerCase();
+    const tierLabel = tier.charAt(0).toUpperCase() + tier.slice(1);
     const phoneDigits = (m.phone || '').replace(/[^\d]/g, '');
-    const rows = [
-      m.phone && `<a href="tel:${phoneDigits}">${esc(m.phone)}</a>`,
-      m.website && `<a href="${esc(m.website)}" target="_blank" rel="noopener">${esc(m.website.replace(/^https?:\/\//, ''))}</a>`,
-      m.address && esc(m.address),
-    ].filter(Boolean).map((r) => `<li>${r}</li>`).join('');
+    const SOCIAL = { facebook: 'Facebook', instagram: 'Instagram', linkedin: 'LinkedIn', x: 'X', youtube: 'YouTube', tiktok: 'TikTok' };
+    const social = m.social && typeof m.social === 'object'
+      ? Object.entries(SOCIAL).filter(([k]) => m.social[k]).map(([k, label]) =>
+          `<a class="chip" href="${esc(m.social[k])}" target="_blank" rel="noopener">${label}</a>`).join('') : '';
+    const reviews = m.reviewLinks && typeof m.reviewLinks === 'object'
+      ? ['google', 'yelp'].filter((k) => m.reviewLinks[k]).map((k) =>
+          `<a class="chip" href="${esc(m.reviewLinks[k])}" target="_blank" rel="noopener">★ ${k === 'google' ? 'Google' : 'Yelp'} reviews</a>`).join('') : '';
+    const ctas = Array.isArray(m.ctaLinks) ? m.ctaLinks.map((c) =>
+      `<a class="btn btn--gold btn--sm" href="${esc(c.url)}" target="_blank" rel="noopener">${esc(c.label)}</a>`).join('') : '';
+    const photos = Array.isArray(m.photos) && m.photos.length
+      ? `<div class="grid grid-3 mt-5">${m.photos.map((p) => `<img src="${esc(p)}" alt="" loading="lazy" style="border-radius:var(--r-md);aspect-ratio:4/3;object-fit:cover;width:100%">`).join('')}</div>` : '';
+    const facts = [
+      m.occupation && ['Occupation', m.occupation],
+      m.typeOfBusiness && ['Type of business', m.typeOfBusiness],
+      m.yearEstablished && ['Established', m.yearEstablished],
+      m.employees && ['Employees', m.employees],
+      m.hours && ['Hours', m.hours],
+    ].filter(Boolean).map(([k, v]) => `<li><span class="member-tile__meta">${esc(k)}</span><br>${esc(v)}</li>`).join('');
+    const seal = m.logo
+      ? `<img src="${esc(m.logo)}" alt="${esc(m.name)} logo" style="width:120px;height:120px;border-radius:var(--r-lg);object-fit:cover;margin:0 auto var(--s-4);box-shadow:var(--sh-sm)">`
+      : `<div class="member-tile__seal" style="width:100px;height:100px;font-size:2.8rem;margin:0 auto var(--s-4)">${esc(m.seal || m.name[0])}</div>`;
+    const contactRows = [
+      m.phone && `<li>📞 <a href="tel:${phoneDigits}">${esc(m.phone)}</a></li>`,
+      m.website && `<li>🌐 <a href="${esc(m.website)}" target="_blank" rel="noopener">${esc(m.website.replace(/^https?:\/\//, ''))}</a></li>`,
+      m.address && `<li>📍 ${esc(m.address)}</li>`,
+    ].filter(Boolean).join('');
+
     el.innerHTML = `
-      <div class="grid" style="grid-template-columns:1fr 2fr;gap:var(--s-7);align-items:start">
-        <div class="card" style="text-align:center">
-          <div class="member-tile__seal" style="width:96px;height:96px;font-size:2.6rem;margin:0 auto var(--s-4)">${esc(m.seal || m.name[0])}</div>
-          <span class="badge badge--${tier}">${esc(tier.charAt(0).toUpperCase() + tier.slice(1))} Member</span>
-          <ul style="list-style:none;margin-top:var(--s-4);display:flex;flex-direction:column;gap:8px">${rows}</ul>
-        </div>
+      <div class="grid" style="grid-template-columns:300px 1fr;gap:var(--s-7);align-items:start">
+        <aside class="card" style="text-align:center;position:sticky;top:100px">
+          ${seal}
+          <span class="badge badge--${tier}">${esc(tierLabel)} Member</span>
+          ${m.leaderStatus ? `<div class="mt-3"><span class="badge badge--leader badge--dot">${esc(m.leaderStatus)}</span></div>` : ''}
+          <ul style="list-style:none;margin-top:var(--s-4);display:flex;flex-direction:column;gap:10px;text-align:left">${contactRows}</ul>
+          ${ctas ? `<div class="btn-row mt-4" style="justify-content:center">${ctas}</div>` : ''}
+          ${(social || reviews) ? `<div class="chips mt-4" style="justify-content:center">${social}${reviews}</div>` : ''}
+        </aside>
         <div>
-          <span class="kicker">${esc(m.category)}${m.neighborhood ? ' · ' + esc(m.neighborhood) : ''}</span>
+          <span class="kicker">${esc(m.category || '')}${m.neighborhood ? ' · ' + esc(m.neighborhood) : ''}</span>
           <h1>${esc(m.name)}</h1>
           <p class="lead">${esc(m.tagline || '')}</p>
-          ${(m.tags || []).length ? `<div class="chips mt-4">${m.tags.map((t) => `<span class="chip">${esc(t)}</span>`).join('')}</div>` : ''}
+          ${m.description ? `<p>${esc(m.description)}</p>` : ''}
+          ${facts ? `<ul class="grid grid-3 mt-5" style="list-style:none;gap:var(--s-4)">${facts}</ul>` : ''}
+          ${photos}
+          <div id="memberOffers" class="mt-6"></div>
           <div class="btn-row mt-6">
             <a class="btn btn--forest" href="directory.html">← Back to directory</a>
-            ${m.website ? `<a class="btn btn--gold" href="${esc(m.website)}" target="_blank" rel="noopener">Visit website ↗</a>` : ''}
+            ${m.website ? `<a class="btn btn--ghost" href="${esc(m.website)}" target="_blank" rel="noopener">Visit website ↗</a>` : ''}
           </div>
         </div>
       </div>`;
+
+    // this member's active offers
+    try {
+      const offers = (await getJSON(ChamberAPI.url('/api/posts?type=discount'))).posts.filter((p) => p.memberId === id);
+      if (offers.length) document.getElementById('memberOffers').innerHTML =
+        `<h3>Member offers</h3><div class="grid grid-2 mt-3">${offers.map(offerCard).join('')}</div>`;
+    } catch (e) {}
   }
 
   // ── Events page (list + month grid) ─────────────────────
@@ -480,5 +516,39 @@ window.Chamber = (function () {
       </article>`).join('');
   }
 
-  return { initHome, initDirectory, initProfile, initEvents, initCheckout, initLeadForm, initJobs, memberTile, eventCard, getJSON, esc };
+  // ── Posts: discounts (offers) + member community board ──
+  function offerCard(p) {
+    return `
+      <article class="card card--hover">
+        ${p.imageUrl ? `<img src="${esc(p.imageUrl)}" alt="" loading="lazy" style="width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:var(--r-md);margin-bottom:var(--s-3)">` : ''}
+        <span class="badge badge--gold">Offer</span>
+        <h3 style="margin:8px 0 4px">${esc(p.title)}</h3>
+        ${p.authorName ? `<div class="member-tile__meta">${p.memberId ? `<a href="members/profile.html?id=${esc(p.memberId)}">${esc(p.authorName)}</a>` : esc(p.authorName)}</div>` : ''}
+        <p class="mt-2">${esc(p.body || '')}</p>
+        ${p.code ? `<p class="mt-2"><span class="badge">Code: ${esc(p.code)}</span></p>` : ''}
+        ${p.ctaUrl ? `<a class="btn btn--gold btn--sm mt-3" href="${esc(p.ctaUrl)}" target="_blank" rel="noopener">${esc(p.ctaLabel || 'Redeem')}</a>` : ''}
+      </article>`;
+  }
+  function postCard(p) {
+    return `
+      <article class="card">
+        ${p.imageUrl ? `<img src="${esc(p.imageUrl)}" alt="" loading="lazy" style="width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:var(--r-md);margin-bottom:var(--s-3)">` : ''}
+        <div class="member-tile__meta">${esc(p.authorName || 'Member')}${p.created ? ' · ' + new Date(p.created).toLocaleDateString() : ''}</div>
+        <h3 style="margin:4px 0">${esc(p.title)}</h3>
+        <p>${esc(p.body || '')}</p>
+        ${p.linkUrl ? `<a href="${esc(p.linkUrl)}" target="_blank" rel="noopener">${esc(p.ctaLabel || 'Learn more')} ↗</a>` : ''}
+      </article>`;
+  }
+  async function initPostsFeed(type, containerId, render, empty) {
+    const el = document.getElementById(containerId);
+    if (!el) return;
+    try {
+      const posts = (await getJSON(ChamberAPI.url('/api/posts?type=' + type))).posts || [];
+      el.innerHTML = posts.length ? posts.map(render).join('') : `<div class="notice">${empty}</div>`;
+    } catch (e) { el.innerHTML = '<div class="notice">Could not load right now.</div>'; }
+  }
+  const initDeals = () => initPostsFeed('discount', 'dealsList', offerCard, 'No member offers yet — check back soon, or members can post one from their portal.');
+  const initCommunity = () => initPostsFeed('member_post', 'communityList', postCard, 'No community posts yet. Members can post the first one from their portal.');
+
+  return { initHome, initDirectory, initProfile, initEvents, initCheckout, initLeadForm, initJobs, initDeals, initCommunity, offerCard, postCard, memberTile, eventCard, getJSON, esc };
 })();

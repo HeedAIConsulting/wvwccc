@@ -21,11 +21,11 @@ window.ChamberPartials = (function () {
     const t = L ? {
       login: 'Acceso de Miembros', staff: 'Personal', contact: 'Contacto',
       home: 'Inicio', dir: 'Directorio', events: 'Eventos', jobs: 'Empleos',
-      about: 'La Cámara', join: 'Únete'
+      deals: 'Ofertas', community: 'Comunidad', about: 'La Cámara', join: 'Únete'
     } : {
       login: 'Member Login', staff: 'Staff', contact: 'Contact',
       home: 'Home', dir: 'Directory', events: 'Events', jobs: 'Jobs',
-      about: 'The Chamber', join: 'Join'
+      deals: 'Deals', community: 'Community', about: 'The Chamber', join: 'Join'
     };
     const base = depth ? '../' : '';
     return `
@@ -63,6 +63,8 @@ window.ChamberPartials = (function () {
         <a href="${p(depth, 'members/directory.html')}" ${active==='members'?'class="active"':''}>${t.dir}</a>
         <a href="${p(depth, 'events/index.html')}" ${active==='events'?'class="active"':''}>${t.events}</a>
         <a href="${p(depth, 'jobs/index.html')}" ${active==='jobs'?'class="active"':''}>${t.jobs}</a>
+        <a href="${p(depth, 'deals.html')}" ${active==='deals'?'class="active"':''}>${t.deals}</a>
+        <a href="${p(depth, 'community/board.html')}" ${active==='community'?'class="active"':''}>${t.community}</a>
         <a href="${p(depth, 'about.html')}" ${active==='about'?'class="active"':''}>${t.about}</a>
         <a href="${p(depth, 'join.html')}" class="btn btn--gold btn--sm nav-cta">${t.join}</a>
       </nav>
@@ -135,6 +137,24 @@ window.ChamberPartials = (function () {
 </footer>`;
   }
 
+  // ElevenLabs ConvAI agent — one agent serves the whole public site, all
+  // languages. Skipped on /admin/ and /auth/ pages. (Pulled from the POC.)
+  var ELEVENLABS_AGENT_ID = 'agent_8201kqnjhzyrfpdvtqwgf9e0034y';
+  function mountElevenLabs() {
+    if (/\/(admin|auth)\//.test(window.location.pathname)) return;
+    if (!document.querySelector('elevenlabs-convai')) {
+      var el = document.createElement('elevenlabs-convai');
+      el.setAttribute('agent-id', ELEVENLABS_AGENT_ID);
+      document.body.appendChild(el);
+    }
+    if (!document.querySelector('script[src*="@elevenlabs/convai-widget-embed"]')) {
+      var s = document.createElement('script');
+      s.src = 'https://unpkg.com/@elevenlabs/convai-widget-embed';
+      s.async = true; s.type = 'text/javascript';
+      document.body.appendChild(s);
+    }
+  }
+
   function mount({ active = '', depth = 0, lang = 'en' } = {}) {
     const h = document.querySelector('[data-partial="header"]');
     const f = document.querySelector('[data-partial="footer"]');
@@ -150,6 +170,7 @@ window.ChamberPartials = (function () {
         toggle.setAttribute('aria-expanded', String(open));
       });
     }
+    mountElevenLabs();
   }
 
   return { mount };

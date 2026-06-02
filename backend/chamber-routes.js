@@ -60,7 +60,10 @@ router.post('/auth/set-password', auth.requireAuth(), async (req, res) => {
 // Admin overrides (status/tier/leader/featured) come from the durable repo.
 const PUBLIC_FIELDS = ['id', 'name', 'category', 'tier', 'neighborhood', 'contactName',
   'address', 'city', 'state', 'zip', 'phone', 'fax', 'website', 'tagline',
-  'description', 'leaderStatus', 'seal', 'featured', 'tags'];
+  'description', 'leaderStatus', 'seal', 'featured', 'tags',
+  // richer profile (member-managed)
+  'hours', 'occupation', 'typeOfBusiness', 'yearEstablished', 'employees',
+  'logo', 'photos', 'social', 'reviewLinks', 'ctaLinks'];
 
 function rawMembers() {
   const storePath = path.join(ROOT, 'data', '_store', 'members.json');
@@ -77,9 +80,33 @@ async function loadMembersFull() {
   return { source, members: members.map((m) => ({ ...m, ...(edits[m.id] || {}), ...(overrides[m.id] || {}) })) };
 }
 
-// Fields a member may edit on their own listing (admin-only: status/tier/leader/featured).
-const MEMBER_EDITABLE = ['name', 'category', 'neighborhood', 'contactName', 'phone', 'fax',
-  'website', 'address', 'city', 'state', 'zip', 'tagline', 'description', 'hours'];
+// Scalar fields a member may edit (admin-only: status/tier/leader/featured).
+const MEMBER_STR_FIELDS = ['name', 'category', 'neighborhood', 'contactName', 'phone', 'fax',
+  'website', 'address', 'city', 'state', 'zip', 'tagline', 'description', 'hours',
+  'occupation', 'typeOfBusiness', 'yearEstablished', 'employees', 'logo'];
+const clampUrl = (s) => String(s || '').trim().slice(0, 600);
+function sanitizeProfile(b) {
+  const patch = {};
+  for (const f of MEMBER_STR_FIELDS) if (b[f] !== undefined) patch[f] = String(b[f]).slice(0, 5000);
+  if (b.social && typeof b.social === 'object') {
+    const out = {};
+    for (const k of ['facebook', 'instagram', 'linkedin', 'x', 'youtube', 'tiktok']) if (b.social[k]) out[k] = clampUrl(b.social[k]);
+    patch.social = out;
+  }
+  if (b.reviewLinks && typeof b.reviewLinks === 'object') {
+    const out = {};
+    for (const k of ['google', 'yelp']) if (b.reviewLinks[k]) out[k] = clampUrl(b.reviewLinks[k]);
+    patch.reviewLinks = out;
+  }
+  if (Array.isArray(b.ctaLinks)) patch.ctaLinks = b.ctaLinks.slice(0, 4)
+    .map((c) => ({ label: String(c.label || '').slice(0, 40), url: clampUrl(c.url) }))
+    .filter((c) => c.label && c.url);
+  if (Array.isArray(b.photos)) patch.photos = b.photos.slice(0, 8).map(clampUrl).filter(Boolean);
+  if (Array.isArray(b.contacts)) patch.contacts = b.contacts.slice(0, 3)
+    .map((c) => ({ name: String(c.name || '').slice(0, 80), email: String(c.email || '').slice(0, 160) }))
+    .filter((c) => c.name || c.email);
+  return patch;
+}
 
 // ── Member portal (any signed-in user) ──────────────────────
 router.get('/me', auth.requireAuth(), async (req, res) => {
@@ -93,12 +120,72 @@ router.get('/me', auth.requireAuth(), async (req, res) => {
 router.patch('/me/profile', auth.requireAuth(), async (req, res) => {
   const mid = req.user.mid;
   if (!mid) return res.status(400).json({ error: 'No member listing is linked to this account.' });
-  const b = req.body || {};
-  const patch = {};
-  for (const f of MEMBER_EDITABLE) if (b[f] !== undefined) patch[f] = String(b[f]).slice(0, 4000);
+  const patch = sanitizeProfile(req.body || {});
   if (!Object.keys(patch).length) return res.status(400).json({ error: 'No editable fields provided.' });
   try { await repo.setMemberEdit(mid, patch); res.json({ ok: true, applied: patch }); }
   catch (e) { console.error(e); res.status(500).json({ error: 'could not save profile' }); }
+});
+
+// Member submits an offer/discount or a community post → pending admin approval.
+router.post('/me/post', auth.requireAuth(), async (req, res) => {
+  const mid = req.user.mid;
+  if (!mid) return res.status(400).json({ error: 'No member listing is linked to this account.' });
+  const b = req.body || {};
+  const type = ['discount', 'member_post'].includes(b.type) ? b.type : null;
+  if (!type) return res.status(400).json({ error: 'Invalid post type.' });
+  if (!b.title || !b.body) return res.status(400).json({ error: 'Title and body are required.' });
+  let authorName = req.user.sub;
+  try { authorName = (await loadMembersFull()).members.find((m) => m.id === mid)?.name || authorName; } catch (e) {}
+  const post = {
+    id: 'post-' + Date.now().toString(36),
+    type, authorId: req.user.sub, authorName, memberId: mid,
+    title: String(b.title).slice(0, 160), body: String(b.body).slice(0, 4000),
+    imageUrl: clampUrl(b.imageUrl), linkUrl: clampUrl(b.linkUrl),
+    ctaLabel: String(b.ctaLabel || '').slice(0, 40), ctaUrl: clampUrl(b.ctaUrl),
+    code: String(b.code || '').slice(0, 80), status: 'pending', featuredHome: false,
+    expiresAt: b.expiresAt || null,
+  };
+  try { await repo.addPost(post); res.json({ ok: true, status: 'pending' }); }
+  catch (e) { console.error(e); res.status(500).json({ error: 'could not submit' }); }
+});
+
+router.get('/me/posts', auth.requireAuth(), async (req, res) => {
+  if (!req.user.mid) return res.json({ posts: [] });
+  try { res.json({ posts: await repo.listPosts({ memberId: req.user.mid }) }); }
+  catch (e) { res.status(500).json({ error: 'failed' }); }
+});
+
+// Image upload (data URL) → stored in Postgres, served at /api/assets/:id.
+router.post('/me/asset', auth.requireAuth(), async (req, res) => {
+  const b = req.body || {};
+  const m = /^data:(image\/(png|jpe?g|gif|webp));base64,([A-Za-z0-9+/=]+)$/.exec(b.dataUrl || '');
+  if (!m) return res.status(400).json({ error: 'Provide a PNG, JPG, GIF, or WebP image.' });
+  const buffer = Buffer.from(m[3], 'base64');
+  if (buffer.length > 2_500_000) return res.status(413).json({ error: 'Image too large (max ~2.5MB).' });
+  const id = 'asset-' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36);
+  try {
+    await repo.addAsset({ id, memberId: req.user.mid || null, kind: b.kind === 'logo' ? 'logo' : 'photo', mime: m[1], buffer });
+    res.json({ ok: true, id, url: '/api/assets/' + id });
+  } catch (e) { console.error(e); res.status(500).json({ error: 'upload failed' }); }
+});
+
+router.get('/assets/:id', async (req, res) => {
+  try {
+    const a = await repo.getAsset(req.params.id);
+    if (!a) return res.status(404).end();
+    res.type(a.mime).set('Cache-Control', 'public, max-age=86400').send(a.buffer);
+  } catch (e) { res.status(500).end(); }
+});
+
+// Public posts feed (approved, not expired).
+router.get('/posts', async (req, res) => {
+  const type = ['discount', 'member_post', 'news', 'announcement'].includes(req.query.type) ? req.query.type : undefined;
+  try {
+    const now = Date.now();
+    const posts = (await repo.listPosts({ type, status: 'approved' }))
+      .filter((p) => !p.expiresAt || new Date(p.expiresAt).getTime() > now);
+    res.json({ posts });
+  } catch (e) { res.status(500).json({ error: 'failed' }); }
 });
 
 async function loadMembersPublic() {
@@ -191,12 +278,14 @@ router.get('/admin/summary', requireAdmin, async (_req, res) => {
     const { members, source } = await loadMembersFull();
     const leads = await repo.listLeads();
     const orders = await repo.listOrders();
+    const pendingPosts = (await repo.listPosts({ status: 'pending' })).length;
     res.json({
       source,
       members: members.length,
       pendingMembers: members.filter((m) => m.status === 'pending').length,
       leaders: members.filter((m) => m.leaderStatus).length,
       newLeads: leads.filter((l) => l.status === 'new').length,
+      pendingPosts,
       orders: orders.length,
       revenue: orders.reduce((s, o) => s + (Number(o.amount) || 0), 0),
       heedShare: orders.reduce((s, o) => s + (Number(o.heedShare ?? o.heed_share) || 0), 0),
@@ -254,6 +343,52 @@ router.get('/admin/orders', requireAdmin, async (_req, res) => {
 
 router.get('/admin/options', requireAdmin, (_req, res) => {
   res.json({ leaderOptions: LEADER_OPTS, statusOptions: STATUS_OPTS });
+});
+
+// ── Admin content & approvals (posts: news/announcements/discounts/member posts) ──
+router.get('/admin/posts', requireAdmin, async (req, res) => {
+  try {
+    const type = req.query.type || undefined;
+    const status = req.query.status || undefined;
+    res.json({ posts: await repo.listPosts({ type, status }) });
+  } catch (e) { res.status(500).json({ error: 'failed' }); }
+});
+
+const ADMIN_POST_TYPES = ['news', 'announcement', 'discount', 'member_post', 'event'];
+router.post('/admin/posts', requireAdmin, async (req, res) => {
+  const b = req.body || {};
+  if (!ADMIN_POST_TYPES.includes(b.type)) return res.status(400).json({ error: 'Invalid type.' });
+  if (!b.title) return res.status(400).json({ error: 'Title required.' });
+  const post = {
+    id: 'post-' + Date.now().toString(36),
+    type: b.type, authorId: req.user.sub, authorName: 'WVWC Chamber', memberId: b.memberId || null,
+    title: String(b.title).slice(0, 200), body: String(b.body || '').slice(0, 8000),
+    imageUrl: clampUrl(b.imageUrl), linkUrl: clampUrl(b.linkUrl),
+    ctaLabel: String(b.ctaLabel || '').slice(0, 40), ctaUrl: clampUrl(b.ctaUrl),
+    code: String(b.code || '').slice(0, 80),
+    status: b.status === 'pending' ? 'pending' : 'approved',
+    featuredHome: !!b.featuredHome, expiresAt: b.expiresAt || null,
+  };
+  try { await repo.addPost(post); res.json({ ok: true, id: post.id }); }
+  catch (e) { console.error(e); res.status(500).json({ error: 'could not create' }); }
+});
+
+router.patch('/admin/posts/:id', requireAdmin, async (req, res) => {
+  const b = req.body || {};
+  const patch = {};
+  if (b.status && ['pending', 'approved', 'rejected'].includes(b.status)) patch.status = b.status;
+  if (b.featuredHome !== undefined) patch.featuredHome = !!b.featuredHome;
+  for (const f of ['title', 'body', 'imageUrl', 'linkUrl', 'ctaLabel', 'ctaUrl', 'code', 'expiresAt']) if (b[f] !== undefined) patch[f] = b[f];
+  try {
+    const ok = await repo.updatePost(req.params.id, patch);
+    if (!ok) return res.status(404).json({ error: 'not found' });
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: 'update failed' }); }
+});
+
+router.delete('/admin/posts/:id', requireAdmin, async (req, res) => {
+  try { await repo.deletePost(req.params.id); res.json({ ok: true }); }
+  catch (e) { res.status(500).json({ error: 'delete failed' }); }
 });
 
 export default router;

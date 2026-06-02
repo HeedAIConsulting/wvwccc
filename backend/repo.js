@@ -54,6 +54,91 @@ export async function listOrders() {
   return store.read('orders.json', []).slice().reverse();
 }
 
+// ── Content posts (offers, member board, news/announcements) ──
+const POST_COLS = ['id', 'type', 'author_id', 'author_name', 'member_id', 'title', 'body',
+  'image_url', 'link_url', 'cta_label', 'cta_url', 'code', 'status', 'featured_home', 'expires_at'];
+const toRow = (p) => ({
+  id: p.id, type: p.type, author_id: p.authorId, author_name: p.authorName, member_id: p.memberId,
+  title: p.title, body: p.body, image_url: p.imageUrl, link_url: p.linkUrl,
+  cta_label: p.ctaLabel, cta_url: p.ctaUrl, code: p.code, status: p.status,
+  featured_home: p.featuredHome, expires_at: p.expiresAt,
+});
+const fromRow = (r) => ({
+  id: r.id, type: r.type, authorId: r.author_id, authorName: r.author_name, memberId: r.member_id,
+  title: r.title, body: r.body, imageUrl: r.image_url, linkUrl: r.link_url,
+  ctaLabel: r.cta_label, ctaUrl: r.cta_url, code: r.code, status: r.status,
+  featuredHome: r.featured_home, expiresAt: r.expires_at, created: r.created,
+});
+
+export async function addPost(post) {
+  if (db.enabled) {
+    const row = toRow(post);
+    await db.query(
+      `INSERT INTO posts (${POST_COLS.join(',')}, created)
+       VALUES (${POST_COLS.map((_, i) => '$' + (i + 1)).join(',')}, now())`,
+      POST_COLS.map((c) => row[c]));
+    return;
+  }
+  store.append('posts.json', { ...post, created: new Date().toISOString() });
+}
+export async function listPosts({ type, status, memberId } = {}) {
+  if (db.enabled) {
+    const where = [], params = [];
+    if (type) { params.push(type); where.push('type = $' + params.length); }
+    if (status) { params.push(status); where.push('status = $' + params.length); }
+    if (memberId) { params.push(memberId); where.push('member_id = $' + params.length); }
+    const sql = 'SELECT * FROM posts' + (where.length ? ' WHERE ' + where.join(' AND ') : '') + ' ORDER BY created DESC';
+    return (await db.query(sql, params)).rows.map(fromRow);
+  }
+  let arr = store.read('posts.json', []).slice().reverse();
+  if (type) arr = arr.filter((p) => p.type === type);
+  if (status) arr = arr.filter((p) => p.status === status);
+  if (memberId) arr = arr.filter((p) => p.memberId === memberId);
+  return arr;
+}
+export async function updatePost(id, patch) {
+  const allowed = ['title', 'body', 'imageUrl', 'linkUrl', 'ctaLabel', 'ctaUrl', 'code', 'status', 'featuredHome', 'expiresAt'];
+  const colMap = { imageUrl: 'image_url', linkUrl: 'link_url', ctaLabel: 'cta_label', ctaUrl: 'cta_url', featuredHome: 'featured_home', expiresAt: 'expires_at' };
+  const keys = Object.keys(patch).filter((k) => allowed.includes(k));
+  if (!keys.length) return false;
+  if (db.enabled) {
+    const sets = keys.map((k, i) => `${colMap[k] || k} = $${i + 2}`);
+    const r = await db.query(`UPDATE posts SET ${sets.join(',')} WHERE id = $1`, [id, ...keys.map((k) => patch[k])]);
+    return r.rowCount > 0;
+  }
+  const arr = store.read('posts.json', []);
+  const p = arr.find((x) => x.id === id);
+  if (!p) return false;
+  keys.forEach((k) => { p[k] = patch[k]; });
+  store.write('posts.json', arr); return true;
+}
+export async function deletePost(id) {
+  if (db.enabled) { await db.query('DELETE FROM posts WHERE id=$1', [id]); return; }
+  store.write('posts.json', store.read('posts.json', []).filter((p) => p.id !== id));
+}
+
+// ── Image assets (Postgres bytea, or dev files) ─────────────
+export async function addAsset({ id, memberId, kind, mime, buffer }) {
+  if (db.enabled) {
+    await db.query('INSERT INTO assets (id, member_id, kind, mime, bytes, created) VALUES ($1,$2,$3,$4,$5, now())',
+      [id, memberId, kind, mime, buffer]);
+    return;
+  }
+  const idx = store.read('assets.json', {});
+  idx[id] = { memberId, kind, mime, b64: buffer.toString('base64') };
+  store.write('assets.json', idx);
+}
+export async function getAsset(id) {
+  if (db.enabled) {
+    const r = await db.query('SELECT mime, bytes FROM assets WHERE id=$1', [id]);
+    if (!r.rows[0]) return null;
+    return { mime: r.rows[0].mime, buffer: r.rows[0].bytes };
+  }
+  const idx = store.read('assets.json', {});
+  if (!idx[id]) return null;
+  return { mime: idx[id].mime, buffer: Buffer.from(idx[id].b64, 'base64') };
+}
+
 // ── Member self-service profile edits ──────────────────────
 export async function getMemberEdits() {
   if (db.enabled) {

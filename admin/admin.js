@@ -24,6 +24,7 @@ window.Admin = (function () {
     { href: 'members.html', icon: '◉', label: 'Members', key: 'members' },
     { href: 'approvals.html', icon: '✓', label: 'Approvals', key: 'approvals' },
     { href: 'events.html', icon: '◆', label: 'Events', key: 'events' },
+    { href: 'content.html', icon: '✎', label: 'Content', key: 'content' },
     { grp: 'Revenue & contact' },
     { href: 'payments.html', icon: '$', label: 'Pay Log', key: 'payments' },
     { href: 'leads.html', icon: '✉', label: 'Inquiries', key: 'leads' },
@@ -61,6 +62,7 @@ window.Admin = (function () {
         { num: s.pendingMembers, lbl: 'Pending approval', accent: s.pendingMembers > 0 },
         { num: s.leaders, lbl: 'Leaders / Board' },
         { num: s.newLeads, lbl: 'New inquiries', accent: s.newLeads > 0 },
+        { num: s.pendingPosts, lbl: 'Pending content', accent: s.pendingPosts > 0 },
         { num: s.orders, lbl: 'Payments logged' },
         { num: '$' + (s.revenue || 0).toLocaleString(), lbl: 'Revenue processed' },
       ];
@@ -219,11 +221,65 @@ window.Admin = (function () {
     } catch (e) { console.error(e); }
   }
 
+  // ── Content & approvals (posts) ──
+  async function initContent() {
+    mountShell('content');
+    const TYPES = ['news', 'announcement', 'discount', 'member_post', 'event'];
+    const form = document.getElementById('postForm');
+    const msg = document.getElementById('postMsg');
+
+    async function load() {
+      try {
+        const { posts } = await api('/api/admin/posts');
+        const pending = posts.filter((p) => p.status === 'pending');
+        const live = posts.filter((p) => p.status !== 'pending');
+        document.getElementById('pendingWrap').innerHTML = pending.length
+          ? pending.map((p) => rowFor(p, true)).join('')
+          : '<tr><td colspan="4" class="sub">Nothing waiting for review. 🎉</td></tr>';
+        document.getElementById('liveWrap').innerHTML = live.length
+          ? live.map((p) => rowFor(p, false)).join('')
+          : '<tr><td colspan="4" class="sub">No published content yet.</td></tr>';
+        bind();
+      } catch (e) { showAuthError(e); }
+    }
+    function rowFor(p, isPending) {
+      const id = esc(p.id);
+      return `<tr data-id="${id}">
+        <td><span class="name">${esc(p.title)}</span><div class="sub">${esc(p.authorName || '')}</div></td>
+        <td>${esc(p.type)}</td>
+        <td>${statusPill(p.status)}${p.featuredHome ? ' <span class="pill pill--approved">home</span>' : ''}</td>
+        <td>
+          ${isPending ? `<button class="btn btn--forest btn--sm" data-approve>Approve</button> <button class="btn btn--ghost btn--sm" data-reject>Reject</button>`
+            : `<button class="btn btn--ghost btn--sm" data-feature>${p.featuredHome ? 'Unfeature' : 'Feature'}</button> <button class="btn btn--ghost btn--sm" data-del>Delete</button>`}
+        </td></tr>`;
+    }
+    function bind() {
+      document.querySelectorAll('#pendingWrap tr[data-id], #liveWrap tr[data-id]').forEach((tr) => {
+        const id = tr.dataset.id;
+        const patch = async (body) => { await api('/api/admin/posts/' + encodeURIComponent(id), { method: 'PATCH', body: JSON.stringify(body) }); load(); };
+        tr.querySelector('[data-approve]')?.addEventListener('click', () => patch({ status: 'approved' }));
+        tr.querySelector('[data-reject]')?.addEventListener('click', () => patch({ status: 'rejected' }));
+        tr.querySelector('[data-feature]')?.addEventListener('click', () => patch({ featuredHome: !tr.querySelector('.pill--approved') }));
+        tr.querySelector('[data-del]')?.addEventListener('click', async () => { await api('/api/admin/posts/' + encodeURIComponent(id), { method: 'DELETE' }); load(); });
+      });
+    }
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fd = new FormData(form);
+      const body = { type: fd.get('type'), title: fd.get('title'), body: fd.get('body'), linkUrl: fd.get('linkUrl'), featuredHome: fd.get('featuredHome') === 'on' };
+      const btn = form.querySelector('button[type="submit"]'); btn.disabled = true;
+      try { await api('/api/admin/posts', { method: 'POST', body: JSON.stringify(body) }); form.reset(); msg.hidden = false; msg.textContent = 'Published.'; load(); }
+      catch (err) { msg.hidden = false; msg.textContent = 'Could not publish (title required).'; }
+      finally { btn.disabled = false; }
+    });
+    load();
+  }
+
   function showAuthError(e) {
     const m = document.getElementById('adminError');
     if (m) { m.hidden = false; m.textContent = 'Could not load admin data (' + e.message + '). If a token is required, set it via the console.'; }
     console.error(e);
   }
 
-  return { mountShell, initDashboard, initMembers, initApprovals, initOrders, initLeads, initEvents, api, esc };
+  return { mountShell, initDashboard, initMembers, initApprovals, initOrders, initLeads, initEvents, initContent, api, esc };
 })();
