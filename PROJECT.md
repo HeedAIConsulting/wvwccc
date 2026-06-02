@@ -1,5 +1,10 @@
 # WVWCCC — Production Build (status)
 
+## 🟢 LIVE: https://wvwccc-web.onrender.com
+Render Web Service `wvwccc-web` (srv-d8f8pci8qa3s738nsib0) + Postgres `wvwccc-db`, Oregon, from repo **HeedAIConsulting/wvwccc** branch `main` (standalone repo; subtree of `websites/wvwccc`). Migration applied, auth live, verified (/healthz, members API, admin 401, _store 403, HSTS). The old `srv-d8f88m42m8qs73dvgekg` was a Static Site — unused.
+**Durability note:** auth users are in Postgres; but leads/orders/member-admin overrides still write to the JSON `_store`, which is **ephemeral on Render** — move these to Postgres next.
+
+
 **West Valley · Warner Center Chamber of Commerce** — production platform.
 Owner: Michael Bowers / Heed Business Solutions · Client: Diana Williams (CEO).
 Fresh codebase. The POC stays intact at `websites/WVchamber/` (do not touch).
