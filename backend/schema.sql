@@ -38,7 +38,7 @@ CREATE INDEX IF NOT EXISTS members_status_idx       ON members (status);
 -- ── Auth users (logins migrated from ChamberWare) ──────────
 CREATE TABLE IF NOT EXISTS users (
   id              text PRIMARY KEY,
-  member_id       text REFERENCES members(id) ON DELETE SET NULL,
+  member_id       text,                        -- linked listing; no FK (members live in JSON/seed, not PG yet)
   email           text UNIQUE NOT NULL,
   username        text,
   password_hash   text,                        -- legacy hash on import; bcrypt after first login
@@ -49,6 +49,8 @@ CREATE TABLE IF NOT EXISTS users (
   last_login      timestamptz,
   created_at      timestamptz DEFAULT now()
 );
+-- Drop the old FK if a previous migration created it (members aren't in PG).
+ALTER TABLE users DROP CONSTRAINT IF EXISTS users_member_id_fkey;
 
 -- ── Orders (payments via AGMS) ─────────────────────────────
 -- One-time, idempotent rebuild: the very first deploy created `orders` with a
