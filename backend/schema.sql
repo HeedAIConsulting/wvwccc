@@ -151,5 +151,16 @@ CREATE TABLE IF NOT EXISTS member_overrides (
   tier          text,
   leader_status text,
   featured      boolean,
+  expire_date   text,                          -- manual renewal/expiration date (YYYY-MM-DD)
+  term_months   int,                           -- membership length in months (12=annual)
   updated_at    timestamptz DEFAULT now()
+);
+ALTER TABLE member_overrides ADD COLUMN IF NOT EXISTS expire_date text;
+ALTER TABLE member_overrides ADD COLUMN IF NOT EXISTS term_months int;
+
+-- ── Manually-added members (offline signups; merged into the directory) ──
+CREATE TABLE IF NOT EXISTS added_members (
+  id       text PRIMARY KEY,                   -- 'm-...' app-generated
+  data     jsonb NOT NULL,                     -- full member object
+  created  timestamptz DEFAULT now()
 );

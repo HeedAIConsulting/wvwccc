@@ -103,9 +103,31 @@ window.Admin = (function () {
     mountShell('members');
     let opts = { leaderOptions: ['', 'Leader', 'Board Member', 'New Member', 'Past President', 'Ambassador'], statusOptions: ['approved', 'pending', 'suspended', 'inactive'] };
     try { opts = await api('/api/admin/options'); } catch (e) {}
-    const tiers = ['platinum', 'gold', 'silver', 'bronze', 'supporter', 'member'];
+    const tiers = ['platinum', 'gold', 'silver', 'bronze', 'supporter', 'member', 'in-kind', 'complimentary'];
     const tbody = document.getElementById('memberRows');
     const search = document.getElementById('memberSearch');
+
+    // Add-member form (offline signup)
+    const addToggle = document.getElementById('addMemberToggle');
+    const addForm = document.getElementById('addMemberForm');
+    if (addToggle && addForm) {
+      addToggle.addEventListener('click', () => { addForm.style.display = addForm.style.display === 'none' ? 'block' : 'none'; });
+      addForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const msg = document.getElementById('addMemberMsg');
+        const fd = new FormData(addForm);
+        const body = Object.fromEntries(fd.entries());
+        if (!body.name) { msg.hidden = false; msg.textContent = 'Name is required.'; return; }
+        const btn = addForm.querySelector('button[type="submit"]'); btn.disabled = true;
+        try {
+          const r = await api('/api/admin/members', { method: 'POST', body: JSON.stringify(body) });
+          msg.hidden = false; msg.textContent = 'Added: ' + (r.member ? r.member.name : body.name);
+          addForm.reset();
+          load(search.value.trim());
+        } catch (err) { msg.hidden = false; msg.textContent = 'Could not add member.'; }
+        finally { btn.disabled = false; }
+      });
+    }
 
     async function load(q) {
       try {
@@ -432,20 +454,24 @@ window.Admin = (function () {
     load();
   }
 
-  // ── Renewals (estimated as the annual anniversary of join date) ──
+  // ── Renewals (manual date override, else join-date + term) ──
   async function initRenewals() {
     mountShell('renewals');
     const tbody = document.getElementById('renewRows');
     const summary = document.getElementById('renewSummary');
     let windowDays = 30, all = [];
     const startOfToday = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; };
-    function nextRenewal(joinDate) {
-      if (!joinDate) return null;
-      const jd = new Date(joinDate + 'T12:00:00'); if (isNaN(jd)) return null;
+    const ymd = (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    function nextRenewal(m) {
+      if (m.expireDate) { const e = new Date(m.expireDate + 'T12:00:00'); if (!isNaN(e)) return { date: e, manual: true }; }
+      if (!m.joinDate) return null;
+      const jd = new Date(m.joinDate + 'T12:00:00'); if (isNaN(jd)) return null;
+      const term = Number(m.termMonths) || 12;
       const today = startOfToday();
-      let r = new Date(today.getFullYear(), jd.getMonth(), jd.getDate());
-      if (r < today) r = new Date(today.getFullYear() + 1, jd.getMonth(), jd.getDate());
-      return r;
+      let r = new Date(jd);
+      let guard = 0;
+      while (r < today && guard++ < 200) r.setMonth(r.getMonth() + term);
+      return { date: r, manual: false };
     }
     const daysUntil = (d) => Math.round((d - startOfToday()) / 86400000);
     function tenure(joinDate) {
@@ -454,18 +480,43 @@ window.Admin = (function () {
       return y >= 1 ? y + ' yr' + (y > 1 ? 's' : '') : '<1 yr';
     }
     function render() {
-      const rows = all.map((m) => ({ m, r: nextRenewal(m.joinDate) })).filter((x) => x.r)
-        .map((x) => ({ ...x, days: daysUntil(x.r) })).sort((a, b) => a.days - b.days);
+      const rows = all.map((m) => ({ m, nr: nextRenewal(m) })).filter((x) => x.nr)
+        .map((x) => ({ ...x, days: daysUntil(x.nr.date) })).sort((a, b) => a.days - b.days);
       const c30 = rows.filter((x) => x.days <= 30).length, c60 = rows.filter((x) => x.days <= 60).length, c90 = rows.filter((x) => x.days <= 90).length;
-      summary.innerHTML = `<strong>${c30}</strong> renewing within 30 days · <strong>${c60}</strong> within 60 · <strong>${c90}</strong> within 90 · ${rows.length} members with a join date`;
+      summary.innerHTML = `<strong>${c30}</strong> renewing within 30 days · <strong>${c60}</strong> within 60 · <strong>${c90}</strong> within 90 · ${rows.length} dated members`;
       const list = windowDays >= 9999 ? rows : rows.filter((x) => x.days <= windowDays);
-      tbody.innerHTML = list.length ? list.map(({ m, r, days }) => `<tr>
-        <td><span class="name">${esc(m.name)}</span><div class="sub">${esc(m.category || '')}${m.neighborhood ? ' · ' + esc(m.neighborhood) : ''}</div></td>
-        <td>${esc(m.joinDate || '—')}<div class="sub">${tenure(m.joinDate)} member</div></td>
-        <td>${r.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</td>
-        <td>${days === 0 ? '<span class="pill pill--pending">today</span>' : (days <= 30 ? '<span class="pill pill--pending">' + days + ' days</span>' : days + ' days')}</td>
-        <td><a href="../members/profile.html?id=${esc(m.id)}" target="_blank">View ↗</a></td>
-      </tr>`).join('') : '<tr><td colspan="5" class="sub">No members renewing in this window.</td></tr>';
+      tbody.innerHTML = list.length ? list.map(({ m, nr, days }) => {
+        const terms = [12, 24, 36, 48, 60];
+        const termSel = `<select data-f="termMonths" class="admin-select" style="width:auto">${terms.map((t) => `<option value="${t}" ${(Number(m.termMonths) || 12) === t ? 'selected' : ''}>${t / 12} yr</option>`).join('')}</select>`;
+        return `<tr data-id="${esc(m.id)}">
+          <td><span class="name">${esc(m.name)}</span><div class="sub">${esc(m.category || '')}${m.neighborhood ? ' · ' + esc(m.neighborhood) : ''}</div></td>
+          <td>${esc(m.joinDate || '—')}<div class="sub">${tenure(m.joinDate)} member</div></td>
+          <td>${nr.date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })} ${nr.manual ? '<span class="pill pill--approved">set</span>' : '<span class="sub">est.</span>'}<div class="sub">${days === 0 ? 'today' : days + ' days'}</div></td>
+          <td>
+            <input type="date" data-f="expireDate" value="${nr.manual ? esc(ymd(nr.date)) : ''}" class="admin-select" style="width:auto">
+            ${termSel}
+            <button class="btn btn--forest btn--sm" data-save>Save</button>
+            ${nr.manual ? '<button class="btn btn--ghost btn--sm" data-clear>Clear</button>' : ''}
+            <span class="saved-flash" data-flash>saved ✓</span>
+          </td>
+        </tr>`;
+      }).join('') : '<tr><td colspan="4" class="sub">No members renewing in this window.</td></tr>';
+      tbody.querySelectorAll('tr[data-id]').forEach((tr) => {
+        const id = tr.dataset.id, flash = tr.querySelector('[data-flash]');
+        const patch = async (body) => {
+          try {
+            await api('/api/admin/members/' + encodeURIComponent(id), { method: 'PATCH', body: JSON.stringify(body) });
+            const m = all.find((x) => x.id === id);
+            if (m) { if ('expireDate' in body) m.expireDate = body.expireDate || undefined; if (body.termMonths) m.termMonths = body.termMonths; }
+            flash.classList.add('show'); setTimeout(() => { flash.classList.remove('show'); render(); }, 700);
+          } catch (e) { showAuthError(e); }
+        };
+        tr.querySelector('[data-save]').addEventListener('click', () => patch({
+          expireDate: tr.querySelector('[data-f="expireDate"]').value || null,
+          termMonths: Number(tr.querySelector('[data-f="termMonths"]').value) || 12,
+        }));
+        tr.querySelector('[data-clear]')?.addEventListener('click', () => patch({ expireDate: null }));
+      });
     }
     document.querySelectorAll('[data-win]').forEach((b) => b.addEventListener('click', () => {
       windowDays = +b.dataset.win;

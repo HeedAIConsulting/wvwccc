@@ -211,7 +211,7 @@ export async function setMemberEdit(id, patch) {
 // ── Member admin overrides ──────────────────────────────────
 export async function getOverrides() {
   if (db.enabled) {
-    const r = await db.query('SELECT id, status, tier, leader_status, featured FROM member_overrides');
+    const r = await db.query('SELECT id, status, tier, leader_status, featured, expire_date, term_months FROM member_overrides');
     const map = {};
     for (const row of r.rows) {
       const o = {};
@@ -219,6 +219,8 @@ export async function getOverrides() {
       if (row.tier != null) o.tier = row.tier;
       if (row.leader_status != null) o.leaderStatus = row.leader_status;
       if (row.featured != null) o.featured = row.featured;
+      if (row.expire_date != null) o.expireDate = row.expire_date;
+      if (row.term_months != null) o.termMonths = row.term_months;
       map[row.id] = o;
     }
     return map;
@@ -227,24 +229,46 @@ export async function getOverrides() {
 }
 export async function setOverride(id, patch) {
   if (db.enabled) {
-    // merge: only overwrite provided keys (COALESCE keeps existing)
     await db.query(
-      `INSERT INTO member_overrides (id, status, tier, leader_status, featured, updated_at)
-       VALUES ($1,$2,$3,$4,$5, now())
+      `INSERT INTO member_overrides (id, status, tier, leader_status, featured, expire_date, term_months, updated_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7, now())
        ON CONFLICT (id) DO UPDATE SET
          status        = COALESCE(EXCLUDED.status, member_overrides.status),
          tier          = COALESCE(EXCLUDED.tier, member_overrides.tier),
          leader_status = COALESCE(EXCLUDED.leader_status, member_overrides.leader_status),
          featured      = COALESCE(EXCLUDED.featured, member_overrides.featured),
+         expire_date   = COALESCE(EXCLUDED.expire_date, member_overrides.expire_date),
+         term_months   = COALESCE(EXCLUDED.term_months, member_overrides.term_months),
          updated_at    = now()`,
       [id,
        patch.status ?? null,
        patch.tier ?? null,
        patch.leaderStatus ?? null,
-       patch.featured ?? null]);
+       patch.featured ?? null,
+       patch.expireDate ?? null,
+       patch.termMonths ?? null]);
     return;
   }
   const overrides = store.read('member-admin.json', {});
   overrides[id] = { ...(overrides[id] || {}), ...patch };
+  // allow clearing a manual renewal date with null
+  if (patch.expireDate === null) delete overrides[id].expireDate;
   store.write('member-admin.json', overrides);
+}
+
+// ── Manually-added members (offline signups) ────────────────
+export async function listAddedMembers() {
+  if (db.enabled) return (await db.query('SELECT data FROM added_members ORDER BY created DESC')).rows.map((x) => x.data);
+  return store.read('added-members.json', []);
+}
+export async function addMember(m) {
+  if (db.enabled) {
+    await db.query('INSERT INTO added_members (id, data, created) VALUES ($1,$2::jsonb, now()) ON CONFLICT (id) DO UPDATE SET data=EXCLUDED.data',
+      [m.id, JSON.stringify(m)]);
+    return;
+  }
+  const arr = store.read('added-members.json', []);
+  const i = arr.findIndex((x) => x.id === m.id);
+  if (i >= 0) arr[i] = m; else arr.push(m);
+  store.write('added-members.json', arr);
 }

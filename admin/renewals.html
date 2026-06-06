@@ -16,7 +16,7 @@
     <div class="admin-main">
       <div class="admin-topbar"><h1>Renewals</h1></div>
       <div class="admin-content">
-        <p class="admin-notice">Renewal dates are <strong>estimated</strong> as the annual anniversary of each member's join date. Once exact renewal/expiration dates are imported, this view will use those instead.</p>
+        <p class="admin-notice">Renewal dates are <strong>estimated</strong> from each member's join date and term length — or set an exact date manually below (per member). "Set" = a manually-saved date; "est." = computed.</p>
 
         <div class="panel">
           <div class="panel__head" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
@@ -28,7 +28,7 @@
               <button class="chip" data-win="9999">All</button>
             </div>
           </div>
-          <table class="admin-table"><thead><tr><th>Member</th><th>Joined</th><th>Est. renewal</th><th>In</th><th></th></tr></thead><tbody id="renewRows"></tbody></table>
+          <table class="admin-table"><thead><tr><th>Member</th><th>Joined</th><th>Renewal</th><th>Set renewal date &amp; term</th></tr></thead><tbody id="renewRows"></tbody></table>
         </div>
 
         <p class="sub" style="margin-top:10px">Tip: use the <strong>AI Assistant</strong> to draft a renewal-reminder email for these members.</p>

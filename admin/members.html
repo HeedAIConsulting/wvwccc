@@ -17,6 +17,37 @@
       <div class="admin-topbar"><h1>Members</h1><span id="memberCount" class="sub"></span></div>
       <div class="admin-content">
         <p id="adminError" class="admin-notice" hidden></p>
+
+        <div class="panel">
+          <div class="panel__head" style="display:flex;justify-content:space-between;align-items:center">
+            <h3>Add a member <span class="sub">(offline signup)</span></h3>
+            <button class="btn btn--ghost btn--sm" type="button" id="addMemberToggle">+ New member</button>
+          </div>
+          <form id="addMemberForm" class="admin-form" style="padding:16px;display:none">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+              <div class="field" style="grid-column:1 / -1"><label>Business / member name *</label><input name="name" required maxlength="160" /></div>
+              <div class="field"><label>Category</label><input name="category" maxlength="60" placeholder="e.g. Plumbing" /></div>
+              <div class="field"><label>Tier</label><select name="tier" class="admin-select"><option>member</option><option>supporter</option><option>bronze</option><option>silver</option><option>gold</option><option>platinum</option><option value="in-kind">in-kind</option><option value="complimentary">complimentary</option></select></div>
+              <div class="field"><label>Contact name</label><input name="contactName" maxlength="120" /></div>
+              <div class="field"><label>Email</label><input name="email" type="email" maxlength="160" /></div>
+              <div class="field"><label>Phone</label><input name="phone" maxlength="40" /></div>
+              <div class="field"><label>Website</label><input name="website" maxlength="200" placeholder="https://" /></div>
+              <div class="field"><label>Address</label><input name="address" maxlength="200" /></div>
+              <div class="field"><label>City</label><input name="city" maxlength="80" /></div>
+              <div class="field"><label>Neighborhood</label><input name="neighborhood" maxlength="80" /></div>
+              <div class="field"><label>State</label><input name="state" maxlength="20" /></div>
+              <div class="field"><label>ZIP</label><input name="zip" maxlength="20" /></div>
+              <div class="field"><label>Join date</label><input name="joinDate" type="date" /></div>
+              <div class="field"><label>Term (months)</label><select name="termMonths" class="admin-select"><option value="12">1 yr</option><option value="24">2 yr</option><option value="36">3 yr</option></select></div>
+              <div class="field" style="grid-column:1 / -1"><label>Tagline</label><input name="tagline" maxlength="300" /></div>
+              <div class="field" style="grid-column:1 / -1"><label>Description</label><textarea name="description" rows="3" maxlength="5000"></textarea></div>
+            </div>
+            <p id="addMemberMsg" class="notice" hidden style="margin-top:8px"></p>
+            <div style="margin-top:12px"><button class="btn btn--forest" type="submit">Add member</button></div>
+            <p class="sub" style="margin-top:6px">Paid offline — recorded for the directory. (Persists permanently once a database is connected.)</p>
+          </form>
+        </div>
+
         <div class="panel">
           <div class="panel__head">
             <h3>Member roster</h3>

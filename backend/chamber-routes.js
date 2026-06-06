@@ -114,9 +114,11 @@ function rawMembers() {
 // Merge precedence: base directory  <  member self-edits  <  admin overrides.
 async function loadMembersFull() {
   const { source, members } = rawMembers();
-  const [edits, overrides] = await Promise.all([repo.getMemberEdits(), repo.getOverrides()]);
-  return { source, members: members.map((m) => ({ ...m, ...(edits[m.id] || {}), ...(overrides[m.id] || {}) })) };
+  const [edits, overrides, added] = await Promise.all([repo.getMemberEdits(), repo.getOverrides(), repo.listAddedMembers()]);
+  const base = members.concat(added || []);
+  return { source, members: base.map((m) => ({ ...m, ...(edits[m.id] || {}), ...(overrides[m.id] || {}) })) };
 }
+const slugify = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60);
 
 // Scalar fields a member may edit (admin-only: status/tier/leader/featured).
 const MEMBER_STR_FIELDS = ['name', 'category', 'neighborhood', 'contactName', 'phone', 'fax',
@@ -526,9 +528,46 @@ router.patch('/admin/members/:id', requireAdmin, async (req, res) => {
     if (b.leaderStatus !== undefined && LEADER_OPTS.includes(b.leaderStatus)) patch.leaderStatus = b.leaderStatus;
     if (b.tier !== undefined) patch.tier = b.tier;
     if (b.featured !== undefined) patch.featured = !!b.featured;
+    if (b.expireDate !== undefined) patch.expireDate = (b.expireDate && /^\d{4}-\d{2}-\d{2}$/.test(b.expireDate)) ? b.expireDate : null;
+    if (b.termMonths !== undefined) patch.termMonths = (b.termMonths === null || b.termMonths === '') ? null : Number(b.termMonths) || null;
     await repo.setOverride(id, patch);
     res.json({ ok: true, id, applied: patch });
   } catch (e) { console.error(e); res.status(500).json({ error: 'update failed' }); }
+});
+
+// Manually add a member (offline signup — paid offline).
+router.post('/admin/members', requireAdmin, async (req, res) => {
+  const b = req.body || {};
+  if (!b.name) return res.status(400).json({ error: 'Business / member name is required.' });
+  const id = 'm-' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36);
+  const name = String(b.name).slice(0, 160);
+  const m = {
+    id, slug: slugify(name) || id, name,
+    category: String(b.category || 'Member').slice(0, 60),
+    group: String(b.group || '').slice(0, 60),
+    tier: String(b.tier || 'member').slice(0, 30),
+    neighborhood: String(b.neighborhood || b.city || '').slice(0, 80),
+    contactName: String(b.contactName || '').slice(0, 120),
+    email: String(b.email || '').slice(0, 160),
+    phone: String(b.phone || '').slice(0, 40),
+    address: String(b.address || '').slice(0, 200),
+    city: String(b.city || '').slice(0, 80),
+    state: String(b.state || '').slice(0, 20),
+    zip: String(b.zip || '').slice(0, 20),
+    website: clampUrl(b.website),
+    tagline: String(b.tagline || '').slice(0, 300),
+    description: String(b.description || '').slice(0, 5000),
+    joinDate: /^\d{4}-\d{2}-\d{2}$/.test(b.joinDate || '') ? b.joinDate : new Date().toISOString().slice(0, 10),
+    tags: Array.isArray(b.tags) ? b.tags.slice(0, 12).map((t) => String(t).slice(0, 30)) : [],
+    status: STATUS_OPTS.includes(b.status) ? b.status : 'approved',
+    seal: (name[0] || '?').toUpperCase(),
+    paymentType: 'offline',
+    addedManually: true,
+  };
+  if (b.expireDate && /^\d{4}-\d{2}-\d{2}$/.test(b.expireDate)) m.expireDate = b.expireDate;
+  if (b.termMonths) m.termMonths = Number(b.termMonths) || null;
+  try { await repo.addMember(m); res.json({ ok: true, member: m }); }
+  catch (e) { console.error('add member', e); res.status(500).json({ error: 'could not add member' }); }
 });
 
 router.get('/admin/leads', requireAdmin, async (_req, res) => {
