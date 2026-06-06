@@ -16,16 +16,25 @@ export const anthropicEnabled = () => !!ANTHROPIC_KEY();
 
 /* Multi-turn chat for the internal admin assistant. Prefers Anthropic (Claude)
    for content quality; falls back to Gemini (flattened) if no Anthropic key. */
-export async function chat({ system = '', messages = [], model = 'claude-3-5-sonnet-latest', maxTokens = 1500 } = {}) {
+export async function chat({ system = '', messages = [], model, maxTokens = 1500 } = {}) {
   if (ANTHROPIC_KEY()) {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': ANTHROPIC_KEY(), 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({ model, max_tokens: maxTokens, system, messages }),
-    });
-    if (!res.ok) throw new Error(`anthropic ${res.status}: ${(await res.text()).slice(0, 200)}`);
-    const data = await res.json();
-    return { text: (data.content || []).map((c) => c.text).join(''), provider: 'anthropic', model };
+    // Prefer Sonnet (best for content); fall back to Haiku (known-good) on any error.
+    const candidates = [model, 'claude-3-5-sonnet-latest', 'claude-3-5-haiku-latest'].filter(Boolean);
+    let lastErr;
+    for (const m of candidates) {
+      try {
+        const res = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-api-key': ANTHROPIC_KEY(), 'anthropic-version': '2023-06-01' },
+          body: JSON.stringify({ model: m, max_tokens: maxTokens, system, messages }),
+        });
+        if (!res.ok) { lastErr = new Error(`anthropic ${res.status}: ${(await res.text()).slice(0, 200)}`); console.error('[llm.chat]', m, lastErr.message); continue; }
+        const data = await res.json();
+        return { text: (data.content || []).map((c) => c.text).join(''), provider: 'anthropic', model: m };
+      } catch (e) { lastErr = e; console.error('[llm.chat]', m, e.message); }
+    }
+    // Anthropic failed entirely → try Gemini before giving up.
+    if (!GEMINI_KEY()) throw lastErr || new Error('anthropic failed');
   }
   if (GEMINI_KEY()) {
     const prompt = messages.map((m) => (m.role === 'user' ? 'Admin: ' : 'Assistant: ') + m.content).join('\n\n');
