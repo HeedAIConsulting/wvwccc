@@ -251,6 +251,27 @@
     .signature { font-family: var(--display); font-style: italic; font-size: 1.5rem; color: var(--navy); margin-top: var(--s-5); }
     .signature small { display: block; font-family: var(--sans); font-style: normal; font-size: .9rem; color: var(--muted); letter-spacing: .02em; margin-top: 4px; }
 
+    /* ── "The name" callout ── */
+    .namecallout {
+      position: relative; overflow: hidden;
+      background: linear-gradient(135deg, var(--ink), var(--navy));
+      border-radius: var(--r-xl); box-shadow: var(--sh-lg);
+      padding: var(--s-9) var(--s-7); text-align: center; color: #fff;
+    }
+    .namecallout::before {
+      content: "“"; position: absolute; top: -28px; left: 28px;
+      font-family: var(--display); font-size: 13rem; line-height: 1;
+      color: rgba(200,164,92,.16); pointer-events: none;
+    }
+    .namecallout .kicker { color: var(--gold-bright); position: relative; }
+    .namecallout__quote {
+      position: relative; font-family: var(--display); font-weight: 500;
+      font-size: clamp(1.5rem, 3.4vw, 2.35rem); line-height: 1.22;
+      color: #fff; max-width: 800px; margin: 0 auto var(--s-5); letter-spacing: -.01em;
+    }
+    .namecallout__quote em { font-style: italic; color: var(--gold-bright); }
+    .namecallout__sub { position: relative; color: rgba(255,255,255,.78); max-width: 620px; margin: 0 auto; font-size: 1.08rem; }
+
     /* ── Value props ── */
     .value-card { background: var(--paper); border: 1px solid var(--line); border-radius: var(--r-lg); padding: var(--s-6); box-shadow: var(--sh-sm); }
     .value-card__icon { font-size: 1.6rem; margin-bottom: var(--s-3); }
@@ -394,6 +415,23 @@
           </div>
         </article>
 
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════ "THE NAME" CALLOUT ════════════════ -->
+  <section class="section" id="the-name" style="padding-top:0">
+    <div class="container">
+      <div class="namecallout reveal">
+        <span class="kicker">The name</span>
+        <p class="namecallout__quote">
+          “Heed” was born in my risk-management days — where the whole job was to
+          <em>heed the warning</em>: see the exposure before it became a loss, and act while there was still time.
+        </p>
+        <p class="namecallout__sub">
+          That instinct became the firm. Across all three directives, we read the signals in your technology,
+          your operations, and your numbers — and answer them before they cost you.
+        </p>
       </div>
     </div>
   </section>
