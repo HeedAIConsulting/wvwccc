@@ -355,7 +355,7 @@ window.Chamber = (function () {
       if (state.category && (m.group || 'Other') !== state.category) return -1;
       if (state.hood && m.neighborhood !== state.hood) return -1;
       if (!state.q) return 0;
-      const fields = [[m.name, 10], [m.category, 6], [m.typeOfBusiness, 6], [m.group, 5],
+      const fields = [[m.name, 10], [m.category, 6], [m.typeOfBusiness, 6], [(m.keywords || []).join(' '), 5], [m.group, 5],
         [m.neighborhood, 4], [m.city, 4], [m.contactName, 3], [m.tagline, 3],
         [(m.tags || []).join(' '), 2], [m.description, 1]];
       const words = state.q.toLowerCase().split(/\s+/).filter(Boolean);

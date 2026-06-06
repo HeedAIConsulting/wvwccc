@@ -100,17 +100,33 @@ router.post('/auth/set-password', auth.requireAuth(), async (req, res) => {
 // Admin overrides (status/tier/leader/featured) come from the durable repo.
 const PUBLIC_FIELDS = ['id', 'slug', 'name', 'category', 'group', 'tier', 'neighborhood', 'contactName',
   'address', 'city', 'state', 'zip', 'phone', 'fax', 'website', 'tagline',
-  'description', 'leaderStatus', 'seal', 'featured', 'tags',
+  'description', 'leaderStatus', 'seal', 'featured', 'tags', 'keywords',
   // richer profile (member-managed)
   'hours', 'occupation', 'typeOfBusiness', 'yearEstablished', 'employees',
   'logo', 'photos', 'social', 'reviewLinks', 'ctaLinks'];
 
+let _kw = null;
+function readKeywords() {
+  if (_kw) return _kw;
+  try { _kw = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'member-keywords.json'), 'utf8')); }
+  catch { _kw = {}; }
+  return _kw;
+}
 function rawMembers() {
   const storePath = path.join(ROOT, 'data', '_store', 'members.json');
   const seed = path.join(ROOT, 'data', 'directory.json');
   const usingStore = fs.existsSync(storePath);
   const raw = JSON.parse(fs.readFileSync(usingStore ? storePath : seed, 'utf8'));
-  return { source: usingStore ? 'imported' : 'seed', members: raw.members || [] };
+  const kw = readKeywords();
+  const members = (raw.members || []).map((m) => {
+    const k = kw[m.id]; if (!k) return m;
+    return {
+      ...m,
+      keywords: (k.keywords && k.keywords.length) ? k.keywords : m.keywords,
+      description: (m.description && String(m.description).trim()) ? m.description : (k.description || m.description),
+    };
+  });
+  return { source: usingStore ? 'imported' : 'seed', members };
 }
 
 // Merge precedence: base directory  <  member self-edits  <  admin overrides.
@@ -417,8 +433,8 @@ router.post('/contact', async (req, res) => {
 // (so it always works). Real member data only — the model can't invent members.
 const STOPWORDS = new Set(('a an and any are am as at be been by can could did do does for find from get has have help i if in is it looking me my near need of on or please some that the them they this to want we what when where which who with you your').split(' '));
 function rankMembers(members, q, limit = 20) {
-  const fields = [['name', 10], ['category', 6], ['typeOfBusiness', 6], ['group', 5],
-    ['neighborhood', 4], ['city', 4], ['tagline', 3], ['description', 1]];
+  const fields = [['name', 10], ['category', 6], ['typeOfBusiness', 6], ['keywords', 5], ['group', 5],
+    ['neighborhood', 4], ['city', 4], ['tagline', 3], ['tags', 2], ['description', 1]];
   const words = String(q).toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length > 1 && !STOPWORDS.has(w));
   const scored = members.map((m) => {
     let total = 0;
