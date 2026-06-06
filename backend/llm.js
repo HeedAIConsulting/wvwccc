@@ -23,7 +23,7 @@ export async function visionJSON({ instruction, imageDataUrl, system = '', maxTo
   const mediaType = m[1], data = m[3];
   const sys = (system ? system + '\n' : '') + 'Respond with valid JSON only — no markdown fences, no prose.';
   if (ANTHROPIC_KEY()) {
-    for (const mod of ['claude-3-5-sonnet-latest', 'claude-3-5-haiku-latest']) {
+    for (const mod of ['claude-sonnet-4-5-20250929', 'claude-haiku-4-5-20251001']) {
       try {
         const res = await fetch('https://api.anthropic.com/v1/messages', {
           method: 'POST',
@@ -67,7 +67,7 @@ export async function diagnose() {
       const res = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-api-key': ANTHROPIC_KEY(), 'anthropic-version': '2023-06-01' },
-        body: JSON.stringify({ model: 'claude-3-5-haiku-latest', max_tokens: 8, messages: [{ role: 'user', content: 'ping' }] }),
+        body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 8, messages: [{ role: 'user', content: 'ping' }] }),
       });
       out.anthropicTest = res.ok ? 'ok' : `FAIL ${res.status}: ${(await res.text()).slice(0, 220)}`;
     } catch (e) { out.anthropicTest = 'FAIL: ' + e.message; }
@@ -84,7 +84,7 @@ export async function diagnose() {
 export async function chat({ system = '', messages = [], model, maxTokens = 1500 } = {}) {
   if (ANTHROPIC_KEY()) {
     // Prefer Sonnet (best for content); fall back to Haiku (known-good) on any error.
-    const candidates = [model, 'claude-3-5-sonnet-latest', 'claude-3-5-haiku-latest'].filter(Boolean);
+    const candidates = [...new Set([model, 'claude-sonnet-4-5-20250929', 'claude-haiku-4-5-20251001'].filter(Boolean))];
     let lastErr;
     for (const m of candidates) {
       try {
@@ -147,7 +147,7 @@ async function anthropic(system, prompt, json, maxTokens) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-api-key': ANTHROPIC_KEY(), 'anthropic-version': '2023-06-01' },
     body: JSON.stringify({
-      model: 'claude-3-5-haiku-latest',
+      model: 'claude-haiku-4-5-20251001',
       max_tokens: maxTokens,
       system: system + (json ? '\nRespond with valid JSON only.' : ''),
       messages: [{ role: 'user', content: prompt }],
