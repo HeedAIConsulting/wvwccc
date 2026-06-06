@@ -92,8 +92,10 @@ async function sendSmtp({ to, subject, text, html, replyTo }) {
 export async function diagnose(to) {
   const out = {
     provider: provider(), graphReady: graphReady(), smtpReady: smtpReady(),
-    sender: SENDER() || null, tenant: TENANT() ? 'set' : 'missing',
-    clientId: CLIENT() ? 'set' : 'missing', clientSecret: CSECRET() ? 'set' : 'missing',
+    sender: SENDER() || null,
+    tenant: TENANT() || 'missing',          // tenant ID — not secret
+    clientId: CLIENT() || 'missing',        // app/client ID — not secret
+    clientSecret: CSECRET() ? 'set' : 'missing',  // secret stays masked
   };
   if (graphReady()) {
     try { await graphToken(); out.graphToken = 'ok'; }
