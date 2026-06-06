@@ -55,6 +55,14 @@ export async function visionJSON({ instruction, imageDataUrl, system = '', maxTo
 export async function diagnose() {
   const out = { provider: provider(), anthropicKey: anthropicEnabled(), geminiKey: geminiEnabled() };
   if (ANTHROPIC_KEY()) {
+    // List the models this key can actually use.
+    try {
+      const lm = await fetch('https://api.anthropic.com/v1/models?limit=100', {
+        headers: { 'x-api-key': ANTHROPIC_KEY(), 'anthropic-version': '2023-06-01' },
+      });
+      if (lm.ok) { const j = await lm.json(); out.anthropicModels = (j.data || []).map((m) => m.id); }
+      else out.anthropicModels = `FAIL ${lm.status}: ${(await lm.text()).slice(0, 160)}`;
+    } catch (e) { out.anthropicModels = 'FAIL: ' + e.message; }
     try {
       const res = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
