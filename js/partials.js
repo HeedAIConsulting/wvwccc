@@ -125,6 +125,7 @@ window.ChamberPartials = (function () {
         <h4>${t.about}</h4>
         <ul>
           <li><a href="${p(depth,'about.html')}">${t.chamber}</a></li>
+          <li><a href="${p(depth,'community/history.html')}">${L?'Historia':'Our History'}</a></li>
           <li><a href="${p(depth,'contact.html')}">${t.contact}</a></li>
           <li><a href="${p(depth,'accessibility.html')}">${t.access}</a></li>
           <li><a href="${p(depth,'privacy.html')}">${t.privacy}</a></li>

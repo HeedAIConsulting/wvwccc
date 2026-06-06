@@ -15,7 +15,7 @@ window.Chamber = (function () {
   function memberTile(m, depth) {
     const tier = (m.tier || 'member').toLowerCase();
     const tierLabel = tier.charAt(0).toUpperCase() + tier.slice(1);
-    const href = `${depth ? '' : 'members/'}profile.html?id=${encodeURIComponent(m.id)}`;
+    const href = m.slug ? '/members/' + m.slug : `${depth ? '' : 'members/'}profile.html?id=${encodeURIComponent(m.id)}`;
     // NOTE: no nested <a> inside another <a> (invalid HTML). Card is an <article>;
     // the name and the action links are separate, sibling anchors.
     const phoneDigits = (m.phone || '').replace(/[^\d]/g, '');
@@ -81,12 +81,41 @@ window.Chamber = (function () {
   function initConcierge() {
     const form = document.getElementById('conciergeForm');
     if (!form) return;
-    form.addEventListener('submit', (e) => {
+    const input = document.getElementById('conciergeInput');
+    // results panel injected right after the form
+    let panel = document.getElementById('conciergeResults');
+    if (!panel) {
+      panel = document.createElement('div');
+      panel.id = 'conciergeResults';
+      panel.hidden = true;
+      panel.style.cssText = 'margin-top:var(--s-4);text-align:left';
+      form.insertAdjacentElement('afterend', panel);
+    }
+    const card = (m) => `<a class="card" href="${m.slug ? '/members/' + m.slug : 'members/profile.html?id=' + encodeURIComponent(m.id)}" style="display:flex;gap:12px;align-items:center;text-decoration:none;padding:12px">
+        ${m.logo ? `<img src="${esc(m.logo)}" alt="" style="width:46px;height:46px;border-radius:10px;object-fit:cover;flex:none">` : `<span class="member-tile__seal" style="width:46px;height:46px;flex:none">${esc(m.seal || m.name[0])}</span>`}
+        <span><strong>${esc(m.name)}</strong><br><span class="member-tile__meta">${esc(m.category || m.group || '')}${m.neighborhood ? ' · ' + esc(m.neighborhood) : ''}</span></span></a>`;
+
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const q = document.getElementById('conciergeInput').value.trim();
+      const q = input.value.trim();
       if (!q) return;
-      // Phase 3: POST to /api/concierge. For now route to directory search.
-      location.href = `members/directory.html?q=${encodeURIComponent(q)}`;
+      panel.hidden = false;
+      panel.innerHTML = '<p class="member-tile__meta">Asking the Concierge…</p>';
+      try {
+        const res = await fetch(ChamberAPI.url('/api/concierge'), {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ q }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'failed');
+        const members = data.members || [];
+        panel.innerHTML =
+          `<div class="card" style="background:var(--forest,#1f4d3a);color:#fff;padding:14px 16px;margin-bottom:12px">💬 ${esc(data.answer || '')}</div>` +
+          (members.length ? `<div class="grid grid-2" style="gap:10px">${members.map(card).join('')}</div>` : '') +
+          `<div class="mt-3"><a class="member-tile__meta" style="text-decoration:underline" href="members/directory.html?q=${encodeURIComponent(q)}">See all directory matches →</a></div>`;
+      } catch (err) {
+        // graceful fallback: send them to the ranked directory search
+        location.href = `members/directory.html?q=${encodeURIComponent(q)}`;
+      }
     });
   }
 
@@ -195,7 +224,8 @@ window.Chamber = (function () {
     } catch (e) { console.error(e); }
 
     const uniq = (arr) => [...new Set(arr.filter(Boolean))].sort();
-    const cats = uniq(members.map((m) => m.category));
+    // Facet on the ~20 indexed parent groups, not the 600+ raw categories.
+    const cats = uniq(members.map((m) => m.group || 'Other'));
     const hoods = uniq(members.map((m) => m.neighborhood));
 
     function facetButton(label, value, key) {
@@ -216,26 +246,44 @@ window.Chamber = (function () {
       hoods.forEach((h) => hf.appendChild(facetButton(h, h, 'hood')));
     }
 
-    function matches(m) {
-      if (state.category && m.category !== state.category) return false;
-      if (state.hood && m.neighborhood !== state.hood) return false;
-      if (state.q) {
-        const hay = [m.name, m.category, m.neighborhood, m.tagline, (m.tags || []).join(' ')]
-          .join(' ').toLowerCase();
-        if (!hay.includes(state.q.toLowerCase())) return false;
+    // Relevance score. -1 = filtered out / no match. Higher = better.
+    // Each query word must hit SOME field; matches in name/category rank far
+    // above incidental description mentions, and whole-word beats substring
+    // (so "hospital" doesn't rank "hospitality" venues at the top).
+    function scoreOf(m) {
+      if (state.category && (m.group || 'Other') !== state.category) return -1;
+      if (state.hood && m.neighborhood !== state.hood) return -1;
+      if (!state.q) return 0;
+      const fields = [[m.name, 10], [m.category, 6], [m.typeOfBusiness, 6], [m.group, 5],
+        [m.neighborhood, 4], [m.city, 4], [m.contactName, 3], [m.tagline, 3],
+        [(m.tags || []).join(' '), 2], [m.description, 1]];
+      const words = state.q.toLowerCase().split(/\s+/).filter(Boolean);
+      let total = 0;
+      for (const w of words) {
+        const wb = new RegExp('\\b' + w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b');
+        let best = 0;
+        for (const [val, wt] of fields) {
+          if (!val) continue;
+          const lv = String(val).toLowerCase();
+          if (wb.test(lv)) best = Math.max(best, wt * 2);
+          else if (lv.includes(w)) best = Math.max(best, wt);
+        }
+        if (best === 0) return -1;   // a query word matched nothing → not a result
+        total += best;
       }
-      return true;
+      return total;
     }
 
     function render() {
       buildFacets();
       const place = localStorage.getItem('wvwccc_place');
-      let list = members.filter(matches);
-      // geo: bubble the visitor's neighborhood to the top
-      if (place) {
-        list = list.sort((a, b) =>
-          (b.neighborhood === place) - (a.neighborhood === place));
+      let scored = members.map((m) => [m, scoreOf(m)]).filter(([, s]) => s >= 0);
+      if (state.q) {
+        scored.sort((a, b) => b[1] - a[1]);                                  // best matches first
+      } else if (place) {
+        scored.sort((a, b) => (b[0].neighborhood === place) - (a[0].neighborhood === place));
       }
+      const list = scored.map(([m]) => m);
       grid.innerHTML = list.map((m) => memberTile(m, 1)).join('');
       document.getElementById('resultCount').textContent =
         `${list.length} member${list.length === 1 ? '' : 's'}` +
@@ -257,13 +305,18 @@ window.Chamber = (function () {
 
   // ── Member profile page ─────────────────────────────────
   async function initProfile() {
-    const id = new URLSearchParams(location.search).get('id');
+    // Resolve by ?id= (legacy) OR the slug in a pretty URL (/members/<slug>, /m/<slug>).
+    let key = new URLSearchParams(location.search).get('id');
+    if (!key) {
+      const seg = location.pathname.split('/').filter(Boolean).pop() || '';
+      if (seg && !/\.html?$/.test(seg)) key = decodeURIComponent(seg);
+    }
     const el = document.getElementById('profile');
     if (!el) return;
     let m = null;
     try {
       const dir = await getJSON(ChamberAPI.url('/api/members'));
-      m = (dir.members || []).find((x) => x.id === id);
+      m = (dir.members || []).find((x) => x.id === key || x.slug === key);
     } catch (e) { console.error(e); }
     if (!m) {
       el.innerHTML = '<p class="notice">That member could not be found. <a href="directory.html">Back to the directory</a>.</p>';
@@ -273,6 +326,8 @@ window.Chamber = (function () {
     const tier = (m.tier || 'member').toLowerCase();
     const tierLabel = tier.charAt(0).toUpperCase() + tier.slice(1);
     const phoneDigits = (m.phone || '').replace(/[^\d]/g, '');
+    // Shorten long URLs (e.g. instagram.com/longhandle/) for the narrow card.
+    const webLabel = (u) => { const s = String(u).replace(/^https?:\/\//i, '').replace(/\/$/, ''); return s.length > 28 ? s.slice(0, 27) + '…' : s; };
     const SOCIAL = { facebook: 'Facebook', instagram: 'Instagram', linkedin: 'LinkedIn', x: 'X', youtube: 'YouTube', tiktok: 'TikTok' };
     const social = m.social && typeof m.social === 'object'
       ? Object.entries(SOCIAL).filter(([k]) => m.social[k]).map(([k, label]) =>
@@ -296,7 +351,7 @@ window.Chamber = (function () {
       : `<div class="member-tile__seal" style="width:100px;height:100px;font-size:2.8rem;margin:0 auto var(--s-4)">${esc(m.seal || m.name[0])}</div>`;
     const contactRows = [
       m.phone && `<li>📞 <a href="tel:${phoneDigits}">${esc(m.phone)}</a></li>`,
-      m.website && `<li>🌐 <a href="${esc(m.website)}" target="_blank" rel="noopener">${esc(m.website.replace(/^https?:\/\//, ''))}</a></li>`,
+      m.website && `<li>🌐 <a href="${esc(m.website)}" target="_blank" rel="noopener" title="${esc(m.website)}">${esc(webLabel(m.website))}</a></li>`,
       m.address && `<li>📍 ${esc(m.address)}</li>`,
     ].filter(Boolean).join('');
 
@@ -306,7 +361,7 @@ window.Chamber = (function () {
           ${seal}
           <span class="badge badge--${tier}">${esc(tierLabel)} Member</span>
           ${m.leaderStatus ? `<div class="mt-3"><span class="badge badge--leader badge--dot">${esc(m.leaderStatus)}</span></div>` : ''}
-          <ul style="list-style:none;margin-top:var(--s-4);display:flex;flex-direction:column;gap:10px;text-align:left">${contactRows}</ul>
+          <ul style="list-style:none;margin-top:var(--s-4);display:flex;flex-direction:column;gap:10px;text-align:left;overflow-wrap:anywhere;word-break:break-word">${contactRows}</ul>
           ${ctas ? `<div class="btn-row mt-4" style="justify-content:center">${ctas}</div>` : ''}
           ${(social || reviews) ? `<div class="chips mt-4" style="justify-content:center">${social}${reviews}</div>` : ''}
         </aside>
@@ -321,13 +376,23 @@ window.Chamber = (function () {
           <div class="btn-row mt-6">
             <a class="btn btn--forest" href="directory.html">← Back to directory</a>
             ${m.website ? `<a class="btn btn--ghost" href="${esc(m.website)}" target="_blank" rel="noopener">Visit website ↗</a>` : ''}
+            <button class="btn btn--ghost" id="copyShareLink" type="button">🔗 Copy link</button>
           </div>
         </div>
       </div>`;
 
+    // Shareable short URL: chamberdomain/m/<slug>
+    const shareBtn = document.getElementById('copyShareLink');
+    if (shareBtn) shareBtn.addEventListener('click', () => {
+      const url = location.origin + '/m/' + (m.slug || m.id);
+      const done = () => { shareBtn.textContent = '✓ Link copied'; setTimeout(() => { shareBtn.textContent = '🔗 Copy link'; }, 1800); };
+      if (navigator.clipboard) navigator.clipboard.writeText(url).then(done).catch(() => prompt('Copy this link:', url));
+      else prompt('Copy this link:', url);
+    });
+
     // this member's active offers
     try {
-      const offers = (await getJSON(ChamberAPI.url('/api/posts?type=discount'))).posts.filter((p) => p.memberId === id);
+      const offers = (await getJSON(ChamberAPI.url('/api/posts?type=discount'))).posts.filter((p) => p.memberId === m.id);
       if (offers.length) document.getElementById('memberOffers').innerHTML =
         `<h3>Member offers</h3><div class="grid grid-2 mt-3">${offers.map(offerCard).join('')}</div>`;
     } catch (e) {}
@@ -490,10 +555,32 @@ window.Chamber = (function () {
   }
 
   // ── Generic lead/contact form → /api/contact ────────────
+  // Cloudflare Turnstile captcha — added to a form when a site key is configured
+  // (js/api-base.js). The widget injects a hidden cf-turnstile-response input that
+  // FormData picks up; verified server-side. No-op until the key is set.
+  function mountTurnstile(form) {
+    const key = window.ChamberAPI && ChamberAPI.turnstileSiteKey;
+    if (!key || !form || form.querySelector('.cf-turnstile')) return;
+    if (!document.getElementById('cf-turnstile-script')) {
+      const s = document.createElement('script');
+      s.id = 'cf-turnstile-script';
+      s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
+      s.async = true; s.defer = true;
+      document.head.appendChild(s);
+    }
+    const div = document.createElement('div');
+    div.className = 'cf-turnstile';
+    div.setAttribute('data-sitekey', key);
+    div.style.margin = '16px 0';
+    const btn = form.querySelector('button[type="submit"]');
+    if (btn) form.insertBefore(div, btn); else form.appendChild(div);
+  }
+
   function initLeadForm(formId, msgId, kind) {
     const form = document.getElementById(formId);
     const msg = document.getElementById(msgId);
     if (!form) return;
+    mountTurnstile(form);
     // prefill reason from ?reason= or ?event=
     const params = new URLSearchParams(location.search);
     const reason = form.querySelector('[name="reason"]');
@@ -598,7 +685,7 @@ window.Chamber = (function () {
     return `
       <article class="card card--hover member-tile">
         <div class="member-tile__head">${seal}
-          <div><a class="member-tile__name" href="members/profile.html?id=${encodeURIComponent(m.id)}">${esc(m.name)}</a>
+          <div><a class="member-tile__name" href="${m.slug ? '/members/' + m.slug : 'members/profile.html?id=' + encodeURIComponent(m.id)}">${esc(m.name)}</a>
           <div class="member-tile__meta">${esc(m.category || 'Dining')}${m.neighborhood ? ' · ' + esc(m.neighborhood) : ''}</div></div>
         </div>
         <p class="member-tile__tag">${esc(m.tagline || '')}</p>

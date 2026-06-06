@@ -33,7 +33,13 @@ window.MemberPortal = (function () {
       bindLogout(); return;
     }
     const status = member.status || 'approved';
+    const logoPrompt = !member.logo ? `
+      <div class="notice" style="display:flex;justify-content:space-between;align-items:center;gap:var(--s-4);flex-wrap:wrap;border-left:4px solid var(--gold,#c8a24a)">
+        <span><strong>Add your logo.</strong> Listings with a logo stand out in the directory — it takes 10 seconds.</span>
+        <a class="btn btn--forest btn--sm" href="profile.html#logo">Upload logo</a>
+      </div>` : '';
     wrap.innerHTML = `
+      ${logoPrompt}
       <div class="grid" style="grid-template-columns:1.4fr .9fr;gap:var(--s-6);align-items:start">
         <div class="card">
           <div style="display:flex;justify-content:space-between;align-items:start;gap:var(--s-4);flex-wrap:wrap">

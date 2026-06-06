@@ -54,6 +54,8 @@
             : (data.error || 'Sign in failed.');
           msg.style.borderColor = 'var(--red)'; msg.hidden = false; return;
         }
+        // Logged in with a legacy password → must set a new one before continuing.
+        if (data.mustChange) { location.href = 'set-password.html'; return; }
         location.href = (data.role === 'staff' || data.role === 'admin') ? '../admin/index.html' : '../member/index.html';
       } catch (err) { msg.textContent = 'Could not sign in right now.'; msg.hidden = false; }
       finally { btn.disabled = false; btn.textContent = 'Sign in'; }

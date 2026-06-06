@@ -110,7 +110,11 @@ window.Admin = (function () {
         <td><select class="admin-select" data-field="status">${opts.statusOptions.map((s) => `<option ${((m.status || 'approved') === s) ? 'selected' : ''}>${s}</option>`).join('')}</select></td>
         <td><div class="radio-group" data-field="leaderStatus">${radios}</div></td>
         <td><label class="toggle"><input type="checkbox" data-field="featured" ${m.featured ? 'checked' : ''}><span class="track"></span></label></td>
-        <td><span class="saved-flash" data-flash>saved ✓</span></td>
+        <td style="white-space:nowrap">
+          <a href="../members/profile.html?id=${id}" target="_blank" title="View public profile" style="text-decoration:none;margin-right:8px">View ↗</a>
+          <button type="button" data-reset title="Force a password reset at next login" style="cursor:pointer;background:none;border:1px solid var(--line,#d7d2c6);border-radius:6px;padding:3px 8px;font-size:.8rem">Reset PW</button>
+          <span class="saved-flash" data-flash>saved ✓</span>
+        </td>
       </tr>`;
     }
     function bind() {
@@ -129,6 +133,14 @@ window.Admin = (function () {
           el.addEventListener('change', () => save({ leaderStatus: el.value })));
         tr.querySelector('[data-field="featured"]').addEventListener('change', (e) =>
           save({ featured: e.target.checked }));
+        tr.querySelector('[data-reset]')?.addEventListener('click', async () => {
+          if (!confirm('Force this member to set a new password at next login? Their current password will stop working.')) return;
+          try {
+            const r = await api(`/api/admin/members/${encodeURIComponent(id)}/reset-password`, { method: 'POST' });
+            flash.classList.add('show'); setTimeout(() => flash.classList.remove('show'), 1500);
+            alert(r.message || 'Password reset queued.');
+          } catch (e) { showAuthError(e); }
+        });
       });
     }
     let t; search.addEventListener('input', () => { clearTimeout(t); t = setTimeout(() => load(search.value.trim()), 250); });

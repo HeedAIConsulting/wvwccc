@@ -250,7 +250,7 @@ a.member-tile__name:hover { color: var(--green); }
 /* ============================================================
    HEADER
    ============================================================ */
-.site-header { position: sticky; top: 0; z-index: 60; }
+.site-header { position: sticky; top: 0; z-index: 60; background: var(--green-deep); border-bottom: 2px solid var(--gold); }
 .site-header__top { background: var(--green-ink); color: rgba(255,255,255,.85); font-size: .82rem; }
 .site-header__top .container { display: flex; justify-content: space-between; align-items: center; height: 40px; }
 .site-header__top-meta { display: flex; gap: var(--s-5); }
@@ -261,8 +261,6 @@ a.member-tile__name:hover { color: var(--green); }
 @media (max-width: 820px) { .site-header__top-meta { display: none; } }
 
 .site-header__main {
-  background: var(--green-deep); backdrop-filter: saturate(140%);
-  border-bottom: 2px solid var(--gold);
   display: flex; align-items: center; justify-content: space-between; gap: var(--s-5); height: 78px;
 }
 

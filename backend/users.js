@@ -10,7 +10,7 @@ function mapRow(r) {
   return {
     id: r.id, memberId: r.member_id, email: r.email, username: r.username,
     passwordHash: r.password_hash, passwordAlgo: r.password_algo,
-    needsReset: r.needs_reset, role: r.role, status: r.status,
+    needsReset: r.needs_reset, mustChange: r.must_change, role: r.role, status: r.status,
   };
 }
 function storeUsers() {
@@ -67,18 +67,36 @@ export async function updatePassword(email, bcryptHash) {
   email = lc(email);
   if (db.enabled) {
     await db.query(
-      "UPDATE users SET password_hash=$1, password_algo='bcrypt', needs_reset=false WHERE lower(email)=$2",
+      "UPDATE users SET password_hash=$1, password_algo='bcrypt', needs_reset=false, must_change=false WHERE lower(email)=$2",
       [bcryptHash, email]);
     return;
   }
   // staff store first
   const staff = store.read('staff.json', []);
   const si = staff.findIndex((u) => lc(u.email) === email);
-  if (si >= 0) { staff[si] = { ...staff[si], passwordHash: bcryptHash, passwordAlgo: 'bcrypt', needsReset: false }; store.write('staff.json', staff); return; }
+  if (si >= 0) { staff[si] = { ...staff[si], passwordHash: bcryptHash, passwordAlgo: 'bcrypt', needsReset: false, mustChange: false }; store.write('staff.json', staff); return; }
   const mu = store.read('users.json', { users: [] });
   const arr = mu.users || [];
   const mi = arr.findIndex((u) => lc(u.email) === email);
-  if (mi >= 0) { arr[mi] = { ...arr[mi], passwordHash: bcryptHash, passwordAlgo: 'bcrypt', needsReset: false }; store.write('users.json', { ...mu, users: arr }); }
+  if (mi >= 0) { arr[mi] = { ...arr[mi], passwordHash: bcryptHash, passwordAlgo: 'bcrypt', needsReset: false, mustChange: false }; store.write('users.json', { ...mu, users: arr }); }
+}
+
+// Admin-triggered: force a member to set a new password on next login.
+// Clears the stored hash so the old password no longer works.
+export async function requireReset(memberId) {
+  if (db.enabled) {
+    const r = await db.query(
+      "UPDATE users SET needs_reset=true, password_hash=NULL, password_algo='unknown' WHERE member_id=$1 RETURNING email",
+      [memberId]);
+    return r.rows[0]?.email || null;
+  }
+  const mu = store.read('users.json', { users: [] });
+  const arr = mu.users || [];
+  const i = arr.findIndex((u) => u.memberId === memberId);
+  if (i < 0) return null;
+  arr[i] = { ...arr[i], needsReset: true, mustChange: false, passwordHash: '', passwordAlgo: 'unknown' };
+  store.write('users.json', { ...mu, users: arr });
+  return arr[i].email || null;
 }
 
 export async function upsertStaff(email, bcryptHash, name) {

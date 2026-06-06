@@ -44,6 +44,7 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash   text,                        -- legacy hash on import; bcrypt after first login
   password_algo   text,                        -- bcrypt|md5|sha1|sha256|unknown
   needs_reset     boolean DEFAULT false,       -- true → force set-a-password on first login
+  must_change     boolean DEFAULT false,       -- true → logged in w/ legacy pw, force change now
   role            text DEFAULT 'member',       -- member|staff|admin
   status          text DEFAULT 'approved',
   last_login      timestamptz,

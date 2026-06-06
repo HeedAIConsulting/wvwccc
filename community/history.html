@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chamber History — West Valley · Warner Center Chamber of Commerce</title>
+  <meta name="description" content="A photo and document archive of West Valley · Warner Center Chamber events, members, and milestones — serving the West Valley since 1966." />
+  <link rel="canonical" href="https://woodlandhillscc.net/community/history.html" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="../css/chamber.css" />
+  <style>
+    .hist-filters{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 var(--s-5)}
+    .hist-chip{border:1px solid var(--line,#dcd7cc);background:#fff;border-radius:999px;padding:6px 14px;font-size:.9rem;cursor:pointer}
+    .hist-chip[aria-pressed="true"]{background:var(--forest,#1f4d3a);color:#fff;border-color:transparent}
+    .hist-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
+    .hist-card{position:relative;border-radius:10px;overflow:hidden;background:#f3f1ea;aspect-ratio:4/3;border:1px solid var(--line,#e7e3d8)}
+    .hist-card img{width:100%;height:100%;object-fit:cover;display:block;background:#e7e3d8}
+    .hist-card .cap{position:absolute;left:0;right:0;bottom:0;padding:6px 8px;font-size:.72rem;color:#fff;background:linear-gradient(transparent,rgba(0,0,0,.7));line-height:1.2}
+    .hist-doc{display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:14px;aspect-ratio:4/3;text-decoration:none;color:var(--ink,#2a2a26)}
+    .hist-doc .ic{font-size:1.8rem}
+    .hist-year{position:absolute;top:6px;left:6px;background:rgba(0,0,0,.6);color:#fff;font-size:.68rem;padding:2px 6px;border-radius:6px}
+  </style>
+</head>
+<body>
+  <div data-partial="header"></div>
+  <section class="section-sm bg-forest">
+    <div class="container">
+      <span class="kicker">Chamber History</span>
+      <h1 style="color:#fff">Serving the West Valley since 1966</h1>
+      <p class="lead" style="color:rgba(255,255,255,.85);max-width:62ch">Six decades of events, members, and milestones. Browse the Chamber's photo and document archive.</p>
+    </div>
+  </section>
+  <section class="section">
+    <div class="container">
+      <div class="hist-filters" id="histFilters"></div>
+      <div id="histStatus" class="member-tile__meta" style="margin-bottom:12px"></div>
+      <div class="hist-grid" id="histGrid"></div>
+      <div id="histSentinel" style="height:40px"></div>
+    </div>
+  </section>
+  <div data-partial="footer"></div>
+  <script src="../js/partials.js"></script>
+  <script src="../js/api-base.js"></script>
+  <script>
+    ChamberPartials.mount({ active: 'community', depth: 1, lang: 'en' });
+
+    // ── Set this once the R2 bucket has public access enabled ──
+    // Cloudflare → R2 → wvwccc-history → Settings → Public access → r2.dev URL
+    // e.g. "https://pub-xxxxxxxx.r2.dev"  (or your custom domain)
+    const R2_BASE = "https://pub-ea3fcd8671094cab8f40914c78db80e1.r2.dev";
+
+    const grid = document.getElementById('histGrid');
+    const statusEl = document.getElementById('histStatus');
+    const filtersEl = document.getElementById('histFilters');
+    const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+    const KINDS = [['all','All'],['event','Events'],['photo','Photos'],['document','Newsletters & Docs'],['ad','Promotions']];
+    let items = [], filtered = [], shown = 0, kind = 'all';
+    const BATCH = 48;
+
+    function card(it) {
+      const url = R2_BASE ? R2_BASE.replace(/\/$/, '') + '/' + it.key.split('/').map(encodeURIComponent).join('/') : '';
+      const yr = it.year ? `<span class="hist-year">${it.year}</span>` : '';
+      if (it.kind === 'document') {
+        return `<a class="hist-card hist-doc" href="${esc(url)}" target="_blank" rel="noopener">${yr}<span class="ic">📄</span><span style="font-size:.8rem;margin-top:6px">${esc(it.title)}</span></a>`;
+      }
+      const img = url ? `<img loading="lazy" src="${esc(url)}" alt="${esc(it.title)}" onerror="this.style.opacity=.25">` : `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#b9b3a5;font-size:.75rem">image</div>`;
+      return `<div class="hist-card">${yr}${img}<span class="cap">${esc(it.title)}</span></div>`;
+    }
+
+    function renderMore() {
+      const next = filtered.slice(shown, shown + BATCH);
+      grid.insertAdjacentHTML('beforeend', next.map(card).join(''));
+      shown += next.length;
+      statusEl.textContent = `Showing ${shown.toLocaleString()} of ${filtered.length.toLocaleString()} items` + (R2_BASE ? '' : '  ·  archive media connects once the R2 public URL is set');
+    }
+    function applyFilter(k) {
+      kind = k; shown = 0; grid.innerHTML = '';
+      filtered = kind === 'all' ? items : items.filter((x) => x.kind === kind);
+      [...filtersEl.children].forEach((c) => c.setAttribute('aria-pressed', String(c.dataset.k === k)));
+      renderMore();
+    }
+
+    filtersEl.innerHTML = KINDS.map(([k, label]) => `<button class="hist-chip" data-k="${k}" aria-pressed="${k==='all'}">${label}</button>`).join('');
+    filtersEl.addEventListener('click', (e) => { const b = e.target.closest('.hist-chip'); if (b) applyFilter(b.dataset.k); });
+
+    new IntersectionObserver((es) => { if (es[0].isIntersecting && shown < filtered.length) renderMore(); })
+      .observe(document.getElementById('histSentinel'));
+
+    fetch('../data/history-index.json').then((r) => r.json()).then((d) => {
+      items = d.items || [];
+      const m = d._meta || {};
+      KINDS.forEach((kv) => { if (kv[0] !== 'all' && m.by_kind && m.by_kind[kv[0]]) kv[1] += ` (${m.by_kind[kv[0]].toLocaleString()})`; });
+      filtersEl.innerHTML = KINDS.map(([k, label]) => `<button class="hist-chip" data-k="${k}" aria-pressed="${k==='all'}">${label}</button>`).join('');
+      applyFilter('all');
+    }).catch(() => { statusEl.textContent = 'History archive index unavailable.'; });
+  </script>
+</body>
+</html>

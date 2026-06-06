@@ -59,6 +59,16 @@ app.use(express.static(__dirname, {
   },
 }));
 
+// ── Pretty, shareable member URLs: /m/<slug> and /members/<slug> ──
+// Real files (members/directory.html, profile.html) are served above by static;
+// anything else under these paths renders the profile page, which resolves the
+// member by slug client-side.
+const profilePage = path.join(__dirname, 'members', 'profile.html');
+app.get(['/m/:slug', '/members/:slug'], (req, res, next) => {
+  if ((req.params.slug || '').includes('.')) return next();   // a file → let 404 handle
+  res.sendFile(profilePage, (err) => { if (err) next(); });
+});
+
 // ── 404 fallback ───────────────────────────────────────────
 app.use((req, res) => {
   res.status(404).sendFile(path.join(__dirname, '404.html'), (err) => {

@@ -4,10 +4,10 @@
   "private": true,
   "description": "West Valley · Warner Center Chamber of Commerce — production platform (Heed Business Solutions)",
   "type": "module",
-  "engines": { "node": ">=18" },
+  "engines": { "node": ">=20" },
   "scripts": {
-    "start": "node server.js",
-    "dev": "node server.js",
+    "start": "node --env-file-if-exists=.env.local server.js",
+    "dev": "node --env-file-if-exists=.env.local server.js",
     "migrate": "node scripts/migrate.js",
     "create-staff": "node scripts/create-staff.js"
   },

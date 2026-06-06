@@ -55,7 +55,7 @@ const FIELD_ALIASES = {
 };
 
 // ── tiny SQL-dump parser (no deps) ──────────────────────────
-function parseDump(sql) {
+export function parseDump(sql) {
   const tables = {};        // name -> { columns: [..] }
   const rows = {};          // name -> [ {col:val} ]
 
@@ -136,10 +136,12 @@ function splitTuples(body) {
 function parseTuple(t) {
   const out = []; let cur = '', q = null, started = false;
   const push = (v) => { out.push(v); cur = ''; started = false; };
+  // MySQL string escapes → real characters (mysqldump uses these in text fields)
+  const UNESC = { '0': '\0', 'b': '\b', 'n': '\n', 'r': '\r', 't': '\t', 'Z': '\x1a', '\\': '\\', "'": "'", '"': '"' };
   for (let i = 0; i < t.length; i++) {
     const ch = t[i];
     if (q) {
-      if (ch === '\\') { cur += t[++i]; }
+      if (ch === '\\') { const nx = t[++i]; cur += (nx in UNESC ? UNESC[nx] : nx); }
       else if (ch === q) { q = null; }
       else cur += ch;
       continue;
@@ -297,4 +299,8 @@ function main() {
   console.log('\nPII stays in data/_store/ (gitignored). users.json is server-only — never web-served.');
 }
 
-main();
+// Only run the CLI when invoked directly (so other scripts can import parseDump).
+try {
+  const invoked = process.argv[1] && fs.realpathSync(process.argv[1]) === fileURLToPath(import.meta.url);
+  if (invoked) main();
+} catch { main(); }

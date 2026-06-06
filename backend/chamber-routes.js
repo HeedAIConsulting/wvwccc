@@ -10,6 +10,8 @@ import { sale, addRecurring, heedShare } from './payments-agms.js';
 import * as auth from './auth.js';
 import * as users from './users.js';
 import * as repo from './repo.js';
+import * as llm from './llm.js';
+import * as turnstile from './turnstile.js';
 
 const router = express.Router();
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -37,7 +39,8 @@ router.post('/auth/login', async (req, res) => {
     if (rehash) { try { await users.updatePassword(email, rehash); } catch (e) { console.error('rehash failed', e.message); } }
     users.setLastLogin(email).catch(() => {});
     auth.setCookie(res, auth.signSession(user));
-    res.json({ ok: true, role: user.role || 'member' });
+    // mustChange = logged in with a legacy password → force a new one now.
+    res.json({ ok: true, role: user.role || 'member', mustChange: !!user.mustChange });
   } catch (e) { console.error('login error', e); res.status(500).json({ error: 'login failed' }); }
 });
 
@@ -59,7 +62,7 @@ router.post('/auth/set-password', auth.requireAuth(), async (req, res) => {
 // ── Directory members ───────────────────────────────────────
 // Base roster = imported store (gitignored) when present, else committed seed.
 // Admin overrides (status/tier/leader/featured) come from the durable repo.
-const PUBLIC_FIELDS = ['id', 'name', 'category', 'tier', 'neighborhood', 'contactName',
+const PUBLIC_FIELDS = ['id', 'slug', 'name', 'category', 'group', 'tier', 'neighborhood', 'contactName',
   'address', 'city', 'state', 'zip', 'phone', 'fax', 'website', 'tagline',
   'description', 'leaderStatus', 'seal', 'featured', 'tags',
   // richer profile (member-managed)
@@ -225,7 +228,8 @@ router.get('/members/recent', async (_req, res) => {
 
 router.get('/members/:id', async (req, res) => {
   try {
-    const m = (await loadMembersPublic()).members.find((x) => x.id === req.params.id);
+    const key = req.params.id;
+    const m = (await loadMembersPublic()).members.find((x) => x.id === key || x.slug === key);
     if (!m) return res.status(404).json({ error: 'not found' });
     res.json(m);
   } catch (e) { res.status(500).json({ error: 'directory unavailable' }); }
@@ -269,6 +273,9 @@ router.post('/pay', async (req, res) => {
 // ── Contact / lead inquiries ────────────────────────────────
 router.post('/contact', async (req, res) => {
   const b = req.body || {};
+  // Bot protection — Cloudflare Turnstile (no-op until TURNSTILE_SECRET is set).
+  const cap = await turnstile.verify(b['cf-turnstile-response'] || b.turnstileToken, req.ip);
+  if (!cap.ok) return res.status(400).json({ ok: false, error: 'Please complete the human-verification check and try again.' });
   if (!b.email || !(b.message || b.company || b.name)) {
     return res.status(400).json({ ok: false, error: 'Please include your email and a message.' });
   }
@@ -285,12 +292,73 @@ router.post('/contact', async (req, res) => {
   // TODO Phase 3: email office + felicia@woodlandhillscc.net.
 });
 
-// AI Concierge placeholder (Phase 3 — wire to backend/llm.js).
-router.post('/concierge', (req, res) => {
-  res.json({ ok: true, reply: 'The Concierge is coming online shortly. Meanwhile, search the directory or contact the Chamber at (818) 347-4737.' });
+// ── AI Concierge: natural-language member finder ────────────
+// Keyword pre-rank → ground an LLM on the top candidates → return an answer +
+// recommended members. Falls back to pure keyword results when no LLM key is set
+// (so it always works). Real member data only — the model can't invent members.
+const STOPWORDS = new Set(('a an and any are am as at be been by can could did do does for find from get has have help i if in is it looking me my near need of on or please some that the them they this to want we what when where which who with you your').split(' '));
+function rankMembers(members, q, limit = 20) {
+  const fields = [['name', 10], ['category', 6], ['typeOfBusiness', 6], ['group', 5],
+    ['neighborhood', 4], ['city', 4], ['tagline', 3], ['description', 1]];
+  const words = String(q).toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length > 1 && !STOPWORDS.has(w));
+  const scored = members.map((m) => {
+    let total = 0;
+    for (const w of words) {
+      const wb = new RegExp('\\b' + w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b');
+      let best = 0;
+      for (const [f, wt] of fields) { const v = m[f]; if (!v) continue; const lv = String(v).toLowerCase(); if (wb.test(lv)) best = Math.max(best, wt * 2); else if (w.length > 3 && lv.includes(w)) best = Math.max(best, wt); }
+      total += best;
+    }
+    return [m, total];
+  }).filter(([, s]) => s > 0).sort((a, b) => b[1] - a[1]);
+  return scored.slice(0, limit).map(([m]) => m);
+}
+
+router.post('/concierge', async (req, res) => {
+  const q = String((req.body && req.body.q) || '').trim().slice(0, 400);
+  if (!q) return res.status(400).json({ error: 'Ask a question, e.g. "Who can cater a 50-person event in Tarzana?"' });
+  try {
+    const all = (await loadMembersPublic()).members;
+    const candidates = rankMembers(all, q, 30);
+    if (!candidates.length) {
+      return res.json({ answer: `I couldn't find a Chamber member matching that. Try different words, browse the directory, or call the Chamber at (818) 347-4737.`, members: [], provider: 'none' });
+    }
+    if (!llm.enabled()) {
+      // No LLM key → return the keyword matches directly.
+      return res.json({ answer: `Here are the closest Chamber members for "${q}":`, members: candidates.slice(0, 6), provider: 'keyword' });
+    }
+    const list = candidates.map((m) => `- id:${m.id} | ${m.name} | ${m.category || m.group || ''} | ${m.neighborhood || ''}${m.tagline ? ' | ' + m.tagline : ''}`).join('\n');
+    const system = 'You are the concierge for the West Valley · Warner Center Chamber of Commerce. Recommend ONLY businesses from the provided member list — never invent members. Be warm, brief, and local.';
+    // memberIds FIRST + short answer so a truncated response still yields picks.
+    const prompt = `Member candidates (id | name | category | area | tagline):\n${list}\n\nVisitor question: "${q}"\n\nChoose the up to 5 most relevant members. Reply with ONLY compact JSON, answer under 25 words:\n{"memberIds":["id1","id2"],"answer":"one short helpful sentence"}`;
+    const raw = await llm.complete({ system, prompt, json: true, maxTokens: 800 });
+    let parsed = {};
+    try {
+      const jsonMatch = String(raw).replace(/```json|```/g, '').match(/\{[\s\S]*\}/);
+      parsed = JSON.parse(jsonMatch ? jsonMatch[0] : raw);
+    } catch (e) { console.error('concierge JSON parse failed:', String(raw).slice(0, 160)); parsed = {}; }
+    const byId = Object.fromEntries(candidates.map((m) => [m.id, m]));
+    let picked = (parsed.memberIds || []).map((id) => byId[id]).filter(Boolean);
+    // Only fall back to raw keyword hits if the model didn't answer at all
+    // (parse failure). If it answered with no picks, trust it (members: []).
+    if (!picked.length && !parsed.answer) picked = candidates.slice(0, 5);
+    res.json({ answer: parsed.answer || `Here are members that can help with "${q}":`, members: picked, provider: llm.provider() });
+  } catch (e) {
+    console.error('concierge error', e);
+    res.status(500).json({ error: 'The concierge is unavailable right now. Please try the directory search.' });
+  }
 });
 
 // ── Admin API ───────────────────────────────────────────────
+// Force a member to reset their password (old password stops working).
+router.post('/admin/members/:id/reset-password', requireAdmin, async (req, res) => {
+  try {
+    const email = await users.requireReset(req.params.id);
+    if (!email) return res.status(404).json({ error: 'No login is linked to that member.' });
+    res.json({ ok: true, email, message: `${email} will be required to set a new password at next login.` });
+  } catch (e) { console.error('reset-password', e); res.status(500).json({ error: 'could not reset' }); }
+});
+
 router.get('/admin/summary', requireAdmin, async (_req, res) => {
   try {
     const { members, source } = await loadMembersFull();

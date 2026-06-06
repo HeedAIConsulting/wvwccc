@@ -45,10 +45,32 @@ window.ChamberForms = (function () {
     return fsOk || apiOk;
   }
 
+  // Cloudflare Turnstile — auto-added to a form when a site key is configured.
+  // The widget injects a hidden `cf-turnstile-response` input that FormData picks
+  // up automatically, so no submit-handler change is needed.
+  function mountTurnstile(form) {
+    var key = window.ChamberAPI && ChamberAPI.turnstileSiteKey;
+    if (!key || !form || form.querySelector('.cf-turnstile')) return;
+    if (!document.getElementById('cf-turnstile-script')) {
+      var s = document.createElement('script');
+      s.id = 'cf-turnstile-script';
+      s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
+      s.async = true; s.defer = true;
+      document.head.appendChild(s);
+    }
+    var div = document.createElement('div');
+    div.className = 'cf-turnstile';
+    div.setAttribute('data-sitekey', key);
+    div.style.margin = '16px 0';
+    var btn = form.querySelector('button[type="submit"]');
+    if (btn) form.insertBefore(div, btn); else form.appendChild(div);
+  }
+
   function initInquiry() {
     var params = new URLSearchParams(location.search);
     var type = TYPES[params.get('type')] ? params.get('type') : 'general';
     var form = document.getElementById('inquiryForm');
+    mountTurnstile(form);
     var msg = document.getElementById('inquiryMsg');
     var sel = form.querySelector('[name="type"]');
     if (sel) sel.value = type;
@@ -86,5 +108,5 @@ window.ChamberForms = (function () {
     });
   }
 
-  return { initInquiry, fsEndpoint, TYPES };
+  return { initInquiry, fsEndpoint, TYPES, mountTurnstile };
 })();
