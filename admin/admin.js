@@ -42,6 +42,7 @@ window.Admin = (function () {
     { grp: 'Manage' },
     { href: 'index.html', icon: '▦', label: 'Dashboard', key: 'dashboard' },
     { href: 'members.html', icon: '◉', label: 'Members', key: 'members' },
+    { href: 'renewals.html', icon: '↻', label: 'Renewals', key: 'renewals' },
     { href: 'approvals.html', icon: '✓', label: 'Approvals', key: 'approvals' },
     { href: 'events.html', icon: '◆', label: 'Events', key: 'events' },
     { href: 'content.html', icon: '✎', label: 'Content', key: 'content' },
@@ -431,6 +432,49 @@ window.Admin = (function () {
     load();
   }
 
+  // ── Renewals (estimated as the annual anniversary of join date) ──
+  async function initRenewals() {
+    mountShell('renewals');
+    const tbody = document.getElementById('renewRows');
+    const summary = document.getElementById('renewSummary');
+    let windowDays = 30, all = [];
+    const startOfToday = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; };
+    function nextRenewal(joinDate) {
+      if (!joinDate) return null;
+      const jd = new Date(joinDate + 'T12:00:00'); if (isNaN(jd)) return null;
+      const today = startOfToday();
+      let r = new Date(today.getFullYear(), jd.getMonth(), jd.getDate());
+      if (r < today) r = new Date(today.getFullYear() + 1, jd.getMonth(), jd.getDate());
+      return r;
+    }
+    const daysUntil = (d) => Math.round((d - startOfToday()) / 86400000);
+    function tenure(joinDate) {
+      const jd = new Date(joinDate + 'T12:00:00'); if (isNaN(jd)) return '';
+      const y = Math.floor((Date.now() - jd) / (365.25 * 86400000));
+      return y >= 1 ? y + ' yr' + (y > 1 ? 's' : '') : '<1 yr';
+    }
+    function render() {
+      const rows = all.map((m) => ({ m, r: nextRenewal(m.joinDate) })).filter((x) => x.r)
+        .map((x) => ({ ...x, days: daysUntil(x.r) })).sort((a, b) => a.days - b.days);
+      const c30 = rows.filter((x) => x.days <= 30).length, c60 = rows.filter((x) => x.days <= 60).length, c90 = rows.filter((x) => x.days <= 90).length;
+      summary.innerHTML = `<strong>${c30}</strong> renewing within 30 days · <strong>${c60}</strong> within 60 · <strong>${c90}</strong> within 90 · ${rows.length} members with a join date`;
+      const list = windowDays >= 9999 ? rows : rows.filter((x) => x.days <= windowDays);
+      tbody.innerHTML = list.length ? list.map(({ m, r, days }) => `<tr>
+        <td><span class="name">${esc(m.name)}</span><div class="sub">${esc(m.category || '')}${m.neighborhood ? ' · ' + esc(m.neighborhood) : ''}</div></td>
+        <td>${esc(m.joinDate || '—')}<div class="sub">${tenure(m.joinDate)} member</div></td>
+        <td>${r.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</td>
+        <td>${days === 0 ? '<span class="pill pill--pending">today</span>' : (days <= 30 ? '<span class="pill pill--pending">' + days + ' days</span>' : days + ' days')}</td>
+        <td><a href="../members/profile.html?id=${esc(m.id)}" target="_blank">View ↗</a></td>
+      </tr>`).join('') : '<tr><td colspan="5" class="sub">No members renewing in this window.</td></tr>';
+    }
+    document.querySelectorAll('[data-win]').forEach((b) => b.addEventListener('click', () => {
+      windowDays = +b.dataset.win;
+      document.querySelectorAll('[data-win]').forEach((x) => x.classList.toggle('active', x === b));
+      render();
+    }));
+    try { all = (await api('/api/admin/members')).members; render(); } catch (e) { showAuthError(e); }
+  }
+
   // ── Internal AI assistant (Claude) ──
   async function initAssistant() {
     mountShell('assistant');
@@ -479,5 +523,5 @@ window.Admin = (function () {
     console.error(e);
   }
 
-  return { mountShell, initDashboard, initMembers, initApprovals, initOrders, initLeads, initEvents, initContent, initAssistant, api, esc };
+  return { mountShell, initDashboard, initMembers, initApprovals, initOrders, initLeads, initEvents, initContent, initAssistant, initRenewals, api, esc };
 })();

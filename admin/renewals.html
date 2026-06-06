@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex" />
+  <title>Renewals — WVWCCC Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="../css/chamber.css" />
+  <link rel="stylesheet" href="admin.css" />
+</head>
+<body class="admin">
+  <div class="admin-shell">
+    <aside class="admin-sidebar" data-admin-nav></aside>
+    <div class="admin-main">
+      <div class="admin-topbar"><h1>Renewals</h1></div>
+      <div class="admin-content">
+        <p class="admin-notice">Renewal dates are <strong>estimated</strong> as the annual anniversary of each member's join date. Once exact renewal/expiration dates are imported, this view will use those instead.</p>
+
+        <div class="panel">
+          <div class="panel__head" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+            <div id="renewSummary" class="sub">Loading…</div>
+            <div style="display:flex;gap:6px">
+              <button class="chip active" data-win="30">Next 30 days</button>
+              <button class="chip" data-win="60">60 days</button>
+              <button class="chip" data-win="90">90 days</button>
+              <button class="chip" data-win="9999">All</button>
+            </div>
+          </div>
+          <table class="admin-table"><thead><tr><th>Member</th><th>Joined</th><th>Est. renewal</th><th>In</th><th></th></tr></thead><tbody id="renewRows"></tbody></table>
+        </div>
+
+        <p class="sub" style="margin-top:10px">Tip: use the <strong>AI Assistant</strong> to draft a renewal-reminder email for these members.</p>
+      </div>
+    </div>
+  </div>
+  <script src="../js/api-base.js"></script>
+  <script src="admin.js"></script>
+  <script>Admin.initRenewals();</script>
+</body>
+</html>
