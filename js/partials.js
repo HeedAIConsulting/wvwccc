@@ -135,7 +135,7 @@ window.ChamberPartials = (function () {
     </div>
     <div class="site-footer__bottom">
       <div>© 2026 West Valley · Warner Center Chamber of Commerce. All rights reserved.</div>
-      <div>Built &amp; hosted by <a href="https://heedbusinesssolutions.com" style="color:var(--gold-bright)">Heed Business Solutions</a></div>
+      <div>Built, managed, and hosted by <a href="https://heedbusinesssolutions.com" target="_blank" rel="noopener" style="color:var(--gold-bright)">Heed Business Solutions</a></div>
     </div>
   </div>
 </footer>`;
