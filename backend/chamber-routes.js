@@ -404,6 +404,18 @@ router.post('/admin/members/:id/reset-password', requireAdmin, async (req, res) 
   } catch (e) { console.error('reset-password', e); res.status(500).json({ error: 'could not reset' }); }
 });
 
+// Admin-only: verify the transactional-email pipeline end-to-end.
+// GET /api/admin/email-test?to=someone@example.com  (defaults to the chamber notify inbox)
+router.get('/admin/email-test', requireAdmin, async (req, res) => {
+  const to = String(req.query.to || email.notifyTo());
+  const result = await email.send({
+    to,
+    subject: 'WVWCCC website — email pipeline test',
+    text: 'This is a test from the West Valley · Warner Center Chamber website. If you can read this, transactional email is working.',
+  });
+  res.json({ provider: email.provider(), enabled: email.enabled(), to, result });
+});
+
 router.get('/admin/summary', requireAdmin, async (_req, res) => {
   try {
     const { members, source } = await loadMembersFull();
