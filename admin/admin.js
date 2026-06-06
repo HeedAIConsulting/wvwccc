@@ -47,6 +47,7 @@ window.Admin = (function () {
     { href: 'events.html', icon: '◆', label: 'Events', key: 'events' },
     { href: 'content.html', icon: '✎', label: 'Content', key: 'content' },
     { href: 'ai-assistant.html', icon: '✦', label: 'AI Assistant', key: 'assistant' },
+    { href: 'users.html', icon: '⚷', label: 'Users & Roles', key: 'users' },
     { grp: 'Revenue & contact' },
     { href: 'payments.html', icon: '$', label: 'Pay Log', key: 'payments' },
     { href: 'leads.html', icon: '✉', label: 'Inquiries', key: 'leads' },
@@ -568,11 +569,50 @@ window.Admin = (function () {
     document.querySelectorAll('[data-suggest]').forEach((b) => b.addEventListener('click', () => send(b.textContent)));
   }
 
+  // ── Users & Roles (super-admin can grant/revoke admin) ──
+  async function initUsers() {
+    mountShell('users');
+    const tbody = document.getElementById('userRows');
+    const note = document.getElementById('superNote');
+    const ROLES = ['member', 'staff', 'admin'];
+    async function load() {
+      try {
+        const r = await api('/api/admin/users');
+        const isSuper = !!r.isSuper;
+        if (note) note.textContent = isSuper
+          ? 'You are a Super Admin — you can change any account\'s role below.'
+          : 'Only a Super Admin can change roles. You can view accounts and create new logins.';
+        tbody.innerHTML = (r.users || []).map((u) => {
+          const fixed = u.source === 'bootstrap' || u.role === 'super_admin' || !isSuper;
+          const roleCell = fixed
+            ? `<span class="pill ${u.role === 'member' ? '' : 'pill--approved'}">${esc(u.role)}</span>${u.source === 'bootstrap' ? ' <span class="sub">(env)</span>' : ''}`
+            : `<select class="admin-select" data-role data-email="${esc(u.email)}">${ROLES.map((x) => `<option ${u.role === x ? 'selected' : ''}>${x}</option>`).join('')}</select>`;
+          return `<tr><td><span class="name">${esc(u.username || u.email)}</span><div class="sub">${esc(u.email)}${u.memberId ? ' · ' + esc(u.memberId) : ''}</div></td><td>${roleCell}</td><td>${esc(u.status || '')}</td></tr>`;
+        }).join('') || '<tr><td colspan="3" class="sub">No accounts yet.</td></tr>';
+        tbody.querySelectorAll('[data-role]').forEach((sel) => sel.addEventListener('change', async () => {
+          try { await api('/api/admin/users/' + encodeURIComponent(sel.dataset.email) + '/role', { method: 'PATCH', body: JSON.stringify({ role: sel.value }) }); }
+          catch (e) { alert('Could not change role: ' + (e.message || '')); load(); }
+        }));
+      } catch (e) { showAuthError(e); }
+    }
+    const cf = document.getElementById('createUserForm');
+    if (cf) cf.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const msg = document.getElementById('cuMsg');
+      const b = Object.fromEntries(new FormData(cf).entries());
+      const btn = cf.querySelector('button[type="submit"]'); btn.disabled = true;
+      try { await api('/api/admin/users', { method: 'POST', body: JSON.stringify(b) }); msg.hidden = false; msg.textContent = 'Account created.'; cf.reset(); load(); }
+      catch (err) { msg.hidden = false; msg.textContent = 'Could not create (need email + 8+ char password).'; }
+      finally { btn.disabled = false; }
+    });
+    load();
+  }
+
   function showAuthError(e) {
     const m = document.getElementById('adminError');
     if (m) { m.hidden = false; m.textContent = 'Could not load admin data (' + e.message + '). If a token is required, set it via the console.'; }
     console.error(e);
   }
 
-  return { mountShell, initDashboard, initMembers, initApprovals, initOrders, initLeads, initEvents, initContent, initAssistant, initRenewals, api, esc };
+  return { mountShell, initDashboard, initMembers, initApprovals, initOrders, initLeads, initEvents, initContent, initAssistant, initRenewals, initUsers, api, esc };
 })();

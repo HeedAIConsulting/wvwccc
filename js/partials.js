@@ -19,11 +19,11 @@ window.ChamberPartials = (function () {
   function header(active, depth, lang) {
     const L = lang === 'es';
     const t = L ? {
-      login: 'Acceso de Miembros', staff: 'Personal', contact: 'Contacto',
+      login: 'Acceso', staff: 'Personal', contact: 'Contacto',
       home: 'Inicio', dir: 'Directorio', dining: 'Comida', events: 'Eventos', jobs: 'Empleos',
       deals: 'Ofertas', community: 'Comunidad', about: 'La Cámara', join: 'Únete'
     } : {
-      login: 'Member Login', staff: 'Staff', contact: 'Contact',
+      login: 'Sign In', staff: 'Staff', contact: 'Contact',
       home: 'Home', dir: 'Directory', dining: 'Dining', events: 'Events', jobs: 'Jobs',
       deals: 'Deals', community: 'Community', about: 'The Chamber', join: 'Join'
     };
@@ -38,7 +38,7 @@ window.ChamberPartials = (function () {
         <span>&#128336; ${CONTACT.since}</span>
       </div>
       <div class="site-header__top-actions">
-        <a href="${p(depth, 'auth/member-login.html')}">${t.login}</a>
+        <a href="${p(depth, 'auth/login.html')}">${t.login}</a>
         <span style="color:rgba(255,255,255,.3)">·</span>
         <a href="${p(depth, 'contact.html')}">${t.contact}</a>
         <span style="color:rgba(255,255,255,.3)">·</span>
@@ -108,8 +108,8 @@ window.ChamberPartials = (function () {
         <ul>
           <li><a href="${p(depth,'join.html')}">${t.join}</a></li>
           <li><a href="${p(depth,'members/directory.html')}">${t.dir}</a></li>
-          <li><a href="${p(depth,'auth/member-login.html')}">${t.login}</a></li>
-          <li><a href="${p(depth,'auth/staff-login.html')}">${L?'Acceso Personal / Admin':'Staff / Admin'}</a></li>
+          <li><a href="${p(depth,'auth/login.html')}">${t.login}</a></li>
+          <li><a href="${p(depth,'auth/login.html')}">${L?'Acceso Personal / Admin':'Staff / Admin'}</a></li>
         </ul>
       </div>
       <div>

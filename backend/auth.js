@@ -18,6 +18,13 @@ if (PROD && SECRET === 'dev-only-insecure-secret') {
 
 export function hashPassword(pw) { return bcrypt.hashSync(pw, 10); }
 
+// Super-admins (can grant/revoke admin). Set SUPER_ADMINS env (comma-separated);
+// defaults to the project owner so role management works out of the box.
+const SUPERS = (process.env.SUPER_ADMINS || 'mbowers@heedconsulting.ai')
+  .toLowerCase().split(/[,;\s]+/).filter(Boolean);
+export function isSuper(email) { return SUPERS.includes(String(email || '').toLowerCase()); }
+export function effectiveRole(email, role) { return isSuper(email) ? 'super_admin' : (role || 'member'); }
+
 function legacyHex(algo, pw) { return crypto.createHash(algo).update(pw).digest('hex'); }
 
 /**

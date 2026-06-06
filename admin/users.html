@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex" />
+  <title>Users &amp; Roles — WVWCCC Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="../css/chamber.css" />
+  <link rel="stylesheet" href="admin.css" />
+</head>
+<body class="admin">
+  <div class="admin-shell">
+    <aside class="admin-sidebar" data-admin-nav></aside>
+    <div class="admin-main">
+      <div class="admin-topbar"><h1>Users &amp; Roles</h1></div>
+      <div class="admin-content">
+        <p id="superNote" class="admin-notice">Loading…</p>
+
+        <div class="panel">
+          <div class="panel__head"><h3>Create a login</h3></div>
+          <form id="createUserForm" class="admin-form" style="padding:16px">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+              <div class="field"><label>Name</label><input name="name" maxlength="120" /></div>
+              <div class="field"><label>Email *</label><input name="email" type="email" required maxlength="160" /></div>
+              <div class="field"><label>Temporary password * <span class="sub">(8+ chars)</span></label><input name="password" minlength="8" required /></div>
+              <div class="field"><label>Role</label><select name="role" class="admin-select"><option value="staff">staff (admin console)</option><option value="member">member</option></select></div>
+              <div class="field"><label>Linked member ID <span class="sub">(optional, for member logins)</span></label><input name="memberId" maxlength="40" placeholder="e.g. m14946" /></div>
+            </div>
+            <p id="cuMsg" class="notice" hidden style="margin-top:8px"></p>
+            <div style="margin-top:12px"><button class="btn btn--forest" type="submit">Create account</button></div>
+            <p class="sub" style="margin-top:6px">To grant full <strong>admin</strong>, create the account then set its role in the table below (Super Admin only).</p>
+          </form>
+        </div>
+
+        <div class="panel">
+          <div class="panel__head"><h3>All accounts</h3></div>
+          <table class="admin-table"><thead><tr><th>Account</th><th>Role</th><th>Status</th></tr></thead><tbody id="userRows"></tbody></table>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="../js/api-base.js"></script>
+  <script src="admin.js"></script>
+  <script>Admin.initUsers();</script>
+</body>
+</html>

@@ -18,7 +18,8 @@ const router = express.Router();
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 // Staff/admin gate — real session auth.
-const requireAdmin = auth.requireAuth(['staff', 'admin']);
+const requireAdmin = auth.requireAuth(['staff', 'admin', 'super_admin']);
+const requireSuper = auth.requireAuth(['super_admin']);
 
 const LEADER_OPTS = ['', 'Leader', 'Board Member', 'New Member', 'Past President', 'Ambassador'];
 const STATUS_OPTS = ['approved', 'pending', 'suspended', 'inactive'];
@@ -39,9 +40,10 @@ router.post('/auth/login', async (req, res) => {
     if (!ok) return res.status(401).json({ error: 'Invalid email or password.' });
     if (rehash) { try { await users.updatePassword(email, rehash); } catch (e) { console.error('rehash failed', e.message); } }
     users.setLastLogin(email).catch(() => {});
+    user.role = auth.effectiveRole(user.email, user.role);   // elevate super-admins
     auth.setCookie(res, auth.signSession(user));
     // mustChange = logged in with a legacy password → force a new one now.
-    res.json({ ok: true, role: user.role || 'member', mustChange: !!user.mustChange });
+    res.json({ ok: true, role: user.role, mustChange: !!user.mustChange });
   } catch (e) { console.error('login error', e); res.status(500).json({ error: 'login failed' }); }
 });
 
@@ -591,6 +593,22 @@ router.get('/admin/orders', requireAdmin, async (_req, res) => {
 
 router.get('/admin/options', requireAdmin, (_req, res) => {
   res.json({ leaderOptions: LEADER_OPTS, statusOptions: STATUS_OPTS });
+});
+
+// List login accounts (+ whether the caller is a super-admin, for the UI).
+router.get('/admin/users', requireAdmin, async (req, res) => {
+  try { res.json({ users: await users.listUsers(), isSuper: req.user.role === 'super_admin' }); }
+  catch (e) { console.error('list users', e); res.status(500).json({ error: 'could not list users' }); }
+});
+
+// Change a user's role — SUPER-ADMIN ONLY.
+router.patch('/admin/users/:email/role', requireSuper, async (req, res) => {
+  const role = (req.body || {}).role;
+  try {
+    const ok = await users.setRole(req.params.email, role);
+    if (!ok) return res.status(400).json({ error: 'Role unchanged (account not found or is env-managed).' });
+    res.json({ ok: true });
+  } catch (e) { res.status(400).json({ error: e.message || 'could not set role' }); }
 });
 
 // Create / update a staff or member login.

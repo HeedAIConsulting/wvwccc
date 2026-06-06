@@ -119,6 +119,34 @@ export async function requireReset(memberId) {
   return arr[i].email || null;
 }
 
+// List all login accounts (bootstrap admins + db/store users) for the admin Users page.
+export async function listUsers() {
+  const boot = bootstrapUsers().map((u) => ({ email: u.email, username: u.username, role: u.role, status: u.status, memberId: u.memberId, source: 'bootstrap' }));
+  let rest = [];
+  if (db.enabled) {
+    const r = await db.query('SELECT email, username, role, status, member_id FROM users ORDER BY role, email');
+    rest = r.rows.map((x) => ({ email: lc(x.email), username: x.username, role: x.role || 'member', status: x.status || 'approved', memberId: x.member_id, source: 'db' }));
+  } else {
+    rest = storeUsers().map((u) => ({ email: lc(u.email), username: u.username, role: u.role || 'member', status: u.status || 'approved', memberId: u.memberId || null, source: 'store' }));
+  }
+  const seen = new Set(boot.map((b) => b.email));
+  return [...boot, ...rest.filter((u) => !seen.has(u.email))];
+}
+
+// Change a user's role (super-admin only, enforced at the route). Bootstrap/env
+// admins can't be changed here (their role is fixed in env). Returns true if updated.
+export async function setRole(email, role) {
+  email = lc(email);
+  if (!['member', 'staff', 'admin'].includes(role)) throw new Error('invalid role');
+  if (bootstrapUsers().some((u) => u.email === email)) return false; // env-managed
+  if (db.enabled) { const r = await db.query('UPDATE users SET role=$1 WHERE lower(email)=$2 RETURNING email', [role, email]); return r.rowCount > 0; }
+  const staff = store.read('staff.json', []); const si = staff.findIndex((u) => lc(u.email) === email);
+  if (si >= 0) { staff[si].role = role; store.write('staff.json', staff); return true; }
+  const mu = store.read('users.json', { users: [] }); const arr = mu.users || []; const mi = arr.findIndex((u) => lc(u.email) === email);
+  if (mi >= 0) { arr[mi].role = role; store.write('users.json', { ...mu, users: arr }); return true; }
+  return false;
+}
+
 export async function upsertStaff(email, bcryptHash, name) {
   email = lc(email);
   if (db.enabled) {
