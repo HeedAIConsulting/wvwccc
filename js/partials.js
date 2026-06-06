@@ -149,6 +149,8 @@ window.ChamberPartials = (function () {
     if (!document.querySelector('elevenlabs-convai')) {
       var el = document.createElement('elevenlabs-convai');
       el.setAttribute('agent-id', ELEVENLABS_AGENT_ID);
+      el.setAttribute('action-text', 'Ask Wendy');
+      el.setAttribute('start-call-text', 'Talk to Wendy');
       document.body.appendChild(el);
     }
     if (!document.querySelector('script[src*="@elevenlabs/convai-widget-embed"]')) {

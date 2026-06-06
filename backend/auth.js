@@ -46,6 +46,15 @@ export function setCookie(res, token) {
 }
 export function clearCookie(res) { res.clearCookie(COOKIE, { path: '/' }); }
 
+// Stateless password-reset link — a short-lived signed token (no DB table needed).
+export function signResetToken(email) {
+  return jwt.sign({ sub: String(email).toLowerCase(), purpose: 'reset' }, SECRET, { expiresIn: '1h' });
+}
+export function verifyResetToken(token) {
+  try { const p = jwt.verify(token || '', SECRET); return p.purpose === 'reset' ? p.sub : null; }
+  catch { return null; }
+}
+
 export function readSession(req) {
   try { return jwt.verify((req.cookies && req.cookies[COOKIE]) || '', SECRET); }
   catch { return null; }

@@ -12,6 +12,7 @@ import * as users from './users.js';
 import * as repo from './repo.js';
 import * as llm from './llm.js';
 import * as turnstile from './turnstile.js';
+import * as email from './email.js';
 
 const router = express.Router();
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -54,10 +55,29 @@ router.post('/auth/forgot', async (req, res) => {
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return res.status(400).json({ error: 'Enter a valid email address.' });
   try {
     const user = await users.getUserByEmail(email);
-    if (user) console.log(`[forgot-password] reset requested for ${email} (email delivery pending SMTP)`);
-    // TODO: generate a one-time token + email a reset link once SMTP is wired.
+    if (user) {
+      const token = auth.signResetToken(email);
+      const base = process.env.SITE_URL || `${req.protocol}://${req.get('host')}`;
+      const link = `${base}/auth/reset.html?token=${encodeURIComponent(token)}`;
+      await email.send({
+        to: email,
+        subject: 'Reset your West Valley · Warner Center Chamber password',
+        text: `We received a request to reset your Chamber account password.\n\nReset it here (link expires in 1 hour):\n${link}\n\nIf you didn't request this, you can ignore this email.`,
+        html: `<p>We received a request to reset your Chamber account password.</p><p><a href="${link}">Reset your password</a> (link expires in 1 hour).</p><p>If you didn't request this, you can ignore this email.</p>`,
+      });
+    }
   } catch (e) { /* swallow — never leak account existence */ }
   res.json({ ok: true, message: 'If an account exists for that email, password-reset instructions are on the way.' });
+});
+
+// Complete a password reset from the emailed link (stateless signed token).
+router.post('/auth/reset', async (req, res) => {
+  const { token, password } = req.body || {};
+  if (!password || String(password).length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters.' });
+  const email = auth.verifyResetToken(token);
+  if (!email) return res.status(400).json({ error: 'This reset link is invalid or has expired. Request a new one.' });
+  try { await users.updatePassword(email, auth.hashPassword(password)); res.json({ ok: true }); }
+  catch (e) { console.error('reset failed', e); res.status(500).json({ error: 'Could not reset password.' }); }
 });
 
 router.get('/auth/me', (req, res) => {
@@ -301,9 +321,20 @@ router.post('/contact', async (req, res) => {
     reason: b.reason || b.kind || '', event: b.event || '', message: b.message || '',
     status: 'new', received: new Date().toISOString(),
   };
-  try { await repo.addLead(lead); res.json({ ok: true }); }
-  catch (e) { console.error('lead save failed', e); res.status(500).json({ ok: false, error: 'could not send' }); }
-  // TODO Phase 3: email office + felicia@woodlandhillscc.net.
+  try {
+    await repo.addLead(lead);
+    res.json({ ok: true });
+    // Notify the Chamber office (Wendy's mailbox) — best-effort, after responding.
+    const body = `New ${lead.reason || lead.kind} from the website\n\n`
+      + `Name: ${lead.name || '—'}\nEmail: ${lead.email}\nPhone: ${lead.phone || '—'}\n`
+      + `Company: ${lead.company || '—'}\nEvent: ${lead.event || '—'}\n\nMessage:\n${lead.message || '—'}\n`;
+    email.send({
+      to: email.notifyTo(),
+      replyTo: lead.email,
+      subject: `Website inquiry: ${lead.reason || lead.kind}${lead.company ? ' — ' + lead.company : ''}`,
+      text: body,
+    }).catch((e) => console.error('notify email failed', e));
+  } catch (e) { console.error('lead save failed', e); res.status(500).json({ ok: false, error: 'could not send' }); }
 });
 
 // ── AI Concierge: natural-language member finder ────────────
@@ -342,7 +373,7 @@ router.post('/concierge', async (req, res) => {
       return res.json({ answer: `Here are the closest Chamber members for "${q}":`, members: candidates.slice(0, 6), provider: 'keyword' });
     }
     const list = candidates.map((m) => `- id:${m.id} | ${m.name} | ${m.category || m.group || ''} | ${m.neighborhood || ''}${m.tagline ? ' | ' + m.tagline : ''}`).join('\n');
-    const system = 'You are the concierge for the West Valley · Warner Center Chamber of Commerce. Recommend ONLY businesses from the provided member list — never invent members. Be warm, brief, and local.';
+    const system = 'You are Wendy, the friendly concierge for the West Valley · Warner Center Chamber of Commerce. Recommend ONLY businesses from the provided member list — never invent members. Be warm, brief, and local. You may refer to yourself as Wendy.';
     // memberIds FIRST + short answer so a truncated response still yields picks.
     const prompt = `Member candidates (id | name | category | area | tagline):\n${list}\n\nVisitor question: "${q}"\n\nChoose the up to 5 most relevant members. Reply with ONLY compact JSON, answer under 25 words:\n{"memberIds":["id1","id2"],"answer":"one short helpful sentence"}`;
     const raw = await llm.complete({ system, prompt, json: true, maxTokens: 800 });

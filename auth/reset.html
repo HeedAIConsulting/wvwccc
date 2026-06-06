@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reset Password — West Valley · Warner Center Chamber of Commerce</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="../css/chamber.css" />
+</head>
+<body>
+  <div data-partial="header"></div>
+  <section class="section">
+    <div class="container" style="display:grid;place-items:center">
+      <main class="card" style="width:min(440px,94vw)">
+        <div style="text-align:center">
+          <img src="../images/wvwccc-logo.png" alt="WVWCCC" width="72" height="72" style="border-radius:50%;margin:0 auto var(--s-3);box-shadow:0 0 0 2px var(--gold)" />
+          <h1 style="font-size:1.6rem">Choose a new password</h1>
+        </div>
+        <form id="resetForm" class="mt-5">
+          <div class="field"><label>New password</label><input id="pw1" type="password" required minlength="8" autocomplete="new-password" placeholder="At least 8 characters" /></div>
+          <div class="field"><label>Confirm new password</label><input id="pw2" type="password" required minlength="8" autocomplete="new-password" /></div>
+          <p id="msg" class="notice" hidden></p>
+          <button class="btn btn--forest btn--lg" type="submit" style="width:100%">Save new password</button>
+        </form>
+      </main>
+    </div>
+  </section>
+  <div data-partial="footer"></div>
+  <script src="../js/partials.js"></script>
+  <script src="../js/api-base.js"></script>
+  <script>
+    ChamberPartials.mount({ active: '', depth: 1, lang: 'en' });
+    const token = new URLSearchParams(location.search).get('token') || '';
+    const form = document.getElementById('resetForm');
+    const msg = document.getElementById('msg');
+    const fail = (t) => { msg.textContent = t; msg.style.borderColor = 'var(--red)'; msg.hidden = false; };
+    if (!token) fail('This reset link is missing its token. Please use the link from your email or request a new one.');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      msg.hidden = true;
+      const pw1 = document.getElementById('pw1').value, pw2 = document.getElementById('pw2').value;
+      if (pw1.length < 8) return fail('Password must be at least 8 characters.');
+      if (pw1 !== pw2) return fail('The two passwords do not match.');
+      const btn = form.querySelector('button'); btn.disabled = true; btn.textContent = 'Saving…';
+      try {
+        const r = await fetch(ChamberAPI.url('/api/auth/reset'), {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token, password: pw1 }),
+        });
+        const data = await r.json();
+        if (r.ok && data.ok) {
+          form.hidden = true; msg.hidden = false; msg.style.borderColor = 'var(--green)';
+          msg.innerHTML = '<strong>Password updated.</strong> You can now <a href="member-login.html">sign in</a>.';
+        } else { fail(data.error || 'Could not reset password.'); btn.disabled = false; btn.textContent = 'Save new password'; }
+      } catch (err) { fail('Could not reach the server. Please try again.'); btn.disabled = false; btn.textContent = 'Save new password'; }
+    });
+  </script>
+</body>
+</html>

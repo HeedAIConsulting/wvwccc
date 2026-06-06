@@ -131,7 +131,7 @@ window.Chamber = (function () {
       const q = input.value.trim();
       if (!q) return;
       panel.hidden = false;
-      panel.innerHTML = '<p class="member-tile__meta">Asking the Concierge…</p>';
+      panel.innerHTML = '<p class="member-tile__meta">Asking Wendy…</p>';
       try {
         const res = await fetch(ChamberAPI.url('/api/concierge'), {
           method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ q }),
@@ -140,7 +140,7 @@ window.Chamber = (function () {
         if (!res.ok) throw new Error(data.error || 'failed');
         const members = data.members || [];
         panel.innerHTML =
-          `<div class="card" style="background:var(--forest,#1f4d3a);color:#fff;padding:14px 16px;margin-bottom:12px">💬 ${esc(data.answer || '')}</div>` +
+          `<div class="card" style="background:var(--forest,#1f4d3a);color:#fff;padding:14px 16px;margin-bottom:12px"><strong>💬 Wendy:</strong> ${esc(data.answer || '')}</div>` +
           (members.length ? `<div class="grid grid-2" style="gap:10px">${members.map(card).join('')}</div>` : '') +
           `<div class="mt-3"><a class="member-tile__meta" style="text-decoration:underline" href="members/directory.html?q=${encodeURIComponent(q)}">See all directory matches →</a></div>`;
       } catch (err) {
