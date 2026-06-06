@@ -643,4 +643,53 @@ router.delete('/admin/events/:id', requireAdmin, async (req, res) => {
   catch (e) { res.status(500).json({ error: 'delete failed' }); }
 });
 
+// ── Internal admin assistant (Claude / Anthropic) ───────────
+// Grounds analysis in live Chamber data and drafts ready-to-use content.
+async function chamberSnapshot() {
+  const { members } = await loadMembersFull();
+  const approved = members.filter((m) => (m.status || 'approved') === 'approved');
+  const byCat = {};
+  approved.forEach((m) => { const c = (m.category || 'Uncategorized').trim() || 'Uncategorized'; byCat[c] = (byCat[c] || 0) + 1; });
+  const cats = Object.entries(byCat).sort((a, b) => b[1] - a[1]);
+  const byHood = {};
+  approved.forEach((m) => { const h = (m.neighborhood || m.city || '').trim(); if (h) byHood[h] = (byHood[h] || 0) + 1; });
+  const hoods = Object.entries(byHood).sort((a, b) => b[1] - a[1]).slice(0, 15);
+  let events = [], posts = [], leads = [];
+  try { events = await loadEvents(); } catch (e) {}
+  try { posts = await repo.listPosts({}); } catch (e) {}
+  try { leads = await repo.listLeads(); } catch (e) {}
+  const catLine = cats.slice(0, 120).map(([c, n]) => `${c} (${n})`).join(', ')
+    + (cats.length > 120 ? `, …and ${cats.length - 120} more categories` : '');
+  return [
+    `Total members: ${members.length} (approved & public: ${approved.length}).`,
+    `Distinct business categories: ${cats.length}.`,
+    `Categories by member count: ${catLine}.`,
+    `Top neighborhoods: ${hoods.map(([h, n]) => `${h} (${n})`).join(', ')}.`,
+    `Events on file: ${events.length}. Content posts (all statuses): ${posts.length}. Inquiries/leads: ${leads.length}.`,
+  ].join('\n');
+}
+
+router.post('/staff-assistant', requireAdmin, async (req, res) => {
+  const b = req.body || {};
+  const messages = (Array.isArray(b.messages) ? b.messages : [])
+    .filter((m) => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string' && m.content.trim())
+    .slice(-12)
+    .map((m) => ({ role: m.role, content: m.content.slice(0, 8000) }));
+  if (!messages.length || messages[messages.length - 1].role !== 'user') {
+    return res.status(400).json({ error: 'Send at least one user message.' });
+  }
+  try {
+    const ctx = await chamberSnapshot();
+    const system = 'You are the internal staff assistant for the West Valley · Warner Center Chamber of Commerce, powered by Claude. '
+      + 'You help Chamber staff and admins: analyze the membership, identify gaps and opportunities, and draft ready-to-use, professional content '
+      + '(recruitment emails, member newsletters, social posts, event copy, sponsor outreach, announcements). '
+      + 'Voice: warm, local, professional, and concise. When asked to write something, return polished copy the admin can paste and send — '
+      + 'use clear subject lines for emails. When analyzing, ground every claim in the live data below and be specific (cite category counts). '
+      + 'If asked which categories need more members, reason from the per-category counts (low or missing categories are the gaps).\n\n'
+      + '=== LIVE CHAMBER DATA (today) ===\n' + ctx;
+    const out = await llm.chat({ system, messages, maxTokens: 1800 });
+    res.json({ ok: true, answer: out.text, provider: out.provider, model: out.model });
+  } catch (e) { console.error('staff-assistant', e); res.status(500).json({ error: 'The assistant is unavailable right now.' }); }
+});
+
 export default router;

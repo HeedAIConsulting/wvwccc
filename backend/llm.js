@@ -12,6 +12,27 @@ export function provider() {
   return 'mock';
 }
 export const enabled = () => provider() !== 'mock';
+export const anthropicEnabled = () => !!ANTHROPIC_KEY();
+
+/* Multi-turn chat for the internal admin assistant. Prefers Anthropic (Claude)
+   for content quality; falls back to Gemini (flattened) if no Anthropic key. */
+export async function chat({ system = '', messages = [], model = 'claude-3-5-sonnet-latest', maxTokens = 1500 } = {}) {
+  if (ANTHROPIC_KEY()) {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': ANTHROPIC_KEY(), 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({ model, max_tokens: maxTokens, system, messages }),
+    });
+    if (!res.ok) throw new Error(`anthropic ${res.status}: ${(await res.text()).slice(0, 200)}`);
+    const data = await res.json();
+    return { text: (data.content || []).map((c) => c.text).join(''), provider: 'anthropic', model };
+  }
+  if (GEMINI_KEY()) {
+    const prompt = messages.map((m) => (m.role === 'user' ? 'Admin: ' : 'Assistant: ') + m.content).join('\n\n');
+    return { text: await gemini(system, prompt, false, maxTokens), provider: 'gemini', model: 'gemini-flash-latest' };
+  }
+  return { text: "The assistant isn't configured yet — add an ANTHROPIC_API_KEY (preferred) or GEMINI_API_KEY to enable it.", provider: 'mock', model: null };
+}
 
 // Ask the model. Returns a string. `json` hints we want strict JSON back.
 export async function complete({ system = '', prompt, json = false, maxTokens = 700 } = {}) {

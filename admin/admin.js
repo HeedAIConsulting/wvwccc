@@ -25,6 +25,7 @@ window.Admin = (function () {
     { href: 'approvals.html', icon: '✓', label: 'Approvals', key: 'approvals' },
     { href: 'events.html', icon: '◆', label: 'Events', key: 'events' },
     { href: 'content.html', icon: '✎', label: 'Content', key: 'content' },
+    { href: 'ai-assistant.html', icon: '✦', label: 'AI Assistant', key: 'assistant' },
     { grp: 'Revenue & contact' },
     { href: 'payments.html', icon: '$', label: 'Pay Log', key: 'payments' },
     { href: 'leads.html', icon: '✉', label: 'Inquiries', key: 'leads' },
@@ -390,11 +391,53 @@ window.Admin = (function () {
     load();
   }
 
+  // ── Internal AI assistant (Claude) ──
+  async function initAssistant() {
+    mountShell('assistant');
+    const log = document.getElementById('chatLog');
+    const form = document.getElementById('chatForm');
+    const input = document.getElementById('chatInput');
+    const messages = [];
+    function bubble(role, text) {
+      const wrap = document.createElement('div');
+      wrap.style.cssText = 'margin:0 0 14px;display:flex;' + (role === 'user' ? 'justify-content:flex-end' : '');
+      const who = role === 'user' ? 'You' : 'Claude';
+      wrap.innerHTML = `<div style="max-width:720px;width:fit-content">
+        <div class="sub" style="margin-bottom:3px;${role === 'user' ? 'text-align:right' : ''}">${who}</div>
+        <div style="white-space:pre-wrap;line-height:1.55;background:${role === 'user' ? 'var(--forest,#1f4d3a)' : '#fff'};color:${role === 'user' ? '#fff' : 'inherit'};border:1px solid var(--line,#e4e0d6);border-radius:12px;padding:12px 14px">${esc(text)}</div>
+        ${role === 'assistant' ? '<button class="btn btn--ghost btn--sm" data-copy style="margin-top:6px">Copy</button>' : ''}</div>`;
+      if (role === 'assistant') {
+        const cp = wrap.querySelector('[data-copy]');
+        if (cp) cp.addEventListener('click', () => { if (navigator.clipboard) navigator.clipboard.writeText(text); cp.textContent = 'Copied ✓'; setTimeout(() => cp.textContent = 'Copy', 1400); });
+      }
+      log.appendChild(wrap); log.scrollTop = log.scrollHeight;
+      return wrap;
+    }
+    async function send(text) {
+      text = (text || '').trim(); if (!text) return;
+      const empty = document.getElementById('chatEmpty'); if (empty) empty.hidden = true;
+      messages.push({ role: 'user', content: text });
+      bubble('user', text);
+      input.value = ''; input.style.height = 'auto';
+      const thinking = bubble('assistant', '…thinking');
+      try {
+        const r = await api('/api/staff-assistant', { method: 'POST', body: JSON.stringify({ messages }) });
+        thinking.remove();
+        messages.push({ role: 'assistant', content: r.answer });
+        bubble('assistant', r.answer);
+      } catch (e) { thinking.remove(); bubble('assistant', 'Sorry — I could not reach the assistant (' + (e.message || 'error') + ').'); }
+    }
+    form.addEventListener('submit', (e) => { e.preventDefault(); send(input.value); });
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(input.value); } });
+    input.addEventListener('input', () => { input.style.height = 'auto'; input.style.height = Math.min(input.scrollHeight, 180) + 'px'; });
+    document.querySelectorAll('[data-suggest]').forEach((b) => b.addEventListener('click', () => send(b.textContent)));
+  }
+
   function showAuthError(e) {
     const m = document.getElementById('adminError');
     if (m) { m.hidden = false; m.textContent = 'Could not load admin data (' + e.message + '). If a token is required, set it via the console.'; }
     console.error(e);
   }
 
-  return { mountShell, initDashboard, initMembers, initApprovals, initOrders, initLeads, initEvents, initContent, api, esc };
+  return { mountShell, initDashboard, initMembers, initApprovals, initOrders, initLeads, initEvents, initContent, initAssistant, api, esc };
 })();
