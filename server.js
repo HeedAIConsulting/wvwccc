@@ -50,6 +50,8 @@ app.use('/api', apiLimiter);
 
 // ── Health check (Render) ──────────────────────────────────
 app.get('/healthz', (_req, res) => res.json({ ok: true, ts: Date.now() }));
+// Render health check is configured to hit /api/chamber (legacy path) — keep it.
+app.get('/api/chamber', (_req, res) => res.json({ ok: true, live: true, service: 'wvwccc' }));
 
 // ── API routes (payments, concierge) ──────────────────────
 import chamberRoutes from './backend/chamber-routes.js';
