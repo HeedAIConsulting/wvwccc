@@ -6,6 +6,26 @@ window.Admin = (function () {
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const apiBase = (window.ChamberAPI ? ChamberAPI.url('') : '');
 
+  // Downscale an image File to a JPEG data URL (keeps uploads small + within vision limits).
+  function downscaleImage(file, maxDim = 1600, quality = 0.85) {
+    return new Promise((resolve, reject) => {
+      const fr = new FileReader();
+      fr.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+          let w = img.width, h = img.height;
+          const scale = Math.min(1, maxDim / Math.max(w, h));
+          w = Math.round(w * scale); h = Math.round(h * scale);
+          const c = document.createElement('canvas'); c.width = w; c.height = h;
+          c.getContext('2d').drawImage(img, 0, 0, w, h);
+          resolve(c.toDataURL('image/jpeg', quality));
+        };
+        img.onerror = reject; img.src = fr.result;
+      };
+      fr.onerror = reject; fr.readAsDataURL(file);
+    });
+  }
+
   async function api(pathname, opts = {}) {
     const headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
     const res = await fetch(apiBase + pathname, { credentials: 'same-origin', ...opts, headers });
@@ -316,6 +336,26 @@ window.Admin = (function () {
       finally { btn.disabled = false; }
     });
     document.getElementById('evCancel').addEventListener('click', () => fillForm(null));
+
+    // Flyer → event (AI vision prefill)
+    const flyer = document.getElementById('evFlyer');
+    const flyerMsg = document.getElementById('evFlyerMsg');
+    if (flyer) flyer.addEventListener('change', async (e) => {
+      const f = e.target.files[0]; if (!f) return;
+      flyerMsg.textContent = 'Reading flyer with AI…';
+      try {
+        const dataUrl = await downscaleImage(f, 1600, 0.85);
+        const out = await api('/api/admin/events/from-flyer', { method: 'POST', body: JSON.stringify({ dataUrl }) });
+        const d = out.draft || {};
+        let imgs = [];
+        try { const up = await api('/api/me/asset', { method: 'POST', body: JSON.stringify({ kind: 'photo', dataUrl }) }); imgs = [up.url]; } catch (_) {}
+        fillForm({ ...d, images: imgs, links: Array.isArray(d.links) ? d.links : [], status: 'pending' });
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        flyerMsg.textContent = 'Filled from flyer — review the fields and click Save.';
+      } catch (err) { flyerMsg.textContent = 'Could not read the flyer (' + (err.message || 'error') + ').'; }
+      finally { flyer.value = ''; }
+    });
+
     fillForm(null);
     load();
   }

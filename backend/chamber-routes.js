@@ -643,6 +643,33 @@ router.delete('/admin/events/:id', requireAdmin, async (req, res) => {
   catch (e) { res.status(500).json({ error: 'delete failed' }); }
 });
 
+// Admin LLM diagnostic — which providers work, and the raw error if not.
+router.get('/admin/llm-test', requireAdmin, async (_req, res) => {
+  try { res.json(await llm.diagnose()); }
+  catch (e) { res.status(500).json({ error: 'diagnose failed: ' + e.message }); }
+});
+
+// Flyer → event: Claude/Gemini vision reads a flyer and returns a draft to review.
+router.post('/admin/events/from-flyer', requireAdmin, async (req, res) => {
+  const b = req.body || {};
+  if (!b.dataUrl) return res.status(400).json({ error: 'Upload a flyer image.' });
+  try {
+    const year = new Date().getFullYear();
+    const instruction = 'You are reading an event flyer/poster for a Chamber of Commerce. Extract the event into JSON with EXACTLY these keys: '
+      + 'title, date (YYYY-MM-DD or ""), time (e.g. "6:00 PM" or ""), endDate, endTime, venue, address, neighborhood, category, '
+      + 'summary (a 1-2 sentence overview), description (any extra details/agenda/speakers), ticketed (true/false), '
+      + 'links (array of {label,url,type} where type is one of tickets|register|sponsors|info — include only URLs actually printed on the flyer). '
+      + `If the year is missing assume ${year} or the next future occurrence. Use "" for unknown text fields and [] when there are no links. Output JSON only.`;
+    const out = await llm.visionJSON({ instruction, imageDataUrl: b.dataUrl });
+    const raw = (out.text || '').replace(/^```json\s*|\s*```$/g, '').trim();
+    let parsed = {};
+    try { parsed = JSON.parse(raw); }
+    catch (e) { const mm = /\{[\s\S]*\}/.exec(raw); if (mm) { try { parsed = JSON.parse(mm[0]); } catch (_) {} } }
+    if (!parsed || typeof parsed !== 'object') parsed = {};
+    res.json({ ok: true, draft: parsed, provider: out.provider, model: out.model });
+  } catch (e) { console.error('from-flyer', e); res.status(500).json({ error: 'Could not read the flyer. Try a clearer image (PNG/JPG, under ~4MB).' }); }
+});
+
 // ── Internal admin assistant (Claude / Anthropic) ───────────
 // Grounds analysis in live Chamber data and drafts ready-to-use content.
 async function chamberSnapshot() {

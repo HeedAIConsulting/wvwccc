@@ -19,6 +19,14 @@
 
         <div class="panel">
           <div class="panel__head"><h3 id="evFormTitle">New event</h3></div>
+          <div style="padding:14px 16px;border-bottom:1px solid var(--line,#eee);background:#faf8f3">
+            <strong>✦ Auto-fill from a flyer</strong>
+            <span class="sub">— upload a poster/flyer and the AI reads it and fills the form below for you to review &amp; approve.</span>
+            <div style="margin-top:8px">
+              <label class="btn btn--gold btn--sm" style="cursor:pointer">Upload flyer<input type="file" accept="image/*" hidden id="evFlyer"></label>
+              <span id="evFlyerMsg" class="sub" style="margin-left:8px"></span>
+            </div>
+          </div>
           <form id="eventForm" class="admin-form" style="padding:16px">
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
               <div class="field" style="grid-column:1 / -1"><label>Title *</label><input name="title" required maxlength="200" placeholder="Annual Gala — Black, White & Bold!" /></div>
