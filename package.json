@@ -6,8 +6,8 @@
   "type": "module",
   "engines": { "node": ">=20" },
   "scripts": {
-    "start": "node --env-file-if-exists=.env.local server.js",
-    "dev": "node --env-file-if-exists=.env.local server.js",
+    "start": "node server.js",
+    "dev": "node server.js",
     "migrate": "node scripts/migrate.js",
     "create-staff": "node scripts/create-staff.js"
   },

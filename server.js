@@ -10,9 +10,19 @@ import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
 import path from 'node:path';
+import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+// Load .env.local for local dev (Render injects env vars directly, so this is a
+// no-op there). Version-independent — no reliance on the Node --env-file flag.
+try {
+  for (const line of fs.readFileSync(path.join(__dirname, '.env.local'), 'utf8').split(/\r?\n/)) {
+    const m = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$/);
+    if (m && !process.env[m[1]]) process.env[m[1]] = m[2].trim();
+  }
+} catch { /* no .env.local → use the real environment */ }
 const app = express();
 const PORT = process.env.PORT || 5500;
 const PROD = process.env.NODE_ENV === 'production';
