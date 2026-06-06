@@ -16,11 +16,48 @@
     <div class="admin-main">
       <div class="admin-topbar"><h1>Events</h1></div>
       <div class="admin-content">
-        <p class="admin-notice">Editing, ticket caps, and RSVP cutoffs save to the events store in the next pass. This view confirms what the public calendar shows.</p>
+
+        <div class="panel">
+          <div class="panel__head"><h3 id="evFormTitle">New event</h3></div>
+          <form id="eventForm" class="admin-form" style="padding:16px">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+              <div class="field" style="grid-column:1 / -1"><label>Title *</label><input name="title" required maxlength="200" placeholder="Annual Gala — Black, White & Bold!" /></div>
+              <div class="field"><label>Category</label><input name="category" maxlength="40" placeholder="Signature / Networking / Mixer …" /></div>
+              <div class="field"><label>Status</label><select name="status" class="admin-select"><option value="approved">Published</option><option value="draft">Draft (hidden)</option><option value="pending">Pending review</option></select></div>
+              <div class="field"><label>Date</label><input name="date" type="date" /></div>
+              <div class="field"><label>Time</label><input name="time" maxlength="40" placeholder="6:00 PM" /></div>
+              <div class="field"><label>End date <span class="sub">(optional)</span></label><input name="endDate" type="date" /></div>
+              <div class="field"><label>End time <span class="sub">(optional)</span></label><input name="endTime" maxlength="40" placeholder="9:00 PM" /></div>
+              <div class="field"><label>Venue</label><input name="venue" maxlength="160" placeholder="Woodland Hills Country Club" /></div>
+              <div class="field"><label>Neighborhood</label><input name="neighborhood" maxlength="80" placeholder="Woodland Hills" /></div>
+              <div class="field" style="grid-column:1 / -1"><label>Address <span class="sub">(for the calendar location)</span></label><input name="address" maxlength="200" placeholder="21810 Ventura Blvd, Woodland Hills, CA 91364" /></div>
+              <div class="field" style="grid-column:1 / -1"><label>Summary <span class="sub">(shown on cards)</span></label><textarea name="summary" rows="2" maxlength="600"></textarea></div>
+              <div class="field" style="grid-column:1 / -1"><label>Full details <span class="sub">(optional, longer description)</span></label><textarea name="description" rows="4" maxlength="8000"></textarea></div>
+              <div class="field"><label>Ticket cap <span class="sub">(optional)</span></label><input name="ticketCap" type="number" min="0" /></div>
+              <div class="field"><label>RSVP / ticket cutoff <span class="sub">(optional)</span></label><input name="rsvpCutoff" type="date" /></div>
+            </div>
+
+            <div style="display:flex;gap:24px;margin:10px 0;flex-wrap:wrap">
+              <label class="toggle" style="display:flex;align-items:center;gap:8px"><input type="checkbox" name="ticketed"><span class="track"></span> Ticketed event</label>
+              <label class="toggle" style="display:flex;align-items:center;gap:8px"><input type="checkbox" name="featured"><span class="track"></span> Feature on homepage</label>
+            </div>
+
+            <div class="field"><label>Images <span class="sub">(up to 3)</span></label><div id="evImages" style="margin-top:6px"></div></div>
+            <div class="field"><label>Links <span class="sub">(tickets, sponsors, registration, details)</span></label><div id="evLinks" style="margin-top:6px"></div></div>
+
+            <p id="eventMsg" class="notice" hidden style="margin-top:10px"></p>
+            <div style="display:flex;gap:10px;margin-top:12px">
+              <button class="btn btn--forest" type="submit">Save event</button>
+              <button class="btn btn--ghost" type="button" id="evCancel" hidden>Cancel edit</button>
+            </div>
+          </form>
+        </div>
+
         <div class="panel">
           <div class="panel__head"><h3>All events</h3></div>
-          <table class="admin-table"><thead><tr><th>Event</th><th>Date</th><th>Venue</th><th>Type</th><th>Home</th></tr></thead><tbody id="eventRows"></tbody></table>
+          <table class="admin-table"><thead><tr><th>Event</th><th>Date</th><th>Venue</th><th>Status</th><th></th></tr></thead><tbody id="eventRows"></tbody></table>
         </div>
+
       </div>
     </div>
   </div>

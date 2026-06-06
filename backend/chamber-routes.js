@@ -232,6 +232,76 @@ router.get('/slides', async (_req, res) => {
   catch (e) { res.status(500).json({ error: 'failed' }); }
 });
 
+// ── Events ──────────────────────────────────────────────────
+const MONTHS3 = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+function readSeedEvents() {
+  try { return JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'events.json'), 'utf8')).events || []; }
+  catch { return []; }
+}
+async function loadEvents() {
+  const stored = await repo.listEventsStore();
+  return stored.length ? stored : readSeedEvents().map((e) => buildEvent(e, e));
+}
+async function ensureEventsSeeded() {
+  if (!(await repo.hasEvents())) {
+    for (const e of readSeedEvents()) await repo.upsertEvent(buildEvent(e, e));
+  }
+}
+function buildEvent(b, existing = {}) {
+  const date = b.date ?? existing.date ?? '';
+  const d = date ? new Date(date + 'T12:00:00') : null;
+  const images = Array.isArray(b.images)
+    ? b.images.slice(0, 3).map(clampUrl).filter(Boolean)
+    : (existing.images || []);
+  const links = Array.isArray(b.links)
+    ? b.links.slice(0, 8).map((l) => ({
+        label: String(l.label || '').slice(0, 40),
+        url: clampUrl(l.url),
+        type: String(l.type || 'info').slice(0, 20),
+      })).filter((l) => l.url)
+    : (existing.links || []);
+  return {
+    id: existing.id || b.id || ('ev-' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36)),
+    title: String(b.title ?? existing.title ?? '').slice(0, 200),
+    category: String(b.category ?? existing.category ?? 'Event').slice(0, 40),
+    confirmed: b.confirmed !== undefined ? !!b.confirmed : (existing.confirmed ?? !!date),
+    date,
+    month: d ? MONTHS3[d.getMonth()] : (b.month ?? existing.month ?? ''),
+    day: d ? String(d.getDate()).padStart(2, '0') : (existing.day ?? ''),
+    time: String(b.time ?? existing.time ?? '').slice(0, 40),
+    endDate: b.endDate ?? existing.endDate ?? '',
+    endTime: String(b.endTime ?? existing.endTime ?? '').slice(0, 40),
+    venue: String(b.venue ?? existing.venue ?? '').slice(0, 160),
+    address: String(b.address ?? existing.address ?? '').slice(0, 200),
+    neighborhood: String(b.neighborhood ?? existing.neighborhood ?? '').slice(0, 80),
+    summary: String(b.summary ?? existing.summary ?? '').slice(0, 600),
+    description: String(b.description ?? existing.description ?? '').slice(0, 8000),
+    ticketed: b.ticketed !== undefined ? !!b.ticketed : (existing.ticketed ?? false),
+    ticketCap: b.ticketCap ?? existing.ticketCap ?? null,
+    rsvpCutoff: b.rsvpCutoff ?? existing.rsvpCutoff ?? null,
+    featured: b.featured !== undefined ? !!b.featured : (existing.featured ?? false),
+    status: ['approved', 'pending', 'draft'].includes(b.status) ? b.status : (existing.status || 'approved'),
+    images, links,
+    created: existing.created || new Date().toISOString(),
+    updated: new Date().toISOString(),
+  };
+}
+
+// Public: approved events only.
+router.get('/events', async (_req, res) => {
+  try {
+    const all = await loadEvents();
+    res.json({ events: all.filter((e) => (e.status || 'approved') === 'approved') });
+  } catch (e) { console.error(e); res.status(500).json({ error: 'events unavailable' }); }
+});
+router.get('/events/:id', async (req, res) => {
+  try {
+    const ev = (await loadEvents()).find((e) => e.id === req.params.id);
+    if (!ev || (ev.status || 'approved') !== 'approved') return res.status(404).json({ error: 'not found' });
+    res.json(ev);
+  } catch (e) { res.status(500).json({ error: 'failed' }); }
+});
+
 async function loadMembersPublic() {
   const { source, members } = await loadMembersFull();
   const pub = members
@@ -540,6 +610,36 @@ router.patch('/admin/posts/:id', requireAdmin, async (req, res) => {
 
 router.delete('/admin/posts/:id', requireAdmin, async (req, res) => {
   try { await repo.deletePost(req.params.id); res.json({ ok: true }); }
+  catch (e) { res.status(500).json({ error: 'delete failed' }); }
+});
+
+// ── Admin events (full CRUD; seeds the store from data/events.json on first write) ──
+router.get('/admin/events', requireAdmin, async (_req, res) => {
+  try { await ensureEventsSeeded(); res.json({ events: await loadEvents() }); }
+  catch (e) { console.error(e); res.status(500).json({ error: 'events failed' }); }
+});
+router.post('/admin/events', requireAdmin, async (req, res) => {
+  const b = req.body || {};
+  if (!b.title) return res.status(400).json({ error: 'Title required.' });
+  try {
+    await ensureEventsSeeded();
+    const ev = buildEvent(b);
+    await repo.upsertEvent(ev);
+    res.json({ ok: true, event: ev });
+  } catch (e) { console.error(e); res.status(500).json({ error: 'could not create' }); }
+});
+router.patch('/admin/events/:id', requireAdmin, async (req, res) => {
+  try {
+    await ensureEventsSeeded();
+    const existing = (await loadEvents()).find((e) => e.id === req.params.id);
+    if (!existing) return res.status(404).json({ error: 'not found' });
+    const ev = buildEvent({ ...req.body, id: existing.id }, existing);
+    await repo.upsertEvent(ev);
+    res.json({ ok: true, event: ev });
+  } catch (e) { console.error(e); res.status(500).json({ error: 'update failed' }); }
+});
+router.delete('/admin/events/:id', requireAdmin, async (req, res) => {
+  try { await ensureEventsSeeded(); await repo.deleteEvent(req.params.id); res.json({ ok: true }); }
   catch (e) { res.status(500).json({ error: 'delete failed' }); }
 });
 

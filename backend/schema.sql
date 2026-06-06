@@ -116,6 +116,15 @@ CREATE TABLE IF NOT EXISTS posts (
 );
 CREATE INDEX IF NOT EXISTS posts_type_status_idx ON posts (type, status);
 
+-- ── Events (admin-managed; full record kept as a jsonb blob so the
+--    flexible fields — images[], links[] — need no schema churn). ──
+CREATE TABLE IF NOT EXISTS events (
+  id       text PRIMARY KEY,                     -- 'ev-...' or seed id
+  data     jsonb NOT NULL,                       -- the full event object
+  created  timestamptz DEFAULT now(),
+  updated  timestamptz DEFAULT now()
+);
+
 -- ── Image assets (logos, photos) stored in Postgres so they survive
 --    Render's ephemeral disk. Served via /api/assets/:id. ──
 CREATE TABLE IF NOT EXISTS assets (

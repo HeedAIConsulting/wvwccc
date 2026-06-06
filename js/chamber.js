@@ -68,6 +68,67 @@ window.Chamber = (function () {
     });
   }
 
+  // ── Add-to-calendar helpers (Google / Outlook web / Apple .ics) ──
+  function _pad(n) { return String(n).padStart(2, '0'); }
+  function _parseTime(s) {
+    const m = /(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i.exec(String(s || ''));
+    if (!m) return null;
+    let h = parseInt(m[1], 10); const min = m[2] ? parseInt(m[2], 10) : 0;
+    const ap = (m[3] || '').toLowerCase();
+    if (ap === 'pm' && h < 12) h += 12;
+    if (ap === 'am' && h === 12) h = 0;
+    if (h > 23 || min > 59) return null;
+    return { h, min };
+  }
+  function _calRange(ev) {
+    if (!ev.date) return null;
+    const t = _parseTime(ev.time);
+    if (!t) {
+      const s = new Date(ev.date + 'T00:00:00');
+      const e = new Date((ev.endDate || ev.date) + 'T00:00:00'); e.setDate(e.getDate() + 1);
+      return { allDay: true, start: s, end: e };
+    }
+    const s = new Date(ev.date + 'T' + _pad(t.h) + ':' + _pad(t.min) + ':00');
+    const et = _parseTime(ev.endTime);
+    let e;
+    if (ev.endDate || et) {
+      const tt = et || { h: (t.h + 2) % 24, min: t.min };
+      e = new Date((ev.endDate || ev.date) + 'T' + _pad(tt.h) + ':' + _pad(tt.min) + ':00');
+    } else { e = new Date(s.getTime() + 2 * 3600 * 1000); }
+    return { allDay: false, start: s, end: e };
+  }
+  function _ymd(d) { return '' + d.getFullYear() + _pad(d.getMonth() + 1) + _pad(d.getDate()); }
+  function _hms(d) { return _pad(d.getHours()) + _pad(d.getMinutes()) + '00'; }
+  function _gcal(d, allDay) { return allDay ? _ymd(d) : _ymd(d) + 'T' + _hms(d); }
+  function _icsEsc(s) { return String(s || '').replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n'); }
+  function calendarMenu(ev) {
+    const r = _calRange(ev); if (!r) return '';
+    const loc = ev.venue || ev.address || ev.neighborhood || '';
+    const details = (ev.summary || '') + (ev.links && ev.links.length ? '\n\n' + ev.links.map((l) => l.label + ': ' + l.url).join('\n') : '');
+    const g = 'https://calendar.google.com/calendar/render?action=TEMPLATE'
+      + '&text=' + encodeURIComponent(ev.title || 'Event')
+      + '&dates=' + _gcal(r.start, r.allDay) + '%2F' + _gcal(r.end, r.allDay)
+      + '&details=' + encodeURIComponent(details) + '&location=' + encodeURIComponent(loc);
+    const o = 'https://outlook.live.com/calendar/0/deeplink/compose?path=/calendar/action/compose&rru=addevent'
+      + '&subject=' + encodeURIComponent(ev.title || 'Event')
+      + '&startdt=' + encodeURIComponent(r.start.toISOString()) + '&enddt=' + encodeURIComponent(r.end.toISOString())
+      + '&body=' + encodeURIComponent(details) + '&location=' + encodeURIComponent(loc);
+    const dtStart = r.allDay ? 'DTSTART;VALUE=DATE:' + _ymd(r.start) : 'DTSTART:' + _ymd(r.start) + 'T' + _hms(r.start);
+    const dtEnd = r.allDay ? 'DTEND;VALUE=DATE:' + _ymd(r.end) : 'DTEND:' + _ymd(r.end) + 'T' + _hms(r.end);
+    const now = new Date();
+    const ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//WVWCCC//Events//EN', 'BEGIN:VEVENT',
+      'UID:' + (ev.id || 'ev') + '@wvwccc', 'DTSTAMP:' + _ymd(now) + 'T' + _hms(now),
+      dtStart, dtEnd, 'SUMMARY:' + _icsEsc(ev.title), 'LOCATION:' + _icsEsc(loc), 'DESCRIPTION:' + _icsEsc(details),
+      'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
+    const icsHref = 'data:text/calendar;charset=utf-8,' + encodeURIComponent(ics);
+    return `<div class="cal-row" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;align-items:center">
+      <span class="member-tile__meta" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.04em">Add to calendar</span>
+      <a class="chip" target="_blank" rel="noopener" href="${g}">Google</a>
+      <a class="chip" target="_blank" rel="noopener" href="${o}">Outlook</a>
+      <a class="chip" download="${esc((ev.id || 'event') + '.ics')}" href="${icsHref}">Apple / .ics</a>
+    </div>`;
+  }
+
   function eventCard(ev, depth = 0) {
     const base = depth ? '../' : '';
     const confirmed = ev.confirmed && ev.day;
@@ -80,6 +141,12 @@ window.Chamber = (function () {
           ? `<a class="btn btn--gold btn--sm" href="${base}checkout.html?type=ticket&event=${esc(ev.id)}">Get tickets</a>`
           : `<a class="btn btn--ghost btn--sm" href="${base}contact.html?event=${esc(ev.id)}">Notify me</a>`)
       : `<a class="btn btn--ghost btn--sm" href="${base}contact.html?event=${esc(ev.id)}">RSVP</a>`;
+    const imgs = (ev.images && ev.images.length)
+      ? `<div class="event-imgs" style="display:flex;gap:6px;margin:8px 0 0;flex-wrap:wrap">${ev.images.slice(0, 3).map((u) => `<img src="${esc(u)}" alt="" loading="lazy" style="width:88px;height:64px;object-fit:cover;border-radius:8px">`).join('')}</div>`
+      : '';
+    const links = (ev.links && ev.links.length)
+      ? `<div class="event-links" style="display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 0">${ev.links.map((l) => `<a class="chip chip--gold" target="_blank" rel="noopener" href="${esc(l.url)}">${esc(l.label || l.type || 'Details')}</a>`).join('')}</div>`
+      : '';
     return `
       <div class="event-row" id="${esc(ev.id)}">
         ${dateBlock}
@@ -88,6 +155,9 @@ window.Chamber = (function () {
           <h4 style="margin:6px 0 4px">${esc(ev.title)}</h4>
           <div class="member-tile__meta">${when} · ${esc(ev.venue || ev.neighborhood || '')}</div>
           <p style="margin:6px 0 0;color:var(--slate-mid);font-size:.95rem">${esc(ev.summary || '')}</p>
+          ${imgs}
+          ${links}
+          ${confirmed ? calendarMenu(ev) : ''}
           ${shareMenu(ev.title, location.origin + '/events/index.html#' + encodeURIComponent(ev.id))}
         </div>
         <div>${cta}</div>
@@ -183,7 +253,7 @@ window.Chamber = (function () {
     try {
       const [dir, evd] = await Promise.all([
         getJSON(ChamberAPI.url('/api/members')),
-        getJSON('data/events.json'),
+        getJSON(ChamberAPI.url('/api/events')).catch(() => getJSON('data/events.json')).catch(() => ({ events: [] })),
       ]);
 
       const members = dir.members || [];
@@ -436,11 +506,13 @@ window.Chamber = (function () {
     const gridEl = document.getElementById('eventsGrid');
     if (!listEl) return;
     let events = [];
+    const pickSort = (data) => (data.events || []).filter((e) => e.confirmed && e.date)
+      .sort((a, b) => a.date.localeCompare(b.date));
     try {
-      const data = await getJSON('../data/events.json');
-      events = (data.events || []).filter((e) => e.confirmed && e.date)
-        .sort((a, b) => a.date.localeCompare(b.date));
-    } catch (e) { console.error(e); }
+      events = pickSort(await getJSON(ChamberAPI.url('/api/events')));
+    } catch (e) {
+      try { events = pickSort(await getJSON('../data/events.json')); } catch (_) { console.error(e); }
+    }
 
     listEl.innerHTML = events.length
       ? events.map((e) => eventCard(e, 1)).join('')

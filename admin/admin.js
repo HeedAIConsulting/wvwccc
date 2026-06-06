@@ -68,11 +68,7 @@ window.Admin = (function () {
       ];
       document.getElementById('statRow').innerHTML = cards.map((c) =>
         `<div class="stat-card ${c.accent ? 'accent' : ''}"><div class="num">${esc(c.num)}</div><div class="lbl">${esc(c.lbl)}</div></div>`).join('');
-      if (s.source === 'seed') {
-        document.getElementById('dashNotice').innerHTML =
-          'Showing the <strong>preview roster</strong>. Run the ChamberWare import to load all ~864 members.';
-        document.getElementById('dashNotice').hidden = false;
-      }
+      // (Roster is the imported live membership; no import-needed notice.)
       const leads = (await api('/api/admin/leads')).leads.slice(0, 5);
       document.getElementById('recentLeads').innerHTML = leads.length
         ? leads.map((l) => `<tr><td><span class="name">${esc(l.name || '—')}</span><div class="sub">${esc(l.email)}</div></td><td>${esc(l.reason || l.kind)}</td><td>${statusPill(l.status)}</td></tr>`).join('')
@@ -218,19 +214,109 @@ window.Admin = (function () {
     load();
   }
 
-  // ── Events (read-only management view for now) ──
+  // ── Events (full CRUD: create / edit / delete, up to 3 images, ticket/sponsor links) ──
   async function initEvents() {
     mountShell('events');
-    try {
-      const data = await (await fetch('../data/events.json')).json();
-      const evs = (data.events || []).sort((a, b) => (a.date || '').localeCompare(b.date || ''));
-      document.getElementById('eventRows').innerHTML = evs.map((e) => `
-        <tr><td><span class="name">${esc(e.title)}</span><div class="sub">${esc(e.category || '')}</div></td>
-        <td>${e.confirmed ? esc(e.month + ' ' + e.day) : '<span class="pill pill--pending">TBA</span>'}</td>
-        <td>${esc(e.venue || e.neighborhood || '')}</td>
-        <td>${e.ticketed ? 'Ticketed' : 'RSVP'}${e.ticketCap ? ' · cap ' + e.ticketCap : ''}</td>
-        <td>${e.featured ? '<span class="pill pill--approved">Featured</span>' : ''}</td></tr>`).join('');
-    } catch (e) { console.error(e); }
+    const form = document.getElementById('eventForm');
+    const msg = document.getElementById('eventMsg');
+    const rowsEl = document.getElementById('eventRows');
+    const imgWrap = document.getElementById('evImages');
+    const linkWrap = document.getElementById('evLinks');
+    let editingId = null;
+    let images = [];
+    let links = [];
+
+    function renderImages() {
+      imgWrap.innerHTML = images.map((u, i) => `<span style="position:relative;display:inline-block;margin:0 8px 8px 0">
+        <img src="${esc(u)}" style="width:88px;height:64px;object-fit:cover;border-radius:8px;border:1px solid var(--line,#ddd)">
+        <button type="button" data-rmimg="${i}" title="Remove" style="position:absolute;top:-7px;right:-7px;border:none;background:#b00020;color:#fff;border-radius:50%;width:20px;height:20px;line-height:18px;cursor:pointer">×</button>
+      </span>`).join('') + (images.length < 3
+        ? `<label class="btn btn--ghost btn--sm" style="cursor:pointer">+ Image<input type="file" accept="image/*" hidden id="evImgInput"></label>`
+        : '<span class="sub">Max 3 images.</span>');
+      const inp = document.getElementById('evImgInput');
+      if (inp) inp.addEventListener('change', onImg);
+      imgWrap.querySelectorAll('[data-rmimg]').forEach((b) => b.addEventListener('click', () => { images.splice(+b.dataset.rmimg, 1); renderImages(); }));
+    }
+    function onImg(e) {
+      const f = e.target.files[0]; if (!f) return;
+      const r = new FileReader();
+      r.onload = async () => {
+        try { const up = await api('/api/me/asset', { method: 'POST', body: JSON.stringify({ kind: 'photo', dataUrl: r.result }) }); images.push(up.url); renderImages(); }
+        catch (err) { msg.hidden = false; msg.textContent = 'Image upload failed (PNG/JPG/GIF/WebP, ≤2.5MB).'; }
+      };
+      r.readAsDataURL(f);
+    }
+    function renderLinks() {
+      linkWrap.innerHTML = links.map((l, i) => `<div style="display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap;align-items:center">
+        <select data-lk="${i}" data-f="type" class="admin-select">
+          ${['tickets', 'register', 'sponsors', 'info'].map((t) => `<option value="${t}" ${l.type === t ? 'selected' : ''}>${t === 'info' ? 'Details' : t[0].toUpperCase() + t.slice(1)}</option>`).join('')}
+        </select>
+        <input data-lk="${i}" data-f="label" placeholder="Button label" value="${esc(l.label)}" style="flex:1;min-width:120px">
+        <input data-lk="${i}" data-f="url" placeholder="https://…" value="${esc(l.url)}" style="flex:2;min-width:180px">
+        <button type="button" data-rmlk="${i}" class="btn btn--ghost btn--sm">×</button>
+      </div>`).join('') + `<button type="button" id="evAddLink" class="btn btn--ghost btn--sm">+ Add link</button>`;
+      linkWrap.querySelector('#evAddLink').addEventListener('click', () => { links.push({ label: '', url: '', type: 'tickets' }); renderLinks(); });
+      linkWrap.querySelectorAll('[data-lk]').forEach((el) => el.addEventListener('input', () => { links[+el.dataset.lk][el.dataset.f] = el.value; }));
+      linkWrap.querySelectorAll('[data-rmlk]').forEach((b) => b.addEventListener('click', () => { links.splice(+b.dataset.rmlk, 1); renderLinks(); }));
+    }
+    function fillForm(ev) {
+      editingId = ev ? ev.id : null;
+      const v = (k, d = '') => (ev && ev[k] != null ? ev[k] : d);
+      form.title.value = v('title'); form.category.value = v('category'); form.date.value = v('date');
+      form.time.value = v('time'); form.endDate.value = v('endDate'); form.endTime.value = v('endTime');
+      form.venue.value = v('venue'); form.address.value = v('address'); form.neighborhood.value = v('neighborhood');
+      form.summary.value = v('summary'); form.description.value = v('description');
+      form.ticketCap.value = ev && ev.ticketCap != null ? ev.ticketCap : '';
+      form.rsvpCutoff.value = v('rsvpCutoff'); form.status.value = v('status', 'approved');
+      form.ticketed.checked = !!(ev && ev.ticketed); form.featured.checked = !!(ev && ev.featured);
+      images = ev && ev.images ? ev.images.slice() : [];
+      links = ev && ev.links ? ev.links.map((l) => ({ ...l })) : [];
+      renderImages(); renderLinks();
+      document.getElementById('evFormTitle').textContent = editingId ? 'Edit event' : 'New event';
+      document.getElementById('evCancel').hidden = !editingId;
+      msg.hidden = true;
+    }
+    async function load() {
+      try {
+        const { events } = await api('/api/admin/events');
+        events.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+        rowsEl.innerHTML = events.length ? events.map((e) => `<tr data-id="${esc(e.id)}">
+          <td><span class="name">${esc(e.title)}</span><div class="sub">${esc(e.category || '')}${e.images && e.images.length ? ' · ' + e.images.length + ' img' : ''}${e.links && e.links.length ? ' · ' + e.links.length + ' link' + (e.links.length > 1 ? 's' : '') : ''}</div></td>
+          <td>${e.date ? esc((e.month || '') + ' ' + (e.day || '')) : '<span class="pill pill--pending">TBA</span>'}<div class="sub">${esc(e.time || '')}</div></td>
+          <td>${esc(e.venue || e.neighborhood || '')}</td>
+          <td>${statusPill(e.status || 'approved')}${e.featured ? ' <span class="pill pill--approved">home</span>' : ''}${e.ticketed ? ' 🎟' : ''}</td>
+          <td style="white-space:nowrap"><button class="btn btn--ghost btn--sm" data-edit>Edit</button> <button class="btn btn--ghost btn--sm" data-del>Delete</button></td>
+        </tr>`).join('') : '<tr><td colspan="5" class="sub">No events yet. Create one above.</td></tr>';
+        rowsEl.querySelectorAll('tr[data-id]').forEach((tr) => {
+          const id = tr.dataset.id;
+          tr.querySelector('[data-edit]').addEventListener('click', () => { fillForm(events.find((x) => x.id === id)); window.scrollTo({ top: 0, behavior: 'smooth' }); });
+          tr.querySelector('[data-del]').addEventListener('click', async () => { if (!confirm('Delete this event?')) return; await api('/api/admin/events/' + encodeURIComponent(id), { method: 'DELETE' }); load(); });
+        });
+      } catch (e) { showAuthError(e); }
+    }
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const body = {
+        title: form.title.value.trim(), category: form.category.value.trim(), date: form.date.value,
+        time: form.time.value.trim(), endDate: form.endDate.value, endTime: form.endTime.value.trim(),
+        venue: form.venue.value.trim(), address: form.address.value.trim(), neighborhood: form.neighborhood.value.trim(),
+        summary: form.summary.value.trim(), description: form.description.value.trim(),
+        ticketed: form.ticketed.checked, ticketCap: form.ticketCap.value ? Number(form.ticketCap.value) : null,
+        rsvpCutoff: form.rsvpCutoff.value || null, featured: form.featured.checked, status: form.status.value,
+        images, links: links.filter((l) => l.url),
+      };
+      if (!body.title) { msg.hidden = false; msg.textContent = 'Title is required.'; return; }
+      const btn = form.querySelector('button[type="submit"]'); btn.disabled = true;
+      try {
+        if (editingId) await api('/api/admin/events/' + encodeURIComponent(editingId), { method: 'PATCH', body: JSON.stringify(body) });
+        else await api('/api/admin/events', { method: 'POST', body: JSON.stringify(body) });
+        fillForm(null); msg.hidden = false; msg.textContent = editingId ? 'Saved ✓' : 'Event created ✓'; load();
+      } catch (err) { msg.hidden = false; msg.textContent = 'Could not save event.'; }
+      finally { btn.disabled = false; }
+    });
+    document.getElementById('evCancel').addEventListener('click', () => fillForm(null));
+    fillForm(null);
+    load();
   }
 
   // ── Content & approvals (posts) ──

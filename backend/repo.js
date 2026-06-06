@@ -117,6 +117,36 @@ export async function deletePost(id) {
   store.write('posts.json', store.read('posts.json', []).filter((p) => p.id !== id));
 }
 
+// ── Events (jsonb blob in Postgres, or dev file) ────────────
+export async function listEventsStore() {
+  if (db.enabled) {
+    const r = await db.query("SELECT data FROM events ORDER BY (data->>'date') ASC NULLS LAST");
+    return r.rows.map((x) => x.data);
+  }
+  return store.read('events.json', []);
+}
+export async function hasEvents() {
+  if (db.enabled) return (await db.query('SELECT 1 FROM events LIMIT 1')).rowCount > 0;
+  return store.read('events.json', []).length > 0;
+}
+export async function upsertEvent(ev) {
+  if (db.enabled) {
+    await db.query(
+      `INSERT INTO events (id, data, created, updated) VALUES ($1, $2::jsonb, now(), now())
+       ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, updated = now()`,
+      [ev.id, JSON.stringify(ev)]);
+    return;
+  }
+  const arr = store.read('events.json', []);
+  const i = arr.findIndex((e) => e.id === ev.id);
+  if (i >= 0) arr[i] = ev; else arr.push(ev);
+  store.write('events.json', arr);
+}
+export async function deleteEvent(id) {
+  if (db.enabled) { await db.query('DELETE FROM events WHERE id=$1', [id]); return; }
+  store.write('events.json', store.read('events.json', []).filter((e) => e.id !== id));
+}
+
 // ── Image assets (Postgres bytea, or dev files) ─────────────
 export async function addAsset({ id, memberId, kind, mime, buffer }) {
   if (db.enabled) {
