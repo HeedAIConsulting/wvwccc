@@ -222,9 +222,41 @@
     if (settings.pauseAnimations) body.classList.add(BODY_CLASS_PREFIX + 'pause-animations');
     if (settings.hideImages) body.classList.add(BODY_CLASS_PREFIX + 'hide-images');
     if (settings.readingGuide) body.classList.add(BODY_CLASS_PREFIX + 'reading-guide-on');
+    setNarration(!!settings.readAloud);
 
     saveSettings(settings);
     syncPanel();
+  }
+
+  // ── Screen narration (read aloud) — Web Speech API ──────────────
+  // When on, clicking text reads it aloud; click again to stop. Helps low-vision
+  // and reading-difficulty users without a separate screen reader.
+  var narrationOn = false;
+  function speakText(t) {
+    if (!('speechSynthesis' in window) || !t) return;
+    window.speechSynthesis.cancel();
+    var u = new SpeechSynthesisUtterance(String(t).slice(0, 4000));
+    u.rate = 1; u.lang = document.documentElement.lang || 'en';
+    window.speechSynthesis.speak(u);
+  }
+  function onNarrateClick(e) {
+    if (e.target.closest('.wv-a11y-panel') || e.target.closest('.wv-a11y-btn')) return; // don't read our own UI
+    if (window.speechSynthesis && window.speechSynthesis.speaking) { window.speechSynthesis.cancel(); return; }
+    var el = e.target.closest('p, li, h1, h2, h3, h4, h5, a, button, td, th, span, blockquote, figcaption, label');
+    var text = (el && (el.innerText || el.textContent) || '').trim();
+    if (text) { e.preventDefault(); speakText(text); }
+  }
+  function setNarration(on) {
+    if (on === narrationOn) return;
+    narrationOn = on;
+    if (!('speechSynthesis' in window)) return;
+    if (on) {
+      document.body.classList.add(BODY_CLASS_PREFIX + 'narrate');
+      document.addEventListener('click', onNarrateClick, true);
+    } else {
+      document.removeEventListener('click', onNarrateClick, true);
+      window.speechSynthesis.cancel();
+    }
   }
 
   // ── Build the panel UI ───────────────────────────────────────
@@ -291,6 +323,7 @@
         { key: 'bigCursor',          label: '🖱️ Big cursor' },
         { key: 'pauseAnimations',    label: '⏸ Pause animations' },
         { key: 'readingGuide',       label: '📏 Reading guide' },
+        { key: 'readAloud',          label: '🔊 Read aloud (click text to hear it)' },
         { key: 'hideImages',         label: '🚫 Hide images' }
       ]) +
 

@@ -38,6 +38,36 @@ window.Chamber = (function () {
       </article>`;
   }
 
+  // Reusable share row: social + email + SMS + copy/native-share. Pure HTML;
+  // the copy/native button is handled by one delegated listener (below).
+  function shareMenu(title, url) {
+    const t = encodeURIComponent(title || 'West Valley · Warner Center Chamber');
+    const u = encodeURIComponent(url);
+    const body = encodeURIComponent((title ? title + ' — ' : '') + url);
+    return `<div class="share-row" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;align-items:center">
+      <span class="member-tile__meta" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.04em">Share</span>
+      <a class="chip" target="_blank" rel="noopener" href="https://www.facebook.com/sharer/sharer.php?u=${u}" aria-label="Share on Facebook">Facebook</a>
+      <a class="chip" target="_blank" rel="noopener" href="https://twitter.com/intent/tweet?text=${t}&url=${u}" aria-label="Share on X">X</a>
+      <a class="chip" target="_blank" rel="noopener" href="https://www.linkedin.com/sharing/share-offsite/?url=${u}" aria-label="Share on LinkedIn">LinkedIn</a>
+      <a class="chip" href="mailto:?subject=${t}&body=${body}" aria-label="Share by email">Email</a>
+      <a class="chip" href="sms:?&body=${body}" aria-label="Share by text message">Text</a>
+      <button class="chip" type="button" data-share-copy="${esc(url)}" aria-label="Copy or share link">🔗 Copy</button>
+    </div>`;
+  }
+  if (typeof document !== 'undefined' && !window.__wvShareBound) {
+    window.__wvShareBound = true;
+    document.addEventListener('click', (e) => {
+      const c = e.target.closest('[data-share-copy]');
+      if (!c) return;
+      e.preventDefault();
+      const url = c.getAttribute('data-share-copy');
+      const flash = () => { const o = c.textContent; c.textContent = '✓ Copied'; setTimeout(() => { c.textContent = o; }, 1500); };
+      if (navigator.share) { navigator.share({ url }).catch(() => {}); return; }
+      if (navigator.clipboard) navigator.clipboard.writeText(url).then(flash).catch(() => prompt('Copy this link:', url));
+      else prompt('Copy this link:', url);
+    });
+  }
+
   function eventCard(ev, depth = 0) {
     const base = depth ? '../' : '';
     const confirmed = ev.confirmed && ev.day;
@@ -58,6 +88,7 @@ window.Chamber = (function () {
           <h4 style="margin:6px 0 4px">${esc(ev.title)}</h4>
           <div class="member-tile__meta">${when} · ${esc(ev.venue || ev.neighborhood || '')}</div>
           <p style="margin:6px 0 0;color:var(--slate-mid);font-size:.95rem">${esc(ev.summary || '')}</p>
+          ${shareMenu(ev.title, location.origin + '/events/index.html#' + encodeURIComponent(ev.id))}
         </div>
         <div>${cta}</div>
       </div>`;
@@ -651,6 +682,7 @@ window.Chamber = (function () {
         <p class="mt-2">${esc(p.body || '')}</p>
         ${p.code ? `<p class="mt-2"><span class="badge">Code: ${esc(p.code)}</span></p>` : ''}
         ${p.ctaUrl ? `<a class="btn btn--gold btn--sm mt-3" href="${esc(p.ctaUrl)}" target="_blank" rel="noopener">${esc(p.ctaLabel || 'Redeem')}</a>` : ''}
+        ${shareMenu((p.title || 'Member offer') + ' — WVWCCC', location.origin + '/deals.html')}
       </article>`;
   }
   function postCard(p) {
@@ -661,6 +693,7 @@ window.Chamber = (function () {
         <h3 style="margin:4px 0">${esc(p.title)}</h3>
         <p>${esc(p.body || '')}</p>
         ${p.linkUrl ? `<a href="${esc(p.linkUrl)}" target="_blank" rel="noopener">${esc(p.ctaLabel || 'Learn more')} ↗</a>` : ''}
+        ${shareMenu((p.title || 'Chamber update') + ' — WVWCCC', location.origin + '/community/board.html')}
       </article>`;
   }
   async function initPostsFeed(type, containerId, render, empty) {

@@ -46,6 +46,20 @@ router.post('/auth/login', async (req, res) => {
 
 router.post('/auth/logout', (_req, res) => { auth.clearCookie(res); res.json({ ok: true }); });
 
+// Forgot password — records the request and (when SMTP is configured) emails a
+// reset link. Always returns a generic success so we never reveal who has an
+// account. NOTE: actual email delivery needs an SMTP/email sender (TODO).
+router.post('/auth/forgot', async (req, res) => {
+  const email = String((req.body && req.body.email) || '').trim().toLowerCase();
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return res.status(400).json({ error: 'Enter a valid email address.' });
+  try {
+    const user = await users.getUserByEmail(email);
+    if (user) console.log(`[forgot-password] reset requested for ${email} (email delivery pending SMTP)`);
+    // TODO: generate a one-time token + email a reset link once SMTP is wired.
+  } catch (e) { /* swallow — never leak account existence */ }
+  res.json({ ok: true, message: 'If an account exists for that email, password-reset instructions are on the way.' });
+});
+
 router.get('/auth/me', (req, res) => {
   const s = auth.readSession(req);
   if (!s) return res.status(401).json({ error: 'no session' });

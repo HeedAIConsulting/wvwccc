@@ -109,6 +109,7 @@ window.ChamberPartials = (function () {
           <li><a href="${p(depth,'join.html')}">${t.join}</a></li>
           <li><a href="${p(depth,'members/directory.html')}">${t.dir}</a></li>
           <li><a href="${p(depth,'auth/member-login.html')}">${t.login}</a></li>
+          <li><a href="${p(depth,'auth/staff-login.html')}">${L?'Acceso Personal / Admin':'Staff / Admin'}</a></li>
         </ul>
       </div>
       <div>

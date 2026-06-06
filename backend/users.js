@@ -20,8 +20,28 @@ function storeUsers() {
   return [...staff, ...members];
 }
 
+// Env-based admin bootstrap — lets named admin/admin-member accounts log in on
+// any environment (incl. live) without seeding the DB. Format (one per line or
+// ';;'-separated):  email|bcryptHash|memberId|role|Full Name
+// memberId/role/name optional (role defaults to 'admin'). The bcrypt hash never
+// exposes the password; set ADMIN_BOOTSTRAP in the host env (e.g. Render).
+function bootstrapUsers() {
+  const raw = process.env.ADMIN_BOOTSTRAP || '';
+  return raw.split(/\n|;;/).map((s) => s.trim()).filter(Boolean).map((line) => {
+    const [email, passwordHash, memberId, role, ...name] = line.split('|');
+    return {
+      id: 'boot-' + lc(email), email: lc(email), memberId: memberId || null,
+      username: name.join('|') || email, passwordHash: passwordHash || '',
+      passwordAlgo: 'bcrypt', needsReset: false, mustChange: false,
+      role: role || 'admin', status: 'approved',
+    };
+  }).filter((u) => u.email && u.passwordHash);
+}
+
 export async function getUserByEmail(email) {
   email = lc(email);
+  const boot = bootstrapUsers().find((u) => u.email === email);
+  if (boot) return boot;          // env-configured admins win (works on live w/o DB)
   if (db.enabled) {
     const r = await db.query(
       'SELECT id, member_id, email, username, password_hash, password_algo, needs_reset, role, status FROM users WHERE lower(email)=$1 LIMIT 1',
