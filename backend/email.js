@@ -88,6 +88,26 @@ async function sendSmtp({ to, subject, text, html, replyTo }) {
   return { ok: true, id: info.messageId, provider: 'smtp' };
 }
 
+// Admin diagnostic — tests each path independently and reports the raw error.
+export async function diagnose(to) {
+  const out = {
+    provider: provider(), graphReady: graphReady(), smtpReady: smtpReady(),
+    sender: SENDER() || null, tenant: TENANT() ? 'set' : 'missing',
+    clientId: CLIENT() ? 'set' : 'missing', clientSecret: CSECRET() ? 'set' : 'missing',
+  };
+  if (graphReady()) {
+    try { await graphToken(); out.graphToken = 'ok'; }
+    catch (e) { out.graphToken = 'FAIL: ' + e.message; return out; }
+    try { out.graphSend = await sendGraph({ to, subject: 'WVWCCC Graph email test', text: 'Graph test — if you see this, Microsoft Graph sending works.' }); }
+    catch (e) { out.graphSend = 'FAIL: ' + e.message; }
+  }
+  if (smtpReady()) {
+    try { out.smtpSend = await sendSmtp({ to, subject: 'WVWCCC SMTP email test', text: 'SMTP test.' }); }
+    catch (e) { out.smtpSend = 'FAIL: ' + e.message; }
+  }
+  return out;
+}
+
 export async function send({ to, subject, text, html, replyTo }) {
   if (!enabled()) { console.log('[email] not configured — skipped:', subject); return { skipped: true, provider: 'none' }; }
   try {
