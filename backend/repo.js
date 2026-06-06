@@ -4,8 +4,23 @@
    Covers leads, orders, and member admin-overrides. (Auth users
    live in backend/users.js; directory base data is seed/import.)
    ============================================================ */
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import * as db from './db.js';
 import * as store from './store.js';
+
+const REPO_ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
+
+// Committed legacy content (NC_news + NC_coupons import). Public, no PII.
+// Merged into listPosts so it shows without a database; ids are prefixed 'lp-'.
+let _postsSeed = null;
+function readPostsSeed() {
+  if (_postsSeed) return _postsSeed;
+  try { _postsSeed = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'data', 'posts-seed.json'), 'utf8')).posts || []; }
+  catch { _postsSeed = []; }
+  return _postsSeed;
+}
 
 // ── Leads ───────────────────────────────────────────────────
 export async function addLead(lead) {
@@ -82,18 +97,16 @@ export async function addPost(post) {
   store.append('posts.json', { ...post, created: new Date().toISOString() });
 }
 export async function listPosts({ type, status, memberId } = {}) {
-  if (db.enabled) {
-    const where = [], params = [];
-    if (type) { params.push(type); where.push('type = $' + params.length); }
-    if (status) { params.push(status); where.push('status = $' + params.length); }
-    if (memberId) { params.push(memberId); where.push('member_id = $' + params.length); }
-    const sql = 'SELECT * FROM posts' + (where.length ? ' WHERE ' + where.join(' AND ') : '') + ' ORDER BY created DESC';
-    return (await db.query(sql, params)).rows.map(fromRow);
-  }
-  let arr = store.read('posts.json', []).slice().reverse();
+  let arr = db.enabled
+    ? (await db.query('SELECT * FROM posts ORDER BY created DESC')).rows.map(fromRow)
+    : store.read('posts.json', []).slice().reverse();
+  // Merge committed legacy seed for ids not already present in the live store/DB.
+  const have = new Set(arr.map((p) => p.id));
+  for (const p of readPostsSeed()) if (!have.has(p.id)) arr.push(p);
   if (type) arr = arr.filter((p) => p.type === type);
   if (status) arr = arr.filter((p) => p.status === status);
   if (memberId) arr = arr.filter((p) => p.memberId === memberId);
+  arr.sort((a, b) => String(b.created || '').localeCompare(String(a.created || '')));
   return arr;
 }
 export async function updatePost(id, patch) {
