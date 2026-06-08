@@ -52,6 +52,9 @@ CREATE TABLE IF NOT EXISTS users (
 );
 -- Drop the old FK if a previous migration created it (members aren't in PG).
 ALTER TABLE users DROP CONSTRAINT IF EXISTS users_member_id_fkey;
+-- Add columns that may be missing on a users table created by an earlier schema.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS must_change boolean DEFAULT false;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS needs_reset boolean DEFAULT false;
 
 -- ── Orders (payments via AGMS) ─────────────────────────────
 -- One-time, idempotent rebuild: the very first deploy created `orders` with a
