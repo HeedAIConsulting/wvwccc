@@ -100,7 +100,7 @@ router.post('/auth/set-password', auth.requireAuth(), async (req, res) => {
 // Admin overrides (status/tier/leader/featured) come from the durable repo.
 const PUBLIC_FIELDS = ['id', 'slug', 'name', 'category', 'group', 'tier', 'neighborhood', 'contactName',
   'address', 'city', 'state', 'zip', 'phone', 'fax', 'website', 'tagline',
-  'description', 'leaderStatus', 'seal', 'featured', 'tags', 'keywords',
+  'description', 'leaderStatus', 'seal', 'featured', 'tags', 'keywords', 'categories',
   // richer profile (member-managed)
   'hours', 'occupation', 'typeOfBusiness', 'yearEstablished', 'employees',
   'logo', 'photos', 'social', 'reviewLinks', 'ctaLinks'];
@@ -146,6 +146,12 @@ const clampUrl = (s) => String(s || '').trim().slice(0, 600);
 function sanitizeProfile(b) {
   const patch = {};
   for (const f of MEMBER_STR_FIELDS) if (b[f] !== undefined) patch[f] = String(b[f]).slice(0, 5000);
+  // Member-selectable categories (up to 3). First one is the primary `category`.
+  if (Array.isArray(b.categories)) {
+    const cats = [...new Set(b.categories.map((c) => String(c || '').trim()).filter(Boolean))].slice(0, 3);
+    patch.categories = cats;
+    if (cats[0]) patch.category = cats[0];
+  }
   if (b.social && typeof b.social === 'object') {
     const out = {};
     for (const k of ['facebook', 'instagram', 'linkedin', 'x', 'youtube', 'tiktok']) if (b.social[k]) out[k] = clampUrl(b.social[k]);
@@ -339,6 +345,19 @@ router.get('/members', async (_req, res) => {
   catch (e) { console.error(e); res.status(500).json({ error: 'directory unavailable' }); }
 });
 
+// Distinct category list (for the member category picker + facets).
+router.get('/categories', async (_req, res) => {
+  try {
+    const { members } = await loadMembersPublic();
+    const set = new Set();
+    for (const m of members) {
+      if (m.category) set.add(m.category);
+      if (Array.isArray(m.categories)) m.categories.forEach((c) => c && set.add(c));
+    }
+    res.json({ categories: [...set].sort((a, b) => a.localeCompare(b)) });
+  } catch (e) { res.status(500).json({ error: 'categories unavailable' }); }
+});
+
 // Recently active members (signed in most recently) — for the homepage rotation.
 router.get('/members/recent', async (_req, res) => {
   try {
@@ -433,7 +452,7 @@ router.post('/contact', async (req, res) => {
 // (so it always works). Real member data only — the model can't invent members.
 const STOPWORDS = new Set(('a an and any are am as at be been by can could did do does for find from get has have help i if in is it looking me my near need of on or please some that the them they this to want we what when where which who with you your').split(' '));
 function rankMembers(members, q, limit = 20) {
-  const fields = [['name', 10], ['category', 6], ['typeOfBusiness', 6], ['keywords', 5], ['group', 5],
+  const fields = [['name', 10], ['category', 6], ['categories', 6], ['typeOfBusiness', 6], ['keywords', 5], ['group', 5],
     ['neighborhood', 4], ['city', 4], ['tagline', 3], ['tags', 2], ['description', 1]];
   const words = String(q).toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length > 1 && !STOPWORDS.has(w));
   const scored = members.map((m) => {

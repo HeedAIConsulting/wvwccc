@@ -95,6 +95,22 @@ window.MemberPortal = (function () {
 
     // scalar fields
     form.querySelectorAll('[data-field]').forEach((el) => { el.value = m[el.dataset.field] || ''; });
+    // categories (choose up to 3) — primary is the first
+    let catList = [];
+    try { catList = (await api('/api/categories')).categories || []; } catch (e) {}
+    const picker = document.getElementById('categoryPicker');
+    const selected = (Array.isArray(m.categories) && m.categories.length) ? m.categories.slice(0, 3) : (m.category ? [m.category] : []);
+    function renderCats() {
+      if (!picker) return;
+      const optsFor = (sel) => '<option value="">— none —</option>'
+        + catList.map((c) => `<option ${c === sel ? 'selected' : ''}>${esc(c)}</option>`).join('')
+        + ((sel && !catList.includes(sel)) ? `<option selected>${esc(sel)}</option>` : '');
+      picker.innerHTML = [0, 1, 2].map((i) =>
+        `<select data-cat="${i}" style="width:100%;margin-bottom:6px;padding:8px;border:1px solid var(--line,#d7d2c6);border-radius:8px">${optsFor(selected[i] || '')}</select>`).join('')
+        + '<div class="member-tile__meta">Your first category is your primary listing.</div>';
+      picker.querySelectorAll('[data-cat]').forEach((sel) => sel.addEventListener('change', () => { selected[+sel.dataset.cat] = sel.value; }));
+    }
+    renderCats();
     // social + review links
     form.querySelectorAll('[data-social]').forEach((el) => { el.value = (m.social || {})[el.dataset.social] || ''; });
     form.querySelectorAll('[data-review]').forEach((el) => { el.value = (m.reviewLinks || {})[el.dataset.review] || ''; });
@@ -131,6 +147,7 @@ window.MemberPortal = (function () {
       e.preventDefault();
       const patch = {};
       form.querySelectorAll('[data-field]').forEach((el) => { patch[el.dataset.field] = el.value; });
+      patch.categories = [...new Set([0, 1, 2].map((i) => (picker && picker.querySelector(`[data-cat="${i}"]`) ? picker.querySelector(`[data-cat="${i}"]`).value : '').trim()).filter(Boolean))];
       patch.social = {}; form.querySelectorAll('[data-social]').forEach((el) => { if (el.value) patch.social[el.dataset.social] = el.value; });
       patch.reviewLinks = {}; form.querySelectorAll('[data-review]').forEach((el) => { if (el.value) patch.reviewLinks[el.dataset.review] = el.value; });
       patch.ctaLinks = [];
