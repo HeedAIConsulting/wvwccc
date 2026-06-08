@@ -636,6 +636,14 @@ router.get('/admin/users', requireAdmin, async (req, res) => {
   catch (e) { console.error('list users', e); res.status(500).json({ error: 'could not list users' }); }
 });
 
+// Bulk-import member logins (legacy migration) — SUPER-ADMIN ONLY.
+router.post('/admin/users/import', requireSuper, async (req, res) => {
+  const list = Array.isArray(req.body && req.body.users) ? req.body.users : [];
+  if (!list.length) return res.status(400).json({ error: 'No users provided.' });
+  try { res.json({ ok: true, imported: await users.bulkImportMembers(list) }); }
+  catch (e) { console.error('users import', e); res.status(500).json({ error: e.message }); }
+});
+
 // Change a user's role — SUPER-ADMIN ONLY.
 router.patch('/admin/users/:email/role', requireSuper, async (req, res) => {
   const role = (req.body || {}).role;

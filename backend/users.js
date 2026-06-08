@@ -147,6 +147,36 @@ export async function setRole(email, role) {
   return false;
 }
 
+// Bulk-load member logins (legacy import) into the users table / store.
+export async function bulkImportMembers(list) {
+  let n = 0;
+  if (db.enabled) {
+    for (const u of list) {
+      if (!u.email) continue;
+      await db.query(
+        `INSERT INTO users (id, member_id, email, username, password_hash, password_algo, needs_reset, must_change, role, status)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'member','approved')
+         ON CONFLICT (email) DO UPDATE SET
+           member_id=EXCLUDED.member_id, username=EXCLUDED.username,
+           password_hash=EXCLUDED.password_hash, password_algo=EXCLUDED.password_algo,
+           needs_reset=EXCLUDED.needs_reset, must_change=EXCLUDED.must_change`,
+        [u.id || ('mu-' + Math.random().toString(36).slice(2, 11)), u.memberId || null, lc(u.email),
+         u.username || u.email, u.passwordHash || null, u.passwordAlgo || 'unknown',
+         !!u.needsReset || !u.passwordHash, !!u.mustChange]);
+      n++;
+    }
+    return n;
+  }
+  const mu = store.read('users.json', { users: [] }); const arr = mu.users || [];
+  for (const u of list) {
+    const i = arr.findIndex((x) => lc(x.email) === lc(u.email));
+    if (i >= 0) arr[i] = { ...arr[i], ...u }; else arr.push(u);
+    n++;
+  }
+  store.write('users.json', { ...mu, users: arr });
+  return n;
+}
+
 export async function upsertStaff(email, bcryptHash, name) {
   email = lc(email);
   if (db.enabled) {
