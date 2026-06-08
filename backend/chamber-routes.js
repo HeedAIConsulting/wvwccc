@@ -735,6 +735,21 @@ router.delete('/admin/events/:id', requireAdmin, async (req, res) => {
   catch (e) { res.status(500).json({ error: 'delete failed' }); }
 });
 
+// Admin DB diagnostic — confirms Postgres is connected and the schema applied.
+router.get('/admin/db-test', requireAdmin, async (_req, res) => {
+  try {
+    const db = await import('./db.js');
+    const out = { dbEnabled: db.enabled };
+    if (db.enabled) {
+      const t = await db.query("SELECT table_name FROM information_schema.tables WHERE table_schema='public' ORDER BY table_name");
+      out.tables = t.rows.map((r) => r.table_name);
+      try { out.events = (await db.query('SELECT count(*)::int AS n FROM events')).rows[0].n; } catch (e) {}
+      try { out.posts = (await db.query('SELECT count(*)::int AS n FROM posts')).rows[0].n; } catch (e) {}
+    }
+    res.json(out);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // Admin LLM diagnostic — which providers work, and the raw error if not.
 router.get('/admin/llm-test', requireAdmin, async (_req, res) => {
   try { res.json(await llm.diagnose()); }
