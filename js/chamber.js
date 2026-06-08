@@ -129,7 +129,67 @@ window.Chamber = (function () {
     </div>`;
   }
 
+  // ── Event detail modal (click an event to see full info, links, images) ──
+  const _eventReg = {};
+  function fullDate(ev) {
+    if (!ev.date) return 'Date to be announced';
+    const d = new Date(ev.date + 'T12:00:00');
+    if (isNaN(d)) return ev.month ? ev.month + ' ' + ev.day : '';
+    let s = d.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+    if (ev.endDate && ev.endDate !== ev.date) {
+      const e = new Date(ev.endDate + 'T12:00:00');
+      if (!isNaN(e)) s += ' – ' + e.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
+    }
+    if (ev.time) s += ' · ' + ev.time + (ev.endTime ? '–' + ev.endTime : '');
+    return s;
+  }
+  function openEventModal(ev) {
+    if (!ev) return;
+    const base = /\/(events|members|member|community|admin|auth|es)\//.test(location.pathname) ? '../' : '';
+    const loc = [ev.venue, ev.address, ev.neighborhood].filter(Boolean).join(' · ');
+    const imgs = (ev.images && ev.images.length)
+      ? `<div style="display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px">${ev.images.slice(0, 3).map((u) => `<img src="${esc(u)}" alt="" style="width:100%;max-width:180px;height:130px;object-fit:cover;border-radius:10px">`).join('')}</div>` : '';
+    const links = (ev.links && ev.links.length)
+      ? `<div style="display:flex;flex-wrap:wrap;gap:8px;margin:0 0 14px">${ev.links.map((l) => `<a class="btn btn--gold btn--sm" target="_blank" rel="noopener" href="${esc(l.url)}">${esc(l.label || l.type || 'Details')}</a>`).join('')}</div>` : '';
+    const cta = ev.ticketed
+      ? `<a class="btn btn--gold" href="${base}checkout.html?type=ticket&event=${esc(ev.id)}">Get tickets</a>`
+      : `<a class="btn btn--forest" href="${base}contact.html?event=${esc(ev.id)}">RSVP / Notify me</a>`;
+    const desc = ev.description || ev.summary || '';
+    const overlay = document.createElement('div');
+    overlay.className = 'ev-modal';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(20,30,25,.55);display:flex;align-items:flex-start;justify-content:center;padding:5vh 16px;z-index:9999;overflow-y:auto';
+    overlay.innerHTML = `
+      <div role="dialog" aria-modal="true" style="background:#fff;max-width:680px;width:100%;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.3);padding:24px 26px;position:relative">
+        <button aria-label="Close" data-ev-close style="position:absolute;top:12px;right:14px;border:none;background:none;font-size:1.6rem;line-height:1;cursor:pointer;color:#666">×</button>
+        <span class="badge">${esc(ev.category || 'Event')}</span>
+        <h2 style="margin:8px 0 6px;font-size:1.5rem">${esc(ev.title)}</h2>
+        <div style="color:var(--forest,#1f4d3a);font-weight:600;margin-bottom:4px">📅 ${esc(fullDate(ev))}</div>
+        ${loc ? `<div class="member-tile__meta" style="margin-bottom:14px">📍 ${esc(loc)}</div>` : '<div style="margin-bottom:10px"></div>'}
+        ${imgs}
+        ${desc ? `<div style="white-space:pre-wrap;line-height:1.6;color:var(--slate-mid,#333);margin:0 0 16px">${esc(desc)}</div>` : ''}
+        ${links}
+        ${ev.confirmed ? calendarMenu(ev) : ''}
+        ${shareMenu(ev.title, location.origin + (base ? '/' : location.pathname) + (base ? 'events/index.html' : '') + '#' + encodeURIComponent(ev.id))}
+        <div style="margin-top:18px">${cta}</div>
+      </div>`;
+    const close = () => overlay.remove();
+    overlay.addEventListener('click', (e) => { if (e.target === overlay || e.target.closest('[data-ev-close]')) close(); });
+    document.addEventListener('keydown', function esc2(e) { if (e.key === 'Escape') { close(); document.removeEventListener('keydown', esc2); } });
+    document.body.appendChild(overlay);
+  }
+  if (typeof document !== 'undefined' && !window.__wvEventBound) {
+    window.__wvEventBound = true;
+    document.addEventListener('click', (e) => {
+      const t = e.target.closest('[data-ev-detail]');
+      if (!t) return;
+      if (e.target.closest('a,button')) return; // let real buttons/links work
+      e.preventDefault();
+      openEventModal(_eventReg[t.getAttribute('data-ev-detail')]);
+    });
+  }
+
   function eventCard(ev, depth = 0) {
+    _eventReg[ev.id] = ev;
     const base = depth ? '../' : '';
     const confirmed = ev.confirmed && ev.day;
     const dateBlock = confirmed
@@ -148,11 +208,11 @@ window.Chamber = (function () {
       ? `<div class="event-links" style="display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 0">${ev.links.map((l) => `<a class="chip chip--gold" target="_blank" rel="noopener" href="${esc(l.url)}">${esc(l.label || l.type || 'Details')}</a>`).join('')}</div>`
       : '';
     return `
-      <div class="event-row" id="${esc(ev.id)}">
+      <div class="event-row" id="${esc(ev.id)}" data-ev-detail="${esc(ev.id)}" style="cursor:pointer">
         ${dateBlock}
         <div>
           <span class="badge">${esc(ev.category || 'Event')}</span>
-          <h4 style="margin:6px 0 4px">${esc(ev.title)}</h4>
+          <h4 style="margin:6px 0 4px">${esc(ev.title)} <span style="color:var(--gold-bright,#b8860b);font-size:.8rem;font-weight:600">Details →</span></h4>
           <div class="member-tile__meta">${when} · ${esc(ev.venue || ev.neighborhood || '')}</div>
           <p style="margin:6px 0 0;color:var(--slate-mid);font-size:.95rem">${esc(ev.summary || '')}</p>
           ${imgs}

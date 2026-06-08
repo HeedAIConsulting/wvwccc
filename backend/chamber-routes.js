@@ -734,6 +734,15 @@ router.delete('/admin/events/:id', requireAdmin, async (req, res) => {
   try { await ensureEventsSeeded(); await repo.deleteEvent(req.params.id); res.json({ ok: true }); }
   catch (e) { res.status(500).json({ error: 'delete failed' }); }
 });
+// Wipe the events store/DB and reload from the committed data/events.json seed.
+router.post('/admin/events/reseed', requireAdmin, async (_req, res) => {
+  try {
+    for (const e of await repo.listEventsStore()) await repo.deleteEvent(e.id);
+    const seed = readSeedEvents().map((e) => buildEvent(e, e));
+    for (const e of seed) await repo.upsertEvent(e);
+    res.json({ ok: true, count: seed.length });
+  } catch (e) { console.error('reseed', e); res.status(500).json({ error: 'reseed failed' }); }
+});
 
 // Admin DB diagnostic — confirms Postgres is connected and the schema applied.
 router.get('/admin/db-test', requireAdmin, async (_req, res) => {
