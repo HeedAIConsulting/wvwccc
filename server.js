@@ -88,6 +88,21 @@ app.use((req, res) => {
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`WVWCCC production site running on :${PORT}`);
+// Auto-apply the DB schema on boot when Postgres is configured (idempotent —
+// schema.sql uses CREATE TABLE IF NOT EXISTS / ADD COLUMN IF NOT EXISTS). This
+// lets setting DATABASE_URL "just work" with no separate migrate step on Render.
+async function initDb() {
+  try {
+    const db = await import('./backend/db.js');
+    if (!db.enabled) { console.log('[db] no DATABASE_URL — using JSON store'); return; }
+    const schema = fs.readFileSync(path.join(__dirname, 'backend', 'schema.sql'), 'utf8');
+    await db.query(schema);
+    console.log('[db] Postgres connected — schema applied ✓');
+  } catch (e) { console.error('[db] schema init failed (continuing):', e.message); }
+}
+
+initDb().finally(() => {
+  app.listen(PORT, () => {
+    console.log(`WVWCCC production site running on :${PORT}`);
+  });
 });
