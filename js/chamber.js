@@ -838,6 +838,7 @@ window.Chamber = (function () {
   }
   const initDeals = () => initPostsFeed('discount', 'dealsList', offerCard, 'No member offers yet — check back soon, or members can post one from their portal.');
   const initCommunity = () => initPostsFeed('member_post', 'communityList', postCard, 'No community posts yet. Members can post the first one from their portal.');
+  const initNews = () => initPostsFeed('news', 'newsList', postCard, 'No news yet — check back soon.');
 
   // ── Dining Guide — Chamber member restaurants only ──
   const DINING_RE = /restaurant|dining|food|caf[eé]|bakery|steak|grill|eatery|coffee|catering|\bbar\b|brewery|deli|pizza|cuisine|kitchen|bistro|diner|\bpub\b|juice|dessert|ice ?cream|hoagie|sandwich|taco|sushi|bbq|churrasc/i;
@@ -874,5 +875,5 @@ window.Chamber = (function () {
       : '<div class="notice">Member restaurants will appear here as the directory fills in. Are you a Chamber-member eatery? <a href="join.html">Join the Chamber</a>.</div>';
   }
 
-  return { initHome, initDirectory, initProfile, initEvents, initCheckout, initLeadForm, initJobs, initDeals, initCommunity, initDining, offerCard, postCard, memberTile, eventCard, getJSON, esc };
+  return { initHome, initDirectory, initProfile, initEvents, initCheckout, initLeadForm, initJobs, initDeals, initCommunity, initNews, initDining, offerCard, postCard, memberTile, eventCard, getJSON, esc };
 })();

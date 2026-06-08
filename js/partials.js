@@ -21,11 +21,11 @@ window.ChamberPartials = (function () {
     const t = L ? {
       login: 'Acceso', staff: 'Personal', contact: 'Contacto',
       home: 'Inicio', dir: 'Directorio', dining: 'Comida', events: 'Eventos', jobs: 'Empleos',
-      deals: 'Ofertas', community: 'Comunidad', about: 'La Cámara', join: 'Únete'
+      deals: 'Ofertas', community: 'Comunidad', news: 'Noticias', about: 'La Cámara', join: 'Únete'
     } : {
       login: 'Sign In', staff: 'Staff', contact: 'Contact',
       home: 'Home', dir: 'Directory', dining: 'Dining', events: 'Events', jobs: 'Jobs',
-      deals: 'Deals', community: 'Community', about: 'The Chamber', join: 'Join'
+      deals: 'Deals', community: 'Community', news: 'Biz Buzz', about: 'The Chamber', join: 'Join'
     };
     const base = depth ? '../' : '';
     return `
@@ -65,6 +65,7 @@ window.ChamberPartials = (function () {
         <a href="${p(depth, 'events/index.html')}" ${active==='events'?'class="active"':''}>${t.events}</a>
         <a href="${p(depth, 'jobs/index.html')}" ${active==='jobs'?'class="active"':''}>${t.jobs}</a>
         <a href="${p(depth, 'deals.html')}" ${active==='deals'?'class="active"':''}>${t.deals}</a>
+        <a href="${p(depth, 'community/news.html')}" ${active==='news'?'class="active"':''}>${t.news}</a>
         <a href="${p(depth, 'community/board.html')}" ${active==='community'?'class="active"':''}>${t.community}</a>
         <a href="${p(depth, 'about.html')}" ${active==='about'?'class="active"':''}>${t.about}</a>
         <a href="${p(depth, 'join.html')}" class="btn btn--gold btn--sm nav-cta">${t.join}</a>
@@ -116,6 +117,7 @@ window.ChamberPartials = (function () {
         <h4>${t.engage}</h4>
         <ul>
           <li><a href="${p(depth,'events/index.html')}">${t.events}</a></li>
+          <li><a href="${p(depth,'community/news.html')}">${L?'Noticias':'Valley Biz Buzz'}</a></li>
           <li><a href="${p(depth,'jobs/index.html')}">${t.jobs}</a></li>
           <li><a href="${p(depth,'donate.html')}">${t.donate}</a></li>
           <li><a href="${p(depth,'inquire.html')}?type=sponsorship">${t.sponsor}</a></li>
@@ -126,6 +128,8 @@ window.ChamberPartials = (function () {
         <h4>${t.about}</h4>
         <ul>
           <li><a href="${p(depth,'about.html')}">${t.chamber}</a></li>
+          <li><a href="${p(depth,'community/our-community.html')}">${L?'Nuestra Comunidad':'Our Community'}</a></li>
+          <li><a href="${p(depth,'community/grateful-hearts.html')}">Grateful Hearts</a></li>
           <li><a href="${p(depth,'community/history.html')}">${L?'Historia':'Our History'}</a></li>
           <li><a href="${p(depth,'contact.html')}">${t.contact}</a></li>
           <li><a href="${p(depth,'accessibility.html')}">${t.access}</a></li>

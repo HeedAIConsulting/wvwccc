@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Valley Biz Buzz — West Valley · Warner Center Chamber of Commerce</title>
+  <meta name="description" content="Chamber news, announcements, and member happenings across Tarzana, Woodland Hills, Reseda, and the Warner Center." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="../css/chamber.css" />
+</head>
+<body>
+  <div data-partial="header"></div>
+  <section class="section-sm bg-forest">
+    <div class="container">
+      <span class="kicker">Valley Biz Buzz</span>
+      <h1 style="color:#fff">Chamber news &amp; happenings</h1>
+      <p class="lead" style="color:rgba(255,255,255,.85);max-width:60ch">Announcements, ribbon cuttings, member milestones, and the latest from across the West Valley and Warner Center.</p>
+    </div>
+  </section>
+  <section class="section">
+    <div class="container">
+      <div id="newsList" class="grid grid-2" style="gap:var(--s-5)"><p class="member-tile__meta">Loading…</p></div>
+    </div>
+  </section>
+  <div data-partial="footer"></div>
+  <script src="../js/partials.js"></script>
+  <script src="../js/api-base.js"></script>
+  <script src="../js/chamber.js"></script>
+  <script>ChamberPartials.mount({ active: 'news', depth: 1, lang: 'en' }); Chamber.initNews();</script>
+</body>
+</html>
