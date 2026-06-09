@@ -67,7 +67,10 @@ app.use('/data/_store', (_req, res) => res.status(403).type('text/plain').send('
 app.use(express.static(__dirname, {
   extensions: ['html'],
   setHeaders(res, filePath) {
-    if (filePath.endsWith('.html')) res.setHeader('Cache-Control', 'no-cache');
+    // Code/data must always revalidate so deploys take effect immediately
+    // (no more stale admin.js / pages in the browser). Media can cache a week.
+    if (/\.(html|js|css|json)$/i.test(filePath)) res.setHeader('Cache-Control', 'no-cache');
+    else if (/\.(png|jpe?g|gif|webp|svg|ico|woff2?|ttf|eot)$/i.test(filePath)) res.setHeader('Cache-Control', 'public, max-age=604800');
   },
 }));
 
