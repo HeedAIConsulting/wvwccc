@@ -61,14 +61,38 @@ window.ChamberPartials = (function () {
       <nav class="nav" aria-label="Main">
         <a href="${p(depth, 'index.html')}" ${active==='home'?'class="active"':''}>${t.home}</a>
         <a href="${p(depth, 'members/directory.html')}" ${active==='members'?'class="active"':''}>${t.dir}</a>
-        <a href="${p(depth, 'dining.html')}" ${active==='dining'?'class="active"':''}>${t.dining}</a>
         <a href="${p(depth, 'events/index.html')}" ${active==='events'?'class="active"':''}>${t.events}</a>
-        <a href="${p(depth, 'jobs/index.html')}" ${active==='jobs'?'class="active"':''}>${t.jobs}</a>
-        <a href="${p(depth, 'deals.html')}" ${active==='deals'?'class="active"':''}>${t.deals}</a>
-        <a href="${p(depth, 'community/news.html')}" ${active==='news'?'class="active"':''}>${t.news}</a>
-        <a href="${p(depth, 'community/board.html')}" ${active==='community'?'class="active"':''}>${t.community}</a>
-        <a href="${p(depth, 'resources.html')}" ${active==='resources'?'class="active"':''}>${t.resources}</a>
-        <a href="${p(depth, 'about.html')}" ${active==='about'?'class="active"':''}>${t.about}</a>
+        <div class="nav-dd">
+          <button type="button" aria-haspopup="true">${t.community} <span aria-hidden="true">▾</span></button>
+          <div class="nav-dd__menu" data-dd="Our Community">
+            <a href="${p(depth, 'community/news.html')}">${t.news}</a>
+            <a href="${p(depth, 'community/board.html')}">${L?'Tablón Comunitario':'Community Board'}</a>
+            <a href="${p(depth, 'community/our-community.html')}">${L?'Nuestra Comunidad':'Our Community'}</a>
+            <a href="${p(depth, 'community/grateful-hearts.html')}">Grateful Hearts</a>
+            <div class="nav-dd__sep">${L?'Más':'More'}</div>
+            <div data-dd-pages="Our Community"></div>
+          </div>
+        </div>
+        <div class="nav-dd">
+          <button type="button" aria-haspopup="true">${t.resources} <span aria-hidden="true">▾</span></button>
+          <div class="nav-dd__menu" data-dd="Resources & Visitor Info">
+            <a href="${p(depth, 'dining.html')}">${t.dining}</a>
+            <a href="${p(depth, 'deals.html')}">${t.deals}</a>
+            <a href="${p(depth, 'jobs/index.html')}">${t.jobs}</a>
+            <a href="${p(depth, 'resources.html')}">${L?'Todos los recursos':'All Resources'}</a>
+            <div class="nav-dd__sep">${L?'Info para visitantes':'Visitor info'}</div>
+            <div data-dd-pages="Resources & Visitor Info"></div>
+          </div>
+        </div>
+        <div class="nav-dd">
+          <button type="button" aria-haspopup="true">${t.about} <span aria-hidden="true">▾</span></button>
+          <div class="nav-dd__menu" data-dd="About & Membership">
+            <a href="${p(depth, 'about.html')}">${L?'Acerca de':'About Us'}</a>
+            <a href="${p(depth, 'leadership.html')}">${L?'Junta y Liderazgo':'Board & Leadership'}</a>
+            <div class="nav-dd__sep">${L?'Membresía':'Membership'}</div>
+            <div data-dd-pages="About & Membership"></div>
+          </div>
+        </div>
         <a href="${p(depth, 'join.html')}" class="btn btn--gold btn--sm nav-cta">${t.join}</a>
       </nav>
       <button class="menu-toggle" aria-label="Toggle menu" aria-expanded="false">
@@ -191,6 +215,35 @@ window.ChamberPartials = (function () {
         toggle.setAttribute('aria-expanded', String(open));
       });
     }
+    // mega-menu dropdown styles (once)
+    if (!document.getElementById('wv-navdd-css')) {
+      const st = document.createElement('style'); st.id = 'wv-navdd-css';
+      st.textContent = '.nav-dd{position:relative}'
+        + '.nav-dd>button{background:none;border:none;font:inherit;cursor:pointer;color:inherit;padding:0;display:inline-flex;align-items:center;gap:4px}'
+        + '.nav-dd__menu{position:absolute;top:calc(100% + 8px);left:0;min-width:244px;background:#fff;border:1px solid var(--gold-soft,#e6dcbf);border-radius:12px;box-shadow:0 14px 36px rgba(0,0,0,.16);padding:8px;display:none;z-index:300;max-height:74vh;overflow:auto}'
+        + '.nav-dd:hover .nav-dd__menu,.nav-dd:focus-within .nav-dd__menu{display:block}'
+        + '.nav-dd__menu a{display:block;padding:7px 12px;border-radius:8px;color:var(--green-ink,#1b3326);text-decoration:none;font-size:.92rem;white-space:nowrap}'
+        + '.nav-dd__menu a:hover{background:var(--cream-deep,#f3ecda)}'
+        + '.nav-dd__sep{font-family:var(--mono);font-size:.58rem;letter-spacing:.12em;text-transform:uppercase;color:var(--gold-deep);padding:9px 12px 3px}'
+        + '@media(max-width:980px){.nav-dd{display:block}.nav-dd__menu{position:static;display:block;box-shadow:none;border:none;padding:0 0 6px 14px;max-height:none;min-width:0}.nav-dd>button{font-weight:600;padding:6px 0}}';
+      document.head.appendChild(st);
+    }
+    // fill dropdowns with migrated content pages, grouped
+    const ddTargets = document.querySelectorAll('[data-dd-pages]');
+    if (ddTargets.length) {
+      const base = depth ? '../' : '';
+      const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+      const url = (window.ChamberAPI ? ChamberAPI.url('/api/pages') : base + 'api/pages');
+      fetch(url).then((r) => r.json()).then((d) => {
+        const byGroup = {};
+        (d.pages || []).forEach((pg) => { (byGroup[pg.group] = byGroup[pg.group] || []).push(pg); });
+        ddTargets.forEach((c) => {
+          const list = (byGroup[c.getAttribute('data-dd-pages')] || []).slice().sort((a, b) => a.title.localeCompare(b.title));
+          c.innerHTML = list.map((pg) => `<a href="${base}p/${encodeURIComponent(pg.slug)}">${esc(pg.title)}</a>`).join('');
+        });
+      }).catch(() => {});
+    }
+
     mountElevenLabs();
     mountAccessibility(depth);
   }

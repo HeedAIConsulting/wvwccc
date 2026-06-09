@@ -359,7 +359,12 @@ window.Chamber = (function () {
       }
 
       // events
-      const events = (evd.events || []).filter((e) => e.featured).slice(0, 3);
+      // Featured events first; otherwise the next upcoming confirmed events.
+      const todayISO = new Date().toISOString().slice(0, 10);
+      const allEv = (evd.events || []).filter((e) => e.confirmed && e.date).sort((a, b) => a.date.localeCompare(b.date));
+      const upcoming = allEv.filter((e) => e.date >= todayISO);
+      const feat = allEv.filter((e) => e.featured);
+      const events = (feat.length ? feat : (upcoming.length ? upcoming : allEv)).slice(0, 3);
       const elist = document.getElementById('eventList');
       if (elist) elist.innerHTML = events.length
         ? events.map(eventCard).join('')
@@ -932,6 +937,37 @@ window.Chamber = (function () {
   const initCommunity = () => initPostsFeed('member_post', 'communityList', postCard, 'No community posts yet. Members can post the first one from their portal.');
   const initNews = () => initPostsFeed('news', 'newsList', newsCard, 'No news yet — check back soon.');
 
+  // Newspaper layout for Valley Biz Buzz (masthead + lead story + columns).
+  async function initBizBuzz() {
+    const el = document.getElementById('bizbuzz'); if (!el) return;
+    let posts = [];
+    try { posts = (await getJSON(ChamberAPI.url('/api/posts?type=news'))).posts || []; }
+    catch (e) { el.innerHTML = '<div class="notice">Could not load right now.</div>'; return; }
+    const dl = document.getElementById('bizDateline');
+    if (dl) dl.innerHTML = `<span>Since 1930</span><span>${new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span><span class="biz-hide-sm">Tarzana · Woodland Hills · Reseda · Warner Center</span>`;
+    if (!posts.length) { el.innerHTML = '<p class="notice">No news yet — check back soon.</p>'; return; }
+    const fmt = (p) => { const d = p.created ? new Date(p.created) : null; return d && !isNaN(d) ? d.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' }) : ''; };
+    const lead = posts[0], rest = posts.slice(1);
+    const leadHtml = `<article style="display:grid;grid-template-columns:${lead.imageUrl ? '1.25fr 1fr' : '1fr'};gap:30px;align-items:start;padding-bottom:30px;border-bottom:3px double var(--green-ink,#1b3326);margin-bottom:30px" class="biz-lead">
+      <div>
+        <div style="font-family:var(--mono);font-size:.64rem;letter-spacing:.14em;text-transform:uppercase;color:var(--gold-deep);margin-bottom:8px">Lead Story · ${esc(fmt(lead))}</div>
+        <h2 style="font-family:var(--display);font-size:clamp(1.9rem,3.8vw,3rem);line-height:1.08;margin:0 0 14px">${esc(lead.title)}</h2>
+        <p data-biz-body style="line-height:1.75;color:var(--slate-mid,#33403a);white-space:pre-line;display:-webkit-box;-webkit-line-clamp:7;-webkit-box-orient:vertical;overflow:hidden">${esc(lead.body || '')}</p>
+        <div style="margin-top:14px">${lead.linkUrl ? `<a class="chip chip--gold" target="_blank" rel="noopener" href="${esc(lead.linkUrl)}">${esc(lead.ctaLabel || 'Read more')} ↗</a> ` : ''}<button class="chip" data-biz-more>Full story</button></div>
+      </div>
+      ${lead.imageUrl ? `<img src="${esc(lead.imageUrl)}" alt="" loading="lazy" style="width:100%;border:1px solid var(--green-ink,#1b3326);filter:grayscale(.15)">` : ''}
+    </article>`;
+    const colHtml = `<div class="biz-cols" style="column-count:3;column-gap:34px;column-rule:1px solid var(--gold-soft,#e6dcbf)">${rest.map((p) => `
+      <article style="break-inside:avoid;margin:0 0 26px;padding-bottom:20px;border-bottom:1px solid var(--gold-soft,#e6dcbf)">
+        ${p.imageUrl ? `<img src="${esc(p.imageUrl)}" alt="" loading="lazy" style="width:100%;margin-bottom:9px;filter:grayscale(.15)">` : ''}
+        <div style="font-family:var(--mono);font-size:.58rem;letter-spacing:.12em;text-transform:uppercase;color:var(--gold-deep)">${esc(fmt(p))}</div>
+        <h3 style="font-family:var(--display);font-size:1.2rem;line-height:1.2;margin:3px 0 7px">${esc(p.title)}</h3>
+        <p data-biz-body style="font-size:.9rem;line-height:1.6;color:var(--slate-mid,#33403a);white-space:pre-line;display:-webkit-box;-webkit-line-clamp:6;-webkit-box-orient:vertical;overflow:hidden">${esc(p.body || '')}</p>
+        <div style="margin-top:7px">${p.linkUrl ? `<a style="font-size:.8rem;color:var(--gold-deep)" target="_blank" rel="noopener" href="${esc(p.linkUrl)}">${esc(p.ctaLabel || 'Read more')} ↗</a> · ` : ''}<button data-biz-more style="font-size:.8rem;color:var(--gold-deep);background:none;border:none;cursor:pointer;text-decoration:underline;padding:0">Read more</button></div>
+      </article>`).join('')}</div>`;
+    el.innerHTML = leadHtml + colHtml;
+  }
+
   // ── Board of Directors / leadership (data-driven from leaderStatus) ──
   function boardCard(m, depth) {
     const base = depth ? '../' : '';
@@ -1032,5 +1068,5 @@ window.Chamber = (function () {
     });
   }
 
-  return { initHome, initDirectory, initProfile, initEvents, initCheckout, initLeadForm, initJobs, initDeals, initCommunity, initNews, initBoard, initDining, offerCard, postCard, newsCard, memberTile, eventCard, getJSON, esc };
+  return { initHome, initDirectory, initProfile, initEvents, initCheckout, initLeadForm, initJobs, initDeals, initCommunity, initNews, initBizBuzz, initBoard, initDining, offerCard, postCard, newsCard, memberTile, eventCard, getJSON, esc };
 })();
