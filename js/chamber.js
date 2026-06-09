@@ -326,13 +326,18 @@ window.Chamber = (function () {
       const wrap = document.getElementById('featuredMembers');
       if (wrap) wrap.innerHTML = show.map((m) => memberTile(m, 0)).join('');
 
-      // recently active members (members who signed in most recently)
+      // recently active members — top up with featured so the row is never sparse
       try {
         const recent = (await getJSON(ChamberAPI.url('/api/members/recent'))).members || [];
         const rwrap = document.getElementById('recentMembers');
-        if (rwrap && recent.length) {
-          rwrap.innerHTML = recent.slice(0, 8).map((m) => memberTile(m, 0)).join('');
-          document.getElementById('recentSection').hidden = false;
+        if (rwrap) {
+          const seen = new Set(recent.map((m) => m.id));
+          const filler = (featured.length ? featured : members).filter((m) => !seen.has(m.id));
+          const show = recent.concat(filler).slice(0, 8);
+          if (show.length) {
+            rwrap.innerHTML = show.map((m) => memberTile(m, 0)).join('');
+            document.getElementById('recentSection').hidden = false;
+          }
         }
       } catch (e) { /* no recent logins yet */ }
 
@@ -574,9 +579,36 @@ window.Chamber = (function () {
       try { events = pickSort(await getJSON('../data/events.json')); } catch (_) { console.error(e); }
     }
 
-    listEl.innerHTML = events.length
-      ? events.map((e) => eventCard(e, 1)).join('')
-      : '<p class="notice">The calendar is coming online. Contact the Chamber office for the latest events.</p>';
+    // ── Filters: category + timeframe ──
+    const catEl = document.getElementById('evCat');
+    const whenEl = document.getElementById('evWhen');
+    const countEl = document.getElementById('evCount');
+    if (catEl) {
+      const cats = [...new Set(events.map((e) => e.category).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+      catEl.innerHTML = '<option value="">All categories</option>' + cats.map((c) => `<option>${esc(c)}</option>`).join('');
+    }
+    function inWindow(e, when) {
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      const d = new Date(e.date + 'T12:00:00');
+      if (when === 'all') return true;
+      if (when === 'upcoming') return d >= today;
+      if (when === 'month') return d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear();
+      const days = Number(when);
+      if (days) { const end = new Date(today); end.setDate(end.getDate() + days); return d >= today && d <= end; }
+      return true;
+    }
+    function renderList() {
+      const cat = catEl ? catEl.value : '';
+      const when = whenEl ? whenEl.value : 'upcoming';
+      const filtered = events.filter((e) => (!cat || e.category === cat) && inWindow(e, when));
+      listEl.innerHTML = filtered.length
+        ? filtered.map((e) => eventCard(e, 1)).join('')
+        : '<p class="notice">No events match these filters — try widening the timeframe or choosing “All categories.”</p>';
+      if (countEl) countEl.textContent = filtered.length + ' event' + (filtered.length !== 1 ? 's' : '');
+    }
+    renderList();
+    if (catEl) catEl.addEventListener('change', renderList);
+    if (whenEl) whenEl.addEventListener('change', renderList);
 
     // month grid
     function buildGrid(year, month) {
@@ -823,10 +855,41 @@ window.Chamber = (function () {
         ${p.imageUrl ? `<img src="${esc(p.imageUrl)}" alt="" loading="lazy" style="width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:var(--r-md);margin-bottom:var(--s-3)">` : ''}
         <div class="member-tile__meta">${esc(p.authorName || 'Member')}${p.created ? ' · ' + new Date(p.created).toLocaleDateString() : ''}</div>
         <h3 style="margin:4px 0">${esc(p.title)}</h3>
-        <p>${esc(p.body || '')}</p>
+        <p style="white-space:pre-line;line-height:1.55">${esc(p.body || '')}</p>
         ${p.linkUrl ? `<a href="${esc(p.linkUrl)}" target="_blank" rel="noopener">${esc(p.ctaLabel || 'Learn more')} ↗</a>` : ''}
         ${shareMenu((p.title || 'Chamber update') + ' — WVWCCC', location.origin + '/community/board.html')}
       </article>`;
+  }
+
+  // Bulletin-board card for Valley Biz Buzz — clamped body that expands on click.
+  function newsCard(p) {
+    const d = p.created ? new Date(p.created) : null;
+    const date = d && !isNaN(d) ? d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+    const body = String(p.body || '').trim();
+    const long = body.length > 240 || body.split('\n').length > 4;
+    return `
+      <article class="card" style="display:flex;gap:18px;padding:20px 22px;align-items:flex-start">
+        ${p.imageUrl ? `<img src="${esc(p.imageUrl)}" alt="" loading="lazy" style="width:128px;height:128px;object-fit:cover;border-radius:12px;flex-shrink:0">`
+          : `<div aria-hidden="true" style="width:56px;height:56px;border-radius:12px;flex-shrink:0;background:var(--gold-soft);color:var(--gold-deep);display:flex;align-items:center;justify-content:center;font-size:1.4rem">📣</div>`}
+        <div style="min-width:0;flex:1">
+          <div class="member-tile__meta" style="margin-bottom:5px">${esc(p.authorName || 'WVWC Chamber')}${date ? ' · ' + esc(date) : ''}</div>
+          <h3 style="margin:0 0 7px;font-size:1.18rem;line-height:1.25">${esc(p.title)}</h3>
+          <p data-biz-body style="white-space:pre-line;color:var(--slate-mid,#444);line-height:1.6;margin:0;${long ? 'display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden' : ''}">${esc(body)}</p>
+          <div style="margin-top:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            ${long ? '<button class="chip" data-biz-more>Read full post</button>' : ''}
+            ${p.linkUrl ? `<a class="chip chip--gold" href="${esc(p.linkUrl)}" target="_blank" rel="noopener">${esc(p.ctaLabel || 'Learn more')} ↗</a>` : ''}
+          </div>
+        </div>
+      </article>`;
+  }
+  if (typeof document !== 'undefined' && !window.__wvBizBound) {
+    window.__wvBizBound = true;
+    document.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-biz-more]');
+      if (!b) return;
+      const body = b.closest('article').querySelector('[data-biz-body]');
+      if (body) { body.style.webkitLineClamp = 'unset'; body.style.display = 'block'; body.style.overflow = 'visible'; b.remove(); }
+    });
   }
   async function initPostsFeed(type, containerId, render, empty) {
     const el = document.getElementById(containerId);
@@ -838,7 +901,45 @@ window.Chamber = (function () {
   }
   const initDeals = () => initPostsFeed('discount', 'dealsList', offerCard, 'No member offers yet — check back soon, or members can post one from their portal.');
   const initCommunity = () => initPostsFeed('member_post', 'communityList', postCard, 'No community posts yet. Members can post the first one from their portal.');
-  const initNews = () => initPostsFeed('news', 'newsList', postCard, 'No news yet — check back soon.');
+  const initNews = () => initPostsFeed('news', 'newsList', newsCard, 'No news yet — check back soon.');
+
+  // ── Board of Directors / leadership (data-driven from leaderStatus) ──
+  function boardCard(m, depth) {
+    const base = depth ? '../' : '';
+    const slug = m.slug || m.id;
+    const person = m.contactName || m.name;
+    const pic = m.logo
+      ? `<img src="${esc(m.logo)}" alt="${esc(person)}" loading="lazy" style="width:128px;height:128px;border-radius:50%;object-fit:cover;box-shadow:0 0 0 3px var(--gold-soft)">`
+      : `<div aria-hidden="true" style="width:128px;height:128px;border-radius:50%;background:var(--green-deep,#1f4d3a);color:var(--gold-bright);display:flex;align-items:center;justify-content:center;font-family:var(--display);font-size:2.6rem;margin:0 auto">${esc((person || '?')[0].toUpperCase())}</div>`;
+    return `
+      <article style="text-align:center">
+        <a href="${base}members/${esc(slug)}" style="text-decoration:none;color:inherit;display:block">
+          ${pic}
+          <div style="font-family:var(--display);font-size:1.18rem;margin-top:14px;color:var(--green-ink,#1b3326)">${esc(person)}</div>
+          <div class="member-tile__meta" style="color:var(--gold-deep);font-weight:700;letter-spacing:.02em">${esc(m.leaderStatus)}</div>
+          ${m.contactName && m.name !== m.contactName ? `<div class="member-tile__meta">${esc(m.name)}</div>` : ''}
+          <div style="color:var(--gold-deep);font-size:.8rem;margin-top:6px;opacity:.8">View profile →</div>
+        </a>
+      </article>`;
+  }
+  async function initBoard(depth = 0) {
+    const el = document.getElementById('boardGrid'); if (!el) return;
+    let members = [];
+    try { members = (await getJSON(ChamberAPI.url('/api/members'))).members || []; }
+    catch (e) { el.innerHTML = '<p class="notice">Could not load the roster right now.</p>'; return; }
+    const ORDER = ['Leader', 'Board Member', 'Past President', 'Ambassador'];
+    const board = members.filter((m) => ORDER.includes(m.leaderStatus))
+      .sort((a, b) => (ORDER.indexOf(a.leaderStatus) - ORDER.indexOf(b.leaderStatus)) || String(a.contactName || a.name).localeCompare(b.contactName || b.name));
+    if (!board.length) { el.innerHTML = '<p class="notice">Our board &amp; leadership roster is being finalized — check back soon. (Admins: set each member\'s designation under Members.)</p>'; return; }
+    // group by designation
+    const groups = {};
+    board.forEach((m) => { (groups[m.leaderStatus] = groups[m.leaderStatus] || []).push(m); });
+    el.innerHTML = ORDER.filter((g) => groups[g]).map((g) => `
+      <div style="margin-bottom:var(--s-7)">
+        <h2 style="text-align:center;margin-bottom:var(--s-5)">${esc(g === 'Leader' ? 'Officers & Leadership' : g === 'Board Member' ? 'Board of Directors' : g === 'Past President' ? 'Past Presidents' : 'Ambassadors')}</h2>
+        <div class="grid grid-4" style="gap:var(--s-6)">${groups[g].map((m) => boardCard(m, depth)).join('')}</div>
+      </div>`).join('');
+  }
 
   // ── Dining Guide — Chamber member restaurants only ──
   const DINING_RE = /restaurant|dining|food|caf[eé]|bakery|steak|grill|eatery|coffee|catering|\bbar\b|brewery|deli|pizza|cuisine|kitchen|bistro|diner|\bpub\b|juice|dessert|ice ?cream|hoagie|sandwich|taco|sushi|bbq|churrasc/i;
@@ -875,5 +976,5 @@ window.Chamber = (function () {
       : '<div class="notice">Member restaurants will appear here as the directory fills in. Are you a Chamber-member eatery? <a href="join.html">Join the Chamber</a>.</div>';
   }
 
-  return { initHome, initDirectory, initProfile, initEvents, initCheckout, initLeadForm, initJobs, initDeals, initCommunity, initNews, initDining, offerCard, postCard, memberTile, eventCard, getJSON, esc };
+  return { initHome, initDirectory, initProfile, initEvents, initCheckout, initLeadForm, initJobs, initDeals, initCommunity, initNews, initBoard, initDining, offerCard, postCard, newsCard, memberTile, eventCard, getJSON, esc };
 })();

@@ -26,7 +26,18 @@
 
   <section class="section">
     <div class="container">
-      <div style="display:flex;justify-content:flex-end;margin-bottom:var(--s-5)">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:var(--s-5)">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+          <select id="evCat" aria-label="Filter by category" style="padding:9px 13px;border:1px solid var(--gold-soft,#e6dcbf);border-radius:8px;background:#fff;font:inherit;color:var(--green-ink,#1b3326)"><option value="">All categories</option></select>
+          <select id="evWhen" aria-label="Filter by timeframe" style="padding:9px 13px;border:1px solid var(--gold-soft,#e6dcbf);border-radius:8px;background:#fff;font:inherit;color:var(--green-ink,#1b3326)">
+            <option value="upcoming">Upcoming</option>
+            <option value="30">Next 30 days</option>
+            <option value="90">Next 90 days</option>
+            <option value="month">This month</option>
+            <option value="all">All dates</option>
+          </select>
+          <span id="evCount" class="member-tile__meta"></span>
+        </div>
         <div class="view-toggle" role="tablist" aria-label="Calendar view">
           <button data-view="list" class="active" type="button">List</button>
           <button data-view="grid" type="button">Month</button>

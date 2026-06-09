@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Board &amp; Leadership — West Valley · Warner Center Chamber of Commerce</title>
+  <meta name="description" content="Meet the Board of Directors, officers, past presidents, and ambassadors of the West Valley · Warner Center Chamber of Commerce." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="css/chamber.css" />
+</head>
+<body>
+  <div data-partial="header"></div>
+  <section class="section-sm bg-forest">
+    <div class="container">
+      <span class="kicker">The Chamber</span>
+      <h1 style="color:#fff">Board &amp; Leadership</h1>
+      <p class="lead" style="color:rgba(255,255,255,.85);max-width:62ch">The volunteers and business leaders who guide the West Valley · Warner Center Chamber of Commerce.</p>
+    </div>
+  </section>
+  <section class="section">
+    <div class="container">
+      <div id="boardGrid"><p class="member-tile__meta">Loading…</p></div>
+    </div>
+  </section>
+  <div data-partial="footer"></div>
+  <script src="js/partials.js"></script>
+  <script src="js/api-base.js"></script>
+  <script src="js/chamber.js"></script>
+  <script>ChamberPartials.mount({ active: 'about', depth: 0, lang: 'en' }); Chamber.initBoard(0);</script>
+</body>
+</html>

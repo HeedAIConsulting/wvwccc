@@ -128,6 +128,7 @@ window.ChamberPartials = (function () {
         <h4>${t.about}</h4>
         <ul>
           <li><a href="${p(depth,'about.html')}">${t.chamber}</a></li>
+          <li><a href="${p(depth,'leadership.html')}">${L?'Junta y Liderazgo':'Board & Leadership'}</a></li>
           <li><a href="${p(depth,'community/our-community.html')}">${L?'Nuestra Comunidad':'Our Community'}</a></li>
           <li><a href="${p(depth,'community/grateful-hearts.html')}">Grateful Hearts</a></li>
           <li><a href="${p(depth,'community/history.html')}">${L?'Historia':'Our History'}</a></li>
