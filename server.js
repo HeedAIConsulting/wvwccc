@@ -83,6 +83,11 @@ app.get(['/m/:slug', '/members/:slug'], (req, res, next) => {
   if ((req.params.slug || '').includes('.')) return next();   // a file → let 404 handle
   res.sendFile(profilePage, (err) => { if (err) next(); });
 });
+// Pretty content-page URLs: /p/<slug> → the generic page renderer.
+app.get('/p/:slug', (req, res, next) => {
+  if ((req.params.slug || '').includes('.')) return next();
+  res.sendFile(path.join(__dirname, 'pages', 'view.html'), (err) => { if (err) next(); });
+});
 
 // ── 404 fallback ───────────────────────────────────────────
 app.use((req, res) => {

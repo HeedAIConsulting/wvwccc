@@ -21,11 +21,11 @@ window.ChamberPartials = (function () {
     const t = L ? {
       login: 'Acceso', staff: 'Personal', contact: 'Contacto',
       home: 'Inicio', dir: 'Directorio', dining: 'Comida', events: 'Eventos', jobs: 'Empleos',
-      deals: 'Ofertas', community: 'Comunidad', news: 'Noticias', about: 'La Cámara', join: 'Únete'
+      deals: 'Ofertas', community: 'Comunidad', news: 'Noticias', resources: 'Recursos', about: 'La Cámara', join: 'Únete'
     } : {
       login: 'Sign In', staff: 'Staff', contact: 'Contact',
       home: 'Home', dir: 'Directory', dining: 'Dining', events: 'Events', jobs: 'Jobs',
-      deals: 'Deals', community: 'Community', news: 'Biz Buzz', about: 'The Chamber', join: 'Join'
+      deals: 'Deals', community: 'Community', news: 'Biz Buzz', resources: 'Resources', about: 'The Chamber', join: 'Join'
     };
     const base = depth ? '../' : '';
     return `
@@ -67,6 +67,7 @@ window.ChamberPartials = (function () {
         <a href="${p(depth, 'deals.html')}" ${active==='deals'?'class="active"':''}>${t.deals}</a>
         <a href="${p(depth, 'community/news.html')}" ${active==='news'?'class="active"':''}>${t.news}</a>
         <a href="${p(depth, 'community/board.html')}" ${active==='community'?'class="active"':''}>${t.community}</a>
+        <a href="${p(depth, 'resources.html')}" ${active==='resources'?'class="active"':''}>${t.resources}</a>
         <a href="${p(depth, 'about.html')}" ${active==='about'?'class="active"':''}>${t.about}</a>
         <a href="${p(depth, 'join.html')}" class="btn btn--gold btn--sm nav-cta">${t.join}</a>
       </nav>

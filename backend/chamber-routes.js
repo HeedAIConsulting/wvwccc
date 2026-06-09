@@ -345,6 +345,23 @@ router.get('/members', async (_req, res) => {
   catch (e) { console.error(e); res.status(500).json({ error: 'directory unavailable' }); }
 });
 
+// ── Static content pages (migrated legacy IA) ──
+let _pages = null;
+function readPages() {
+  if (_pages) return _pages;
+  try { _pages = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'pages.json'), 'utf8')).pages || []; }
+  catch { _pages = []; }
+  return _pages;
+}
+router.get('/pages', (_req, res) => {
+  res.json({ pages: readPages().map((p) => ({ slug: p.slug, title: p.title, group: p.group })) });
+});
+router.get('/pages/:slug', (req, res) => {
+  const p = readPages().find((x) => x.slug === req.params.slug);
+  if (!p) return res.status(404).json({ error: 'not found' });
+  res.json(p);
+});
+
 // Distinct category list (for the member category picker + facets).
 router.get('/categories', async (_req, res) => {
   try {
