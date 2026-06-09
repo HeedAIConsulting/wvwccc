@@ -1,0 +1,23 @@
+{
+  "_meta": {
+    "note": "PLACEHOLDER prices — confirm real membership dues, ticket, and donation amounts with the Chamber before go-live.",
+    "currency": "USD"
+  },
+  "memberships": [
+    { "sku": "mem-supporter",  "label": "Supporter / Individual", "tier": "supporter", "amount": 150,  "recurring": true, "interval": "annual" },
+    { "sku": "mem-bronze",     "label": "Bronze Business",        "tier": "bronze",    "amount": 300,  "recurring": true, "interval": "annual" },
+    { "sku": "mem-silver",     "label": "Silver Business",        "tier": "silver",    "amount": 500,  "recurring": true, "interval": "annual" },
+    { "sku": "mem-gold",       "label": "Gold Business",          "tier": "gold",      "amount": 750,  "recurring": true, "interval": "annual" },
+    { "sku": "mem-platinum",   "label": "Platinum / Corporate",   "tier": "platinum",  "amount": 1500, "recurring": true, "interval": "annual" }
+  ],
+  "donations": [
+    { "sku": "don-25",     "label": "$25",            "amount": 25 },
+    { "sku": "don-50",     "label": "$50",            "amount": 50 },
+    { "sku": "don-100",    "label": "$100",           "amount": 100 },
+    { "sku": "don-250",    "label": "$250",           "amount": 250 },
+    { "sku": "don-custom", "label": "Custom amount",  "amount": null }
+  ],
+  "tickets": {
+    "note": "Event tickets are priced per event by admins. Each ticketed event uses sku 'ticket-<eventId>' with the event's price."
+  }
+}

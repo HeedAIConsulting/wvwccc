@@ -362,6 +362,13 @@ router.get('/pages/:slug', (req, res) => {
   res.json(p);
 });
 
+// Pricing catalog (memberships, donation presets, ticket convention).
+let _skus = null;
+router.get('/skus', (_req, res) => {
+  if (!_skus) { try { _skus = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'skus.json'), 'utf8')); } catch { _skus = { memberships: [], donations: [] }; } }
+  res.json(_skus);
+});
+
 // Distinct category list (for the member category picker + facets).
 router.get('/categories', async (_req, res) => {
   try {
@@ -422,7 +429,16 @@ router.post('/pay', async (req, res) => {
       heedShare: heedShare(b.amount), status: 'paid',
     };
     await repo.addOrder(order);
-    // TODO: email receipt to payer + felicia@woodlandhillscc.net.
+    // Email a receipt to the payer + the Chamber office.
+    try {
+      const amt = '$' + Number(b.amount).toFixed(2);
+      const item = b.description || b.sku || b.kind || 'Payment';
+      const body = `Thank you for your payment to the West Valley · Warner Center Chamber of Commerce.\n\n`
+        + `Item: ${item}\nAmount: ${amt}${b.kind === 'membership' && b.recurring ? ' (annual, recurring)' : ''}\n`
+        + `Transaction ID: ${result.transactionId}\nDate: ${new Date().toLocaleString()}\n\nWe appreciate your support!`;
+      if (b.email) email.send({ to: b.email, subject: 'Your Chamber payment receipt', text: body }).catch(() => {});
+      email.send({ to: email.notifyTo(), subject: `Payment received: ${b.kind || 'order'} ${amt}`, text: `${order.name || ''} ${b.email || ''}\n\n${body}` }).catch(() => {});
+    } catch (e) { console.error('receipt email', e); }
     return res.json({ ok: true, transactionId: result.transactionId, authCode: result.authCode, heedShare: order.heedShare });
   } catch (err) {
     console.error('pay error', err);
