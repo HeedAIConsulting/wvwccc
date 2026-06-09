@@ -899,7 +899,36 @@ window.Chamber = (function () {
       el.innerHTML = posts.length ? posts.map(render).join('') : `<div class="notice">${empty}</div>`;
     } catch (e) { el.innerHTML = '<div class="notice">Could not load right now.</div>'; }
   }
-  const initDeals = () => initPostsFeed('discount', 'dealsList', offerCard, 'No member offers yet — check back soon, or members can post one from their portal.');
+  function offerRow(p) {
+    return `<article class="card" style="display:flex;gap:14px;align-items:center;padding:12px 16px">
+      ${p.imageUrl ? `<img src="${esc(p.imageUrl)}" alt="" loading="lazy" style="width:66px;height:66px;object-fit:cover;border-radius:9px;flex-shrink:0">`
+        : '<div aria-hidden="true" style="width:66px;height:66px;border-radius:9px;background:var(--gold-soft);color:var(--gold-deep);display:flex;align-items:center;justify-content:center;font-size:1.4rem;flex-shrink:0">%</div>'}
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;gap:8px;align-items:baseline;flex-wrap:wrap"><strong>${esc(p.title)}</strong>${p.code ? `<span class="badge">Code: ${esc(p.code)}</span>` : ''}</div>
+        <div class="member-tile__meta">${p.memberId ? `<a href="members/profile.html?id=${esc(p.memberId)}">${esc(p.authorName || 'Member')}</a>` : esc(p.authorName || '')}</div>
+        <p style="margin:4px 0 0;color:var(--slate-mid,#444);font-size:.92rem;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${esc(p.body || '')}</p>
+      </div>
+      ${p.ctaUrl ? `<a class="btn btn--gold btn--sm" href="${esc(p.ctaUrl)}" target="_blank" rel="noopener" style="flex-shrink:0">${esc(p.ctaLabel || 'Redeem')}</a>` : ''}
+    </article>`;
+  }
+  async function initDeals() {
+    const el = document.getElementById('dealsList'); if (!el) return;
+    let offers = [];
+    try { offers = (await getJSON(ChamberAPI.url('/api/posts?type=discount'))).posts || []; }
+    catch (e) { el.innerHTML = '<div class="notice">Could not load offers right now.</div>'; return; }
+    let view = 'grid';
+    function render() {
+      if (!offers.length) { el.className = ''; el.innerHTML = '<div class="notice">No member offers yet — check back soon, or members can post one from their portal.</div>'; return; }
+      if (view === 'grid') { el.className = 'grid grid-3'; el.style.gap = 'var(--s-5)'; el.innerHTML = offers.map(offerCard).join(''); }
+      else { el.className = ''; el.removeAttribute('style'); el.innerHTML = `<div style="display:flex;flex-direction:column;gap:10px;max-width:780px;margin:0 auto">${offers.map(offerRow).join('')}</div>`; }
+    }
+    render();
+    document.querySelectorAll('[data-deals-view]').forEach((b) => b.addEventListener('click', () => {
+      view = b.dataset.dealsView;
+      document.querySelectorAll('[data-deals-view]').forEach((x) => x.classList.toggle('active', x === b));
+      render();
+    }));
+  }
   const initCommunity = () => initPostsFeed('member_post', 'communityList', postCard, 'No community posts yet. Members can post the first one from their portal.');
   const initNews = () => initPostsFeed('news', 'newsList', newsCard, 'No news yet — check back soon.');
 
@@ -968,12 +997,39 @@ window.Chamber = (function () {
     if (!grid) return;
     let members = [];
     try { members = (await getJSON(ChamberAPI.url('/api/members'))).members || []; } catch (e) {}
-    const dining = members.filter((m) => DINING_RE.test(m.category || '') || (m.tags || []).some((t) => DINING_RE.test(t)));
+    const dining = members.filter((m) => DINING_RE.test(m.category || '') || (m.tags || []).some((t) => DINING_RE.test(t)) || (m.keywords || []).some((t) => DINING_RE.test(t)));
     const cnt = document.getElementById('diningCount');
     if (cnt) cnt.textContent = dining.length ? `${dining.length} member dining spot${dining.length === 1 ? '' : 's'}` : '';
-    grid.innerHTML = dining.length
-      ? dining.map(diningCard).join('')
-      : '<div class="notice">Member restaurants will appear here as the directory fills in. Are you a Chamber-member eatery? <a href="join.html">Join the Chamber</a>.</div>';
+    function renderList(list) {
+      grid.innerHTML = list.length
+        ? list.map(diningCard).join('')
+        : '<div class="notice">No matches — try a different search, or browse all below.</div>';
+    }
+    renderList(dining);
+
+    // instant filter
+    const sb = document.getElementById('diningSearch');
+    if (sb) sb.addEventListener('input', () => {
+      const q = sb.value.trim().toLowerCase();
+      if (!q) return renderList(dining);
+      renderList(dining.filter((m) => [m.name, m.category, m.neighborhood, m.city, m.tagline, (m.tags || []).join(' '), (m.keywords || []).join(' ')].filter(Boolean).join(' ').toLowerCase().includes(q)));
+    });
+
+    // Ask Wendy (AI concierge, scoped to dining)
+    const ask = document.getElementById('diningAsk');
+    if (ask) ask.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const input = document.getElementById('diningAskInput');
+      const out = document.getElementById('diningAskOut');
+      const q = input.value.trim(); if (!q) return;
+      out.innerHTML = '<div class="member-tile__meta">Asking Wendy…</div>';
+      try {
+        const r = await (await fetch(ChamberAPI.url('/api/concierge'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ q: q + ' (restaurant / dining in the West Valley)' }) })).json();
+        const picks = (r.members || []).filter((m) => DINING_RE.test(m.category || '') || true).slice(0, 3);
+        out.innerHTML = `<div style="background:#fff;border:1px solid var(--gold-soft,#e6dcbf);border-radius:10px;padding:12px 14px"><strong>💬 Wendy:</strong> ${esc(r.answer || 'Here are a few spots.')}</div>`
+          + (picks.length ? `<div class="grid grid-3 mt-3" style="gap:var(--s-4)">${picks.map((m) => diningCard(m)).join('')}</div>` : '');
+      } catch (err) { out.innerHTML = '<div class="notice">Could not reach Wendy right now — use the filter below.</div>'; }
+    });
   }
 
   return { initHome, initDirectory, initProfile, initEvents, initCheckout, initLeadForm, initJobs, initDeals, initCommunity, initNews, initBoard, initDining, offerCard, postCard, newsCard, memberTile, eventCard, getJSON, esc };

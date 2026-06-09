@@ -23,6 +23,17 @@
   </section>
   <section class="section">
     <div class="container">
+      <div class="card" style="padding:18px 20px;margin-bottom:var(--s-6);background:var(--cream-deep,#f3ecda);border:1px solid var(--gold-soft,#e6dcbf)">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><span style="font-size:1.3rem">🍽️</span><strong>Ask Wendy where to eat</strong> <span class="member-tile__meta">— e.g. "sushi in Tarzana" or "a steakhouse for a client dinner"</span></div>
+        <form id="diningAsk" style="display:flex;gap:8px;flex-wrap:wrap">
+          <input id="diningAskInput" placeholder="What are you in the mood for?" style="flex:1;min-width:220px;padding:11px 14px;border:1px solid var(--gold-soft,#e6dcbf);border-radius:10px;font:inherit" />
+          <button class="btn btn--forest" type="submit">Ask Wendy</button>
+        </form>
+        <div id="diningAskOut" style="margin-top:12px"></div>
+        <div style="margin-top:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <input id="diningSearch" type="search" placeholder="Or filter the list — name, cuisine, neighborhood…" style="flex:1;min-width:220px;padding:10px 13px;border:1px solid var(--line,#d7d2c6);border-radius:10px;font:inherit" />
+        </div>
+      </div>
       <div id="diningGrid" class="grid grid-3" style="gap:var(--s-5)"><p class="member-tile__meta">Loading member restaurants…</p></div>
     </div>
   </section>

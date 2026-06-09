@@ -21,6 +21,12 @@
   </section>
   <section class="section">
     <div class="container">
+      <div style="display:flex;justify-content:flex-end;margin-bottom:var(--s-4)">
+        <div class="view-toggle" role="tablist" aria-label="Offers view">
+          <button data-deals-view="grid" class="active" type="button">Cards</button>
+          <button data-deals-view="list" type="button">List</button>
+        </div>
+      </div>
       <div id="dealsList" class="grid grid-3" style="gap:var(--s-5)"><p class="member-tile__meta">Loading…</p></div>
       <div class="text-center mt-7"><a class="btn btn--ghost" href="member/index.html">Are you a member? Post an offer →</a></div>
     </div>
