@@ -19,6 +19,17 @@
         <p id="adminError" class="admin-notice" hidden></p>
         <p id="dashNotice" class="admin-notice" hidden></p>
         <div class="stat-row" id="statRow"></div>
+
+        <div class="panel">
+          <div class="panel__head"><h3>Renewals at a glance</h3><a class="btn btn--ghost btn--sm" href="renewals.html">Manage renewals →</a></div>
+          <div id="renewGlance" style="padding:8px 16px 16px"><p class="sub">Loading…</p></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel__head"><h3>Newest members</h3><a class="btn btn--ghost btn--sm" href="members.html">All members →</a></div>
+          <table class="admin-table"><thead><tr><th>Member</th><th>Category</th><th>Joined</th></tr></thead><tbody id="newestMembers"></tbody></table>
+        </div>
+
         <div class="panel">
           <div class="panel__head"><h3>Recent inquiries</h3><a class="btn btn--ghost btn--sm" href="leads.html">View all</a></div>
           <table class="admin-table"><thead><tr><th>From</th><th>Reason</th><th>Status</th></tr></thead><tbody id="recentLeads"></tbody></table>

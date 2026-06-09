@@ -603,7 +603,27 @@ router.post('/admin/members', requireAdmin, async (req, res) => {
   };
   if (b.expireDate && /^\d{4}-\d{2}-\d{2}$/.test(b.expireDate)) m.expireDate = b.expireDate;
   if (b.termMonths) m.termMonths = Number(b.termMonths) || null;
-  try { await repo.addMember(m); res.json({ ok: true, member: m }); }
+  try {
+    await repo.addMember(m);
+    // Create a member login + email a "set your password" welcome link.
+    let login = null;
+    if (m.email && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(m.email)) {
+      try {
+        await users.bulkImportMembers([{ email: m.email, memberId: m.id, username: m.contactName || m.name, passwordHash: null, passwordAlgo: 'unknown', needsReset: true }]);
+        const token = auth.signResetToken(m.email);
+        const base = process.env.SITE_URL || `${req.protocol}://${req.get('host')}`;
+        const link = `${base}/auth/reset.html?token=${encodeURIComponent(token)}`;
+        const r = await email.send({
+          to: m.email,
+          subject: 'Welcome to the West Valley · Warner Center Chamber — set up your account',
+          text: `Welcome${m.contactName ? ', ' + m.contactName : ''}!\n\nYour Chamber member listing for ${m.name} is set up. Create your password to manage your listing:\n${link}\n\n(This link expires in 1 hour — if it expires, just use "Forgot password" on the sign-in page.)\n\n— West Valley · Warner Center Chamber of Commerce`,
+          html: `<p>Welcome${m.contactName ? ', ' + m.contactName : ''}!</p><p>Your Chamber member listing for <strong>${m.name}</strong> is set up. Create your password to manage your listing:</p><p><a href="${link}">Set up your account</a> (link expires in 1 hour — otherwise use “Forgot password” on the sign-in page).</p><p>— West Valley · Warner Center Chamber of Commerce</p>`,
+        });
+        login = r && r.ok ? 'login created · welcome email sent' : 'login created · email pending (' + (r && r.error ? r.error : 'not configured') + ')';
+      } catch (e) { console.error('member login/email', e); login = 'member added; login/email step failed'; }
+    }
+    res.json({ ok: true, member: m, login });
+  }
   catch (e) { console.error('add member', e); res.status(500).json({ error: 'could not add member' }); }
 });
 

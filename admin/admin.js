@@ -97,6 +97,54 @@ window.Admin = (function () {
         ? leads.map((l) => `<tr><td><span class="name">${esc(l.name || '—')}</span><div class="sub">${esc(l.email)}</div></td><td>${esc(l.reason || l.kind)}</td><td>${statusPill(l.status)}</td></tr>`).join('')
         : '<tr><td colspan="3" class="sub">No inquiries yet.</td></tr>';
     } catch (e) { showAuthError(e); }
+
+    // ── Renewals at a glance + newest members + quick-renew ──
+    try {
+      const { members } = await api('/api/admin/members');
+      const startOfToday = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; };
+      const ymd = (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+      const nextRenewal = (m) => {
+        if (m.expireDate) { const e = new Date(m.expireDate + 'T12:00:00'); if (!isNaN(e)) return e; }
+        if (!m.joinDate) return null;
+        const jd = new Date(m.joinDate + 'T12:00:00'); if (isNaN(jd)) return null;
+        const term = Number(m.termMonths) || 12; const today = startOfToday(); let r = new Date(jd); let g = 0;
+        while (r < today && g++ < 300) r.setMonth(r.getMonth() + term);
+        return r;
+      };
+      const daysUntil = (d) => Math.round((d - startOfToday()) / 86400000);
+      const rows = members.map((m) => ({ m, r: nextRenewal(m) })).filter((x) => x.r).map((x) => ({ ...x, days: daysUntil(x.r) })).sort((a, b) => a.days - b.days);
+      const c30 = rows.filter((x) => x.days <= 30).length, c60 = rows.filter((x) => x.days <= 60).length, c90 = rows.filter((x) => x.days <= 90).length;
+      const glance = document.getElementById('renewGlance');
+      if (glance) {
+        glance.innerHTML = `<div class="stat-row" style="margin-bottom:14px">
+          <div class="stat-card ${c30 ? 'accent' : ''}"><div class="num">${c30}</div><div class="lbl">due in 30 days</div></div>
+          <div class="stat-card"><div class="num">${c60}</div><div class="lbl">due in 60 days</div></div>
+          <div class="stat-card"><div class="num">${c90}</div><div class="lbl">due in 90 days</div></div>
+        </div>
+        <table class="admin-table"><thead><tr><th>Member</th><th>Renews</th><th>In</th><th>Offline renewal</th></tr></thead><tbody id="renewSoon"></tbody></table>`;
+        const soon = rows.filter((x) => x.days <= 90).slice(0, 8);
+        const tb = document.getElementById('renewSoon');
+        tb.innerHTML = soon.length ? soon.map(({ m, r, days }) => `<tr data-id="${esc(m.id)}">
+          <td><span class="name">${esc(m.name)}</span></td>
+          <td>${r.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</td>
+          <td>${days <= 0 ? 'now' : days + ' days'}</td>
+          <td><button class="btn btn--forest btn--sm" data-renew>Renew +1 yr</button> <span class="saved-flash" data-flash>renewed ✓</span></td></tr>`).join('')
+          : '<tr><td colspan="4" class="sub">Nothing due within 90 days. 🎉</td></tr>';
+        tb.querySelectorAll('tr[data-id]').forEach((tr) => {
+          const id = tr.dataset.id, flash = tr.querySelector('[data-flash]');
+          tr.querySelector('[data-renew]').addEventListener('click', async (e) => {
+            const btn = e.target; btn.disabled = true;
+            const cur = rows.find((x) => x.m.id === id);
+            const nd = new Date(cur.r); nd.setFullYear(nd.getFullYear() + 1);
+            try { await api('/api/admin/members/' + encodeURIComponent(id), { method: 'PATCH', body: JSON.stringify({ expireDate: ymd(nd) }) }); flash.classList.add('show'); btn.textContent = 'Renewed → ' + ymd(nd); }
+            catch (err) { btn.disabled = false; alert('Could not renew.'); }
+          });
+        });
+      }
+      const newest = members.filter((m) => m.joinDate).sort((a, b) => String(b.joinDate).localeCompare(String(a.joinDate))).slice(0, 8);
+      const nm = document.getElementById('newestMembers');
+      if (nm) nm.innerHTML = newest.length ? newest.map((m) => `<tr><td><span class="name">${esc(m.name)}</span><div class="sub">${esc(m.neighborhood || m.city || '')}</div></td><td>${esc(m.category || '')}</td><td>${esc(m.joinDate || '')}</td></tr>`).join('') : '<tr><td colspan="3" class="sub">—</td></tr>';
+    } catch (e) { /* dashboard extras best-effort */ }
   }
 
   // ── Members (status radios) ──
@@ -122,7 +170,8 @@ window.Admin = (function () {
         const btn = addForm.querySelector('button[type="submit"]'); btn.disabled = true;
         try {
           const r = await api('/api/admin/members', { method: 'POST', body: JSON.stringify(body) });
-          msg.hidden = false; msg.textContent = 'Added: ' + (r.member ? r.member.name : body.name);
+          msg.hidden = false; msg.style.borderColor = 'var(--green)';
+          msg.textContent = 'Added: ' + (r.member ? r.member.name : body.name) + (r.login ? ' — ' + r.login : '');
           addForm.reset();
           load(search.value.trim());
         } catch (err) { msg.hidden = false; msg.textContent = 'Could not add member.'; }
