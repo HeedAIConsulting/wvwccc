@@ -626,21 +626,34 @@ window.Admin = (function () {
     const ROLES = ['member', 'staff', 'admin'];
     async function load() {
       try {
-        const r = await api('/api/admin/users');
+        const [r, mres] = await Promise.all([api('/api/admin/users'), api('/api/admin/members').catch(() => ({ members: [] }))]);
+        const byId = {}; (mres.members || []).forEach((m) => { byId[m.id] = m; });
         const isSuper = !!r.isSuper;
         if (note) note.textContent = isSuper
-          ? 'You are a Super Admin — you can change any account\'s role below.'
-          : 'Only a Super Admin can change roles. You can view accounts and create new logins.';
+          ? 'You are a Super Admin — change roles, and set membership expiration per account below.'
+          : 'Only a Super Admin can change roles. You can view accounts, set expirations, and create logins.';
         tbody.innerHTML = (r.users || []).map((u) => {
           const fixed = u.source === 'bootstrap' || u.role === 'super_admin' || !isSuper;
           const roleCell = fixed
             ? `<span class="pill ${u.role === 'member' ? '' : 'pill--approved'}">${esc(u.role)}</span>${u.source === 'bootstrap' ? ' <span class="sub">(env)</span>' : ''}`
             : `<select class="admin-select" data-role data-email="${esc(u.email)}">${ROLES.map((x) => `<option ${u.role === x ? 'selected' : ''}>${x}</option>`).join('')}</select>`;
-          return `<tr><td><span class="name">${esc(u.username || u.email)}</span><div class="sub">${esc(u.email)}${u.memberId ? ' · ' + esc(u.memberId) : ''}</div></td><td>${roleCell}</td><td>${esc(u.status || '')}</td></tr>`;
-        }).join('') || '<tr><td colspan="3" class="sub">No accounts yet.</td></tr>';
+          const m = u.memberId ? byId[u.memberId] : null;
+          const biz = m ? `<span class="name">${esc(m.name)}</span><div class="sub">${esc(m.category || '')}${m.neighborhood ? ' · ' + esc(m.neighborhood) : ''}</div>` : '<span class="sub">—</span>';
+          const level = m ? esc(m.tier || 'member') : '<span class="sub">—</span>';
+          const contact = m ? (esc(m.contactName || '') || '<span class="sub">—</span>') : '<span class="sub">—</span>';
+          const exp = m ? `<input type="date" data-exp data-id="${esc(m.id)}" value="${esc(m.expireDate || '')}" class="admin-select" style="width:auto"> <span class="saved-flash" data-flash>✓</span>` : '<span class="sub">—</span>';
+          return `<tr>
+            <td><span class="name">${esc(u.username || u.email)}</span><div class="sub">${esc(u.email)}</div></td>
+            <td>${biz}</td><td>${level}</td><td>${contact}</td><td>${exp}</td><td>${roleCell}</td></tr>`;
+        }).join('') || '<tr><td colspan="6" class="sub">No accounts yet.</td></tr>';
         tbody.querySelectorAll('[data-role]').forEach((sel) => sel.addEventListener('change', async () => {
           try { await api('/api/admin/users/' + encodeURIComponent(sel.dataset.email) + '/role', { method: 'PATCH', body: JSON.stringify({ role: sel.value }) }); }
           catch (e) { alert('Could not change role: ' + (e.message || '')); load(); }
+        }));
+        tbody.querySelectorAll('[data-exp]').forEach((inp) => inp.addEventListener('change', async () => {
+          const flash = inp.parentElement.querySelector('[data-flash]');
+          try { await api('/api/admin/members/' + encodeURIComponent(inp.dataset.id), { method: 'PATCH', body: JSON.stringify({ expireDate: inp.value || null }) }); if (flash) { flash.classList.add('show'); setTimeout(() => flash.classList.remove('show'), 1000); } }
+          catch (e) { alert('Could not set expiration.'); }
         }));
       } catch (e) { showAuthError(e); }
     }
