@@ -29,12 +29,16 @@
     <div class="container">
       <div class="hero__inner">
         <div class="hero__copy">
-          <span class="kicker reveal d1">Since 1930 · Tarzana · Woodland Hills · Reseda · Warner Center</span>
-          <h1 class="reveal d2">Anything local, the&nbsp;<em>Chamber</em> knows.</h1>
+          <span class="kicker reveal d1">Community · Connection · Credibility · Since 1930</span>
+          <h1 class="reveal d2">The Chamber of Commerce connection: making the most of <em>where you live</em>.</h1>
+          <p class="hero__areas reveal d2" style="color:rgba(255,255,255,.82);font-weight:600;margin:10px 0 0;font-size:.98rem">
+            Serving Woodland Hills, Warner Center, Tarzana, Reseda, Canoga Park &amp; West Hills.
+          </p>
           <p class="hero__lead reveal d3">
-            The trusted directory, events calendar, and community hub for the
-            Greater West Valley &amp; Warner Center — vetted local businesses,
-            real events, and a Chamber that has had your back for nearly a century.
+            Through our trusted connections, we help residents, businesses, nonprofits, and visitors
+            experience the very best of community living — from hidden gems and local events to business
+            resources and neighborhood initiatives. If it&rsquo;s happening in the West Valley, chances are,
+            your Chamber of Commerce can connect you to it.
           </p>
 
           <!-- AI Concierge bar — "Wendy" -->
@@ -90,6 +94,25 @@
     </div>
   </section>
 
+  <!-- ════════════════ EVENTS (toward the top, per Chamber feedback) ════════════════ -->
+  <section class="section bg-cream-deep">
+    <div class="container">
+      <div class="section-head">
+        <span class="kicker">What's happening</span>
+        <h2>Upcoming Chamber events</h2>
+        <p class="lead">Breakfasts, mixers, ribbon cuttings, and our signature Gala. RSVP and buy tickets right here.</p>
+      </div>
+
+      <div id="eventList" style="display:flex;flex-direction:column;gap:var(--s-5)">
+        <!-- rendered from data/events.json (image-forward preview cards) -->
+      </div>
+
+      <div class="text-center mt-7">
+        <a href="events/index.html" class="btn btn--ghost btn--lg">View the full calendar →</a>
+      </div>
+    </div>
+  </section>
+
   <!-- ════════════════ FIND A MEMBER ════════════════ -->
   <section class="section">
     <div class="container">
@@ -129,25 +152,6 @@
         <p class="lead">Members who’ve just been on the platform — say hello and check out what they do.</p>
       </div>
       <div class="grid grid-4" id="recentMembers" style="gap:var(--s-4)"></div>
-    </div>
-  </section>
-
-  <!-- ════════════════ EVENTS ════════════════ -->
-  <section class="section bg-cream-deep">
-    <div class="container">
-      <div class="section-head">
-        <span class="kicker">What's happening</span>
-        <h2>Upcoming Chamber events</h2>
-        <p class="lead">Breakfasts, mixers, ribbon cuttings, and our signature Gala. RSVP and buy tickets right here.</p>
-      </div>
-
-      <div id="eventList" style="display:flex;flex-direction:column;gap:var(--s-5)">
-        <!-- rendered from data/events.json (image-forward preview cards) -->
-      </div>
-
-      <div class="text-center mt-7">
-        <a href="events/index.html" class="btn btn--ghost btn--lg">View the full calendar →</a>
-      </div>
     </div>
   </section>
 

@@ -23,10 +23,14 @@ window.Chamber = (function () {
     const site = m.website
       ? `<a href="${esc(m.website)}" target="_blank" rel="noopener">Visit site ↗</a>` : '';
     const meta = [m.category, m.neighborhood].filter(Boolean).map(esc).join(' · ');
+    const photo = m.logo || (m.photos && m.photos[0]) || '';
+    const seal = photo
+      ? `<div class="member-tile__seal" style="padding:0;overflow:hidden"><img src="${esc(photo)}" alt="${esc(m.name || '')} logo" loading="lazy" style="width:100%;height:100%;object-fit:cover"></div>`
+      : `<div class="member-tile__seal">${esc(m.seal || (m.name || '?')[0])}</div>`;
     return `
       <article class="card card--hover member-tile">
         <div class="member-tile__head">
-          <div class="member-tile__seal">${esc(m.seal || (m.name || '?')[0])}</div>
+          ${seal}
           <div>
             <a class="member-tile__name" href="${href}">${esc(m.name)}</a>
             <div class="member-tile__meta">${meta}</div>
@@ -365,7 +369,7 @@ window.Chamber = (function () {
         if (rwrap) {
           const seen = new Set(recent.map((m) => m.id));
           const filler = (featured.length ? featured : members).filter((m) => !seen.has(m.id));
-          const show = recent.concat(filler).slice(0, 8);
+          const show = recent.concat(filler).slice(0, 6); // top 6 only (Chamber feedback)
           if (show.length) {
             rwrap.innerHTML = show.map((m) => memberTile(m, 0)).join('');
             document.getElementById('recentSection').hidden = false;
