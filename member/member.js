@@ -143,6 +143,21 @@ window.MemberPortal = (function () {
       msg.hidden = false; msg.style.borderColor = 'var(--line)'; msg.textContent = 'Photos uploaded — remember to Save.';
     });
 
+    // video live preview (YouTube/Vimeo) — value already populated by the field loader above
+    const videoInput = form.querySelector('[data-field="video"]');
+    const videoPrev = document.getElementById('videoPreview');
+    const renderVideo = () => {
+      if (!videoPrev) return;
+      const u = ((videoInput && videoInput.value) || '').trim();
+      const yt = u.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([\w-]{6,})/i);
+      const vm = u.match(/vimeo\.com\/(?:video\/)?(\d+)/i);
+      const src = yt ? 'https://www.youtube.com/embed/' + yt[1] : (vm ? 'https://player.vimeo.com/video/' + vm[1] : '');
+      videoPrev.innerHTML = src
+        ? `<div style="position:relative;width:100%;max-width:440px;aspect-ratio:16/9;border-radius:12px;overflow:hidden;box-shadow:var(--sh-sm)"><iframe src="${src}" style="position:absolute;inset:0;width:100%;height:100%;border:0" allowfullscreen loading="lazy"></iframe></div>`
+        : (u ? '<span class="member-tile__meta">Paste a YouTube or Vimeo link to preview it here.</span>' : '');
+    };
+    if (videoInput) { videoInput.addEventListener('input', renderVideo); renderVideo(); }
+
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const patch = {};
