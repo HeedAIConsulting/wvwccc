@@ -224,6 +224,38 @@ window.Chamber = (function () {
       </div>`;
   }
 
+  // Image-forward "upcoming events" preview (homepage). Big flyer thumbnail +
+  // title/date/summary + CTAs; clicking anywhere but a real link opens the modal.
+  function eventPreviewCard(ev, depth = 0) {
+    _eventReg[ev.id] = ev;
+    const base = depth ? '../' : '';
+    const img = ev.image || (ev.images && ev.images[0]) || '';
+    const media = img
+      ? `<div class="evp__media" style="background-image:url('${esc(base + img)}')" role="img" aria-label="${esc(ev.title)} flyer"></div>`
+      : `<div class="evp__media evp__media--ph"><span>${esc(ev.month || 'TBA')}</span><strong>${esc(ev.day || '·')}</strong></div>`;
+    const when = (ev.confirmed && ev.day)
+      ? `${esc(ev.month)} ${esc(ev.day)}${ev.time ? ' · ' + esc(ev.time) : ''}`
+      : 'Date to be announced';
+    const loc = [ev.venue, ev.neighborhood].filter(Boolean).map(esc).join(' · ');
+    const cta = ev.ticketed
+      ? `<a class="btn btn--gold btn--sm" href="${base}checkout.html?type=ticket&event=${esc(ev.id)}">Buy tickets</a>`
+      : `<a class="btn btn--forest btn--sm" href="${base}contact.html?event=${esc(ev.id)}">RSVP</a>`;
+    return `
+      <article class="evp card--hover" id="${esc(ev.id)}" data-ev-detail="${esc(ev.id)}">
+        ${media}
+        <div class="evp__body">
+          <span class="badge">${esc(ev.category || 'Event')}</span>
+          <h3 class="evp__title">${esc(ev.title)}</h3>
+          <div class="evp__meta">📅 ${when}${loc ? ' · ' + loc : ''}</div>
+          <p class="evp__sum">${esc(ev.summary || ev.description || '')}</p>
+          <div class="evp__cta">
+            <span class="btn btn--ghost btn--sm" role="button" tabindex="0">View details →</span>
+            ${cta}
+          </div>
+        </div>
+      </article>`;
+  }
+
   function initGeoBanner() {
     const banner = document.getElementById('geoBanner');
     if (!banner) return;
@@ -363,11 +395,12 @@ window.Chamber = (function () {
       const todayISO = new Date().toISOString().slice(0, 10);
       const allEv = (evd.events || []).filter((e) => e.confirmed && e.date).sort((a, b) => a.date.localeCompare(b.date));
       const upcoming = allEv.filter((e) => e.date >= todayISO);
-      const feat = allEv.filter((e) => e.featured);
-      const events = (feat.length ? feat : (upcoming.length ? upcoming : allEv)).slice(0, 3);
+      // Upcoming first (featured upcoming float to the top); fall back to most recent.
+      const pool = upcoming.length ? upcoming : allEv.slice(-4);
+      const events = pool.filter((e) => e.featured).concat(pool.filter((e) => !e.featured)).slice(0, 4);
       const elist = document.getElementById('eventList');
       if (elist) elist.innerHTML = events.length
-        ? events.map(eventCard).join('')
+        ? events.map((e) => eventPreviewCard(e, 0)).join('')
         : '<p class="notice">The events calendar is coming online. Check back soon or contact the Chamber office.</p>';
     } catch (err) {
       console.error('Home render failed', err);
@@ -665,8 +698,17 @@ window.Chamber = (function () {
     const amountInput = document.getElementById('amount');
     const amountLabel = document.getElementById('amountLabel');
 
-    // Build the order context.
+    // Build the order context. A `sku` param (from join.html / donate.html) is
+    // resolved against the /api/skus catalog so prices have one source of truth.
     let label = 'Payment', sku = kind, presetAmount = params.get('amount') || '';
+    const skuParam = params.get('sku') || '';
+    let catalog = null;
+    if (skuParam || kind === 'membership' || kind === 'donation') {
+      try { catalog = await getJSON(ChamberAPI.url('/api/skus')); }
+      catch (e) { try { catalog = await getJSON('data/skus.json'); } catch (e2) {} }
+    }
+    const findSku = (list, id) => (catalog && (catalog[list] || []).find((x) => x.sku === id)) || null;
+
     if (kind === 'ticket') {
       const id = params.get('event'); sku = `ticket:${id}`;
       title.textContent = 'Event tickets';
@@ -678,16 +720,24 @@ window.Chamber = (function () {
         : '<strong>Event tickets</strong>';
       amountLabel.textContent = 'Ticket amount (USD)';
     } else if (kind === 'membership') {
-      const tier = params.get('tier') || 'membership'; sku = `membership:${tier}`;
+      const item = findSku('memberships', skuParam);
+      const tier = item ? item.tier : (params.get('tier') || 'membership');
+      sku = item ? item.sku : `membership:${tier}`;
       title.textContent = 'Chamber membership';
-      label = `Membership — ${tier}`;
-      summary.innerHTML = `<strong>Annual membership</strong><br><span class="member-tile__meta">${esc(tier)}</span><p class="notice mt-3">Dues are based on number of employees — enter the amount from your tier, or contact the office.</p>`;
+      label = `Membership — ${item ? item.label : tier}`;
+      if (item && item.amount != null && !presetAmount) presetAmount = String(item.amount);
+      summary.innerHTML = item
+        ? `<strong>${esc(item.label)}</strong><br><span class="member-tile__meta">Annual dues · $${esc(item.amount)}/year</span>${item.blurb ? `<p class="member-tile__meta mt-2">${esc(item.blurb)}</p>` : ''}<p class="notice mt-3">Billed annually. Confirm the amount below, or contact the office with questions.</p>`
+        : `<strong>Annual membership</strong><br><span class="member-tile__meta">${esc(tier)}</span><p class="notice mt-3">Dues are based on your tier — enter the amount, or contact the office.</p>`;
       amountLabel.textContent = 'Dues amount (USD)';
     } else {
-      const project = params.get('project') || 'General Fund'; sku = `donation:${project}`;
+      const item = findSku('donations', skuParam);
+      const project = params.get('project') || 'General Fund';
+      sku = skuParam ? `donation:${skuParam}` : `donation:${project}`;
       title.textContent = 'Make a donation';
       label = `Donation — ${project}`;
-      summary.innerHTML = `<strong>Donation</strong><br><span class="member-tile__meta">${esc(project)}</span>`;
+      if (item && item.amount != null && !presetAmount) presetAmount = String(item.amount);
+      summary.innerHTML = `<strong>Donation</strong><br><span class="member-tile__meta">${esc(project)}</span><p class="member-tile__meta mt-2">Your tax-deductible gift supports Chamber community programs.</p>`;
       amountLabel.textContent = 'Donation amount (USD)';
     }
     if (presetAmount) amountInput.value = presetAmount;
@@ -1068,5 +1118,5 @@ window.Chamber = (function () {
     });
   }
 
-  return { initHome, initDirectory, initProfile, initEvents, initCheckout, initLeadForm, initJobs, initDeals, initCommunity, initNews, initBizBuzz, initBoard, initDining, offerCard, postCard, newsCard, memberTile, eventCard, getJSON, esc };
+  return { initHome, initDirectory, initProfile, initEvents, initCheckout, initLeadForm, initJobs, initDeals, initCommunity, initNews, initBizBuzz, initBoard, initDining, offerCard, postCard, newsCard, memberTile, eventCard, eventPreviewCard, getJSON, esc };
 })();

@@ -2,7 +2,8 @@
   "_meta": {
     "status": "Imported from legacy NC_news event calendar (>= 2026-06-01).",
     "count": 36,
-    "schema_version": 2
+    "schema_version": 2,
+    "images_backfilled": 19
   },
   "events": [
     {
@@ -29,7 +30,8 @@
       "images": [],
       "links": [],
       "created": "1970-01-01T00:00:00.000Z",
-      "updated": "1970-01-01T00:00:00.000Z"
+      "updated": "1970-01-01T00:00:00.000Z",
+      "image": null
     },
     {
       "id": "le-11206",
@@ -55,7 +57,8 @@
       "images": [],
       "links": [],
       "created": "1970-01-01T00:00:00.000Z",
-      "updated": "1970-01-01T00:00:00.000Z"
+      "updated": "1970-01-01T00:00:00.000Z",
+      "image": null
     },
     {
       "id": "le-11346",
@@ -81,7 +84,8 @@
       "images": [],
       "links": [],
       "created": "1970-01-01T00:00:00.000Z",
-      "updated": "1970-01-01T00:00:00.000Z"
+      "updated": "1970-01-01T00:00:00.000Z",
+      "image": null
     },
     {
       "id": "le-11352",
@@ -107,7 +111,8 @@
       "images": [],
       "links": [],
       "created": "1970-01-01T00:00:00.000Z",
-      "updated": "1970-01-01T00:00:00.000Z"
+      "updated": "1970-01-01T00:00:00.000Z",
+      "image": null
     },
     {
       "id": "le-11353",
@@ -133,7 +138,8 @@
       "images": [],
       "links": [],
       "created": "1970-01-01T00:00:00.000Z",
-      "updated": "1970-01-01T00:00:00.000Z"
+      "updated": "1970-01-01T00:00:00.000Z",
+      "image": null
     },
     {
       "id": "le-11359",
@@ -159,7 +165,8 @@
       "images": [],
       "links": [],
       "created": "1970-01-01T00:00:00.000Z",
-      "updated": "1970-01-01T00:00:00.000Z"
+      "updated": "1970-01-01T00:00:00.000Z",
+      "image": null
     },
     {
       "id": "le-11311",
@@ -182,10 +189,13 @@
       "rsvpCutoff": "2026-06-17",
       "featured": false,
       "status": "approved",
-      "images": [],
+      "images": [
+        "assets/events/11311.jpg"
+      ],
       "links": [],
       "created": "1970-01-01T00:00:00.000Z",
-      "updated": "1970-01-01T00:00:00.000Z"
+      "updated": "1970-01-01T00:00:00.000Z",
+      "image": "assets/events/11311.jpg"
     },
     {
       "id": "le-11181",
@@ -208,10 +218,13 @@
       "rsvpCutoff": "2026-06-23",
       "featured": false,
       "status": "approved",
-      "images": [],
+      "images": [
+        "assets/events/11181.jpg"
+      ],
       "links": [],
       "created": "1970-01-01T00:00:00.000Z",
-      "updated": "1970-01-01T00:00:00.000Z"
+      "updated": "1970-01-01T00:00:00.000Z",
+      "image": "assets/events/11181.jpg"
     },
     {
       "id": "le-11364",
@@ -234,10 +247,13 @@
       "rsvpCutoff": "2026-06-24",
       "featured": false,
       "status": "approved",
-      "images": [],
+      "images": [
+        "assets/events/11364.jpg"
+      ],
       "links": [],
       "created": "1970-01-01T00:00:00.000Z",
-      "updated": "1970-01-01T00:00:00.000Z"
+      "updated": "1970-01-01T00:00:00.000Z",
+      "image": "assets/events/11364.jpg"
     },
     {
       "id": "le-11208",
@@ -260,10 +276,13 @@
       "rsvpCutoff": "2026-06-26",
       "featured": false,
       "status": "approved",
-      "images": [],
+      "images": [
+        "assets/events/11208.jpg"
+      ],
       "links": [],
       "created": "1970-01-01T00:00:00.000Z",
-      "updated": "1970-01-01T00:00:00.000Z"
+      "updated": "1970-01-01T00:00:00.000Z",
+      "image": "assets/events/11208.jpg"
     },
     {
       "id": "le-11218",
@@ -289,7 +308,8 @@
       "images": [],
       "links": [],
       "created": "1970-01-01T00:00:00.000Z",
-      "updated": "1970-01-01T00:00:00.000Z"
+      "updated": "1970-01-01T00:00:00.000Z",
+      "image": null
     },
     {
       "id": "le-11293",
@@ -312,10 +332,13 @@
       "rsvpCutoff": "2026-07-09",
       "featured": false,
       "status": "approved",
-      "images": [],
+      "images": [
+        "assets/events/11293.jpg"
+      ],
       "links": [],
       "created": "1970-01-01T00:00:00.000Z",
-      "updated": "1970-01-01T00:00:00.000Z"
+      "updated": "1970-01-01T00:00:00.000Z",
+      "image": "assets/events/11293.jpg"
     },
     {
       "id": "le-11294",
@@ -338,10 +361,13 @@
       "rsvpCutoff": "2026-07-09",
       "featured": false,
       "status": "approved",
-      "images": [],
+      "images": [
+        "assets/events/11294.jpg"
+      ],
       "links": [],
       "created": "1970-01-01T00:00:00.000Z",
-      "updated": "1970-01-01T00:00:00.000Z"
+      "updated": "1970-01-01T00:00:00.000Z",
+      "image": "assets/events/11294.jpg"
     },
     {
       "id": "le-11360",
@@ -364,10 +390,13 @@
       "rsvpCutoff": "2026-07-14",
       "featured": false,
       "status": "approved",
-      "images": [],
+      "images": [
+        "assets/events/11360.jpg"
+      ],
       "links": [],
       "created": "1970-01-01T00:00:00.000Z",
-      "updated": "1970-01-01T00:00:00.000Z"
+      "updated": "1970-01-01T00:00:00.000Z",
+      "image": "assets/events/11360.jpg"
     },
     {
       "id": "le-11312",
@@ -390,10 +419,13 @@
       "rsvpCutoff": "2026-07-22",
       "featured": false,
       "status": "approved",
-      "images": [],
+      "images": [
+        "assets/events/11312.jpg"
+      ],
       "links": [],
       "created": "1970-01-01T00:00:00.000Z",
-      "updated": "1970-01-01T00:00:00.000Z"
+      "updated": "1970-01-01T00:00:00.000Z",
+      "image": "assets/events/11312.jpg"
     },
     {
       "id": "le-11209",
@@ -416,10 +448,13 @@
       "rsvpCutoff": "2026-07-26",
       "featured": false,
       "status": "approved",
-      "images": [],
+      "images": [
+        "assets/events/11209.jpg"
+      ],
       "links": [],
       "created": "1970-01-01T00:00:00.000Z",
-      "updated": "1970-01-01T00:00:00.000Z"
+      "updated": "1970-01-01T00:00:00.000Z",
+      "image": "assets/events/11209.jpg"
     },
     {
       "id": "le-11182",
@@ -442,10 +477,13 @@
       "rsvpCutoff": "2026-07-28",
       "featured": false,
       "status": "approved",
-      "images": [],
+      "images": [
+        "assets/events/11182.jpg"
+      ],
       "links": [],
       "created": "1970-01-01T00:00:00.000Z",
-      "updated": "1970-01-01T00:00:00.000Z"
+      "updated": "1970-01-01T00:00:00.000Z",
+      "image": "assets/events/11182.jpg"
     },
     {
       "id": "le-11219",
@@ -468,10 +506,13 @@
       "rsvpCutoff": "2026-08-06",
       "featured": false,
       "status": "approved",
-      "images": [],
+      "images": [
+        "assets/events/11219.jpg"
+      ],
       "links": [],
       "created": "1970-01-01T00:00:00.000Z",
-      "updated": "1970-01-01T00:00:00.000Z"
+      "updated": "1970-01-01T00:00:00.000Z",
+      "image": "assets/events/11219.jpg"
     },
     {
       "id": "le-11295",
@@ -494,10 +535,13 @@
       "rsvpCutoff": "2026-08-13",
       "featured": false,
       "status": "approved",
-      "images": [],
+      "images": [
+        "assets/events/11295.jpg"
+      ],
       "links": [],
       "created": "1970-01-01T00:00:00.000Z",
-      "updated": "1970-01-01T00:00:00.000Z"
+      "updated": "1970-01-01T00:00:00.000Z",
+      "image": "assets/events/11295.jpg"
     },
     {
       "id": "le-11313",
@@ -520,10 +564,13 @@
       "rsvpCutoff": "2026-08-19",
       "featured": false,
       "status": "approved",
-      "images": [],
+      "images": [
+        "assets/events/11313.jpg"
+      ],
       "links": [],
       "created": "1970-01-01T00:00:00.000Z",
-      "updated": "1970-01-01T00:00:00.000Z"
+      "updated": "1970-01-01T00:00:00.000Z",
+      "image": "assets/events/11313.jpg"
     },
     {
       "id": "le-11183",
@@ -546,10 +593,13 @@
       "rsvpCutoff": "2026-08-25",
       "featured": false,
       "status": "approved",
-      "images": [],
+      "images": [
+        "assets/events/11183.jpg"
+      ],
       "links": [],
       "created": "1970-01-01T00:00:00.000Z",
-      "updated": "1970-01-01T00:00:00.000Z"
+      "updated": "1970-01-01T00:00:00.000Z",
+      "image": "assets/events/11183.jpg"
     },
     {
       "id": "le-11296",
@@ -572,10 +622,13 @@
       "rsvpCutoff": "2026-09-10",
       "featured": false,
       "status": "approved",
-      "images": [],
+      "images": [
+        "assets/events/11296.jpg"
+      ],
       "links": [],
       "created": "1970-01-01T00:00:00.000Z",
-      "updated": "1970-01-01T00:00:00.000Z"
+      "updated": "1970-01-01T00:00:00.000Z",
+      "image": "assets/events/11296.jpg"
     },
     {
       "id": "le-11314",
@@ -598,10 +651,13 @@
       "rsvpCutoff": "2026-09-16",
       "featured": false,
       "status": "approved",
-      "images": [],
+      "images": [
+        "assets/events/11314.jpg"
+      ],
       "links": [],
       "created": "1970-01-01T00:00:00.000Z",
-      "updated": "1970-01-01T00:00:00.000Z"
+      "updated": "1970-01-01T00:00:00.000Z",
+      "image": "assets/events/11314.jpg"
     },
     {
       "id": "le-11262",
@@ -624,10 +680,13 @@
       "rsvpCutoff": "2026-02-17",
       "featured": false,
       "status": "approved",
-      "images": [],
+      "images": [
+        "assets/events/11262.jpg"
+      ],
       "links": [],
       "created": "1970-01-01T00:00:00.000Z",
-      "updated": "1970-01-01T00:00:00.000Z"
+      "updated": "1970-01-01T00:00:00.000Z",
+      "image": "assets/events/11262.jpg"
     },
     {
       "id": "le-11184",
@@ -650,10 +709,13 @@
       "rsvpCutoff": "2026-09-29",
       "featured": false,
       "status": "approved",
-      "images": [],
+      "images": [
+        "assets/events/11184.jpg"
+      ],
       "links": [],
       "created": "1970-01-01T00:00:00.000Z",
-      "updated": "1970-01-01T00:00:00.000Z"
+      "updated": "1970-01-01T00:00:00.000Z",
+      "image": "assets/events/11184.jpg"
     },
     {
       "id": "le-11221",
@@ -679,7 +741,8 @@
       "images": [],
       "links": [],
       "created": "1970-01-01T00:00:00.000Z",
-      "updated": "1970-01-01T00:00:00.000Z"
+      "updated": "1970-01-01T00:00:00.000Z",
+      "image": null
     },
     {
       "id": "le-11297",
@@ -702,10 +765,13 @@
       "rsvpCutoff": "2026-10-15",
       "featured": false,
       "status": "approved",
-      "images": [],
+      "images": [
+        "assets/events/11297.jpg"
+      ],
       "links": [],
       "created": "1970-01-01T00:00:00.000Z",
-      "updated": "1970-01-01T00:00:00.000Z"
+      "updated": "1970-01-01T00:00:00.000Z",
+      "image": "assets/events/11297.jpg"
     },
     {
       "id": "le-11263",
@@ -731,7 +797,8 @@
       "images": [],
       "links": [],
       "created": "1970-01-01T00:00:00.000Z",
-      "updated": "1970-01-01T00:00:00.000Z"
+      "updated": "1970-01-01T00:00:00.000Z",
+      "image": null
     },
     {
       "id": "le-11315",
@@ -754,10 +821,13 @@
       "rsvpCutoff": "2026-10-21",
       "featured": false,
       "status": "approved",
-      "images": [],
+      "images": [
+        "assets/events/11315.jpg"
+      ],
       "links": [],
       "created": "1970-01-01T00:00:00.000Z",
-      "updated": "1970-01-01T00:00:00.000Z"
+      "updated": "1970-01-01T00:00:00.000Z",
+      "image": "assets/events/11315.jpg"
     },
     {
       "id": "le-11185",
@@ -780,10 +850,13 @@
       "rsvpCutoff": "2026-10-27",
       "featured": false,
       "status": "approved",
-      "images": [],
+      "images": [
+        "assets/events/11185.jpg"
+      ],
       "links": [],
       "created": "1970-01-01T00:00:00.000Z",
-      "updated": "1970-01-01T00:00:00.000Z"
+      "updated": "1970-01-01T00:00:00.000Z",
+      "image": "assets/events/11185.jpg"
     },
     {
       "id": "le-11298",
@@ -806,10 +879,13 @@
       "rsvpCutoff": "2026-11-12",
       "featured": false,
       "status": "approved",
-      "images": [],
+      "images": [
+        "assets/events/11298.jpg"
+      ],
       "links": [],
       "created": "1970-01-01T00:00:00.000Z",
-      "updated": "1970-01-01T00:00:00.000Z"
+      "updated": "1970-01-01T00:00:00.000Z",
+      "image": "assets/events/11298.jpg"
     },
     {
       "id": "le-11264",
@@ -832,10 +908,13 @@
       "rsvpCutoff": "2026-11-15",
       "featured": false,
       "status": "approved",
-      "images": [],
+      "images": [
+        "assets/events/11264.jpg"
+      ],
       "links": [],
       "created": "1970-01-01T00:00:00.000Z",
-      "updated": "1970-01-01T00:00:00.000Z"
+      "updated": "1970-01-01T00:00:00.000Z",
+      "image": "assets/events/11264.jpg"
     },
     {
       "id": "le-11316",
@@ -858,10 +937,13 @@
       "rsvpCutoff": "2026-11-18",
       "featured": false,
       "status": "approved",
-      "images": [],
+      "images": [
+        "assets/events/11316.jpg"
+      ],
       "links": [],
       "created": "1970-01-01T00:00:00.000Z",
-      "updated": "1970-01-01T00:00:00.000Z"
+      "updated": "1970-01-01T00:00:00.000Z",
+      "image": "assets/events/11316.jpg"
     },
     {
       "id": "le-11223",
@@ -884,10 +966,13 @@
       "rsvpCutoff": "2026-12-03",
       "featured": false,
       "status": "approved",
-      "images": [],
+      "images": [
+        "assets/events/11223.jpg"
+      ],
       "links": [],
       "created": "1970-01-01T00:00:00.000Z",
-      "updated": "1970-01-01T00:00:00.000Z"
+      "updated": "1970-01-01T00:00:00.000Z",
+      "image": "assets/events/11223.jpg"
     },
     {
       "id": "le-11265",
@@ -910,10 +995,13 @@
       "rsvpCutoff": "2026-12-06",
       "featured": false,
       "status": "approved",
-      "images": [],
+      "images": [
+        "assets/events/11265.jpeg"
+      ],
       "links": [],
       "created": "1970-01-01T00:00:00.000Z",
-      "updated": "1970-01-01T00:00:00.000Z"
+      "updated": "1970-01-01T00:00:00.000Z",
+      "image": "assets/events/11265.jpeg"
     },
     {
       "id": "le-11318",
@@ -939,7 +1027,8 @@
       "images": [],
       "links": [],
       "created": "1970-01-01T00:00:00.000Z",
-      "updated": "1970-01-01T00:00:00.000Z"
+      "updated": "1970-01-01T00:00:00.000Z",
+      "image": null
     }
   ]
 }

@@ -32,6 +32,17 @@
         <article class="card"><div class="card__icon">◆</div><h3>Belong</h3><p>Sponsorships, committees, and a community that has your back.</p></article>
       </div>
 
+      <!-- Membership tiers (prices from the Chamber's dues history via /api/skus) -->
+      <div class="section-head mt-7" style="margin-top:var(--s-9);margin-bottom:var(--s-5)">
+        <span class="kicker">Choose your level</span>
+        <h2>Annual membership</h2>
+        <p class="lead">Pick the level that fits your business. Join online in minutes — billed annually.</p>
+      </div>
+      <div class="pricing-grid" id="memberTiers" aria-busy="true">
+        <p class="member-tile__meta">Loading membership levels…</p>
+      </div>
+      <p class="member-tile__meta text-center mt-4">Not sure which level? Dues can scale with business size — <a href="contact.html" style="text-decoration:underline">ask the office</a> or apply below and we’ll confirm.</p>
+
       <div class="grid" style="grid-template-columns:1.1fr .9fr;gap:var(--s-7);margin-top:var(--s-8);align-items:start">
         <div class="card">
           <h2>Apply for membership</h2>
@@ -53,7 +64,7 @@
             <p id="joinMsg" class="notice" hidden></p>
             <div class="btn-row mt-3">
               <button class="btn btn--forest btn--lg" type="submit">Submit application</button>
-              <a class="btn btn--gold btn--lg" href="checkout.html?type=membership&tier=annual">Pay dues →</a>
+              <a class="btn btn--gold btn--lg" href="#memberTiers">Choose a level ↑</a>
             </div>
           </form>
         </div>
@@ -80,6 +91,26 @@
   <script>
     ChamberPartials.mount({ active: '', depth: 0, lang: 'en' });
     Chamber.initLeadForm('joinForm', 'joinMsg', 'membership-application');
+
+    // Render membership tiers from the SKU catalog (real dues amounts).
+    (async () => {
+      const wrap = document.getElementById('memberTiers');
+      let cat = null;
+      try { cat = await Chamber.getJSON(ChamberAPI.url('/api/skus')); }
+      catch (e) { try { cat = await Chamber.getJSON('data/skus.json'); } catch (e2) {} }
+      const tiers = (cat && cat.memberships) || [];
+      if (!tiers.length) { wrap.innerHTML = '<p class="notice">Membership levels are being finalized — please use the application form below or call the office.</p>'; wrap.removeAttribute('aria-busy'); return; }
+      const esc = Chamber.esc;
+      wrap.innerHTML = tiers.map((t) => `
+        <article class="pricing-card${t.popular ? ' pricing-card--pop' : ''}">
+          ${t.popular ? '<span class="pricing-card__flag">Most popular</span>' : ''}
+          <h3 class="pricing-card__name">${esc(t.label)}</h3>
+          <div class="pricing-card__amt">$${esc(t.amount)}<span>/year</span></div>
+          ${t.blurb ? `<p class="pricing-card__blurb">${esc(t.blurb)}</p>` : ''}
+          <a class="btn ${t.popular ? 'btn--gold' : 'btn--forest'} btn--lg" href="checkout.html?type=membership&sku=${encodeURIComponent(t.sku)}">Join — $${esc(t.amount)}</a>
+        </article>`).join('');
+      wrap.removeAttribute('aria-busy');
+    })();
   </script>
 </body>
 </html>

@@ -33,6 +33,7 @@
   <div data-partial="footer"></div>
 
   <script src="js/partials.js"></script>
+  <script src="js/api-base.js"></script>
   <script src="js/chamber.js"></script>
   <script>
     ChamberPartials.mount({ active: '', depth: 0, lang: 'en' });
@@ -43,17 +44,25 @@
       { key: 'Valley Asian Cultural Festival', desc: 'Celebrating the Valley’s vibrant Asian and Pacific Islander communities.' },
       { key: 'Education', desc: 'Youth and adult education programs and scholarships across the West Valley.' },
     ];
-    const AMOUNTS = [25, 60, 125, 200, 300, 600];
-    document.getElementById('donateProjects').innerHTML = PROJECTS.map((p) => `
-      <article class="card card--hover">
-        <div class="card__icon">♥</div>
-        <h3>${p.key}</h3>
-        <p>${p.desc}</p>
-        <div class="chips mt-4">
-          ${AMOUNTS.map((a) => `<a class="chip" href="checkout.html?type=donation&project=${encodeURIComponent(p.key)}&amount=${a}">$${a}</a>`).join('')}
-          <a class="chip" href="checkout.html?type=donation&project=${encodeURIComponent(p.key)}">Other</a>
-        </div>
-      </article>`).join('');
+    (async () => {
+      // Preset amounts come from the SKU catalog (actual gifts the Chamber receives).
+      let cat = null;
+      try { cat = await Chamber.getJSON(ChamberAPI.url('/api/skus')); }
+      catch (e) { try { cat = await Chamber.getJSON('data/skus.json'); } catch (e2) {} }
+      const presets = ((cat && cat.donations) || []).filter((d) => d.amount != null);
+      const amounts = presets.length ? presets : [25, 50, 100, 150, 300].map((a) => ({ sku: 'don-' + a, amount: a }));
+      const enc = encodeURIComponent;
+      document.getElementById('donateProjects').innerHTML = PROJECTS.map((p) => `
+        <article class="card card--hover">
+          <div class="card__icon">♥</div>
+          <h3>${p.key}</h3>
+          <p>${p.desc}</p>
+          <div class="chips mt-4">
+            ${amounts.map((a) => `<a class="chip" href="checkout.html?type=donation&sku=${enc(a.sku)}&project=${enc(p.key)}&amount=${a.amount}">$${a.amount}</a>`).join('')}
+            <a class="chip" href="checkout.html?type=donation&sku=don-custom&project=${enc(p.key)}">Other</a>
+          </div>
+        </article>`).join('');
+    })();
   </script>
 </body>
 </html>

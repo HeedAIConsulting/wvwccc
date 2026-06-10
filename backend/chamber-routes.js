@@ -265,12 +265,31 @@ function readSeedEvents() {
   catch { return []; }
 }
 async function loadEvents() {
+  await ensureEventsSeeded(); // seed-if-empty + one-time flyer backfill (covers public routes too)
   const stored = await repo.listEventsStore();
   return stored.length ? stored : readSeedEvents().map((e) => buildEvent(e, e));
 }
+let _eventImgBackfillDone = false;
 async function ensureEventsSeeded() {
   if (!(await repo.hasEvents())) {
     for (const e of readSeedEvents()) await repo.upsertEvent(buildEvent(e, e));
+    _eventImgBackfillDone = true;
+    return;
+  }
+  // Store already populated (e.g. seeded before flyers existed). Once per boot,
+  // backfill flyer images from the committed seed onto stored events that lack
+  // one. Add-only by id — never wipes admin edits or deletes events.
+  if (!_eventImgBackfillDone) {
+    _eventImgBackfillDone = true;
+    try {
+      const seed = new Map(readSeedEvents().map((e) => [e.id, e]));
+      for (const ev of await repo.listEventsStore()) {
+        const s = seed.get(ev.id);
+        if (s && Array.isArray(s.images) && s.images.length && !(ev.images && ev.images.length)) {
+          await repo.upsertEvent(buildEvent({ ...ev, images: s.images }, ev));
+        }
+      }
+    } catch (e) { console.error('event image backfill failed', e); }
   }
 }
 function buildEvent(b, existing = {}) {
