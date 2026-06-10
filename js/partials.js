@@ -176,6 +176,8 @@ window.ChamberPartials = (function () {
   var ELEVENLABS_AGENT_ID = 'agent_8201kqnjhzyrfpdvtqwgf9e0034y';
   function mountElevenLabs() {
     if (/\/(admin|auth)\//.test(window.location.pathname)) return;
+    // Hidden on mobile (phones) — the floating widget crowds small screens.
+    if (window.matchMedia && window.matchMedia('(max-width: 767px)').matches) return;
     if (!document.querySelector('elevenlabs-convai')) {
       var el = document.createElement('elevenlabs-convai');
       el.setAttribute('agent-id', ELEVENLABS_AGENT_ID);
