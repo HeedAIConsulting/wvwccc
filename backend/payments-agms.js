@@ -13,7 +13,10 @@
    ============================================================ */
 import { Buffer } from 'node:buffer';
 
-const API_BASE = process.env.AGMS_API_BASE || 'https://sandbox.nmi.com';
+// AGMS account (heedaisolutions) lives on transactiongateway.com; in Test mode it
+// accepts charges without settling. The security key only authenticates on this
+// gateway. Override with AGMS_API_BASE if the account ever moves.
+const API_BASE = process.env.AGMS_API_BASE || 'https://agms.transactiongateway.com';
 const SECURITY_KEY = process.env.AGMS_SECURITY_KEY || '';
 
 /** Parse NMI's application/x-www-form-urlencoded response body. */
