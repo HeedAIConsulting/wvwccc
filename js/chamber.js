@@ -12,6 +12,24 @@ window.Chamber = (function () {
     return res.json();
   }
 
+  // Smart map link from a member's address (Google Maps universal URL).
+  function mapUrl(m) {
+    const q = [m.address, m.city, m.state, m.zip].filter(Boolean).join(' ') || m.name || '';
+    return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(q);
+  }
+
+  // Member video → responsive embed. Accepts YouTube/Vimeo URLs or a direct file.
+  function videoEmbed(url) {
+    const u = String(url || '').trim(); if (!u) return '';
+    const yt = u.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([\w-]{6,})/i);
+    const vm = u.match(/vimeo\.com\/(?:video\/)?(\d+)/i);
+    const wrap = (inner) => `<div class="video-embed mt-5">${inner}</div>`;
+    if (yt) return wrap(`<iframe src="https://www.youtube.com/embed/${yt[1]}" title="Member video" allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture" allowfullscreen loading="lazy"></iframe>`);
+    if (vm) return wrap(`<iframe src="https://player.vimeo.com/video/${vm[1]}" title="Member video" allow="autoplay;fullscreen;picture-in-picture" allowfullscreen loading="lazy"></iframe>`);
+    if (/\.(mp4|webm|ogg)(\?|$)/i.test(u)) return wrap(`<video src="${esc(u)}" controls preload="metadata" style="width:100%;border-radius:var(--r-lg)"></video>`);
+    return '';
+  }
+
   function memberTile(m, depth) {
     const tier = (m.tier || 'member').toLowerCase();
     const tierLabel = tier.charAt(0).toUpperCase() + tier.slice(1);
@@ -19,9 +37,11 @@ window.Chamber = (function () {
     // NOTE: no nested <a> inside another <a> (invalid HTML). Card is an <article>;
     // the name and the action links are separate, sibling anchors.
     const phoneDigits = (m.phone || '').replace(/[^\d]/g, '');
-    const phone = m.phone ? `<a href="tel:${phoneDigits}">${esc(m.phone)}</a>` : '';
-    const site = m.website
-      ? `<a href="${esc(m.website)}" target="_blank" rel="noopener">Visit site ↗</a>` : '';
+    const phone = m.phone ? `<a class="member-tile__row" href="tel:${phoneDigits}" aria-label="Call ${esc(m.name)}"><span aria-hidden="true">📞</span> ${esc(m.phone)}</a>` : '';
+    // Smart address → opens a map. Visible "on first glance" per Chamber feedback.
+    const addr = [m.address, m.city].filter(Boolean).join(', ');
+    const addrLink = addr
+      ? `<a class="member-tile__row" href="${esc(mapUrl(m))}" target="_blank" rel="noopener" aria-label="Map ${esc(m.name)}"><span aria-hidden="true">📍</span> ${esc(addr)}</a>` : '';
     const meta = [m.category, m.neighborhood].filter(Boolean).map(esc).join(' · ');
     const photo = m.logo || (m.photos && m.photos[0]) || '';
     const seal = photo
@@ -31,14 +51,17 @@ window.Chamber = (function () {
       <article class="card card--hover member-tile">
         <div class="member-tile__head">
           ${seal}
-          <div>
+          <div class="member-tile__id">
             <a class="member-tile__name" href="${href}">${esc(m.name)}</a>
             <div class="member-tile__meta">${meta}</div>
           </div>
         </div>
-        <span class="badge badge--${tier}">${esc(tierLabel)}</span>
-        <p class="member-tile__tag">${esc(m.tagline || '')}</p>
-        <div class="member-tile__links">${phone}${site}</div>
+        ${m.tagline ? `<p class="member-tile__tag">${esc(m.tagline)}</p>` : ''}
+        ${(addrLink || phone) ? `<div class="member-tile__facts">${addrLink}${phone}</div>` : ''}
+        <div class="member-tile__foot">
+          <span class="badge badge--${tier}">${esc(tierLabel)}</span>
+          <a class="btn btn--forest btn--sm" href="${href}">View profile →</a>
+        </div>
       </article>`;
   }
 
@@ -436,23 +459,40 @@ window.Chamber = (function () {
     const cats = uniq(members.map((m) => m.group || 'Other'));
     const hoods = uniq(members.map((m) => m.neighborhood));
 
-    function facetButton(label, value, key) {
-      const active = state[key] === value;
-      const b = document.createElement('button');
-      b.className = 'chip' + (active ? ' active' : '');
-      b.textContent = label;
-      b.addEventListener('click', () => { state[key] = active ? '' : value; render(); });
-      return b;
+    // Collapsed green dropdown: a button that opens a list of choices (Chamber feedback).
+    function closeAllDD() {
+      document.querySelectorAll('.dd__menu').forEach((mn) => { mn.hidden = true; });
+      document.querySelectorAll('.dd__btn[aria-expanded="true"]').forEach((b) => b.setAttribute('aria-expanded', 'false'));
+    }
+    function buildDropdown(elId, allLabel, options, key) {
+      const el = document.getElementById(elId);
+      if (!el) return;
+      const cur = state[key];
+      el.innerHTML = `
+        <button type="button" class="dd__btn${cur ? ' is-set' : ''}" aria-expanded="false" aria-haspopup="listbox">
+          <span>${esc(cur || allLabel)}</span><span class="dd__caret" aria-hidden="true">▾</span>
+        </button>
+        <div class="dd__menu" role="listbox" hidden>
+          <button type="button" class="dd__opt${!cur ? ' is-active' : ''}" data-val="" role="option">${esc(allLabel)}</button>
+          ${options.map((o) => `<button type="button" class="dd__opt${cur === o ? ' is-active' : ''}" data-val="${esc(o)}" role="option">${esc(o)}</button>`).join('')}
+        </div>`;
+      const btn = el.querySelector('.dd__btn'); const menu = el.querySelector('.dd__menu');
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const willOpen = menu.hidden; closeAllDD();
+        menu.hidden = !willOpen; btn.setAttribute('aria-expanded', String(willOpen));
+      });
+      menu.querySelectorAll('.dd__opt').forEach((o) => o.addEventListener('click', () => {
+        state[key] = o.dataset.val; closeAllDD(); render();
+      }));
     }
     function buildFacets() {
-      const cf = document.getElementById('categoryFacet');
-      const hf = document.getElementById('hoodFacet');
-      cf.innerHTML = ''; hf.innerHTML = '';
-      cf.appendChild(facetButton('All categories', '', 'category'));
-      cats.forEach((c) => cf.appendChild(facetButton(c, c, 'category')));
-      hf.appendChild(facetButton('All areas', '', 'hood'));
-      hoods.forEach((h) => hf.appendChild(facetButton(h, h, 'hood')));
+      buildDropdown('categoryDD', 'All categories', cats, 'category');
+      buildDropdown('hoodDD', 'All areas', hoods, 'hood');
+      const clr = document.getElementById('clearAll');
+      if (clr) clr.hidden = !(state.category || state.hood);
     }
+    if (!window.__wvDDClose) { window.__wvDDClose = true; document.addEventListener('click', closeAllDD); }
 
     // Relevance score. -1 = filtered out / no match. Higher = better.
     // Each query word must hit SOME field; matches in name/category rank far
@@ -505,8 +545,11 @@ window.Chamber = (function () {
     input.value = state.q;
     form.addEventListener('submit', (e) => { e.preventDefault(); state.q = input.value.trim(); render(); });
     input.addEventListener('input', () => { state.q = input.value.trim(); render(); });
+    const reset = () => { state.q = ''; state.category = ''; state.hood = ''; input.value = ''; render(); };
     const clear = document.getElementById('clearFilters');
-    if (clear) clear.addEventListener('click', () => { state.q = ''; state.category = ''; state.hood = ''; input.value = ''; render(); });
+    if (clear) clear.addEventListener('click', reset);
+    const clearAll = document.getElementById('clearAll');
+    if (clearAll) clearAll.addEventListener('click', () => { state.category = ''; state.hood = ''; render(); });
 
     render();
   }
@@ -557,11 +600,14 @@ window.Chamber = (function () {
     const seal = m.logo
       ? `<img src="${esc(m.logo)}" alt="${esc(m.name)} logo" style="width:120px;height:120px;border-radius:var(--r-lg);object-fit:cover;margin:0 auto var(--s-4);box-shadow:var(--sh-sm)">`
       : `<div class="member-tile__seal" style="width:100px;height:100px;font-size:2.8rem;margin:0 auto var(--s-4)">${esc(m.seal || m.name[0])}</div>`;
+    const fullAddr = [m.address, m.city, m.state].filter(Boolean).join(', ');
     const contactRows = [
       m.phone && `<li>📞 <a href="tel:${phoneDigits}">${esc(m.phone)}</a></li>`,
       m.website && `<li>🌐 <a href="${esc(m.website)}" target="_blank" rel="noopener" title="${esc(m.website)}">${esc(webLabel(m.website))}</a></li>`,
-      m.address && `<li>📍 ${esc(m.address)}</li>`,
+      m.address && `<li>📍 <a href="${esc(mapUrl(m))}" target="_blank" rel="noopener" title="Open in maps">${esc(fullAddr)}</a></li>`,
     ].filter(Boolean).join('');
+    // Member video (YouTube/Vimeo URL → responsive embed; else native <video>).
+    const video = m.video ? videoEmbed(m.video) : '';
 
     el.innerHTML = `
       <div class="grid" style="grid-template-columns:300px 1fr;gap:var(--s-7);align-items:start">
@@ -579,6 +625,7 @@ window.Chamber = (function () {
           <p class="lead">${esc(m.tagline || '')}</p>
           ${m.description ? `<p>${esc(m.description)}</p>` : ''}
           ${facts ? `<ul class="grid grid-3 mt-5" style="list-style:none;gap:var(--s-4)">${facts}</ul>` : ''}
+          ${video}
           ${photos}
           <div id="memberOffers" class="mt-6"></div>
           <div class="btn-row mt-6">

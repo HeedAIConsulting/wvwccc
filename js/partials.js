@@ -219,13 +219,21 @@ window.ChamberPartials = (function () {
     if (!document.getElementById('wv-navdd-css')) {
       const st = document.createElement('style'); st.id = 'wv-navdd-css';
       st.textContent = '.nav-dd{position:relative}'
-        + '.nav-dd>button{background:none;border:none;font:inherit;cursor:pointer;color:inherit;padding:0;display:inline-flex;align-items:center;gap:4px}'
+        // trigger sits on the dark-green header (and dark mobile panel) → always light text
+        + '.nav-dd>button{background:none;border:none;font:inherit;cursor:pointer;color:rgba(255,255,255,.82);font-weight:500;font-size:.85rem;padding:0;display:inline-flex;align-items:center;gap:4px;transition:color .2s}'
+        + '.nav-dd>button:hover,.nav-dd:hover>button,.nav-dd:focus-within>button{color:#fff}'
         + '.nav-dd__menu{position:absolute;top:calc(100% + 8px);left:0;min-width:244px;background:#fff;border:1px solid var(--gold-soft,#e6dcbf);border-radius:12px;box-shadow:0 14px 36px rgba(0,0,0,.16);padding:8px;display:none;z-index:300;max-height:74vh;overflow:auto}'
         + '.nav-dd:hover .nav-dd__menu,.nav-dd:focus-within .nav-dd__menu{display:block}'
         + '.nav-dd__menu a{display:block;padding:7px 12px;border-radius:8px;color:var(--green-ink,#1b3326);text-decoration:none;font-size:.92rem;white-space:nowrap}'
         + '.nav-dd__menu a:hover{background:var(--cream-deep,#f3ecda)}'
         + '.nav-dd__sep{font-family:var(--mono);font-size:.58rem;letter-spacing:.12em;text-transform:uppercase;color:var(--gold-deep);padding:9px 12px 3px}'
-        + '@media(max-width:980px){.nav-dd{display:block}.nav-dd__menu{position:static;display:block;box-shadow:none;border:none;padding:0 0 6px 14px;max-height:none;min-width:0}.nav-dd>button{font-weight:600;padding:6px 0}}';
+        // mobile: nav becomes a dark panel (≤1260px) → menu goes inline with LIGHT links
+        + '@media(max-width:1260px){.nav-dd{display:block}'
+          + '.nav-dd__menu{position:static;display:block;background:none;box-shadow:none;border:none;padding:0 0 6px 14px;max-height:none;min-width:0}'
+          + '.nav-dd>button{font-weight:600;padding:6px 0}'
+          + '.nav-dd__menu a{color:rgba(255,255,255,.82)}'
+          + '.nav-dd__menu a:hover{background:rgba(255,255,255,.08);color:#fff}'
+          + '.nav-dd__sep{color:var(--gold-bright)}}';
       document.head.appendChild(st);
     }
     // fill dropdowns with migrated content pages, grouped

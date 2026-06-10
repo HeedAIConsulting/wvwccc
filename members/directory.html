@@ -35,25 +35,21 @@
         </div>
       </form>
 
-      <div class="grid" style="grid-template-columns:240px 1fr;gap:var(--s-7);align-items:start">
-        <!-- facets -->
-        <aside id="facets" aria-label="Filters">
-          <h4 style="margin-bottom:var(--s-3)">Category</h4>
-          <div id="categoryFacet" class="chips" style="flex-direction:column;align-items:flex-start;gap:6px"></div>
-          <h4 style="margin:var(--s-5) 0 var(--s-3)">Neighborhood</h4>
-          <div id="hoodFacet" class="chips" style="flex-direction:column;align-items:flex-start;gap:6px"></div>
-        </aside>
-
-        <!-- results -->
-        <div>
-          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:var(--s-4)">
-            <div id="resultCount" class="member-tile__meta"></div>
-            <div id="dataNotice"></div>
-          </div>
-          <div class="grid grid-2" id="memberGrid" style="gap:var(--s-4)"></div>
-          <div id="emptyState" hidden class="notice" style="margin-top:var(--s-5)">No members match those filters. <button type="button" id="clearFilters" style="color:var(--green);font-weight:600;text-decoration:underline">Clear filters</button></div>
+      <!-- filter toolbar: collapsed green dropdowns (per Chamber feedback) -->
+      <div class="dir-toolbar">
+        <div class="dir-filters">
+          <div class="dd" id="categoryDD"></div>
+          <div class="dd" id="hoodDD"></div>
+          <button type="button" id="clearAll" class="dd__clear" hidden>Clear ✕</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:var(--s-3)">
+          <div id="resultCount" class="member-tile__meta"></div>
+          <div id="dataNotice"></div>
         </div>
       </div>
+
+      <div class="dir-grid" id="memberGrid"></div>
+      <div id="emptyState" hidden class="notice" style="margin-top:var(--s-5)">No members match those filters. <button type="button" id="clearFilters" style="color:var(--green);font-weight:600;text-decoration:underline">Clear filters</button></div>
     </div>
   </section>
 

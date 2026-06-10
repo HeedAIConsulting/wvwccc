@@ -103,7 +103,7 @@ const PUBLIC_FIELDS = ['id', 'slug', 'name', 'category', 'group', 'tier', 'neigh
   'description', 'leaderStatus', 'seal', 'featured', 'tags', 'keywords', 'categories',
   // richer profile (member-managed)
   'hours', 'occupation', 'typeOfBusiness', 'yearEstablished', 'employees',
-  'logo', 'photos', 'social', 'reviewLinks', 'ctaLinks'];
+  'logo', 'photos', 'social', 'reviewLinks', 'ctaLinks', 'video'];
 
 let _kw = null;
 function readKeywords() {
@@ -141,7 +141,7 @@ const slugify = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-')
 // Scalar fields a member may edit (admin-only: status/tier/leader/featured).
 const MEMBER_STR_FIELDS = ['name', 'category', 'neighborhood', 'contactName', 'phone', 'fax',
   'website', 'address', 'city', 'state', 'zip', 'tagline', 'description', 'hours',
-  'occupation', 'typeOfBusiness', 'yearEstablished', 'employees', 'logo'];
+  'occupation', 'typeOfBusiness', 'yearEstablished', 'employees', 'logo', 'video'];
 const clampUrl = (s) => String(s || '').trim().slice(0, 600);
 function sanitizeProfile(b) {
   const patch = {};
