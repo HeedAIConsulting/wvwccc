@@ -116,6 +116,10 @@ window.ChamberPartials = (function () {
     return `
 <footer class="site-footer">
   <div class="container">
+    <div class="footer-leaders" data-leader-section hidden>
+      <p class="footer-leaders__label">${L ? 'Nuestros Líderes de la Cámara' : 'Our Chamber Leaders'}</p>
+      <div class="leader-strip" id="footerLeaders" aria-label="Chamber leader members"></div>
+    </div>
     <div class="site-footer__grid">
       <div class="site-footer__brand">
         <div class="brand">
@@ -256,6 +260,12 @@ window.ChamberPartials = (function () {
 
     mountElevenLabs();
     mountAccessibility(depth);
+
+    // Leader "web banner" in the footer — static on every public page.
+    // (Skips admin/auth; safe no-op if the directory app isn't loaded.)
+    if (!/\/(admin|auth)\//.test(window.location.pathname) && window.Chamber && Chamber.initLeaderBanner) {
+      Chamber.initLeaderBanner('#footerLeaders', { depth: depth, variant: 'names' });
+    }
   }
 
   return { mount };

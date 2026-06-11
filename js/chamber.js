@@ -283,6 +283,40 @@ window.Chamber = (function () {
       </article>`;
   }
 
+  // Leader / "web banner" — showcases members who invest in the Chamber's
+  // leader-level marketing program (paid tiers). Auto-scrolling logo strip.
+  const LEADER_RANK = { platinum: 1, gold: 2, silver: 3, bronze: 4, supporter: 5 };
+  async function initLeaderBanner(sel, opts = {}) {
+    const el = typeof sel === 'string' ? document.querySelector(sel) : sel;
+    if (!el) return;
+    const depth = opts.depth || 0;
+    let members = [];
+    try { members = (await getJSON(ChamberAPI.url('/api/members'))).members || []; }
+    catch (e) { el.closest('[data-leader-section]')?.setAttribute('hidden', ''); return; }
+    const leaders = members
+      .filter((m) => LEADER_RANK[(m.tier || '').toLowerCase()] && (m.logo || (m.photos && m.photos[0])))
+      .sort((a, b) => LEADER_RANK[a.tier.toLowerCase()] - LEADER_RANK[b.tier.toLowerCase()]);
+    if (!leaders.length) { el.closest('[data-leader-section]')?.setAttribute('hidden', ''); return; }
+    const variant = opts.variant || 'logos';
+    const fixUrl = (u) => (/^(https?:|\/)/.test(u) ? u : (depth ? '../' : '') + u);
+    const hrefOf = (m) => m.slug ? '/members/' + m.slug : `${depth ? '../' : ''}members/profile.html?id=${encodeURIComponent(m.id)}`;
+    // 'names' = lightweight text links (footer); 'logos' = labeled image tiles (home).
+    const item = (m) => {
+      const href = hrefOf(m);
+      if (variant === 'names') return `<a class="leader-strip__name" href="${href}">${esc(m.name)}</a>`;
+      const logo = m.logo || (m.photos && m.photos[0]);
+      return `<a class="leader-strip__item" href="${href}" title="${esc(m.name)} · ${esc(m.tier)} leader">
+        <span class="leader-strip__logo"><img src="${esc(fixUrl(logo))}" alt="${esc(m.name)}" loading="lazy"></span>
+        <span class="leader-strip__cap">${esc(m.name)}</span></a>`;
+    };
+    const items = leaders.map(item).join('');
+    const marquee = leaders.length > 4;
+    el.classList.toggle('leader-strip--marquee', marquee);
+    el.classList.toggle('leader-strip--names', variant === 'names');
+    el.innerHTML = `<div class="leader-strip__track">${items}${marquee ? items : ''}</div>`;
+    el.closest('[data-leader-section]')?.removeAttribute('hidden');
+  }
+
   function initGeoBanner() {
     const banner = document.getElementById('geoBanner');
     if (!banner) return;
@@ -369,6 +403,7 @@ window.Chamber = (function () {
     initGeoBanner();
     initConcierge();
     initHomeSlider();
+    initLeaderBanner('#leaderBanner', { depth: 0 });
     try {
       const [dir, evd] = await Promise.all([
         getJSON(ChamberAPI.url('/api/members')),
@@ -1169,5 +1204,5 @@ window.Chamber = (function () {
     });
   }
 
-  return { initHome, initDirectory, initProfile, initEvents, initCheckout, initLeadForm, initJobs, initDeals, initCommunity, initNews, initBizBuzz, initBoard, initDining, offerCard, postCard, newsCard, memberTile, eventCard, eventPreviewCard, getJSON, esc };
+  return { initHome, initDirectory, initProfile, initEvents, initCheckout, initLeadForm, initJobs, initDeals, initCommunity, initNews, initBizBuzz, initBoard, initDining, offerCard, postCard, newsCard, memberTile, eventCard, eventPreviewCard, initLeaderBanner, getJSON, esc };
 })();
