@@ -47,6 +47,7 @@ window.Admin = (function () {
     { href: 'events.html', icon: '◆', label: 'Events', key: 'events' },
     { href: 'groups.html', icon: '◎', label: 'Groups', key: 'groups' },
     { href: 'content.html', icon: '✎', label: 'Content', key: 'content' },
+    { href: 'sponsorships.html', icon: '★', label: 'Sponsorships', key: 'sponsorships' },
     { href: 'ai-assistant.html', icon: '✦', label: 'AI Assistant', key: 'assistant' },
     { href: 'users.html', icon: '⚷', label: 'Users & Roles', key: 'users' },
     { grp: 'Revenue & contact' },
@@ -567,6 +568,59 @@ window.Admin = (function () {
     load();
   }
 
+  // ── Sponsorships: featured-member placements per page/guide ──
+  async function initSponsorships() {
+    mountShell('sponsorships');
+    const tbody = document.getElementById('placementRows');
+    let members = [];
+    try { members = (await api('/api/admin/members')).members || []; } catch (e) { showAuthError(e); return; }
+    const findMembers = (q) => {
+      q = q.toLowerCase();
+      return members.filter((m) => (m.status || 'approved') === 'approved'
+        && [m.name, m.category, m.contactName].filter(Boolean).join(' ').toLowerCase().includes(q)).slice(0, 8);
+    };
+    async function load() {
+      let placements = [];
+      try { placements = (await api('/api/admin/placements')).placements || []; } catch (e) { showAuthError(e); return; }
+      tbody.innerHTML = placements.map((p) => `
+        <tr data-slot="${esc(p.slot)}">
+          <td><span class="name">${esc(p.label)}</span><div class="sub"><a href="..${esc(p.page)}" target="_blank" rel="noopener">${esc(p.page)}</a></div></td>
+          <td>${p.memberName
+            ? `<span class="name">★ ${esc(p.memberName)}</span>`
+            : '<span class="sub">— open —</span>'}</td>
+          <td style="position:relative">
+            <input class="admin-select" data-search placeholder="Search members…" autocomplete="off" style="min-width:220px" />
+            <div class="sp-suggest" data-suggest hidden></div>
+          </td>
+          <td>${p.memberId ? '<button class="btn btn--ghost btn--sm" data-clear>Remove</button>' : ''}
+            <span class="saved-flash" data-flash>saved ✓</span></td>
+        </tr>`).join('');
+      tbody.querySelectorAll('tr[data-slot]').forEach((tr) => {
+        const slot = tr.dataset.slot;
+        const input = tr.querySelector('[data-search]');
+        const sug = tr.querySelector('[data-suggest]');
+        const flash = tr.querySelector('[data-flash]');
+        const assign = async (memberId) => {
+          await api('/api/admin/placements', { method: 'POST', body: JSON.stringify({ slot, memberId }) });
+          flash.classList.add('show'); setTimeout(() => load(), 450);
+        };
+        input.addEventListener('input', () => {
+          const q = input.value.trim();
+          if (q.length < 2) { sug.hidden = true; return; }
+          const hits = findMembers(q);
+          sug.innerHTML = hits.length
+            ? hits.map((m) => `<button type="button" data-pick="${esc(m.id)}"><b>${esc(m.name)}</b><span>${esc(m.category || '')}</span></button>`).join('')
+            : '<div class="sub" style="padding:8px 10px">No matches</div>';
+          sug.hidden = false;
+          sug.querySelectorAll('[data-pick]').forEach((b) => b.addEventListener('click', () => assign(b.dataset.pick)));
+        });
+        input.addEventListener('blur', () => setTimeout(() => { sug.hidden = true; }, 250));
+        tr.querySelector('[data-clear]')?.addEventListener('click', () => assign(null));
+      });
+    }
+    load();
+  }
+
   // ── Renewals (manual date override, else join-date + term) ──
   async function initRenewals() {
     mountShell('renewals');
@@ -826,5 +880,5 @@ window.Admin = (function () {
     loadList();
   }
 
-  return { mountShell, initDashboard, initMembers, initApprovals, initOrders, initLeads, initEvents, initContent, initAssistant, initRenewals, initUsers, initGroups, api, esc };
+  return { mountShell, initDashboard, initMembers, initApprovals, initOrders, initLeads, initEvents, initContent, initAssistant, initRenewals, initUsers, initGroups, initSponsorships, api, esc };
 })();

@@ -8,48 +8,144 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="../css/chamber.css" />
   <style>
-    .prose{line-height:1.7;color:var(--slate-mid,#33403a)}
-    .prose h2,.prose h3,.prose h4{font-family:var(--display);color:var(--green-ink,#1b3326);margin:1.4em 0 .5em}
-    .prose p{margin:0 0 1em}
-    .prose ul,.prose ol{margin:0 0 1em 1.3em;display:block}
-    .prose li{margin:.3em 0}
-    .prose a{color:var(--gold-deep,#8c6e14);text-decoration:underline}
-    .prose a:hover{color:var(--green-deep,#1f4d3a)}
+    /* ── Content-page hero ── */
+    .pg-hero { position: relative; overflow: hidden; }
+    .pg-hero::after { content: ""; position: absolute; right: -120px; top: -120px; width: 380px; height: 380px;
+      border-radius: 50%; background: radial-gradient(circle, rgba(201,162,39,.28), transparent 65%); pointer-events: none; }
+    .pg-hero .container { position: relative; z-index: 1; }
+
+    /* ── Prose: modern reading defaults for migrated legacy content ── */
+    .prose { line-height: 1.75; color: var(--slate-mid, #33403a); font-size: 1.02rem; }
+    .prose h2, .prose h3, .prose h4 { font-family: var(--display); color: var(--green-ink, #1b3326); margin: 1.6em 0 .55em; line-height: 1.25; }
+    .prose h2 { font-size: 1.45rem; padding-bottom: .35em; border-bottom: 2px solid var(--gold-soft, #e6dcbf); }
+    .prose h2:first-child, .prose h3:first-child { margin-top: 0; }
+    .prose h3 { font-size: 1.15rem; }
+    .prose p { margin: 0 0 1.05em; }
+    .prose ul, .prose ol { margin: 0 0 1.1em 1.3em; display: block; }
+    .prose li { margin: .35em 0; }
+    .prose a { color: var(--gold-deep, #8c6e14); text-decoration: underline; text-underline-offset: 2px; }
+    .prose a:hover { color: var(--green-deep, #1f4d3a); }
+    .prose table { width: 100%; border-collapse: collapse; margin: 0 0 1.4em; font-size: .95rem; }
+    .prose th { text-align: left; font-family: var(--mono); font-size: .66rem; text-transform: uppercase; letter-spacing: .1em;
+      color: var(--gold-deep); padding: 8px 10px; border-bottom: 2px solid var(--gold-soft, #e6dcbf); }
+    .prose td { padding: 9px 10px; border-bottom: 1px solid var(--line, #e8e3d5); vertical-align: top; }
+    .prose tr:hover td { background: var(--cream, #faf6ea); }
+    .prose blockquote { border-left: 3px solid var(--gold, #c9a227); background: var(--cream, #faf6ea);
+      margin: 0 0 1.2em; padding: 14px 18px; border-radius: 0 var(--r-md) var(--r-md) 0; font-style: italic; }
+    .prose img { max-width: 100%; height: auto; border-radius: var(--r-md); }
+    .prose hr { border: none; border-top: 1px solid var(--line, #e8e3d5); margin: 1.6em 0; }
+
+    /* ── Structured patterns for rewritten pages ── */
+    .pg-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(248px, 1fr)); gap: 12px; margin: 0 0 1.5em; }
+    .pg-grid a, .pg-card { display: flex; flex-direction: column; gap: 3px; background: #fff; border: 1px solid var(--line, #e8e3d5);
+      border-radius: var(--r-md, 12px); padding: 13px 16px; text-decoration: none !important; color: inherit;
+      transition: transform .18s, box-shadow .18s, border-color .18s; }
+    .pg-grid a:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(27,51,38,.1); border-color: var(--gold-soft, #e6dcbf); }
+    .pg-grid a b, .pg-card b { color: var(--green-ink, #1b3326); font-size: .98rem; }
+    .pg-grid a span, .pg-card span { color: var(--slate-mid, #66705f); font-size: .82rem; }
+
+    .pg-callout { display: flex; gap: 12px; align-items: flex-start; background: var(--cream, #faf6ea);
+      border: 1px solid var(--gold-soft, #e6dcbf); border-radius: var(--r-md); padding: 15px 18px; margin: 0 0 1.4em; }
+    .pg-callout .ico { font-size: 1.3rem; line-height: 1; }
+
+    .pg-stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 0 0 1.6em; }
+    .pg-stat { background: var(--green-ink); color: #fff; border-radius: var(--r-md); padding: 16px 18px;
+      background-image: radial-gradient(ellipse at 90% 0%, rgba(201,162,39,.25), transparent 60%); }
+    .pg-stat b { display: block; font-family: var(--display); font-size: 1.45rem; color: var(--gold-bright, #e3c35f); }
+    .pg-stat span { font-size: .82rem; color: rgba(255,255,255,.78); }
+
+    /* dense legacy link-lists become tidy chips (auto-applied by script) */
+    .prose .pg-linkrow { display: inline-block; background: #fff; border: 1px solid var(--line, #e8e3d5);
+      border-radius: 999px; padding: 6px 14px; margin: 3px 6px 3px 0; font-size: .92rem; }
+    .prose .pg-linkrow a { text-decoration: none; font-weight: 600; }
+    .prose .pg-linkrow .where { color: var(--slate-mid); font-size: .82rem; }
+
+    /* related pages */
+    .pg-related { margin-top: var(--s-8); }
   </style>
 </head>
 <body>
   <div data-partial="header"></div>
-  <section class="section-sm bg-forest">
+  <section class="section-sm bg-forest pg-hero">
     <div class="container">
       <span class="kicker" id="pgKicker">The Chamber</span>
-      <h1 id="pgTitle" style="color:#fff">Loading…</h1>
+      <h1 id="pgTitle" style="color:#fff;max-width:22ch">Loading…</h1>
     </div>
   </section>
   <section class="section">
-    <div class="container" style="max-width:840px">
+    <div class="container" style="max-width:880px">
       <div id="pgBody" class="prose"><p class="member-tile__meta">Loading…</p></div>
-      <p class="mt-7"><a class="btn btn--ghost" href="../resources.html">← All Chamber pages</a></p>
+      <div class="pg-related" id="pgRelated" hidden>
+        <span class="kicker">Keep exploring</span>
+        <h2 style="margin-bottom:var(--s-4)">More in this section</h2>
+        <div class="pg-grid" id="pgRelatedGrid"></div>
+      </div>
+      <p class="mt-7" style="display:flex;gap:10px;flex-wrap:wrap">
+        <a class="btn btn--ghost" href="../resources.html">← All Chamber pages</a>
+        <a class="btn btn--forest" href="../guides/index.html">Community guides →</a>
+      </p>
+      <div data-join-cta></div>
     </div>
   </section>
   <div data-partial="footer"></div>
   <script src="../js/partials.js"></script>
   <script src="../js/api-base.js"></script>
+  <script src="../js/chamber.js"></script>
   <script>
     ChamberPartials.mount({ active: '', depth: 1, lang: 'en' });
     const qs = new URLSearchParams(location.search);
     const slug = qs.get('slug') || decodeURIComponent((location.pathname.split('/p/')[1] || '').replace(/\/$/, '')) || '';
     const esc = (s) => String(s == null ? '' : s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+
+    // Tidy legacy content so old pages read like the new ones. Hand-rebuilt
+    // pages (anything using .pg-grid / .pg-stat-row / .pg-callout) are left alone.
+    function enhanceLegacy(root) {
+      if (root.querySelector('.pg-grid, .pg-stat-row, .pg-callout')) return;
+      // dense "<a>…</a>/Place<br>" link lists → pill chips
+      const dense = (root.innerHTML.match(/<br/gi) || []).length > 8 && root.querySelectorAll('a[target]').length > 6;
+      if (!dense) return;
+      root.querySelectorAll('a[target]').forEach((a) => {
+        if (a.closest('.pg-linkrow, table, li')) return;
+        const wrap = document.createElement('span'); wrap.className = 'pg-linkrow';
+        a.replaceWith(wrap); wrap.appendChild(a);
+        // pull a trailing "/Neighborhood" text fragment into the pill
+        const next = wrap.nextSibling;
+        if (next && next.nodeType === 3) {
+          const t = next.textContent.replace(/^\s*[\/·–-]\s*/, '').trim();
+          if (t && t.length < 40 && !/^https?:/i.test(t)) {
+            const w = document.createElement('span'); w.className = 'where'; w.textContent = ' · ' + t;
+            next.remove(); wrap.appendChild(w);
+          }
+        }
+        // swallow the <br> right after a pill so chips flow in rows
+        let nn = wrap.nextSibling;
+        while (nn && nn.nodeType === 3 && !nn.textContent.trim()) nn = nn.nextSibling;
+        if (nn && nn.nodeName === 'BR') nn.remove();
+      });
+    }
+
     fetch(ChamberAPI.url('/api/pages/' + encodeURIComponent(slug))).then((r) => r.json()).then((p) => {
       if (!p || p.error) {
         document.getElementById('pgTitle').textContent = 'Page not found';
         document.getElementById('pgBody').innerHTML = '<div class="notice">That page isn’t available. <a href="../resources.html">Browse all Chamber pages →</a></div>';
         return;
       }
-      document.title = p.title + ' — WVWCCC';
+      document.title = p.title + ' — West Valley · Warner Center Chamber of Commerce';
       document.getElementById('pgTitle').textContent = p.title;
       document.getElementById('pgKicker').textContent = p.group || 'The Chamber';
-      document.getElementById('pgBody').innerHTML = p.html || '<p>(No content.)</p>';
+      const body = document.getElementById('pgBody');
+      body.innerHTML = p.html || '<p>(No content.)</p>';
+      try { enhanceLegacy(body); } catch (e) {}
+      // related pages in the same group
+      fetch(ChamberAPI.url('/api/pages')).then((r) => r.json()).then((d) => {
+        const rel = (d.pages || []).filter((x) => x.group === p.group && x.slug !== p.slug).slice(0, 6);
+        if (!rel.length) return;
+        document.getElementById('pgRelatedGrid').innerHTML = rel.map((x) =>
+          `<a href="/p/${encodeURIComponent(x.slug)}"><b>${esc(x.title)}</b><span>${esc(p.group || '')}</span></a>`).join('');
+        document.getElementById('pgRelated').hidden = false;
+      }).catch(() => {});
     }).catch(() => { document.getElementById('pgBody').innerHTML = '<div class="notice">Could not load this page.</div>'; });
+    Chamber.mountJoinCta('[data-join-cta]', { depth: 1 });
   </script>
 </body>
 </html>

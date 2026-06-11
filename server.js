@@ -93,6 +93,11 @@ app.get('/groups/:slug', (req, res, next) => {
   if ((req.params.slug || '').includes('.')) return next();
   res.sendFile(path.join(__dirname, 'groups', 'view.html'), (err) => { if (err) next(); });
 });
+// Pretty guide URLs: /guides/<slug> → community guide renderer.
+app.get('/guides/:slug', (req, res, next) => {
+  if ((req.params.slug || '').includes('.')) return next();
+  res.sendFile(path.join(__dirname, 'guides', 'view.html'), (err) => { if (err) next(); });
+});
 
 // ── 404 fallback ───────────────────────────────────────────
 app.use((req, res) => {

@@ -118,6 +118,16 @@ CREATE TABLE IF NOT EXISTS posts (
   created       timestamptz DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS posts_type_status_idx ON posts (type, status);
+-- Structured extras for newer post types (jobs board, real-estate listings):
+-- { jobType, location, payRange, applyEmail, listingType, price, address, beds, baths, sqft }
+ALTER TABLE posts ADD COLUMN IF NOT EXISTS meta jsonb;
+
+-- ── Featured placements: one sponsored member per page/guide slot ──
+CREATE TABLE IF NOT EXISTS placements (
+  slot        text PRIMARY KEY,                -- 'directory' | 'dining' | 'guide:senior-living' | ...
+  member_id   text,
+  updated_at  timestamptz DEFAULT now()
+);
 
 -- ── Events (admin-managed; full record kept as a jsonb blob so the
 --    flexible fields — images[], links[] — need no schema churn). ──

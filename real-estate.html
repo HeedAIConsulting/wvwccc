@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Real Estate — West Valley · Warner Center Chamber of Commerce</title>
+  <meta name="description" content="Commercial and residential real estate listings from West Valley Chamber member realtors and brokers — Woodland Hills, Tarzana, Reseda, Warner Center." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="css/chamber.css" />
+</head>
+<body>
+  <div data-partial="header"></div>
+
+  <section class="section-sm bg-forest">
+    <div class="container">
+      <span class="kicker">Live &amp; work in the West Valley</span>
+      <h1 style="color:#fff">Real Estate</h1>
+      <p class="lead" style="color:rgba(255,255,255,.85);max-width:64ch">
+        Commercial and residential listings from Chamber member realtors and brokers — the people who know
+        Woodland Hills, Tarzana, Reseda, and Warner Center best.
+      </p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div id="reFeatured" hidden></div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--s-5);flex-wrap:wrap;gap:var(--s-3)">
+        <div class="chips" role="tablist" aria-label="Listing type">
+          <button class="chip chip--active" type="button" data-re-tab="all">All listings</button>
+          <button class="chip" type="button" data-re-tab="Commercial">Commercial</button>
+          <button class="chip" type="button" data-re-tab="Residential">Residential</button>
+        </div>
+        <div id="reCount" class="member-tile__meta"></div>
+      </div>
+      <div id="reList" class="grid grid-3" style="gap:var(--s-4)"><p class="member-tile__meta">Loading…</p></div>
+
+      <div class="notice mt-6">
+        <strong>Are you a member realtor or broker?</strong> Post your listings free from the
+        <a href="member/post.html">member portal</a> — every listing is reviewed by the Chamber before it goes live.
+      </div>
+
+      <div class="section-head mt-8" style="margin-bottom:var(--s-5)">
+        <span class="kicker">Meet the professionals</span>
+        <h2>Member Realtors &amp; Brokers</h2>
+        <p id="reAgentsCount" class="member-tile__meta"></p>
+      </div>
+      <div id="reAgents" class="grid grid-3" style="gap:var(--s-4)"></div>
+
+      <div data-join-cta></div>
+    </div>
+  </section>
+
+  <div data-partial="footer"></div>
+  <script src="js/partials.js"></script>
+  <script src="js/api-base.js"></script>
+  <script src="js/chamber.js"></script>
+  <script>
+    ChamberPartials.mount({ active: 'resources', depth: 0, lang: 'en' });
+    Chamber.initRealEstate();
+    Chamber.mountJoinCta('[data-join-cta]', { depth: 0, what: 'brokerage' });
+  </script>
+</body>
+</html>

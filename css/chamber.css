@@ -418,9 +418,55 @@ a.member-tile__name:hover { color: var(--green); }
 .site-footer a { color: rgba(255,255,255,.72); font-size: .95rem; }
 .site-footer a:hover { color: var(--gold-bright); }
 .site-footer__brand p { color: rgba(255,255,255,.66); max-width: 38ch; }
+.footer-social { display: flex; gap: var(--s-3); margin-top: var(--s-5); }
+.footer-social a { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 50%;
+  background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14); transition: background .2s, transform .2s, border-color .2s; }
+.footer-social a:hover { background: var(--green-deep); border-color: var(--gold-bright); transform: translateY(-2px); }
+.footer-social img { display: block; width: 18px; height: 18px; }
 .site-footer__bottom { display: flex; justify-content: space-between; gap: var(--s-4); flex-wrap: wrap; padding-top: var(--s-5); font-size: .85rem; color: rgba(255,255,255,.55); }
 @media (max-width: 820px) { .site-footer__grid { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 520px) { .site-footer__grid { grid-template-columns: 1fr; } }
+
+/* ── Featured placement (sponsored member spot on resource pages) ── */
+.featured-spot {
+  position: relative; display: flex; align-items: center; gap: var(--s-5);
+  background: linear-gradient(120deg, #fff 0%, var(--cream, #faf6ea) 70%);
+  border: 1px solid var(--gold-soft, #e6dcbf); border-left: 4px solid var(--gold, #c9a227);
+  border-radius: var(--r-lg, 16px); padding: var(--s-5) var(--s-6);
+  box-shadow: 0 10px 30px rgba(27, 51, 38, .08); margin-bottom: var(--s-6);
+}
+.featured-spot__badge {
+  position: absolute; top: -11px; left: 18px; background: var(--gold-deep, #8c6e14); color: #fff;
+  font-family: var(--mono); font-size: .6rem; letter-spacing: .14em; text-transform: uppercase;
+  padding: 3px 10px; border-radius: 999px;
+}
+.featured-spot__logo { flex: none; width: 116px; height: 72px; display: grid; place-items: center;
+  background: #fff; border: 1px solid var(--line, #e8e3d5); border-radius: var(--r-md); padding: 6px 8px; }
+.featured-spot__logo img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.featured-spot__body { flex: 1; min-width: 220px; }
+.featured-spot__name { font-family: var(--display); font-size: 1.18rem; font-weight: 700; color: var(--green-ink); text-decoration: none; }
+.featured-spot__name:hover { color: var(--green-deep); }
+.featured-spot__tag { margin-top: 4px; color: var(--slate-mid); font-size: .94rem; }
+.featured-spot__cta { display: flex; flex-direction: column; gap: 8px; align-items: stretch; }
+@media (max-width: 640px) { .featured-spot { flex-wrap: wrap; } .featured-spot__cta { flex-direction: row; width: 100%; } }
+
+/* ── Join / list-your-business CTA band ── */
+.join-cta { background: var(--green-ink); border-radius: var(--r-lg, 16px); margin-top: var(--s-8);
+  background-image: radial-gradient(ellipse at 85% 10%, rgba(201, 162, 39, .22), transparent 55%); }
+.join-cta__inner { display: flex; align-items: center; justify-content: space-between; gap: var(--s-6);
+  flex-wrap: wrap; padding: var(--s-7) var(--s-7); }
+.join-cta h2 { color: #fff; margin-bottom: 6px; }
+.join-cta p { color: rgba(255,255,255,.78); max-width: 52ch; }
+.join-cta__actions { display: flex; gap: var(--s-3); flex-wrap: wrap; }
+
+/* ── Community guide cards ── */
+.guide-card { text-decoration: none; color: inherit; display: block; }
+.guide-card__emoji { font-size: 2rem; margin-bottom: var(--s-2); }
+
+/* ── Real-estate listings ── */
+.listing-card__img { width: 100%; aspect-ratio: 16/9; object-fit: cover; border-radius: var(--r-md); margin-bottom: var(--s-3); }
+.listing-card__facts { font-family: var(--display); font-weight: 700; color: var(--green-deep); margin-top: 4px; }
+.chip--active { background: var(--green-deep); color: #fff; border-color: var(--green-deep); }
 
 /* ── notice / data flag ── */
 .notice {

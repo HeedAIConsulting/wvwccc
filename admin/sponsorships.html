@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex" />
+  <title>Sponsorships — WVWCCC Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="../css/chamber.css" />
+  <link rel="stylesheet" href="admin.css" />
+</head>
+<body class="admin">
+  <div class="admin-shell">
+    <aside class="admin-sidebar" data-admin-nav></aside>
+    <div class="admin-main">
+      <div class="admin-topbar"><h1>Sponsorships &amp; Featured Placements</h1></div>
+      <div class="admin-content">
+        <p id="adminError" class="admin-notice" hidden></p>
+
+        <div class="panel">
+          <div class="panel__head">
+            <h3>Featured placements</h3>
+            <span class="sub">One member per page — shown in the ★ Featured Member spot at the top of that page.</span>
+          </div>
+          <div style="overflow-x:auto">
+            <table class="admin-table">
+              <thead><tr><th>Placement</th><th>Current</th><th>Assign a member</th><th></th></tr></thead>
+              <tbody id="placementRows"><tr><td colspan="4" class="sub">Loading…</td></tr></tbody>
+            </table>
+          </div>
+          <p class="sub" style="padding:0 16px 14px">
+            Tip: featured spots are a sellable sponsorship. Assign the member here and the placement is live
+            immediately — no page edits needed. Remove anytime.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="../js/api-base.js"></script>
+  <script src="admin.js"></script>
+  <script>Admin.initSponsorships();</script>
+</body>
+</html>

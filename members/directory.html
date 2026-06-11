@@ -27,6 +27,7 @@
   <!-- search + filters -->
   <section class="section">
     <div class="container">
+      <div id="dirFeatured" hidden></div>
       <form id="dirSearch" class="hero__concierge" style="max-width:640px;margin:0 0 var(--s-6)">
         <div class="pill-input" style="box-shadow:var(--sh-sm)">
           <span aria-hidden="true">🔎</span>
@@ -61,6 +62,7 @@
   <script>
     ChamberPartials.mount({ active: 'members', depth: 1, lang: 'en' });
     Chamber.initDirectory();
+    Chamber.initFeaturedSlot('directory', '#dirFeatured', { depth: 1 });
   </script>
 </body>
 </html>

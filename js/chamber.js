@@ -301,14 +301,14 @@ window.Chamber = (function () {
     try { members = (await getJSON(ChamberAPI.url('/api/members'))).members || []; }
     catch (e) { section?.setAttribute('hidden', ''); return; }
     const leaders = members
-      .filter((m) => LEADER_RANK[(m.tier || '').toLowerCase()] && (m.logo || (m.photos && m.photos[0])))
+      .filter((m) => LEADER_RANK[(m.tier || '').toLowerCase()] && (m.leaderLogo || m.logo || (m.photos && m.photos[0])))
       .sort((a, b) => LEADER_RANK[a.tier.toLowerCase()] - LEADER_RANK[b.tier.toLowerCase()] || String(a.name).localeCompare(String(b.name)));
     if (!leaders.length) { section?.setAttribute('hidden', ''); return; }
     const fixUrl = (u) => (/^(https?:|\/)/.test(u) ? u : (depth ? '../' : '') + u);
     const hrefOf = (m) => m.slug ? `${depth ? '../' : ''}members/${m.slug}` : `${depth ? '../' : ''}members/profile.html?id=${encodeURIComponent(m.id)}`;
     const cell = (m) => {
       const tier = (m.tier || '').toLowerCase();
-      const logo = m.logo || (m.photos && m.photos[0]);
+      const logo = m.leaderLogo || m.logo || (m.photos && m.photos[0]);
       return `<a class="leader-cell" href="${hrefOf(m)}" title="${esc(m.name)} · ${esc(LEADER_LABEL[tier] || tier)}">
         <span class="leader-cell__tier">${esc(LEADER_LABEL[tier] || tier)}</span>
         <span class="leader-cell__logo"><img src="${esc(fixUrl(logo))}" alt="${esc(m.name)}" loading="lazy"></span>
@@ -1055,28 +1055,48 @@ window.Chamber = (function () {
   }
 
   // ── Jobs board ──────────────────────────────────────────
+  // Jobs board — member-submitted openings (admin-approved posts, type 'job').
+  function jobCard(p) {
+    const meta = p.meta || {};
+    const apply = p.ctaUrl
+      ? `<a class="btn btn--gold btn--sm" href="${esc(p.ctaUrl)}" target="_blank" rel="noopener">${esc(p.ctaLabel || 'Apply')}</a>`
+      : (meta.applyEmail ? `<a class="btn btn--gold btn--sm" href="mailto:${esc(meta.applyEmail)}?subject=${encodeURIComponent('Application: ' + (p.title || ''))}">Apply by email</a>` : '');
+    return `
+      <article class="card card--hover job-card">
+        <div style="display:flex;justify-content:space-between;gap:var(--s-4);flex-wrap:wrap;align-items:flex-start">
+          <div>
+            <h3 style="margin-bottom:2px">${esc(p.title)}</h3>
+            <div class="member-tile__meta">
+              ${p.memberId ? `<a href="../members/profile.html?id=${esc(p.memberId)}">${esc(p.authorName || '')}</a>` : esc(p.authorName || '')}
+              ${meta.location ? ' · 📍 ' + esc(meta.location) : ''}
+            </div>
+          </div>
+          ${apply}
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+          ${meta.jobType ? `<span class="badge">${esc(meta.jobType)}</span>` : ''}
+          ${meta.payRange ? `<span class="badge badge--gold">${esc(meta.payRange)}</span>` : ''}
+        </div>
+        ${p.body ? `<p class="mt-3">${esc(p.body)}</p>` : ''}
+      </article>`;
+  }
   async function initJobs() {
+    initFeaturedSlot('jobs', '#jobsFeatured', { depth: 1 });
     const list = document.getElementById('jobsList');
     const count = document.getElementById('jobsCount');
     let jobs = [];
-    try { jobs = (await getJSON('../data/jobs.json')).jobs || []; } catch (e) {}
-    if (!jobs.length) {
-      count.textContent = '';
-      list.innerHTML = `<div class="notice">The jobs board is being imported from the Chamber's system. Check back soon — or <a href="../contact.html?reason=Jobs">post an opening</a> to be among the first listed.</div>`;
-      return;
-    }
-    count.textContent = `${jobs.length} open position${jobs.length === 1 ? '' : 's'}`;
-    list.innerHTML = jobs.map((j) => `
-      <article class="card card--hover">
-        <div style="display:flex;justify-content:space-between;gap:var(--s-4);flex-wrap:wrap">
-          <div>
-            <h3>${esc(j.title)}</h3>
-            <div class="member-tile__meta">${esc(j.company || '')}${j.location ? ' · ' + esc(j.location) : ''}${j.type ? ' · ' + esc(j.type) : ''}</div>
-          </div>
-          ${j.applyUrl ? `<a class="btn btn--gold btn--sm" href="${esc(j.applyUrl)}" target="_blank" rel="noopener">Apply</a>` : ''}
-        </div>
-        ${j.summary ? `<p class="mt-3">${esc(j.summary)}</p>` : ''}
-      </article>`).join('');
+    try { jobs = (await getJSON(ChamberAPI.url('/api/posts?type=job'))).posts || []; } catch (e) {}
+    const render = (arr) => {
+      list.innerHTML = arr.length ? arr.map(jobCard).join('')
+        : `<div class="notice">No open positions right now. Member businesses post openings free from the <a href="../member/post.html">member portal</a> — or <a href="../join.html">join the Chamber</a> to reach local talent here.</div>`;
+    };
+    count.textContent = jobs.length ? `${jobs.length} open position${jobs.length === 1 ? '' : 's'}` : '';
+    render(jobs);
+    const sb = document.getElementById('jobsSearch');
+    if (sb) sb.addEventListener('input', () => {
+      const q = sb.value.trim().toLowerCase();
+      render(!q ? jobs : jobs.filter((p) => [p.title, p.body, p.authorName, p.meta && p.meta.location, p.meta && p.meta.jobType].filter(Boolean).join(' ').toLowerCase().includes(q)));
+    });
   }
 
   // ── Posts: discounts (offers) + member community board ──
@@ -1307,5 +1327,172 @@ window.Chamber = (function () {
     });
   }
 
-  return { initHome, initDirectory, initProfile, initEvents, initCheckout, initLeadForm, initJobs, initDeals, initCommunity, initNews, initBizBuzz, initBoard, initDining, offerCard, postCard, newsCard, memberTile, eventCard, eventPreviewCard, initLeaderBanner, initGroups, initGroupView, initGallery, getJSON, esc };
+  // ── Featured placement: one sponsored member per page/guide ──
+  // Admin-assigned (Admin → Sponsorships). Renders a banner card above the
+  // page's listings; stays hidden when the slot is unassigned.
+  async function initFeaturedSlot(slot, sel, opts = {}) {
+    const el = typeof sel === 'string' ? document.querySelector(sel) : sel;
+    if (!el) return;
+    const depth = opts.depth || 0;
+    let m = null;
+    try { m = ((await getJSON(ChamberAPI.url('/api/featured?slots=' + encodeURIComponent(slot)))).featured || {})[slot]; }
+    catch (e) { return; }
+    if (!m) return;
+    const href = m.slug ? `${depth ? '../' : ''}members/${m.slug}` : `${depth ? '../' : ''}members/profile.html?id=${encodeURIComponent(m.id)}`;
+    const photo = m.logo || m.leaderLogo || (m.photos && m.photos[0]) || '';
+    const fixUrl = (u) => (/^(https?:|\/)/.test(u) ? u : (depth ? '../' : '') + u);
+    el.innerHTML = `
+      <aside class="featured-spot" aria-label="Featured member">
+        <div class="featured-spot__badge">★ Featured Member</div>
+        ${photo ? `<a class="featured-spot__logo" href="${href}"><img src="${esc(fixUrl(photo))}" alt="${esc(m.name)} logo" loading="lazy"></a>` : ''}
+        <div class="featured-spot__body">
+          <a class="featured-spot__name" href="${href}">${esc(m.name)}</a>
+          <div class="member-tile__meta">${[m.category, m.neighborhood].filter(Boolean).map(esc).join(' · ')}</div>
+          ${m.tagline ? `<p class="featured-spot__tag">${esc(m.tagline)}</p>` : ''}
+        </div>
+        <div class="featured-spot__cta">
+          <a class="btn btn--gold btn--sm" href="${href}">View profile →</a>
+          ${m.website ? `<a class="btn btn--ghost btn--sm" href="${esc(m.website)}" target="_blank" rel="noopener">Website</a>` : ''}
+        </div>
+      </aside>`;
+    el.hidden = false;
+  }
+
+  // ── Join / "list your business" CTA band (guides & resource pages) ──
+  function joinCtaHtml(depth = 0, opts = {}) {
+    const base = depth ? '../' : '';
+    const joinUrl = (typeof location !== 'undefined' ? location.origin : '') + '/join.html';
+    const what = opts.what || 'business';
+    return `
+      <section class="join-cta">
+        <div class="join-cta__inner">
+          <div>
+            <h2>Is your ${esc(what)} part of the West Valley story?</h2>
+            <p>Join the Chamber to be listed here — or share this with a ${esc(what)} that belongs on this page.</p>
+          </div>
+          <div class="join-cta__actions">
+            <a class="btn btn--gold btn--lg" href="${base}join.html">Become a member</a>
+            <button class="btn btn--ghost btn--lg" type="button" data-share-copy="${esc(joinUrl)}" style="color:#fff;border-color:rgba(255,255,255,.4)">🔗 Share the join link</button>
+          </div>
+        </div>
+      </section>`;
+  }
+  function mountJoinCta(sel, opts = {}) {
+    const el = typeof sel === 'string' ? document.querySelector(sel) : sel;
+    if (el) el.outerHTML = joinCtaHtml(opts.depth || 0, opts);
+  }
+
+  // ── Community guides (/guides) ───────────────────────────
+  async function initGuides() {
+    const grid = document.getElementById('guideGrid');
+    if (!grid) return;
+    let guides = [];
+    try { guides = (await getJSON(ChamberAPI.url('/api/guides'))).guides || []; } catch (e) {}
+    grid.innerHTML = guides.length ? guides.map((g) => `
+      <a class="card card--hover guide-card" href="/guides/${esc(g.slug)}">
+        <div class="guide-card__emoji" aria-hidden="true">${esc(g.emoji || '📘')}</div>
+        <h3>${esc(g.title)}</h3>
+        <p class="member-tile__meta">${esc(g.lede || '')}</p>
+        <span class="btn btn--forest btn--sm mt-3">Open guide →</span>
+      </a>`).join('') : '<p class="notice">Guides are being set up — check back soon.</p>';
+  }
+
+  async function initGuideView() {
+    const slug = decodeURIComponent(location.pathname.split('/').filter(Boolean).pop() || '');
+    let g = null;
+    try { g = await getJSON(ChamberAPI.url('/api/guides/' + encodeURIComponent(slug))); } catch (e) {}
+    if (!g || g.error) {
+      document.getElementById('guideTitle').textContent = 'Guide not found';
+      document.getElementById('guideMembers').innerHTML = '<div class="notice">This guide may have moved — <a href="/guides/">see all guides</a>.</div>';
+      return;
+    }
+    document.title = `${g.title} — West Valley · Warner Center Chamber of Commerce`;
+    document.getElementById('guideKicker').textContent = g.kicker || 'Community Guide';
+    document.getElementById('guideTitle').textContent = (g.emoji ? g.emoji + ' ' : '') + g.title;
+    document.getElementById('guideLede').textContent = g.lede || '';
+    if (g.intro) document.getElementById('guideIntro').textContent = g.intro;
+
+    initFeaturedSlot('guide:' + g.slug, '#guideFeatured', { depth: 1 });
+
+    let members = [];
+    try { members = (await getJSON(ChamberAPI.url('/api/members'))).members || []; } catch (e) {}
+    const cats = new Set((g.categories || []).map((c) => c.toLowerCase()));
+    const kws = (g.keywords || []).map((k) => k.toLowerCase());
+    const matches = members.filter((m) => {
+      const mcats = [m.category].concat(m.categories || []).filter(Boolean).map((c) => c.toLowerCase());
+      if (mcats.some((c) => cats.has(c))) return true;
+      const hay = [m.name, m.category, m.tagline, m.typeOfBusiness, (m.keywords || []).join(' '), (m.tags || []).join(' ')].filter(Boolean).join(' ').toLowerCase();
+      return kws.some((k) => hay.includes(k));
+    }).sort((a, b) => String(a.name).localeCompare(String(b.name)));
+
+    const grid = document.getElementById('guideMembers');
+    const count = document.getElementById('guideCount');
+    if (count) count.textContent = matches.length ? `${matches.length} member ${matches.length === 1 ? 'business' : 'businesses'}` : '';
+    const render = (list) => {
+      grid.innerHTML = list.length
+        ? list.map((m) => memberTile(m, 1)).join('')
+        : '<div class="notice">No member businesses in this guide yet — know one that belongs here? <a href="../join.html">Invite them to join →</a></div>';
+    };
+    render(matches);
+    const sb = document.getElementById('guideSearch');
+    if (sb) sb.addEventListener('input', () => {
+      const q = sb.value.trim().toLowerCase();
+      render(!q ? matches : matches.filter((m) => [m.name, m.category, m.neighborhood, m.tagline, (m.keywords || []).join(' ')].filter(Boolean).join(' ').toLowerCase().includes(q)));
+    });
+  }
+
+  // ── Real estate (member-submitted listings, admin-approved) ──
+  function listingCard(p) {
+    const meta = p.meta || {};
+    const facts = [meta.price, meta.beds && `${meta.beds} bd`, meta.baths && `${meta.baths} ba`, meta.sqft && `${Number(String(meta.sqft).replace(/[^\d]/g, '')) ? Number(String(meta.sqft).replace(/[^\d]/g, '')).toLocaleString() : meta.sqft} sq ft`].filter(Boolean);
+    return `
+      <article class="card card--hover listing-card">
+        ${p.imageUrl ? `<img class="listing-card__img" src="${esc(p.imageUrl)}" alt="" loading="lazy">` : ''}
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px">
+          <span class="badge badge--gold">${esc(meta.listingType || 'Listing')}</span>
+          <span class="badge">${esc(meta.dealType || '')}</span>
+        </div>
+        <h3 style="margin:0 0 4px">${esc(p.title)}</h3>
+        ${meta.address ? `<div class="member-tile__meta">📍 ${esc(meta.address)}</div>` : ''}
+        ${facts.length ? `<div class="listing-card__facts">${facts.map(esc).join(' · ')}</div>` : ''}
+        <p class="mt-2">${esc(p.body || '')}</p>
+        ${p.authorName ? `<div class="member-tile__meta mt-2">Listed by ${p.memberId ? `<a href="members/profile.html?id=${esc(p.memberId)}">${esc(p.authorName)}</a>` : esc(p.authorName)}</div>` : ''}
+        ${p.ctaUrl ? `<a class="btn btn--gold btn--sm mt-3" href="${esc(p.ctaUrl)}" target="_blank" rel="noopener">${esc(p.ctaLabel || 'Details')}</a>` : ''}
+      </article>`;
+  }
+  async function initRealEstate() {
+    initFeaturedSlot('real-estate', '#reFeatured', { depth: 0 });
+    const grid = document.getElementById('reList');
+    const countEl = document.getElementById('reCount');
+    let listings = [];
+    try { listings = (await getJSON(ChamberAPI.url('/api/posts?type=listing'))).posts || []; } catch (e) {}
+    // Realtor members directory strip
+    try {
+      const members = (await getJSON(ChamberAPI.url('/api/members'))).members || [];
+      const realtors = members.filter((m) => /real estate|realtor|broker/i.test([m.category, ...(m.categories || [])].filter(Boolean).join(' ')))
+        .sort((a, b) => String(a.name).localeCompare(String(b.name)));
+      const rgrid = document.getElementById('reAgents');
+      if (rgrid && realtors.length) {
+        rgrid.innerHTML = realtors.map((m) => memberTile(m, 0)).join('');
+        const rc = document.getElementById('reAgentsCount');
+        if (rc) rc.textContent = `${realtors.length} member professionals`;
+      }
+    } catch (e) {}
+    let tab = 'all';
+    const render = () => {
+      const list = tab === 'all' ? listings : listings.filter((p) => (p.meta && p.meta.listingType) === tab);
+      if (countEl) countEl.textContent = list.length ? `${list.length} active listing${list.length === 1 ? '' : 's'}` : '';
+      grid.innerHTML = list.length
+        ? list.map(listingCard).join('')
+        : `<div class="notice">No ${tab === 'all' ? '' : tab.toLowerCase() + ' '}listings yet. Realtor members can post listings free from the <a href="member/post.html">member portal</a> — and any West Valley realtor can <a href="join.html">join the Chamber</a> to list here.</div>`;
+    };
+    document.querySelectorAll('[data-re-tab]').forEach((b) => b.addEventListener('click', () => {
+      tab = b.getAttribute('data-re-tab');
+      document.querySelectorAll('[data-re-tab]').forEach((x) => x.classList.toggle('chip--active', x === b));
+      render();
+    }));
+    render();
+  }
+
+  return { initHome, initDirectory, initProfile, initEvents, initCheckout, initLeadForm, initJobs, initDeals, initCommunity, initNews, initBizBuzz, initBoard, initDining, offerCard, postCard, newsCard, memberTile, eventCard, eventPreviewCard, initLeaderBanner, initGroups, initGroupView, initGallery, initFeaturedSlot, joinCtaHtml, mountJoinCta, initGuides, initGuideView, initRealEstate, getJSON, esc };
 })();

@@ -25,21 +25,34 @@
 
   <section class="section">
     <div class="container">
+      <div id="jobsFeatured" hidden></div>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--s-5);flex-wrap:wrap;gap:var(--s-3)">
         <div id="jobsCount" class="member-tile__meta"></div>
-        <a class="btn btn--gold" href="../contact.html?reason=Jobs">Post a job →</a>
+        <div style="display:flex;gap:var(--s-3);flex-wrap:wrap;align-items:center">
+          <input id="jobsSearch" type="search" placeholder="Search title, company, location…" style="border:1px solid var(--line);border-radius:10px;padding:9px 12px;min-width:250px" />
+          <a class="btn btn--gold" href="../member/post.html">Post a job →</a>
+        </div>
       </div>
       <div id="jobsList" class="grid" style="gap:var(--s-4)"></div>
+
+      <div class="notice mt-6">
+        <strong>Hiring?</strong> Chamber members post openings free from the
+        <a href="../member/post.html">member portal</a> — every posting is reviewed by Chamber staff before it goes live.
+        Not a member yet? <a href="../join.html">Join the Chamber</a> to reach local talent.
+      </div>
+      <div data-join-cta></div>
     </div>
   </section>
 
   <div data-partial="footer"></div>
 
   <script src="../js/partials.js"></script>
+  <script src="../js/api-base.js"></script>
   <script src="../js/chamber.js"></script>
   <script>
     ChamberPartials.mount({ active: 'jobs', depth: 1, lang: 'en' });
     Chamber.initJobs();
+    Chamber.mountJoinCta('[data-join-cta]', { depth: 1 });
   </script>
 </body>
 </html>

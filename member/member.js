@@ -208,6 +208,18 @@ window.MemberPortal = (function () {
       try { const r = await api('/api/me/asset', { method: 'POST', body: JSON.stringify({ kind: 'photo', dataUrl: await fileToDataUrl(f) }) }); imageUrl = r.url; msg.textContent = 'Image attached.'; }
       catch (err) { msg.textContent = 'Image upload failed.'; }
     });
+    // Show/hide the per-type field groups as the member switches type.
+    const TYPE_LABEL = { discount: 'Offer', member_post: 'Community post', job: 'Job opening', listing: 'Property listing' };
+    const TITLE_LABEL = { discount: 'Title', member_post: 'Title', job: 'Position title', listing: 'Listing headline' };
+    const syncTypeFields = () => {
+      const t = (form.querySelector('input[name="type"]:checked') || {}).value || 'discount';
+      form.querySelectorAll('[data-type-fields]').forEach((d) => { d.hidden = d.getAttribute('data-type-fields') !== t; });
+      const tl = form.querySelector('[data-label-title]');
+      if (tl) tl.textContent = TITLE_LABEL[t] || 'Title';
+    };
+    form.querySelectorAll('input[name="type"]').forEach((r) => r.addEventListener('change', syncTypeFields));
+    syncTypeFields();
+
     // load my posts with statuses
     try {
       const mine = (await api('/api/me/posts')).posts || [];
@@ -218,7 +230,7 @@ window.MemberPortal = (function () {
             <strong>${esc(p.title)}</strong>
             <span class="badge ${p.status === 'approved' ? 'badge--gold' : p.status === 'rejected' ? 'badge--bronze' : ''}">${esc(p.status)}</span>
           </div>
-          <div class="member-tile__meta">${p.type === 'discount' ? 'Offer' : 'Community post'}</div>
+          <div class="member-tile__meta">${esc(TYPE_LABEL[p.type] || p.type)}</div>
         </div>`).join('') : '<p class="member-tile__meta">You haven\'t posted anything yet.</p>';
     } catch (e) {}
 
@@ -226,8 +238,17 @@ window.MemberPortal = (function () {
       e.preventDefault();
       const fd = new FormData(form);
       const body = { type: fd.get('type'), title: fd.get('title'), body: fd.get('body'), imageUrl };
-      if (body.type === 'discount') { body.code = fd.get('code'); body.ctaLabel = fd.get('ctaLabel'); body.ctaUrl = fd.get('ctaUrl'); }
-      else { body.linkUrl = fd.get('ctaUrl'); body.ctaLabel = fd.get('ctaLabel'); }
+      body.ctaLabel = fd.get('ctaLabel'); body.ctaUrl = fd.get('ctaUrl');
+      if (body.type === 'discount') body.code = fd.get('code');
+      if (body.type === 'member_post') body.linkUrl = fd.get('ctaUrl');
+      if (body.type === 'job') body.meta = {
+        jobType: fd.get('jobType'), location: fd.get('jobLocation'),
+        payRange: fd.get('payRange'), applyEmail: fd.get('applyEmail'),
+      };
+      if (body.type === 'listing') body.meta = {
+        listingType: fd.get('listingType'), dealType: fd.get('dealType'), price: fd.get('price'),
+        address: fd.get('listingAddress'), beds: fd.get('beds'), baths: fd.get('baths'), sqft: fd.get('sqft'),
+      };
       const btn = form.querySelector('button[type="submit"]'); btn.disabled = true; btn.textContent = 'Submitting…';
       try {
         await api('/api/me/post', { method: 'POST', body: JSON.stringify(body) });

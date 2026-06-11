@@ -1,0 +1,68 @@
+{
+  "_meta": {
+    "note": "Community guides — each renders at /guides/<slug> from guides/view.html. Members are matched live from the directory by category (exact) and keyword (substring against name/category/keywords/tagline). Each guide has a featured-placement slot 'guide:<slug>' managed in Admin → Sponsorships.",
+    "schema_version": 1
+  },
+  "guides": [
+    {
+      "slug": "senior-living",
+      "title": "Senior Living & Resources",
+      "kicker": "Community Guide",
+      "emoji": "🌅",
+      "lede": "Trusted senior care, living communities, and support services across the West Valley.",
+      "intro": "The West Valley is one of Los Angeles' most senior-friendly communities — home to nationally recognized retirement communities, in-home care agencies, and advocacy organizations. Every provider listed here is a Chamber member business, accountable to our community.",
+      "categories": ["Senior Care", "Senior Living Community", "Senior Advocacy", "Home Care Services", "Home Health Care", "Hospice", "Hearing Services"],
+      "keywords": ["senior", "elder", "assisted living", "retirement", "caregiver", "memory care", "in-home care"]
+    },
+    {
+      "slug": "health-wellness",
+      "title": "Health, Spas & Wellness",
+      "kicker": "Community Guide",
+      "emoji": "💆",
+      "lede": "Hospitals, medical practices, spas, fitness, and wellness professionals in the West Valley.",
+      "intro": "From world-class hospitals like UCLA Health and Providence Cedars-Sinai Tarzana to neighborhood spas, chiropractors, and fitness studios — the West Valley is a healthcare and wellness hub. Find a Chamber member provider below.",
+      "categories": ["Health & Wellness", "Fitness/Wellness", "Spa & Massage", "Chiropractor", "Acupuncturist", "Medical", "Hospital", "Healthcare", "Dentist", "Orthodontist", "Pediatric", "Pharmacy", "Optical", "Cancer Center", "Behavioral Health", "Counseling Services", "Psychologist", "Psychotherapist", "Therapist", "Physical Therapists", "Physical & Occupational Therapy", "Sports Medicine", "Weight Management Services", "Beauty Salon", "Beauty and Skin Care Services", "Martial Arts", "Children's Gym", "Sports Rehab"],
+      "keywords": ["wellness", "spa", "massage", "fitness", "yoga", "medical", "health"]
+    },
+    {
+      "slug": "home-improvement",
+      "title": "Home Improvement & Services",
+      "kicker": "Community Guide",
+      "emoji": "🛠️",
+      "lede": "Contractors, plumbers, electricians, landscapers, and home pros you can trust.",
+      "intro": "Hiring for your home is easier when the business is a Chamber member — local, established, and invested in this community. From full remodels to a single repair, start here.",
+      "categories": ["Home Improvement", "General Contractor", "Contractors", "Electrical Contractor", "Plumbing", "Roofing Contractor", "Paint Contractor", "Glass Contractor", "Handyman", "Landscaping", "Heating, Air Conditioning & Ventilating", "Garage Door & Window Repair and Installation", "Kitchen,Bath & Lighting Design", "Interior Design and Furnishing", "Appliance Repair", "Pest Control", "Cleaning & Restoration", "Restoration,Water & Fire", "Window Covering", "Solar Company", "Solar Broker", "Hardware Store", "Cleaning / Janitorial Services", "Commercial Cleaners"],
+      "keywords": ["remodel", "repair", "plumber", "electrician", "hvac", "roofing", "landscap"]
+    },
+    {
+      "slug": "entertainment",
+      "title": "Entertainment & Things To Do",
+      "kicker": "Community Guide",
+      "emoji": "🎭",
+      "lede": "Theatres, events, recreation, and fun across the West Valley and Warner Center.",
+      "intro": "There's more to do in the West Valley than ever — live theatre, bowling, golf, wine tastings, and event pros who can turn any occasion into a memory. All Chamber members, all local.",
+      "categories": ["Bowling Alley", "Theatre - Plays", "Orchestra", "Golf Simulator", "Country Club", "Wine Tasting / Wine Sales", "Entertainment & Event Planning", "Event Planning", "Events Services", "Special Events", "Party Equipment Rental - Special Events Consultants", "Party Rental Equipment", "Photobooth", "Balloon Artists", "Dance Academy", "Dance Instruction", "Sports Franchise", "Catering", "Banquet/Reception Hall", "Limousine Service"],
+      "keywords": ["entertainment", "events", "party", "theatre", "music", "recreation"]
+    },
+    {
+      "slug": "schools",
+      "title": "Schools & Education",
+      "kicker": "Community Guide",
+      "emoji": "🎓",
+      "lede": "Schools, tutoring, child care, and adult education in the West Valley.",
+      "intro": "The West Valley's schools — public, private, and specialty — are a major reason families put down roots here. These Chamber member schools and education services serve every age.",
+      "categories": ["Schools", "Schools - Adult", "School - Early Childhood", "School, K-5th Grades", "Educational Services", "Education / Non-Profit", "Technical Education Center", "Child Care and Education Services", "Language Instruction, Translation"],
+      "keywords": ["school", "education", "tutor", "academy", "learning", "preschool"]
+    },
+    {
+      "slug": "shopping",
+      "title": "Shopping & Retail",
+      "kicker": "Community Guide",
+      "emoji": "🛍️",
+      "lede": "From Westfield Topanga & The Village to one-of-a-kind local shops.",
+      "intro": "Anchored by Westfield Topanga & The Village — one of the country's premier shopping destinations — and surrounded by specialty retailers you won't find anywhere else. Shop local, shop member.",
+      "categories": ["Retailer, Specialty", "Shopping Center", "Clothing", "Electronics Retailer", "Mattress Retailer", "Cosmetics", "Florist", "Office Supplies", "Picture Framing/Custom Art Sales", "Promotional Products", "Grocery", "Bakery", "Hardware Store", "Pawn Broker"],
+      "keywords": ["shop", "retail", "boutique", "store"]
+    }
+  ]
+}

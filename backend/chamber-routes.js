@@ -100,7 +100,7 @@ router.post('/auth/set-password', auth.requireAuth(), async (req, res) => {
 // Admin overrides (status/tier/leader/featured) come from the durable repo.
 const PUBLIC_FIELDS = ['id', 'slug', 'name', 'category', 'group', 'tier', 'neighborhood', 'contactName',
   'address', 'city', 'state', 'zip', 'phone', 'fax', 'website', 'tagline',
-  'description', 'leaderStatus', 'seal', 'featured', 'tags', 'keywords', 'categories',
+  'description', 'leaderStatus', 'leaderLogo', 'seal', 'featured', 'tags', 'keywords', 'categories',
   // richer profile (member-managed)
   'hours', 'occupation', 'typeOfBusiness', 'yearEstablished', 'employees',
   'logo', 'photos', 'social', 'reviewLinks', 'ctaLinks', 'video'];
@@ -190,12 +190,38 @@ router.patch('/me/profile', auth.requireAuth(), async (req, res) => {
   catch (e) { console.error(e); res.status(500).json({ error: 'could not save profile' }); }
 });
 
-// Member submits an offer/discount or a community post → pending admin approval.
+// Member submits an offer/discount, community post, job opening, or
+// real-estate listing → pending admin approval.
+const MEMBER_POST_TYPES = ['discount', 'member_post', 'job', 'listing'];
+function sanitizePostMeta(type, raw) {
+  const b = raw && typeof raw === 'object' ? raw : {};
+  const s = (v, n) => String(v || '').slice(0, n);
+  if (type === 'job') {
+    return {
+      jobType: ['Full-time', 'Part-time', 'Contract', 'Internship', 'Temporary'].includes(b.jobType) ? b.jobType : 'Full-time',
+      location: s(b.location, 120),
+      payRange: s(b.payRange, 80),
+      applyEmail: s(b.applyEmail, 160),
+    };
+  }
+  if (type === 'listing') {
+    return {
+      listingType: ['Commercial', 'Residential'].includes(b.listingType) ? b.listingType : 'Residential',
+      dealType: ['For Sale', 'For Lease', 'For Rent'].includes(b.dealType) ? b.dealType : 'For Sale',
+      price: s(b.price, 40),
+      address: s(b.address, 200),
+      beds: s(b.beds, 10),
+      baths: s(b.baths, 10),
+      sqft: s(b.sqft, 12),
+    };
+  }
+  return undefined;
+}
 router.post('/me/post', auth.requireAuth(), async (req, res) => {
   const mid = req.user.mid;
   if (!mid) return res.status(400).json({ error: 'No member listing is linked to this account.' });
   const b = req.body || {};
-  const type = ['discount', 'member_post'].includes(b.type) ? b.type : null;
+  const type = MEMBER_POST_TYPES.includes(b.type) ? b.type : null;
   if (!type) return res.status(400).json({ error: 'Invalid post type.' });
   if (!b.title || !b.body) return res.status(400).json({ error: 'Title and body are required.' });
   let authorName = req.user.sub;
@@ -208,6 +234,7 @@ router.post('/me/post', auth.requireAuth(), async (req, res) => {
     ctaLabel: String(b.ctaLabel || '').slice(0, 40), ctaUrl: clampUrl(b.ctaUrl),
     code: String(b.code || '').slice(0, 80), status: 'pending', featuredHome: false,
     expiresAt: b.expiresAt || null,
+    meta: sanitizePostMeta(type, b.meta),
   };
   try { await repo.addPost(post); res.json({ ok: true, status: 'pending' }); }
   catch (e) { console.error(e); res.status(500).json({ error: 'could not submit' }); }
@@ -243,7 +270,7 @@ router.get('/assets/:id', async (req, res) => {
 
 // Public posts feed (approved, not expired).
 router.get('/posts', async (req, res) => {
-  const type = ['discount', 'member_post', 'news', 'announcement', 'gallery'].includes(req.query.type) ? req.query.type : undefined;
+  const type = ['discount', 'member_post', 'news', 'announcement', 'gallery', 'job', 'listing'].includes(req.query.type) ? req.query.type : undefined;
   try {
     const now = Date.now();
     const posts = (await repo.listPosts({ type, status: 'approved' }))
@@ -449,6 +476,79 @@ router.get('/pages/:slug', (req, res) => {
   const p = readPages().find((x) => x.slug === req.params.slug);
   if (!p) return res.status(404).json({ error: 'not found' });
   res.json(p);
+});
+
+// ── Community guides (data-driven: Senior Living, Health & Wellness, …) ──
+let _guides = null;
+function readGuides() {
+  if (_guides) return _guides;
+  try { _guides = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'guides.json'), 'utf8')).guides || []; }
+  catch { _guides = []; }
+  return _guides;
+}
+router.get('/guides', (_req, res) => {
+  res.json({ guides: readGuides().map(({ slug, title, kicker, lede, emoji }) => ({ slug, title, kicker, lede, emoji })) });
+});
+router.get('/guides/:slug', (req, res) => {
+  const g = readGuides().find((x) => x.slug === req.params.slug);
+  if (!g) return res.status(404).json({ error: 'not found' });
+  res.json(g);
+});
+
+// ── Featured placements: one sponsored member per page/guide slot ──
+function placementSlots() {
+  const fixed = [
+    { slot: 'directory', label: 'Business Directory', page: '/members/directory.html' },
+    { slot: 'dining', label: 'Dining Guide', page: '/dining.html' },
+    { slot: 'deals', label: 'Member Deals', page: '/deals.html' },
+    { slot: 'events', label: 'Events', page: '/events/index.html' },
+    { slot: 'jobs', label: 'Jobs Board', page: '/jobs/index.html' },
+    { slot: 'real-estate', label: 'Real Estate', page: '/real-estate.html' },
+    { slot: 'news', label: 'Valley Biz Buzz', page: '/community/news.html' },
+  ];
+  const guides = readGuides().map((g) => ({ slot: 'guide:' + g.slug, label: 'Guide — ' + g.title, page: '/guides/' + g.slug }));
+  return fixed.concat(guides);
+}
+// Public: resolve one or more slots to their featured member cards.
+router.get('/featured', async (req, res) => {
+  try {
+    const want = String(req.query.slots || req.query.slot || '').split(',').map((s) => s.trim()).filter(Boolean).slice(0, 12);
+    if (!want.length) return res.json({ featured: {} });
+    const map = await repo.getPlacements();
+    const ids = want.map((s) => map[s]).filter(Boolean);
+    const out = {};
+    if (ids.length) {
+      const all = (await loadMembersPublic()).members;
+      const byId = Object.fromEntries(all.map((m) => [m.id, m]));
+      for (const s of want) if (map[s] && byId[map[s]]) out[s] = byId[map[s]];
+    }
+    res.json({ featured: out });
+  } catch (e) { console.error('featured', e); res.status(500).json({ error: 'failed' }); }
+});
+router.get('/admin/placements', requireAdmin, async (_req, res) => {
+  try {
+    const map = await repo.getPlacements();
+    const { members } = await loadMembersFull();
+    const byId = Object.fromEntries(members.map((m) => [m.id, m]));
+    const placements = placementSlots().map((s) => ({
+      ...s,
+      memberId: map[s.slot] || null,
+      memberName: map[s.slot] && byId[map[s.slot]] ? byId[map[s.slot]].name : null,
+    }));
+    res.json({ placements });
+  } catch (e) { console.error(e); res.status(500).json({ error: 'failed' }); }
+});
+router.post('/admin/placements', requireAdmin, async (req, res) => {
+  const b = req.body || {};
+  const slot = String(b.slot || '');
+  if (!placementSlots().some((s) => s.slot === slot)) return res.status(400).json({ error: 'Unknown placement slot.' });
+  const memberId = b.memberId ? String(b.memberId) : null;
+  if (memberId) {
+    const exists = (await loadMembersFull()).members.some((m) => m.id === memberId);
+    if (!exists) return res.status(404).json({ error: 'Member not found.' });
+  }
+  try { await repo.setPlacement(slot, memberId); res.json({ ok: true, slot, memberId }); }
+  catch (e) { console.error(e); res.status(500).json({ error: 'save failed' }); }
 });
 
 // Pricing catalog (memberships, donation presets, ticket convention).
@@ -831,7 +931,7 @@ router.get('/admin/posts', requireAdmin, async (req, res) => {
   } catch (e) { res.status(500).json({ error: 'failed' }); }
 });
 
-const ADMIN_POST_TYPES = ['news', 'announcement', 'discount', 'member_post', 'event', 'slide', 'gallery'];
+const ADMIN_POST_TYPES = ['news', 'announcement', 'discount', 'member_post', 'event', 'slide', 'gallery', 'job', 'listing'];
 router.post('/admin/posts', requireAdmin, async (req, res) => {
   const b = req.body || {};
   if (!ADMIN_POST_TYPES.includes(b.type)) return res.status(400).json({ error: 'Invalid type.' });

@@ -87,3 +87,14 @@ body.admin { background: var(--cream-deep); }
    one-per-line, making member rows ~240px tall */
 .radio-group { min-width: 236px; }
 .admin-table td { vertical-align: middle; }
+
+/* ── Sponsorships: member search suggestions ── */
+.sp-suggest { position: absolute; z-index: 50; top: calc(100% + 4px); left: 0; min-width: 280px;
+  background: #fff; border: 1px solid var(--line, #e3ded2); border-radius: 10px;
+  box-shadow: 0 12px 30px rgba(0,0,0,.14); overflow: hidden; }
+.sp-suggest button { display: flex; flex-direction: column; gap: 1px; width: 100%; text-align: left;
+  background: none; border: none; border-bottom: 1px solid var(--line, #eee); padding: 8px 12px; cursor: pointer; }
+.sp-suggest button:last-child { border-bottom: none; }
+.sp-suggest button:hover { background: var(--cream-deep, #f3ecda); }
+.sp-suggest button b { font-size: .9rem; }
+.sp-suggest button span { font-size: .75rem; color: var(--slate-mid, #667); }

@@ -16,6 +16,16 @@ window.ChamberPartials = (function () {
     since: 'Est. 1930',
   };
 
+  // Verified Chamber accounts only (each visited & confirmed).
+  // Icons are static SVG files (official simple-icons paths, cream fill).
+  const SOCIALS = [
+    { id: 'facebook', label: 'Facebook', url: 'https://www.facebook.com/westvalleywarnercenterchamber' },
+    { id: 'instagram', label: 'Instagram', url: 'https://www.instagram.com/westvalleywcchamber' },
+    { id: 'linkedin', label: 'LinkedIn', url: 'https://www.linkedin.com/company/wvwcchamberofcommerce' },
+    { id: 'google', label: 'Google Business Profile', url: 'https://share.google/C7gUMpUcG75U8cz14' },
+    { id: 'yelp', label: 'Yelp', url: 'https://www.yelp.com/biz/west-valley-warner-center-chamber-of-commerce-woodland-hills-2' },
+  ];
+
   function header(active, depth, lang) {
     const L = lang === 'es';
     const t = L ? {
@@ -81,6 +91,8 @@ window.ChamberPartials = (function () {
             <a href="${p(depth, 'dining.html')}">${t.dining}</a>
             <a href="${p(depth, 'deals.html')}">${t.deals}</a>
             <a href="${p(depth, 'jobs/index.html')}">${t.jobs}</a>
+            <a href="${p(depth, 'real-estate.html')}">${L?'Bienes Raíces':'Real Estate'}</a>
+            <a href="${p(depth, 'guides/index.html')}">${L?'Guías Comunitarias':'Community Guides'}</a>
             <a href="${p(depth, 'resources.html')}">${L?'Todos los recursos':'All Resources'}</a>
             <div class="nav-dd__sep">${L?'Info para visitantes':'Visitor info'}</div>
             <div data-dd-pages="Resources & Visitor Info"></div>
@@ -134,8 +146,9 @@ window.ChamberPartials = (function () {
           </span>
         </div>
         <p class="mt-4">${t.tag}</p>
-        <!-- SOCIAL LINKS: [NEEDS REAL DATA] — verify each handle by visiting the
-             actual account before rendering. Do NOT ship "#" placeholders. -->
+        <div class="footer-social" aria-label="${L ? 'Redes sociales' : 'Social media'}">
+          ${SOCIALS.map((s) => `<a href="${s.url}" target="_blank" rel="noopener" aria-label="${s.label}" title="${s.label}"><img src="${p(depth, 'images/social/' + s.id + '.svg')}" alt="" width="20" height="20" loading="lazy"></a>`).join('')}
+        </div>
       </div>
       <div>
         <h4>${t.members}</h4>
@@ -154,6 +167,8 @@ window.ChamberPartials = (function () {
           <li><a href="${p(depth,'gallery.html')}">${L?'Galería de Fotos':'Photo Gallery'}</a></li>
           <li><a href="${p(depth,'community/news.html')}">${L?'Noticias':'Valley Biz Buzz'}</a></li>
           <li><a href="${p(depth,'jobs/index.html')}">${t.jobs}</a></li>
+          <li><a href="${p(depth,'real-estate.html')}">${L?'Bienes Raíces':'Real Estate'}</a></li>
+          <li><a href="${p(depth,'guides/index.html')}">${L?'Guías':'Community Guides'}</a></li>
           <li><a href="${p(depth,'donate.html')}">${t.donate}</a></li>
           <li><a href="${p(depth,'inquire.html')}?type=sponsorship">${t.sponsor}</a></li>
           <li><a href="${p(depth,'inquire.html')}?type=membership">${L?'Consultas':'Inquiries'}</a></li>

@@ -71,18 +71,19 @@ export async function listOrders() {
 
 // ── Content posts (offers, member board, news/announcements) ──
 const POST_COLS = ['id', 'type', 'author_id', 'author_name', 'member_id', 'title', 'body',
-  'image_url', 'link_url', 'cta_label', 'cta_url', 'code', 'status', 'featured_home', 'expires_at'];
+  'image_url', 'link_url', 'cta_label', 'cta_url', 'code', 'status', 'featured_home', 'expires_at', 'meta'];
 const toRow = (p) => ({
   id: p.id, type: p.type, author_id: p.authorId, author_name: p.authorName, member_id: p.memberId,
   title: p.title, body: p.body, image_url: p.imageUrl, link_url: p.linkUrl,
   cta_label: p.ctaLabel, cta_url: p.ctaUrl, code: p.code, status: p.status,
   featured_home: p.featuredHome, expires_at: p.expiresAt,
+  meta: p.meta ? JSON.stringify(p.meta) : null,
 });
 const fromRow = (r) => ({
   id: r.id, type: r.type, authorId: r.author_id, authorName: r.author_name, memberId: r.member_id,
   title: r.title, body: r.body, imageUrl: r.image_url, linkUrl: r.link_url,
   ctaLabel: r.cta_label, ctaUrl: r.cta_url, code: r.code, status: r.status,
-  featuredHome: r.featured_home, expiresAt: r.expires_at, created: r.created,
+  featuredHome: r.featured_home, expiresAt: r.expires_at, meta: r.meta || undefined, created: r.created,
 });
 
 export async function addPost(post) {
@@ -110,13 +111,14 @@ export async function listPosts({ type, status, memberId } = {}) {
   return arr;
 }
 export async function updatePost(id, patch) {
-  const allowed = ['title', 'body', 'imageUrl', 'linkUrl', 'ctaLabel', 'ctaUrl', 'code', 'status', 'featuredHome', 'expiresAt'];
+  const allowed = ['title', 'body', 'imageUrl', 'linkUrl', 'ctaLabel', 'ctaUrl', 'code', 'status', 'featuredHome', 'expiresAt', 'meta'];
   const colMap = { imageUrl: 'image_url', linkUrl: 'link_url', ctaLabel: 'cta_label', ctaUrl: 'cta_url', featuredHome: 'featured_home', expiresAt: 'expires_at' };
   const keys = Object.keys(patch).filter((k) => allowed.includes(k));
   if (!keys.length) return false;
   if (db.enabled) {
     const sets = keys.map((k, i) => `${colMap[k] || k} = $${i + 2}`);
-    const r = await db.query(`UPDATE posts SET ${sets.join(',')} WHERE id = $1`, [id, ...keys.map((k) => patch[k])]);
+    const vals = keys.map((k) => (k === 'meta' && patch[k] != null) ? JSON.stringify(patch[k]) : patch[k]);
+    const r = await db.query(`UPDATE posts SET ${sets.join(',')} WHERE id = $1`, [id, ...vals]);
     return r.rowCount > 0;
   }
   const arr = store.read('posts.json', []);
@@ -284,6 +286,30 @@ export async function setOverride(id, patch) {
   // allow clearing a manual renewal date with null
   if (patch.expireDate === null) delete overrides[id].expireDate;
   store.write('member-admin.json', overrides);
+}
+
+// ── Featured placements (one member per page/guide slot) ───
+export async function getPlacements() {
+  if (db.enabled) {
+    const r = await db.query('SELECT slot, member_id FROM placements');
+    const map = {};
+    for (const row of r.rows) if (row.member_id) map[row.slot] = row.member_id;
+    return map;
+  }
+  return store.read('placements.json', {});
+}
+export async function setPlacement(slot, memberId) {
+  if (db.enabled) {
+    if (!memberId) { await db.query('DELETE FROM placements WHERE slot=$1', [slot]); return; }
+    await db.query(
+      `INSERT INTO placements (slot, member_id, updated_at) VALUES ($1,$2, now())
+       ON CONFLICT (slot) DO UPDATE SET member_id = EXCLUDED.member_id, updated_at = now()`,
+      [slot, memberId]);
+    return;
+  }
+  const map = store.read('placements.json', {});
+  if (!memberId) delete map[slot]; else map[slot] = memberId;
+  store.write('placements.json', map);
 }
 
 // ── Manually-added members (offline signups) ────────────────

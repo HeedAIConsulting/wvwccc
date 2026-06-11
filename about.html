@@ -3,19 +3,51 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>The Chamber — West Valley · Warner Center Chamber of Commerce</title>
+  <title>About the Chamber — West Valley · Warner Center Chamber of Commerce</title>
   <meta name="description" content="Since 1930, the West Valley · Warner Center Chamber of Commerce has connected and championed businesses across Tarzana, Woodland Hills, Reseda, Canoga Park, West Hills, and the Warner Center." />
   <link rel="canonical" href="https://woodlandhillscc.net/about.html" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="css/chamber.css" />
+  <style>
+    .about-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--s-4); margin-top: var(--s-7); }
+    .about-stat { border-left: 3px solid var(--gold, #c9a227); padding-left: 14px; }
+    .about-stat b { display: block; font-family: var(--display); font-size: 1.9rem; color: var(--gold-bright, #e3c35f); line-height: 1.1; }
+    .about-stat span { color: rgba(255,255,255,.75); font-size: .85rem; }
+
+    .hood-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: var(--s-5); }
+    .hood-card { background: #fff; border: 1px solid var(--line, #e8e3d5); border-radius: var(--r-lg, 16px);
+      padding: var(--s-6); position: relative; overflow: hidden; transition: transform .2s, box-shadow .2s; }
+    .hood-card:hover { transform: translateY(-3px); box-shadow: 0 16px 38px rgba(27,51,38,.12); }
+    .hood-card::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 4px;
+      background: linear-gradient(90deg, var(--green-deep), var(--gold)); }
+    .hood-card h3 { font-size: 1.25rem; margin-bottom: 2px; }
+    .hood-card .hood-tag { font-family: var(--mono); font-size: .62rem; letter-spacing: .12em; text-transform: uppercase; color: var(--gold-deep); }
+    .hood-card p { color: var(--slate-mid); font-size: .95rem; margin-top: 10px; }
+    .hood-card .hood-facts { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 6px; }
+    .hood-card .hood-facts span { background: var(--cream, #faf6ea); border: 1px solid var(--gold-soft, #e6dcbf);
+      border-radius: 999px; padding: 4px 11px; font-size: .76rem; color: var(--green-ink); font-weight: 600; }
+
+    .timeline { border-left: 2px solid var(--gold-soft, #e6dcbf); margin-left: 8px; padding-left: 26px; display: grid; gap: var(--s-5); }
+    .timeline > div { position: relative; }
+    .timeline > div::before { content: ""; position: absolute; left: -33px; top: 5px; width: 12px; height: 12px;
+      border-radius: 50%; background: var(--gold, #c9a227); border: 2px solid #fff; box-shadow: 0 0 0 2px var(--gold-soft); }
+    .timeline b { font-family: var(--display); color: var(--green-ink); font-size: 1.05rem; }
+    .timeline p { color: var(--slate-mid); font-size: .94rem; }
+
+    .fb-strip { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; }
+    .fb-strip img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: var(--r-md); }
+    .fb-strip a { display: block; transition: transform .18s; }
+    .fb-strip a:hover { transform: scale(1.03); }
+    @media (max-width: 860px) { .grid[style*="1fr 1fr"], .grid[style*="1fr 1.2fr"] { grid-template-columns: 1fr !important; } }
+  </style>
 </head>
 <body>
   <div data-partial="header"></div>
 
   <section class="hero" style="min-height:auto">
     <div class="container">
-      <div style="padding:var(--s-9) 0;max-width:760px">
+      <div style="padding:var(--s-9) 0;max-width:820px">
         <span class="kicker">The Chamber · Since 1930</span>
         <h1 style="color:#fff">Your connection to the<br><em style="font-style:italic;color:var(--gold-bright)">Greater West Valley</em></h1>
         <p class="hero__lead">
@@ -23,6 +55,12 @@
           voice and the connector of business in the Valley — from Tarzana and Woodland Hills to
           Reseda, Canoga Park, West Hills, and the Warner Center.
         </p>
+        <div class="about-stats">
+          <div class="about-stat"><b>1930</b><span>year founded</span></div>
+          <div class="about-stat"><b>~600</b><span>member businesses</span></div>
+          <div class="about-stat"><b>6</b><span>communities served</span></div>
+          <div class="about-stat"><b>$10B+</b><span>investment underway in Warner Center</span></div>
+        </div>
       </div>
     </div>
   </section>
@@ -34,7 +72,11 @@
           <span class="kicker">Our mission</span>
           <h2>Championing local business and community</h2>
           <p class="lead">We connect members to customers, to each other, and to the community — through a trusted directory, year-round events, advocacy, and programs that keep the Valley thriving.</p>
-          <p>From monthly networking breakfasts and ribbon cuttings to our signature Gala, the Food &amp; Wine event, and Grateful Hearts first-responder fundraisers, the Chamber turns connection into opportunity.</p>
+          <p>From monthly networking breakfasts and ribbon cuttings to our signature Gala, the Food &amp; Wine event, and Grateful Hearts first-responder fundraisers, the Chamber turns connection into opportunity. And with our new digital platform — a live member directory, community guides, a jobs board, real-estate listings, and the "Ask Wendy" AI concierge — that connection now works around the clock.</p>
+          <div class="btn-row mt-5">
+            <a class="btn btn--forest" href="join.html">Become a member</a>
+            <a class="btn btn--ghost" href="leadership.html">Meet our board →</a>
+          </div>
         </div>
         <img src="images/wvwccc-logo.png" alt="West Valley · Warner Center Chamber of Commerce seal" style="max-width:340px;margin:0 auto;border-radius:50%;box-shadow:var(--sh-lg)" />
       </div>
@@ -42,9 +84,89 @@
   </section>
 
   <section class="section bg-cream-deep">
+    <div class="container">
+      <span class="kicker">Communities we serve</span>
+      <h2 style="margin-bottom:var(--s-2)">One Valley, six neighborhoods</h2>
+      <p class="lead" style="max-width:70ch;margin-bottom:var(--s-6)">Each community brings something different to the West Valley economy — together they're one of the strongest business corridors in Los Angeles.</p>
+      <div class="hood-grid">
+        <article class="hood-card">
+          <span class="hood-tag">The business hub</span>
+          <h3>Woodland Hills</h3>
+          <p>Home to the Warner Center business district, Westfield Topanga &amp; The Village, Kaiser Permanente, and Pierce College. The Ventura Boulevard corridor hosts thousands of shops, restaurants, and professional firms.</p>
+          <div class="hood-facts"><span>Warner Center district</span><span>Westfield Topanga</span><span>Pierce College</span></div>
+        </article>
+        <article class="hood-card">
+          <span class="hood-tag">The boomtown</span>
+          <h3>Warner Center</h3>
+          <p>The Valley's downtown in the making. The Warner Center 2035 Plan has already delivered 17,500+ new homes, and the $10B Rams Village will bring the LA Rams' permanent headquarters, a retail village, and two entertainment venues.</p>
+          <div class="hood-facts"><span>Rams Village · $10B</span><span>26,000 homes planned</span><span>48,000 new jobs</span></div>
+        </article>
+        <article class="hood-card">
+          <span class="hood-tag">The medical mile</span>
+          <h3>Tarzana</h3>
+          <p>Named for Edgar Rice Burroughs' Tarzana Ranch, today it anchors the Valley's healthcare economy — led by Providence Cedars-Sinai Tarzana Medical Center's $542M expansion — alongside a thriving Ventura Boulevard dining and retail scene.</p>
+          <div class="hood-facts"><span>$542M hospital expansion</span><span>Ventura Blvd dining</span></div>
+        </article>
+        <article class="hood-card">
+          <span class="hood-tag">The comeback story</span>
+          <h3>Reseda</h3>
+          <p>Founded in 1912 and part of the Chamber since 2014, Reseda is in the middle of a city-backed revitalization — new housing, a re-emerging Sherman Way arts and theater district, and some of the Valley's most accessible commercial space.</p>
+          <div class="hood-facts"><span>Est. 1912</span><span>Sherman Way revival</span></div>
+        </article>
+        <article class="hood-card">
+          <span class="hood-tag">The maker's roots</span>
+          <h3>Canoga Park</h3>
+          <p>The aerospace engines that took America to the Moon were built here. Today its historic downtown, antique row, and small-business corridors sit minutes from Warner Center's growth — prime ground for the next generation of makers.</p>
+          <div class="hood-facts"><span>Aerospace heritage</span><span>Historic downtown</span></div>
+        </article>
+        <article class="hood-card">
+          <span class="hood-tag">The neighborhood</span>
+          <h3>West Hills</h3>
+          <p>A premier residential community with top-rated schools, West Hills Hospital, and neighborhood shopping centers — the customer base every West Valley business wants next door.</p>
+          <div class="hood-facts"><span>West Hills Hospital</span><span>Top-rated schools</span></div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="grid" style="grid-template-columns:1fr 1.2fr;gap:var(--s-8)">
+        <div>
+          <span class="kicker">Our story</span>
+          <h2>Nearly a century of showing up</h2>
+          <div class="timeline mt-5">
+            <div><b>1930</b><p>Founded as the Woodland Hills Chamber of Commerce — local merchants organizing through the Great Depression.</p></div>
+            <div><b>2014</b><p>Renamed the West Valley · Warner Center Chamber of Commerce, welcoming Reseda and reflecting a Valley-wide mission.</p></div>
+            <div><b>2024</b><p>The LA Rams arrive in Woodland Hills — the Chamber's backyard becomes home to one of the biggest developments in LA history.</p></div>
+            <div><b>2026</b><p>The Chamber launches its new digital platform — the next 100 years of connecting the West Valley, online at the same trusted home: <a href="https://www.woodlandhillscc.net/" target="_blank" rel="noopener">woodlandhillscc.net</a>.</p></div>
+          </div>
+        </div>
+        <div>
+          <span class="kicker">Follow along</span>
+          <h2>Out in the community</h2>
+          <p class="lead">Ribbon cuttings, mixers, galas, and the people behind West Valley business — follow the Chamber for the latest.</p>
+          <div class="fb-strip mt-5">
+            <a href="https://www.facebook.com/westvalleywarnercenterchamber" target="_blank" rel="noopener" aria-label="See this post on Facebook"><img src="images/480591500_1033086655523710_6229182031957935275_n.jpg" alt="Chamber community event" loading="lazy"></a>
+            <a href="https://www.facebook.com/westvalleywarnercenterchamber" target="_blank" rel="noopener" aria-label="See this post on Facebook"><img src="images/643896670_1335788418586864_3127967855145821868_n.jpg" alt="Chamber networking event" loading="lazy"></a>
+            <a href="https://www.instagram.com/westvalleywcchamber" target="_blank" rel="noopener" aria-label="See this post on Instagram"><img src="images/671758924_18575366881065096_859958210394163879_n.jpg" alt="Chamber members" loading="lazy"></a>
+            <a href="https://www.instagram.com/westvalleywcchamber" target="_blank" rel="noopener" aria-label="See this post on Instagram"><img src="images/706733982_18585203536065096_5504312908322429452_n.jpg" alt="Chamber celebration" loading="lazy"></a>
+          </div>
+          <div class="btn-row mt-5">
+            <a class="btn btn--ghost btn--sm" href="https://www.facebook.com/westvalleywarnercenterchamber" target="_blank" rel="noopener">Facebook</a>
+            <a class="btn btn--ghost btn--sm" href="https://www.instagram.com/westvalleywcchamber" target="_blank" rel="noopener">Instagram</a>
+            <a class="btn btn--ghost btn--sm" href="https://www.linkedin.com/company/wvwcchamberofcommerce" target="_blank" rel="noopener">LinkedIn</a>
+            <a class="btn btn--ghost btn--sm" href="gallery.html">Photo gallery →</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section bg-cream-deep">
     <div class="container text-center">
       <span class="kicker kicker--center">Communities we serve</span>
-      <h2>One Valley, many neighborhoods</h2>
+      <h2>Be part of what's next</h2>
       <div class="chips" style="justify-content:center;margin-top:var(--s-5)">
         <span class="chip">Tarzana</span><span class="chip">Woodland Hills</span><span class="chip">Reseda</span>
         <span class="chip">Warner Center</span><span class="chip">Canoga Park</span><span class="chip">West Hills</span>
@@ -59,6 +181,7 @@
   <div data-partial="footer"></div>
 
   <script src="js/partials.js"></script>
+  <script src="js/api-base.js"></script>
   <script src="js/chamber.js"></script>
   <script>ChamberPartials.mount({ active: 'about', depth: 0, lang: 'en' });</script>
 </body>
