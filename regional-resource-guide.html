@@ -3,91 +3,114 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>West Valley Warner Center Regional Resource Guide | West Valley Warner Center Chamber of Commerce</title>
+<title>West Valley Warner Center Regional Resource Guide — West Valley · Warner Center Chamber of Commerce</title>
+<meta name="description" content="The 2026 Regional Resource Guide — a comprehensive profile of the six West Valley communities, the $10B Rams Village, the development pipeline, healthcare, education, and transit. Prepared by the West Valley Warner Center Chamber of Commerce.">
+<link rel="canonical" href="https://www.woodlandhillscc.net/regional-resource-guide.html">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300..800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="css/chamber.css">
 <style>
-:root{
-  --ink:#1B2733;          /* deep slate */
-  --ink-soft:#33424F;
-  --amber:#D9A441;        /* chamber gold */
-  --amber-deep:#B8842A;
-  --sky:#3E7CB1;          /* valley sky */
-  --paper:#FAFAF8;
-  --line:#E3E0D8;
-  --text:#2B3540;
-  --muted:#6B7682;
-}
-*{margin:0;padding:0;box-sizing:border-box;}
-html{scroll-behavior:smooth;}
-body{font-family:'Inter',sans-serif;background:var(--paper);color:var(--text);line-height:1.65;font-size:16px;}
-.wrap{max-width:1080px;margin:0 auto;padding:0 28px;}
-.eyebrow{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--amber-deep);font-weight:600;}
-h1,h2,h3{font-family:'Bricolage Grotesque',sans-serif;color:var(--ink);line-height:1.12;}
-h2{font-size:clamp(28px,4vw,40px);font-weight:700;margin:8px 0 18px;}
-h3{font-size:21px;font-weight:700;margin:26px 0 10px;}
-p{margin-bottom:14px;max-width:74ch;}
-a{color:var(--sky);text-decoration:none;border-bottom:1px solid rgba(62,124,177,.35);}
-a:hover{border-bottom-color:var(--sky);}
-section{padding:72px 0;border-top:1px solid var(--line);}
-ul{margin:0 0 16px 22px;}
-li{margin-bottom:8px;max-width:72ch;}
+/* ── Regional Resource Guide — Civic Editorial document styles.
+      Everything is scoped under .rg-doc so the site shell is untouched. ── */
+.rg-doc { font-family: var(--sans); color: var(--slate); line-height: 1.65; background: var(--paper); }
+.rg-doc .wrap { max-width: 1080px; margin: 0 auto; padding: 0 28px; }
+.rg-doc .eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: .18em; text-transform: uppercase; color: var(--gold-deep); font-weight: 600; }
+.rg-doc h1, .rg-doc h2, .rg-doc h3 { font-family: var(--display); color: var(--green-ink); line-height: 1.12; }
+.rg-doc h2 { font-size: clamp(28px, 4vw, 40px); font-weight: 700; margin: 8px 0 18px; }
+.rg-doc h3 { font-size: 21px; font-weight: 700; margin: 26px 0 10px; }
+.rg-doc p { margin-bottom: 14px; max-width: 74ch; }
+.rg-doc a { color: var(--gold-deep); text-decoration: none; border-bottom: 1px solid rgba(140,110,20,.35); }
+.rg-doc a:hover { color: var(--green-deep); border-bottom-color: var(--green-deep); }
+.rg-doc section { padding: 72px 0; border-top: 1px solid var(--line); }
+.rg-doc ul { margin: 0 0 16px 22px; }
+.rg-doc li { margin-bottom: 8px; max-width: 72ch; }
+
 /* hero */
-.hero{background:var(--ink);color:#EDEAE2;padding:88px 0 70px;border-top:none;}
-.hero .eyebrow{color:var(--amber);}
-.hero h1{color:#fff;font-size:clamp(38px,6vw,64px);font-weight:800;letter-spacing:-.015em;margin:14px 0 20px;max-width:18ch;}
-.hero p.lede{font-size:19px;color:#C8CDD3;max-width:62ch;}
-.hero .communities{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--amber);margin-top:26px;letter-spacing:.06em;}
+.rg-doc .rg-hero { background: var(--green-ink); color: var(--cream); padding: 80px 0 64px; border-top: none; position: relative; overflow: hidden;
+  background-image: radial-gradient(ellipse at 88% -10%, rgba(201,162,39,.22), transparent 55%); }
+.rg-doc .rg-hero .eyebrow { color: var(--gold-bright); }
+.rg-doc .rg-hero h1 { color: #fff; font-size: clamp(38px, 6vw, 62px); font-weight: 700; letter-spacing: -.015em; margin: 14px 0 20px; max-width: 18ch; }
+.rg-doc .rg-hero p.lede { font-size: 19px; color: rgba(250,246,236,.82); max-width: 62ch; }
+.rg-doc .rg-hero .communities { font-family: var(--mono); font-size: 13px; color: var(--gold-bright); margin-top: 26px; letter-spacing: .06em; }
+.rg-doc .rg-hero__brand { display: flex; align-items: center; gap: 16px; margin-bottom: 30px; }
+.rg-doc .rg-hero__brand img { width: 64px; height: 64px; border-radius: 50%; box-shadow: 0 6px 18px rgba(0,0,0,.3); }
+.rg-doc .rg-hero__brand b { display: block; font-family: var(--display); font-size: 1.05rem; color: #fff; }
+.rg-doc .rg-hero__brand span { font-size: .78rem; color: rgba(250,246,236,.7); letter-spacing: .06em; text-transform: uppercase; font-family: var(--mono); }
+
 /* stat band — signature element */
-.statband{background:var(--ink);border-top:1px solid #2C3B49;padding:0 0 64px;}
-.statgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:1px;background:#2C3B49;border:1px solid #2C3B49;}
-.stat{background:var(--ink);padding:26px 22px;}
-.stat b{display:block;font-family:'Bricolage Grotesque',sans-serif;font-size:34px;font-weight:800;color:var(--amber);line-height:1;}
-.stat span{display:block;font-size:13px;color:#9AA4AE;margin-top:8px;line-height:1.45;}
-/* nav */
-.toc{position:sticky;top:0;background:rgba(250,250,248,.96);backdrop-filter:blur(6px);border-bottom:1px solid var(--line);z-index:50;}
-.toc .wrap{display:flex;gap:22px;overflow-x:auto;padding-top:14px;padding-bottom:14px;}
-.toc a{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);border:none;white-space:nowrap;}
-.toc a:hover{color:var(--amber-deep);}
+.rg-doc .statband { background: var(--green-ink); border-top: 1px solid rgba(255,255,255,.12); padding: 0 0 64px; }
+.rg-doc .statgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 1px; background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.14); border-radius: var(--r-md); overflow: hidden; }
+.rg-doc .stat { background: var(--green-ink); padding: 26px 22px; }
+.rg-doc .stat b { display: block; font-family: var(--display); font-size: 34px; font-weight: 700; color: var(--gold-bright); line-height: 1; }
+.rg-doc .stat span { display: block; font-size: 13px; color: rgba(250,246,236,.66); margin-top: 8px; line-height: 1.45; }
+
+/* section nav */
+.rg-doc .toc { background: var(--cream-deep); border-bottom: 1px solid var(--line); }
+.rg-doc .toc .wrap { display: flex; gap: 22px; overflow-x: auto; padding-top: 14px; padding-bottom: 14px; }
+.rg-doc .toc a { font-family: var(--mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--green-deep); border: none; white-space: nowrap; }
+.rg-doc .toc a:hover { color: var(--gold-deep); }
+
 /* community cards */
-.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:24px;margin-top:28px;}
-.card{background:#fff;border:1px solid var(--line);border-top:4px solid var(--amber);padding:26px;}
-.card h3{margin-top:0;}
-.card .tag{font-family:'IBM Plex Mono',monospace;font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);}
-.card .nums{display:flex;gap:22px;margin:14px 0;padding:12px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);}
-.card .nums div b{font-family:'Bricolage Grotesque',sans-serif;font-size:21px;color:var(--ink);display:block;}
-.card .nums div span{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;}
-.card p{font-size:14.5px;margin-bottom:10px;}
-.card ul{font-size:14.5px;margin-left:18px;}
+.rg-doc .rg-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; margin-top: 28px; }
+.rg-doc .rg-card { background: #fff; border: 1px solid var(--line); border-top: 4px solid var(--gold); border-radius: var(--r-md); padding: 26px; box-shadow: var(--sh-sm); }
+.rg-doc .rg-card h3 { margin-top: 0; }
+.rg-doc .rg-card .tag { font-family: var(--mono); font-size: 11.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.rg-doc .rg-card .nums { display: flex; gap: 22px; margin: 14px 0; padding: 12px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.rg-doc .rg-card .nums div b { font-family: var(--display); font-size: 21px; color: var(--green-ink); display: block; }
+.rg-doc .rg-card .nums div span { font-size: 11.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.rg-doc .rg-card p { font-size: 14.5px; margin-bottom: 10px; }
+.rg-doc .rg-card ul { font-size: 14.5px; margin-left: 18px; }
+
 /* project blocks */
-.project{background:#fff;border:1px solid var(--line);padding:30px;margin-top:24px;}
-.project.major{border-left:6px solid var(--amber);}
-.project h3{margin-top:0;}
-.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin:18px 0;}
-.facts div{border-left:3px solid var(--amber);padding:4px 0 4px 14px;}
-.facts b{font-family:'Bricolage Grotesque',sans-serif;font-size:22px;color:var(--ink);display:block;line-height:1.1;}
-.facts span{font-size:12.5px;color:var(--muted);}
-.src{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);margin-top:12px;}
-.src a{font-size:12px;}
+.rg-doc .project { background: #fff; border: 1px solid var(--line); border-radius: var(--r-md); padding: 30px; margin-top: 24px; box-shadow: var(--sh-sm); }
+.rg-doc .project.major { border-left: 6px solid var(--gold); }
+.rg-doc .project h3 { margin-top: 0; }
+.rg-doc .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin: 18px 0; }
+.rg-doc .facts div { border-left: 3px solid var(--gold); padding: 4px 0 4px 14px; }
+.rg-doc .facts b { font-family: var(--display); font-size: 22px; color: var(--green-ink); display: block; line-height: 1.1; }
+.rg-doc .facts span { font-size: 12.5px; color: var(--muted); }
+.rg-doc .src { font-family: var(--mono); font-size: 12px; color: var(--muted); margin-top: 12px; }
+.rg-doc .src a { font-size: 12px; }
+
 /* tables */
-table{width:100%;border-collapse:collapse;margin:18px 0;background:#fff;font-size:14.5px;}
-th{background:var(--ink);color:#fff;text-align:left;padding:11px 14px;font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.08em;text-transform:uppercase;font-weight:500;}
-td{padding:11px 14px;border:1px solid var(--line);vertical-align:top;}
-tr:nth-child(even) td{background:#F4F2EC;}
+.rg-doc table { width: 100%; border-collapse: collapse; margin: 18px 0; background: #fff; font-size: 14.5px; border-radius: var(--r-md); overflow: hidden; box-shadow: var(--sh-sm); }
+.rg-doc th { background: var(--green-ink); color: #fff; text-align: left; padding: 11px 14px; font-family: var(--mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; font-weight: 500; }
+.rg-doc td { padding: 11px 14px; border: 1px solid var(--line); vertical-align: top; }
+.rg-doc tr:nth-child(even) td { background: var(--cream); }
+
 /* CTA */
-.cta{background:var(--ink);color:#EDEAE2;text-align:left;}
-.cta h2{color:#fff;}
-.cta p{color:#C8CDD3;}
-.btn{display:inline-block;background:var(--amber);color:var(--ink);font-weight:700;padding:14px 30px;border:none;font-family:'Bricolage Grotesque',sans-serif;font-size:17px;margin-top:14px;}
-.btn:hover{background:var(--amber-deep);color:#fff;}
-footer{background:#10181F;color:#8A949E;padding:34px 0;font-size:13px;}
-@media print{.toc{display:none;}section{padding:34px 0;}}
+.rg-doc .rg-cta { background: var(--green-ink); color: var(--cream); text-align: left;
+  background-image: radial-gradient(ellipse at 85% 10%, rgba(201,162,39,.22), transparent 55%); }
+.rg-doc .rg-cta h2 { color: #fff; }
+.rg-doc .rg-cta p { color: rgba(250,246,236,.8); }
+.rg-doc .rg-btn { display: inline-block; background: var(--gold); color: var(--green-ink); font-weight: 700; padding: 14px 30px; border: none; border-radius: var(--r-sm); font-family: var(--display); font-size: 17px; margin-top: 14px; }
+.rg-doc .rg-btn:hover { background: var(--gold-deep); color: #fff; }
+.rg-doc .rg-btn--ghost { background: transparent; color: var(--gold-bright); border: 1px solid var(--gold); }
+.rg-doc .rg-btn--ghost:hover { background: var(--gold); color: var(--green-ink); }
+
+/* colophon (document credits — sits above the site footer) */
+.rg-doc .rg-colophon { background: var(--green-char); color: rgba(250,246,236,.6); padding: 30px 0; font-size: 13px; border-top: 1px solid rgba(255,255,255,.1); }
+.rg-doc .rg-colophon a { color: var(--gold-bright); border-bottom-color: rgba(228,190,69,.4); }
+.rg-doc .rg-colophon p { margin-bottom: 8px; max-width: none; }
+
+@media print { .rg-doc .toc, .site-header, .site-footer, .leaders-wall { display: none !important; } .rg-doc section { padding: 34px 0; } }
 </style>
 </head>
 <body>
 
-<div class="hero">
+<div data-partial="header"></div>
+
+<main class="rg-doc">
+
+<div class="rg-hero">
   <div class="wrap">
+    <div class="rg-hero__brand">
+      <img src="images/wvwccc-logo.png" alt="West Valley · Warner Center Chamber of Commerce seal" width="64" height="64">
+      <div>
+        <b>West Valley · Warner Center Chamber of Commerce</b>
+        <span>Est. 1930 · Woodland Hills, California</span>
+      </div>
+    </div>
     <div class="eyebrow">Regional Resource Guide &amp; Press Kit · 2026 Edition</div>
     <h1>The West Valley: Los Angeles' Next Downtown</h1>
     <p class="lede">A comprehensive profile of the communities, businesses, institutions, and transformative development reshaping the western San Fernando Valley — prepared by the West Valley Warner Center Chamber of Commerce for businesses, investors, families, and media evaluating the region.</p>
@@ -108,7 +131,7 @@ footer{background:#10181F;color:#8A949E;padding:34px 0;font-size:13px;}
   </div>
 </div>
 
-<nav class="toc">
+<nav class="toc" aria-label="Guide sections">
   <div class="wrap">
     <a href="#glance">At a Glance</a>
     <a href="#communities">Communities</a>
@@ -129,17 +152,18 @@ footer{background:#10181F;color:#8A949E;padding:34px 0;font-size:13px;}
     <p>The West Valley occupies the southwestern quadrant of the San Fernando Valley — a region of roughly 1.8 million residents and more than 70,000 businesses that, were it a standalone city, would rank among the largest in the United States. Within it, the six communities served by the West Valley Warner Center Chamber of Commerce form one of Los Angeles' fastest-transforming business corridors: an affluent residential base, two major hospital systems, world-class retail, a deep professional-services economy, and the single largest private development announced in Los Angeles — the $10 billion Rams Village at Warner Center.</p>
     <p>The City of Los Angeles has designated Warner Center as a Regional Center — the planned "downtown of the San Fernando Valley." The Warner Center 2035 Specific Plan removes traditional density and height restrictions across 1,100 acres bounded by the Los Angeles River, the Ventura (101) Freeway, De Soto Avenue, and Topanga Canyon Boulevard, organized into eight subdistricts: Topanga, River, Uptown, North Village, College, Commerce, Park, and Downtown. The result is a sustained construction boom adding thousands of housing units, new retail, and entertainment infrastructure — anchored by an NFL franchise headquarters.</p>
     <p><strong>What this means for business:</strong> population growth, daily foot traffic, rising property values, new corporate neighbors, and a decade-long construction economy — all concentrated in one submarket. The communities profiled below are where that growth lands.</p>
-    <p class="src">Sources: <a href="http://warnercenterassociation.org/warner-center-2035-plan/" target="_blank">Warner Center Association — WC2035 Plan</a> · <a href="https://planning.lacity.gov/plans-policies/specific-plan/warner-center-2035" target="_blank">LA City Planning</a> · <a href="http://uptownatwarnercenter.com/market.html" target="_blank">SFV Market Overview</a></p>
+    <p class="src">Sources: <a href="http://warnercenterassociation.org/warner-center-2035-plan/" target="_blank" rel="noopener">Warner Center Association — WC2035 Plan</a> · <a href="https://planning.lacity.gov/plans-policies/specific-plan/warner-center-2035" target="_blank" rel="noopener">LA City Planning</a> · <a href="http://uptownatwarnercenter.com/market.html" target="_blank" rel="noopener">SFV Market Overview</a></p>
   </div>
 </section>
+
 <section id="communities">
   <div class="wrap">
     <div class="eyebrow">Section 02</div>
     <h2>Six Communities, One Region</h2>
     <p>Each community in the Chamber of Commerce service area has a distinct identity, demographic profile, and business character. Together they form a continuous market stretching from the Santa Monica Mountains foothills to the Los Angeles River.</p>
 
-    <div class="cards">
-      <div class="card">
+    <div class="rg-cards">
+      <div class="rg-card">
         <span class="tag">91364 · 91367 · Ventura Blvd Corridor</span>
         <h3>Woodland Hills</h3>
         <div class="nums">
@@ -152,10 +176,10 @@ footer{background:#10181F;color:#8A949E;padding:34px 0;font-size:13px;}
           <li><strong>Best known for:</strong> Warner Center, Westfield Topanga, Candy Cane Lane holiday display, Concerts in the Park at Warner Center Park, Pierce College</li>
           <li><strong>Anchor institutions:</strong> Kaiser Permanente Woodland Hills Medical Center, Los Angeles Rams headquarters, Warner Center Marriott, Motion Picture &amp; Television Fund campus</li>
         </ul>
-        <p class="src"><a href="https://www.point2homes.com/US/Neighborhood/CA/Los-Angeles/Woodland-Hills-Demographics.html" target="_blank">Demographics source</a></p>
+        <p class="src"><a href="https://www.point2homes.com/US/Neighborhood/CA/Los-Angeles/Woodland-Hills-Demographics.html" target="_blank" rel="noopener">Demographics source</a></p>
       </div>
 
-      <div class="card">
+      <div class="rg-card">
         <span class="tag">91356 · 91335 (partial) · Named for Tarzan</span>
         <h3>Tarzana</h3>
         <div class="nums">
@@ -168,10 +192,10 @@ footer{background:#10181F;color:#8A949E;padding:34px 0;font-size:13px;}
           <li><strong>Best known for:</strong> Providence Cedars-Sinai Tarzana Medical Center, the Ventura Boulevard medical and professional corridor, El Caballero Country Club, Tarzana Community &amp; Cultural Center</li>
           <li><strong>Anchor institutions:</strong> Providence Cedars-Sinai Tarzana Medical Center, Tarzana Treatment Centers (est. 1972)</li>
         </ul>
-        <p class="src"><a href="https://www.point2homes.com/US/Neighborhood/CA/Los-Angeles/Tarzana-Demographics.html" target="_blank">Demographics source</a></p>
+        <p class="src"><a href="https://www.point2homes.com/US/Neighborhood/CA/Los-Angeles/Tarzana-Demographics.html" target="_blank" rel="noopener">Demographics source</a></p>
       </div>
 
-      <div class="card">
+      <div class="rg-card">
         <span class="tag">91335 · Founded 1912</span>
         <h3>Reseda</h3>
         <div class="nums">
@@ -184,10 +208,10 @@ footer{background:#10181F;color:#8A949E;padding:34px 0;font-size:13px;}
           <li><strong>Best known for:</strong> The iconic Reseda Theater marquee, pop-culture fame (The Karate Kid, Tom Petty's "Free Fallin'"), Sherman Way business corridor, Reseda Rising revitalization</li>
           <li><strong>In progress:</strong> $26M LA Kings community ice + roller rink (2026), Reseda Theater food hall (2026), $7.2M Aliso Creek Confluence Park</li>
         </ul>
-        <p class="src"><a href="https://www.point2homes.com/US/Neighborhood/CA/Los-Angeles/Reseda-Demographics.html" target="_blank">Demographics</a> · <a href="https://cd3.lacity.gov/articles/reseda-rising" target="_blank">Reseda Rising (CD3)</a></p>
+        <p class="src"><a href="https://www.point2homes.com/US/Neighborhood/CA/Los-Angeles/Reseda-Demographics.html" target="_blank" rel="noopener">Demographics</a> · <a href="https://cd3.lacity.gov/articles/reseda-rising" target="_blank" rel="noopener">Reseda Rising (CD3)</a></p>
       </div>
 
-      <div class="card">
+      <div class="rg-card">
         <span class="tag">Within Woodland Hills · The Valley's Downtown</span>
         <h3>Warner Center</h3>
         <div class="nums">
@@ -200,10 +224,10 @@ footer{background:#10181F;color:#8A949E;padding:34px 0;font-size:13px;}
           <li><strong>Best known for:</strong> Los Angeles Rams headquarters, Westfield Topanga &amp; The Village, Warner Center Towers, the region's highest concentration of new multifamily housing</li>
           <li><strong>Major employers nearby:</strong> Kaiser Permanente, Health Net, Anthem Blue Cross, Los Angeles Rams</li>
         </ul>
-        <p class="src"><a href="https://www.woodlandhillscc.net/links-warner-center.html" target="_blank">Warner Center history (Chamber of Commerce)</a></p>
+        <p class="src"><a href="https://www.woodlandhillscc.net/links-warner-center.html" target="_blank" rel="noopener">Warner Center history (Chamber of Commerce)</a></p>
       </div>
 
-      <div class="card">
+      <div class="rg-card">
         <span class="tag">91303 · 91304 · Aerospace Heritage</span>
         <h3>Canoga Park</h3>
         <div class="nums">
@@ -216,10 +240,10 @@ footer{background:#10181F;color:#8A949E;padding:34px 0;font-size:13px;}
           <li><strong>Best known for:</strong> Apollo-era aerospace legacy, the historic Madrid Theatre, Westfield Topanga (Canoga Park side), antique and specialty retail on Sherman Way, vibrant Latino and multicultural commerce</li>
           <li><strong>Watch:</strong> the 47-acre former Rocketdyne site at 6633 Canoga Ave — one of LA's largest redevelopment opportunities</li>
         </ul>
-        <p class="src"><a href="https://www.point2homes.com/US/Neighborhood/CA/Los-Angeles/Canoga-Park-Demographics.html" target="_blank">Demographics</a> · <a href="https://valley.labusinessjournal.com/featured/canoga-park-site-faces-uncertainty/" target="_blank">Rocketdyne site (LABJ)</a></p>
+        <p class="src"><a href="https://www.point2homes.com/US/Neighborhood/CA/Los-Angeles/Canoga-Park-Demographics.html" target="_blank" rel="noopener">Demographics</a> · <a href="https://valley.labusinessjournal.com/featured/canoga-park-site-faces-uncertainty/" target="_blank" rel="noopener">Rocketdyne site (LABJ)</a></p>
       </div>
 
-      <div class="card">
+      <div class="rg-card">
         <span class="tag">91304 · 91307 · Established 1987</span>
         <h3>West Hills</h3>
         <div class="nums">
@@ -232,7 +256,7 @@ footer{background:#10181F;color:#8A949E;padding:34px 0;font-size:13px;}
           <li><strong>Best known for:</strong> Top-rated residential neighborhoods, West Hills Hospital &amp; Medical Center, Chaminade College Preparatory, Orcutt Ranch Horticultural Center, hillside trail access</li>
           <li><strong>Business profile:</strong> neighborhood-serving retail, medical offices, and professional services along Sherman Way, Roscoe, and Platt/Fallbrook corridors</li>
         </ul>
-        <p class="src"><a href="https://en.wikipedia.org/wiki/West_Hills,_Los_Angeles" target="_blank">Community profile source</a></p>
+        <p class="src"><a href="https://en.wikipedia.org/wiki/West_Hills,_Los_Angeles" target="_blank" rel="noopener">Community profile source</a></p>
       </div>
     </div>
   </div>
@@ -264,10 +288,11 @@ footer{background:#10181F;color:#8A949E;padding:34px 0;font-size:13px;}
         <li><strong>2027 (projected):</strong> Construction start; full buildout expected to take roughly a decade.</li>
       </ul>
       <p>The site is bounded by Topanga Canyon Boulevard, Erwin Street, Owensmouth Avenue, and Oxnard Street. Sustainability commitments include solar energy, stormwater reuse, and LEED-equivalent certification. For local businesses, the implications are direct: an NFL franchise as a corporate neighbor, year-round event traffic, thousands of construction jobs, and a new regional entertainment draw within walking distance of the Warner Center business district.</p>
-      <p class="src">Sources: <a href="https://www.therams.com/news/rams-village-warner-center-kroenke-organization-woodland-hills" target="_blank">LA Rams official announcement</a> · <a href="https://ktla.com/news/local-news/rams-unveil-plans-for-transformative-headquarters-and-entertainment-district-in-los-angeles/" target="_blank">KTLA</a> · <a href="https://canogaparknc.org/2025/04/rams-unveil-plans-for-new-warner-center-hq-in-10b-project/" target="_blank">Canoga Park NC</a> · <a href="https://www.therams.com/rams-village" target="_blank">therams.com/rams-village</a></p>
+      <p class="src">Sources: <a href="https://www.therams.com/news/rams-village-warner-center-kroenke-organization-woodland-hills" target="_blank" rel="noopener">LA Rams official announcement</a> · <a href="https://ktla.com/news/local-news/rams-unveil-plans-for-transformative-headquarters-and-entertainment-district-in-los-angeles/" target="_blank" rel="noopener">KTLA</a> · <a href="https://canogaparknc.org/2025/04/rams-unveil-plans-for-new-warner-center-hq-in-10b-project/" target="_blank" rel="noopener">Canoga Park NC</a> · <a href="https://www.therams.com/rams-village" target="_blank" rel="noopener">therams.com/rams-village</a></p>
     </div>
   </div>
 </section>
+
 <section id="development">
   <div class="wrap">
     <div class="eyebrow">Section 04</div>
@@ -288,7 +313,7 @@ footer{background:#10181F;color:#8A949E;padding:34px 0;font-size:13px;}
 
     <h3>Retail &amp; Entertainment Anchors</h3>
     <p><strong>Westfield Topanga</strong> (6600 Topanga Canyon Blvd) is one of the premier shopping destinations on the West Coast: roughly 1.59 million square feet, 361 stores, anchored by Nordstrom, Macy's, Neiman Marcus, and Target, with a luxury wing including Gucci, Cartier, Louis Vuitton, and Tiffany &amp; Co. Adjacent, <strong>The Village</strong> — an open-air, 550,000+ SF lifestyle center anchored by Costco with REI, Crate &amp; Barrel, dining, and a community green — was acquired by the Kroenke Organization in 2023 and continues to operate as the connective tissue between Westfield Topanga and the future Rams Village.</p>
-    <p class="src">Sources: <a href="https://la.urbanize.city/post/high-rise-senior-housing-complex-pitched-6400-canoga-ave-warner-center" target="_blank">Urbanize LA — 6400 Canoga</a> · <a href="https://www.treasurer.ca.gov/ctcac/meeting/2025/1210/staff/CA-25-763.pdf" target="_blank">CA Treasurer — The Green</a> · <a href="https://therealdeal.com/la/2026/06/10/developer-increases-unit-count-for-canoga-park-apartments/" target="_blank">The Real Deal</a> · <a href="https://cd3.lacity.gov/articles/reseda-rising" target="_blank">CD3 — Reseda Rising</a> · <a href="https://en.wikipedia.org/wiki/Westfield_Topanga" target="_blank">Westfield Topanga</a></p>
+    <p class="src">Sources: <a href="https://la.urbanize.city/post/high-rise-senior-housing-complex-pitched-6400-canoga-ave-warner-center" target="_blank" rel="noopener">Urbanize LA — 6400 Canoga</a> · <a href="https://www.treasurer.ca.gov/ctcac/meeting/2025/1210/staff/CA-25-763.pdf" target="_blank" rel="noopener">CA Treasurer — The Green</a> · <a href="https://therealdeal.com/la/2026/06/10/developer-increases-unit-count-for-canoga-park-apartments/" target="_blank" rel="noopener">The Real Deal</a> · <a href="https://cd3.lacity.gov/articles/reseda-rising" target="_blank" rel="noopener">CD3 — Reseda Rising</a> · <a href="https://en.wikipedia.org/wiki/Westfield_Topanga" target="_blank" rel="noopener">Westfield Topanga</a></p>
   </div>
 </section>
 
@@ -301,7 +326,7 @@ footer{background:#10181F;color:#8A949E;padding:34px 0;font-size:13px;}
     <div class="project">
       <h3>Providence Cedars-Sinai Tarzana Medical Center</h3>
       <p>The product of a landmark 2019 joint venture between Providence and Cedars-Sinai, this 204-bed hospital (founded 1973) completed <strong>Tarzana Reimagined</strong> — a $542 million expansion described as the largest healthcare construction project ever undertaken in the San Fernando Valley. The centerpiece Friese Family Tower (opened 2023) added 200,000 square feet, 150 private patient rooms, and an emergency department with double the previous capacity, backed by more than $100 million in community philanthropy including a record $50 million gift. A $15 million state grant is funding expanded pediatric and PICU capacity, and a next phase adds five new operating rooms including a hybrid surgical suite.</p>
-      <p class="src"><a href="https://www.providence.org/lp/tarzana" target="_blank">Providence — Tarzana Reimagined</a> · <a href="https://www.beckershospitalreview.com/capital/providence-cedars-sinai-break-ground-on-542m-expansion-at-jointly-owned-hospital/" target="_blank">Becker's Hospital Review</a></p>
+      <p class="src"><a href="https://www.providence.org/lp/tarzana" target="_blank" rel="noopener">Providence — Tarzana Reimagined</a> · <a href="https://www.beckershospitalreview.com/capital/providence-cedars-sinai-break-ground-on-542m-expansion-at-jointly-owned-hospital/" target="_blank" rel="noopener">Becker's Hospital Review</a></p>
     </div>
 
     <div class="project">
@@ -352,7 +377,7 @@ footer{background:#10181F;color:#8A949E;padding:34px 0;font-size:13px;}
       <li><strong>West Valley Occupational Center (LAUSD, 6200 Winnetka Ave, Woodland Hills)</strong> — career-technical education in healthcare, trades, business, and technology at accessible cost; day and evening programs.</li>
       <li><strong>Professional &amp; trade schools:</strong> UEI College (Reseda), Valley College of Medical Careers (West Hills), Los Angeles Career College, College of Nursing &amp; Technology, and additional vocational providers clustered along the Sherman Way and Victory corridors.</li>
     </ul>
-    <p class="src">Sources: <a href="https://en.wikipedia.org/wiki/El_Camino_Real_Charter_High_School" target="_blank">El Camino Real</a> · <a href="https://en.wikipedia.org/wiki/William_Howard_Taft_Charter_High_School" target="_blank">Taft Charter</a> · <a href="https://www.woodlandhillscc.net/schools.html" target="_blank">Chamber of Commerce school directory</a> · <a href="https://www.greatschools.org/california/woodland-hills/14284-West-Valley-Occupational-Center/" target="_blank">WVOC</a></p>
+    <p class="src">Sources: <a href="https://en.wikipedia.org/wiki/El_Camino_Real_Charter_High_School" target="_blank" rel="noopener">El Camino Real</a> · <a href="https://en.wikipedia.org/wiki/William_Howard_Taft_Charter_High_School" target="_blank" rel="noopener">Taft Charter</a> · <a href="https://www.woodlandhillscc.net/schools.html" target="_blank" rel="noopener">Chamber of Commerce school directory</a> · <a href="https://www.greatschools.org/california/woodland-hills/14284-West-Valley-Occupational-Center/" target="_blank" rel="noopener">WVOC</a></p>
   </div>
 </section>
 
@@ -365,18 +390,19 @@ footer{background:#10181F;color:#8A949E;padding:34px 0;font-size:13px;}
     <div class="project">
       <h3>Metro G Line Improvements — Completing 2027</h3>
       <p>Metro broke ground on a package of upgrades to the G Line busway — which carries roughly 15,000 riders every weekday across the Valley, terminating at Chatsworth via Warner Center connections. The project builds three new bridges (Van Nuys, Sepulveda, Vesper) to separate buses from car traffic, plus a new aerial Van Nuys station, cutting east–west travel times and improving safety. Completion is scheduled for December 2027, ahead of the 2028 Games.</p>
-      <p class="src"><a href="https://www.metro.net/about/la-metro-breaks-ground-on-improvements-to-bus-safety-speed-reliability-for-g-line-in-san-fernando-valley/" target="_blank">LA Metro — G Line Improvements</a></p>
+      <p class="src"><a href="https://www.metro.net/about/la-metro-breaks-ground-on-improvements-to-bus-safety-speed-reliability-for-g-line-in-san-fernando-valley/" target="_blank" rel="noopener">LA Metro — G Line Improvements</a></p>
     </div>
 
     <div class="project">
       <h3>Sepulveda Transit Corridor — The Valley-to-Westside Rail Line</h3>
       <p>In January 2026, the Metro Board approved the Locally Preferred Alternative: a fully underground heavy-rail line of roughly 13 miles and seven stations connecting the Van Nuys Metrolink Station to the E Line at Expo/Sepulveda, with a direct G Line connection. Projected to serve approximately 120,000 daily riders along a corridor that carries more than 400,000 daily vehicle trips through the Sepulveda Pass, with peak frequencies of 2.5 minutes and an eventual extension to LAX. Expected opening: 2033–2035. For West Valley businesses, this is the long-awaited fix for the 405 — putting UCLA, Westwood, and the Westside within a reliable rail commute of Valley talent.</p>
-      <p class="src"><a href="https://www.metro.net/projects/sepulvedacorridor/" target="_blank">LA Metro — Sepulveda Transit Corridor</a> · <a href="https://lindseyhorvath.lacounty.gov/lpa-sepulveda-transit/" target="_blank">LA County — LPA approval</a></p>
+      <p class="src"><a href="https://www.metro.net/projects/sepulvedacorridor/" target="_blank" rel="noopener">LA Metro — Sepulveda Transit Corridor</a> · <a href="https://lindseyhorvath.lacounty.gov/lpa-sepulveda-transit/" target="_blank" rel="noopener">LA County — LPA approval</a></p>
     </div>
 
     <p>The Warner Center 2035 Plan itself is built around transit-oriented design — walkability, protected bike lanes, and shuttle connectivity — positioning the district as the Valley's most transit-ready business address.</p>
   </div>
 </section>
+
 <section id="business">
   <div class="wrap">
     <div class="eyebrow">Section 08</div>
@@ -416,23 +442,30 @@ footer{background:#10181F;color:#8A949E;padding:34px 0;font-size:13px;}
   </div>
 </section>
 
-<section id="join" class="cta">
+<section id="join" class="rg-cta">
   <div class="wrap">
-    <div class="eyebrow">Section 09</div>
+    <div class="eyebrow" style="color:var(--gold-bright)">Section 09</div>
     <h2>Set Your Roots Where the Growth Is</h2>
     <p>Everything documented in this guide — the Rams, the towers, the transit, the talent — converges on one place. The West Valley Warner Center Chamber of Commerce is the front door to it: 600+ member businesses, direct relationships with the region's anchor institutions and civic leaders, an online directory drawing 900,000+ unique visits a year, and a seat at the table as the Valley's downtown takes shape.</p>
     <p>Whether you are a business evaluating the market, a family choosing a community, or a journalist covering the region's transformation — the Chamber of Commerce is your resource.</p>
-    <a class="btn" href="/join.html">Become a Member</a>
-    &nbsp;&nbsp;<a class="btn" style="background:transparent;color:var(--amber);border:1px solid var(--amber)" href="/p/benefits-of-membership">Why Join the Chamber &rarr;</a>
+    <a class="rg-btn" href="join.html">Become a Member</a>
+    &nbsp;&nbsp;<a class="rg-btn rg-btn--ghost" href="/p/benefits-of-membership">Why Join the Chamber →</a>
   </div>
 </section>
 
-<footer>
+<div class="rg-colophon">
   <div class="wrap">
-    <p>West Valley Warner Center Chamber of Commerce · 6100 Topanga Canyon Blvd, Woodland Hills, CA 91367 · (818) 347-4737 · <a href="/index.html" style="color:var(--amber)">woodlandhillscc.net</a></p>
-    <p>Regional Resource Guide, 2026 Edition. Data compiled from public sources including LA City Planning, LA Metro, the Kroenke Organization / Los Angeles Rams, U.S. Census-derived neighborhood estimates, Providence, LAUSD, and regional press; figures current as of June 2026 and subject to change as projects evolve. Verify project specifics with the listed primary sources.</p>
+    <p><strong style="color:var(--cream)">West Valley · Warner Center Chamber of Commerce</strong> · 6100 Topanga Canyon Blvd, Woodland Hills, CA 91367 · (818) 347-4737 · <a href="index.html">woodlandhillscc.net</a></p>
+    <p>Regional Resource Guide, 2026 Edition · Built by <a href="https://heedbusinesssolutions.com" target="_blank" rel="noopener">Heed Business Solutions</a> · June 2026. Data compiled from public sources including LA City Planning, LA Metro, the Kroenke Organization / Los Angeles Rams, U.S. Census-derived neighborhood estimates, Providence, LAUSD, and regional press; figures current as of June 2026 and subject to change as projects evolve. Verify project specifics with the listed primary sources.</p>
   </div>
-</footer>
+</div>
 
+</main>
+
+<div data-partial="footer"></div>
+<script src="js/partials.js"></script>
+<script src="js/api-base.js"></script>
+<script src="js/chamber.js"></script>
+<script>ChamberPartials.mount({ active: 'resources', depth: 0, lang: 'en' });</script>
 </body>
 </html>
