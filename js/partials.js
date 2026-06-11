@@ -93,6 +93,7 @@ window.ChamberPartials = (function () {
             <a href="${p(depth, 'jobs/index.html')}">${t.jobs}</a>
             <a href="${p(depth, 'real-estate.html')}">${L?'Bienes Raíces':'Real Estate'}</a>
             <a href="${p(depth, 'guides/index.html')}">${L?'Guías Comunitarias':'Community Guides'}</a>
+            <a href="${p(depth, 'regional-resource-guide.html')}">${L?'Guía Regional 2026':'Regional Resource Guide'}</a>
             <a href="${p(depth, 'resources.html')}">${L?'Todos los recursos':'All Resources'}</a>
             <div class="nav-dd__sep">${L?'Info para visitantes':'Visitor info'}</div>
             <div data-dd-pages="Resources & Visitor Info"></div>

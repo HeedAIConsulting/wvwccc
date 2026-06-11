@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>West Valley Warner Center Regional Resource Guide | West Valley Warner Center Chamber of Commerce</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300..800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#1B2733;          /* deep slate */
+  --ink-soft:#33424F;
+  --amber:#D9A441;        /* chamber gold */
+  --amber-deep:#B8842A;
+  --sky:#3E7CB1;          /* valley sky */
+  --paper:#FAFAF8;
+  --line:#E3E0D8;
+  --text:#2B3540;
+  --muted:#6B7682;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{font-family:'Inter',sans-serif;background:var(--paper);color:var(--text);line-height:1.65;font-size:16px;}
+.wrap{max-width:1080px;margin:0 auto;padding:0 28px;}
+.eyebrow{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--amber-deep);font-weight:600;}
+h1,h2,h3{font-family:'Bricolage Grotesque',sans-serif;color:var(--ink);line-height:1.12;}
+h2{font-size:clamp(28px,4vw,40px);font-weight:700;margin:8px 0 18px;}
+h3{font-size:21px;font-weight:700;margin:26px 0 10px;}
+p{margin-bottom:14px;max-width:74ch;}
+a{color:var(--sky);text-decoration:none;border-bottom:1px solid rgba(62,124,177,.35);}
+a:hover{border-bottom-color:var(--sky);}
+section{padding:72px 0;border-top:1px solid var(--line);}
+ul{margin:0 0 16px 22px;}
+li{margin-bottom:8px;max-width:72ch;}
+/* hero */
+.hero{background:var(--ink);color:#EDEAE2;padding:88px 0 70px;border-top:none;}
+.hero .eyebrow{color:var(--amber);}
+.hero h1{color:#fff;font-size:clamp(38px,6vw,64px);font-weight:800;letter-spacing:-.015em;margin:14px 0 20px;max-width:18ch;}
+.hero p.lede{font-size:19px;color:#C8CDD3;max-width:62ch;}
+.hero .communities{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--amber);margin-top:26px;letter-spacing:.06em;}
+/* stat band — signature element */
+.statband{background:var(--ink);border-top:1px solid #2C3B49;padding:0 0 64px;}
+.statgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:1px;background:#2C3B49;border:1px solid #2C3B49;}
+.stat{background:var(--ink);padding:26px 22px;}
+.stat b{display:block;font-family:'Bricolage Grotesque',sans-serif;font-size:34px;font-weight:800;color:var(--amber);line-height:1;}
+.stat span{display:block;font-size:13px;color:#9AA4AE;margin-top:8px;line-height:1.45;}
+/* nav */
+.toc{position:sticky;top:0;background:rgba(250,250,248,.96);backdrop-filter:blur(6px);border-bottom:1px solid var(--line);z-index:50;}
+.toc .wrap{display:flex;gap:22px;overflow-x:auto;padding-top:14px;padding-bottom:14px;}
+.toc a{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);border:none;white-space:nowrap;}
+.toc a:hover{color:var(--amber-deep);}
+/* community cards */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:24px;margin-top:28px;}
+.card{background:#fff;border:1px solid var(--line);border-top:4px solid var(--amber);padding:26px;}
+.card h3{margin-top:0;}
+.card .tag{font-family:'IBM Plex Mono',monospace;font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);}
+.card .nums{display:flex;gap:22px;margin:14px 0;padding:12px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);}
+.card .nums div b{font-family:'Bricolage Grotesque',sans-serif;font-size:21px;color:var(--ink);display:block;}
+.card .nums div span{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;}
+.card p{font-size:14.5px;margin-bottom:10px;}
+.card ul{font-size:14.5px;margin-left:18px;}
+/* project blocks */
+.project{background:#fff;border:1px solid var(--line);padding:30px;margin-top:24px;}
+.project.major{border-left:6px solid var(--amber);}
+.project h3{margin-top:0;}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin:18px 0;}
+.facts div{border-left:3px solid var(--amber);padding:4px 0 4px 14px;}
+.facts b{font-family:'Bricolage Grotesque',sans-serif;font-size:22px;color:var(--ink);display:block;line-height:1.1;}
+.facts span{font-size:12.5px;color:var(--muted);}
+.src{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);margin-top:12px;}
+.src a{font-size:12px;}
+/* tables */
+table{width:100%;border-collapse:collapse;margin:18px 0;background:#fff;font-size:14.5px;}
+th{background:var(--ink);color:#fff;text-align:left;padding:11px 14px;font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.08em;text-transform:uppercase;font-weight:500;}
+td{padding:11px 14px;border:1px solid var(--line);vertical-align:top;}
+tr:nth-child(even) td{background:#F4F2EC;}
+/* CTA */
+.cta{background:var(--ink);color:#EDEAE2;text-align:left;}
+.cta h2{color:#fff;}
+.cta p{color:#C8CDD3;}
+.btn{display:inline-block;background:var(--amber);color:var(--ink);font-weight:700;padding:14px 30px;border:none;font-family:'Bricolage Grotesque',sans-serif;font-size:17px;margin-top:14px;}
+.btn:hover{background:var(--amber-deep);color:#fff;}
+footer{background:#10181F;color:#8A949E;padding:34px 0;font-size:13px;}
+@media print{.toc{display:none;}section{padding:34px 0;}}
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="wrap">
+    <div class="eyebrow">Regional Resource Guide &amp; Press Kit · 2026 Edition</div>
+    <h1>The West Valley: Los Angeles' Next Downtown</h1>
+    <p class="lede">A comprehensive profile of the communities, businesses, institutions, and transformative development reshaping the western San Fernando Valley — prepared by the West Valley Warner Center Chamber of Commerce for businesses, investors, families, and media evaluating the region.</p>
+    <div class="communities">TARZANA · WOODLAND HILLS · RESEDA · WARNER CENTER · CANOGA PARK · WEST HILLS</div>
+  </div>
+</div>
+
+<div class="statband">
+  <div class="wrap">
+    <div class="statgrid">
+      <div class="stat"><b>249,000+</b><span>Combined residents across the six West Valley communities</span></div>
+      <div class="stat"><b>$10B</b><span>Rams Village at Warner Center — permanent home of the Los Angeles Rams</span></div>
+      <div class="stat"><b>1,100</b><span>Acres in the Warner Center 2035 Plan, LA's designated Regional Center</span></div>
+      <div class="stat"><b>~20,000</b><span>New housing units projected in Warner Center through 2035</span></div>
+      <div class="stat"><b>600+</b><span>Member businesses in the West Valley Warner Center Chamber of Commerce</span></div>
+      <div class="stat"><b>900,000+</b><span>Annual unique visits to the Chamber of Commerce online directory</span></div>
+    </div>
+  </div>
+</div>
+
+<nav class="toc">
+  <div class="wrap">
+    <a href="#glance">At a Glance</a>
+    <a href="#communities">Communities</a>
+    <a href="#rams">Rams Village</a>
+    <a href="#development">Development Pipeline</a>
+    <a href="#healthcare">Healthcare</a>
+    <a href="#education">Education</a>
+    <a href="#transit">Transit</a>
+    <a href="#business">Business Landscape</a>
+    <a href="#join">Join the Chamber</a>
+  </div>
+</nav>
+
+<section id="glance">
+  <div class="wrap">
+    <div class="eyebrow">Section 01</div>
+    <h2>The Region at a Glance</h2>
+    <p>The West Valley occupies the southwestern quadrant of the San Fernando Valley — a region of roughly 1.8 million residents and more than 70,000 businesses that, were it a standalone city, would rank among the largest in the United States. Within it, the six communities served by the West Valley Warner Center Chamber of Commerce form one of Los Angeles' fastest-transforming business corridors: an affluent residential base, two major hospital systems, world-class retail, a deep professional-services economy, and the single largest private development announced in Los Angeles — the $10 billion Rams Village at Warner Center.</p>
+    <p>The City of Los Angeles has designated Warner Center as a Regional Center — the planned "downtown of the San Fernando Valley." The Warner Center 2035 Specific Plan removes traditional density and height restrictions across 1,100 acres bounded by the Los Angeles River, the Ventura (101) Freeway, De Soto Avenue, and Topanga Canyon Boulevard, organized into eight subdistricts: Topanga, River, Uptown, North Village, College, Commerce, Park, and Downtown. The result is a sustained construction boom adding thousands of housing units, new retail, and entertainment infrastructure — anchored by an NFL franchise headquarters.</p>
+    <p><strong>What this means for business:</strong> population growth, daily foot traffic, rising property values, new corporate neighbors, and a decade-long construction economy — all concentrated in one submarket. The communities profiled below are where that growth lands.</p>
+    <p class="src">Sources: <a href="http://warnercenterassociation.org/warner-center-2035-plan/" target="_blank">Warner Center Association — WC2035 Plan</a> · <a href="https://planning.lacity.gov/plans-policies/specific-plan/warner-center-2035" target="_blank">LA City Planning</a> · <a href="http://uptownatwarnercenter.com/market.html" target="_blank">SFV Market Overview</a></p>
+  </div>
+</section>
+<section id="communities">
+  <div class="wrap">
+    <div class="eyebrow">Section 02</div>
+    <h2>Six Communities, One Region</h2>
+    <p>Each community in the Chamber of Commerce service area has a distinct identity, demographic profile, and business character. Together they form a continuous market stretching from the Santa Monica Mountains foothills to the Los Angeles River.</p>
+
+    <div class="cards">
+      <div class="card">
+        <span class="tag">91364 · 91367 · Ventura Blvd Corridor</span>
+        <h3>Woodland Hills</h3>
+        <div class="nums">
+          <div><b>70,666</b><span>Residents</span></div>
+          <div><b>41</b><span>Median Age</span></div>
+          <div><b>53.8%</b><span>Owner-Occupied</span></div>
+        </div>
+        <p>The commercial heart of the West Valley and home to Warner Center. An affluent, highly educated community where households led by residents aged 25–44 earn a median income of $123,276. Hillside estates south of the Boulevard, corporate towers to the north.</p>
+        <ul>
+          <li><strong>Best known for:</strong> Warner Center, Westfield Topanga, Candy Cane Lane holiday display, Concerts in the Park at Warner Center Park, Pierce College</li>
+          <li><strong>Anchor institutions:</strong> Kaiser Permanente Woodland Hills Medical Center, Los Angeles Rams headquarters, Warner Center Marriott, Motion Picture &amp; Television Fund campus</li>
+        </ul>
+        <p class="src"><a href="https://www.point2homes.com/US/Neighborhood/CA/Los-Angeles/Woodland-Hills-Demographics.html" target="_blank">Demographics source</a></p>
+      </div>
+
+      <div class="card">
+        <span class="tag">91356 · 91335 (partial) · Named for Tarzan</span>
+        <h3>Tarzana</h3>
+        <div class="nums">
+          <div><b>39,619</b><span>Residents</span></div>
+          <div><b>41</b><span>Median Age</span></div>
+          <div><b>64.5%</b><span>Family Households</span></div>
+        </div>
+        <p>Built on author Edgar Rice Burroughs' "Tarzana Ranch" and literally named for Tarzan. Today an upscale residential community and the Valley's premier medical corridor, with a strong professional and entrepreneurial base — 26.3% of residents are naturalized citizens, reflecting deep international business ties.</p>
+        <ul>
+          <li><strong>Best known for:</strong> Providence Cedars-Sinai Tarzana Medical Center, the Ventura Boulevard medical and professional corridor, El Caballero Country Club, Tarzana Community &amp; Cultural Center</li>
+          <li><strong>Anchor institutions:</strong> Providence Cedars-Sinai Tarzana Medical Center, Tarzana Treatment Centers (est. 1972)</li>
+        </ul>
+        <p class="src"><a href="https://www.point2homes.com/US/Neighborhood/CA/Los-Angeles/Tarzana-Demographics.html" target="_blank">Demographics source</a></p>
+      </div>
+
+      <div class="card">
+        <span class="tag">91335 · Founded 1912</span>
+        <h3>Reseda</h3>
+        <div class="nums">
+          <div><b>65,543</b><span>Residents</span></div>
+          <div><b>39</b><span>Median Age</span></div>
+          <div><b>70.8%</b><span>Family Households</span></div>
+        </div>
+        <p>One of the Valley's original agricultural townsites, founded in 1912 with a central business district dating to 1915. A dense, family-oriented, working- and middle-class community now in the middle of a city-backed revitalization — Reseda Rising — restoring its historic core.</p>
+        <ul>
+          <li><strong>Best known for:</strong> The iconic Reseda Theater marquee, pop-culture fame (The Karate Kid, Tom Petty's "Free Fallin'"), Sherman Way business corridor, Reseda Rising revitalization</li>
+          <li><strong>In progress:</strong> $26M LA Kings community ice + roller rink (2026), Reseda Theater food hall (2026), $7.2M Aliso Creek Confluence Park</li>
+        </ul>
+        <p class="src"><a href="https://www.point2homes.com/US/Neighborhood/CA/Los-Angeles/Reseda-Demographics.html" target="_blank">Demographics</a> · <a href="https://cd3.lacity.gov/articles/reseda-rising" target="_blank">Reseda Rising (CD3)</a></p>
+      </div>
+
+      <div class="card">
+        <span class="tag">Within Woodland Hills · The Valley's Downtown</span>
+        <h3>Warner Center</h3>
+        <div class="nums">
+          <div><b>1,100</b><span>Plan Acres</span></div>
+          <div><b>8</b><span>Subdistricts</span></div>
+          <div><b>~20,000</b><span>Units by 2035</span></div>
+        </div>
+        <p>Once movie mogul Harry Warner's horse ranch, sold off in the 1950s–60s — first to Rockwell International for its Rocketdyne facility, then to Kaiser-Aetna for master-planned development. Today: the Warner Center Towers office complex, Westfield Topanga, thousands of new apartments, and the future Rams Village.</p>
+        <ul>
+          <li><strong>Best known for:</strong> Los Angeles Rams headquarters, Westfield Topanga &amp; The Village, Warner Center Towers, the region's highest concentration of new multifamily housing</li>
+          <li><strong>Major employers nearby:</strong> Kaiser Permanente, Health Net, Anthem Blue Cross, Los Angeles Rams</li>
+        </ul>
+        <p class="src"><a href="https://www.woodlandhillscc.net/links-warner-center.html" target="_blank">Warner Center history (Chamber of Commerce)</a></p>
+      </div>
+
+      <div class="card">
+        <span class="tag">91303 · 91304 · Aerospace Heritage</span>
+        <h3>Canoga Park</h3>
+        <div class="nums">
+          <div><b>41,261</b><span>Residents</span></div>
+          <div><b>36</b><span>Median Age</span></div>
+          <div><b>63.7%</b><span>Family Households</span></div>
+        </div>
+        <p>Founded as Owensmouth in 1912, Canoga Park built the rocket engines that took America to the moon — the Rocketdyne plant operated here for over half a century. Today it is one of LA's most diverse small-business communities (youngest median age in the region) and the front line of Warner Center's housing expansion.</p>
+        <ul>
+          <li><strong>Best known for:</strong> Apollo-era aerospace legacy, the historic Madrid Theatre, Westfield Topanga (Canoga Park side), antique and specialty retail on Sherman Way, vibrant Latino and multicultural commerce</li>
+          <li><strong>Watch:</strong> the 47-acre former Rocketdyne site at 6633 Canoga Ave — one of LA's largest redevelopment opportunities</li>
+        </ul>
+        <p class="src"><a href="https://www.point2homes.com/US/Neighborhood/CA/Los-Angeles/Canoga-Park-Demographics.html" target="_blank">Demographics</a> · <a href="https://valley.labusinessjournal.com/featured/canoga-park-site-faces-uncertainty/" target="_blank">Rocketdyne site (LABJ)</a></p>
+      </div>
+
+      <div class="card">
+        <span class="tag">91304 · 91307 · Established 1987</span>
+        <h3>West Hills</h3>
+        <div class="nums">
+          <div><b>32,267</b><span>Residents</span></div>
+          <div><b>8.5</b><span>Square Miles</span></div>
+          <div><b>16</b><span>Schools</span></div>
+        </div>
+        <p>The West Valley's premier family-residential community, formed in 1987 when the western portion of Canoga Park incorporated its own identity. Quiet streets, strong schools, and direct access to the Simi Hills open space — including Castle Peak and the historic Orcutt Ranch.</p>
+        <ul>
+          <li><strong>Best known for:</strong> Top-rated residential neighborhoods, West Hills Hospital &amp; Medical Center, Chaminade College Preparatory, Orcutt Ranch Horticultural Center, hillside trail access</li>
+          <li><strong>Business profile:</strong> neighborhood-serving retail, medical offices, and professional services along Sherman Way, Roscoe, and Platt/Fallbrook corridors</li>
+        </ul>
+        <p class="src"><a href="https://en.wikipedia.org/wiki/West_Hills,_Los_Angeles" target="_blank">Community profile source</a></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="rams">
+  <div class="wrap">
+    <div class="eyebrow">Section 03 · The Headline Project</div>
+    <h2>Rams Village at Warner Center</h2>
+    <p>In April 2025, the Kroenke Organization — owner of the Los Angeles Rams — announced the single most transformative project in San Fernando Valley history: a 52-acre sports and entertainment district on the former Promenade Mall and adjacent Anthem office parcel, anchored by the Rams' permanent headquarters and training facility. It is part of nearly 100 acres in Warner Center the organization acquired beginning in 2022, including the Topanga Village shopping center (purchased January 2023 for $325 million), which remains open during development.</p>
+
+    <div class="project major">
+      <h3>The Numbers</h3>
+      <div class="facts">
+        <div><b>$10B</b><span>Estimated total project cost</span></div>
+        <div><b>52 acres</b><span>Development site (former Promenade + Anthem parcels)</span></div>
+        <div><b>350,000+ SF</b><span>Rams headquarters facilities</span></div>
+        <div><b>150,000 SF</b><span>Indoor practice field seating up to 2,500</span></div>
+        <div><b>3,000+</b><span>New homes</span></div>
+        <div><b>~2M SF</b><span>Commercial space</span></div>
+        <div><b>2 venues</b><span>Indoor performance venues (~5,000 and ~2,500 seats)</span></div>
+        <div><b>~10 acres</b><span>Publicly accessible open and green space</span></div>
+      </div>
+      <h3>Timeline &amp; Status</h3>
+      <ul>
+        <li><strong>August 2024:</strong> Rams open temporary headquarters and practice facility in Woodland Hills — the team's business and football operations are already here.</li>
+        <li><strong>April 2025:</strong> Rams Village master plan announced; designed by Gensler within Warner Center 2035 Plan land-use provisions.</li>
+        <li><strong>January 2026:</strong> Demolition of the former Promenade Mall begins.</li>
+        <li><strong>2027 (projected):</strong> Construction start; full buildout expected to take roughly a decade.</li>
+      </ul>
+      <p>The site is bounded by Topanga Canyon Boulevard, Erwin Street, Owensmouth Avenue, and Oxnard Street. Sustainability commitments include solar energy, stormwater reuse, and LEED-equivalent certification. For local businesses, the implications are direct: an NFL franchise as a corporate neighbor, year-round event traffic, thousands of construction jobs, and a new regional entertainment draw within walking distance of the Warner Center business district.</p>
+      <p class="src">Sources: <a href="https://www.therams.com/news/rams-village-warner-center-kroenke-organization-woodland-hills" target="_blank">LA Rams official announcement</a> · <a href="https://ktla.com/news/local-news/rams-unveil-plans-for-transformative-headquarters-and-entertainment-district-in-los-angeles/" target="_blank">KTLA</a> · <a href="https://canogaparknc.org/2025/04/rams-unveil-plans-for-new-warner-center-hq-in-10b-project/" target="_blank">Canoga Park NC</a> · <a href="https://www.therams.com/rams-village" target="_blank">therams.com/rams-village</a></p>
+    </div>
+  </div>
+</section>
+<section id="development">
+  <div class="wrap">
+    <div class="eyebrow">Section 04</div>
+    <h2>The Development Pipeline</h2>
+    <p>Rams Village is the headline, but it is one project among dozens. The Warner Center 2035 Plan projects roughly 20,000 new market-rate housing units over the life of the plan, and thousands have already delivered. Below are the major entitled, proposed, and under-construction projects shaping the next decade.</p>
+
+    <table>
+      <tr><th>Project</th><th>Location</th><th>Scope</th><th>Status</th></tr>
+      <tr><td><strong>Rams Village at Warner Center</strong></td><td>Topanga Cyn / Erwin / Owensmouth / Oxnard</td><td>$10B; Rams HQ, 3,000+ homes, 2 venues, ~2M SF commercial, retail village</td><td>Demolition began Jan 2026; construction from ~2027</td></tr>
+      <tr><td><strong>Wellpointe Senior Towers</strong></td><td>6400 Canoga Ave</td><td>Four towers (34–42 stories, up to 467 ft); 3,458 units of 100% affordable assisted living — would be among the Valley's tallest buildings</td><td>Application filed 2026</td></tr>
+      <tr><td><strong>The Green at Warner Center</strong></td><td>21155 Califa St</td><td>316 affordable family units (30%–80% AMI); $159M project by Capstone Equities</td><td>Construction June 2026 – June 2028</td></tr>
+      <tr><td><strong>6464 Canoga Avenue</strong></td><td>Warner Center</td><td>276 residences + ground-floor retail (Toll Brothers); 8 stories</td><td>Approved by City Council</td></tr>
+      <tr><td><strong>Reseda Rising portfolio</strong></td><td>Sherman Way corridor, Reseda</td><td>$26M LA Kings ice/roller rink; Reseda Theater restoration + food hall; 26-unit senior affordable housing (completed 2023); $7.2M Aliso Creek Confluence Park</td><td>Rink &amp; theater completing 2026</td></tr>
+      <tr><td><strong>Former Rocketdyne site</strong></td><td>6633 Canoga Ave (47 acres)</td><td>Previously entitled for up to 6M SF "Uptown Warner Center" urban village; among LA's largest redevelopment sites</td><td>Available; remediation constraints under review</td></tr>
+      <tr><td><strong>7220 Owensmouth Ave</strong></td><td>Canoga Park</td><td>120 affordable apartments (revised from 70), six stories, ED1 streamlined</td><td>Revised application June 2026</td></tr>
+      <tr><td><strong>Warner Center multifamily wave</strong></td><td>Variel, Canoga, Erwin, De Soto corridors</td><td>Thousands of units delivered since 2013 (Q Variel, Motif, Sorrel, The Kitt, Vert, SYNC, Reveal, and more), with additional towers entitled</td><td>Ongoing</td></tr>
+    </table>
+
+    <h3>Retail &amp; Entertainment Anchors</h3>
+    <p><strong>Westfield Topanga</strong> (6600 Topanga Canyon Blvd) is one of the premier shopping destinations on the West Coast: roughly 1.59 million square feet, 361 stores, anchored by Nordstrom, Macy's, Neiman Marcus, and Target, with a luxury wing including Gucci, Cartier, Louis Vuitton, and Tiffany &amp; Co. Adjacent, <strong>The Village</strong> — an open-air, 550,000+ SF lifestyle center anchored by Costco with REI, Crate &amp; Barrel, dining, and a community green — was acquired by the Kroenke Organization in 2023 and continues to operate as the connective tissue between Westfield Topanga and the future Rams Village.</p>
+    <p class="src">Sources: <a href="https://la.urbanize.city/post/high-rise-senior-housing-complex-pitched-6400-canoga-ave-warner-center" target="_blank">Urbanize LA — 6400 Canoga</a> · <a href="https://www.treasurer.ca.gov/ctcac/meeting/2025/1210/staff/CA-25-763.pdf" target="_blank">CA Treasurer — The Green</a> · <a href="https://therealdeal.com/la/2026/06/10/developer-increases-unit-count-for-canoga-park-apartments/" target="_blank">The Real Deal</a> · <a href="https://cd3.lacity.gov/articles/reseda-rising" target="_blank">CD3 — Reseda Rising</a> · <a href="https://en.wikipedia.org/wiki/Westfield_Topanga" target="_blank">Westfield Topanga</a></p>
+  </div>
+</section>
+
+<section id="healthcare">
+  <div class="wrap">
+    <div class="eyebrow">Section 05</div>
+    <h2>Healthcare: Two Hospital Systems, Billions Invested</h2>
+    <p>Healthcare is the West Valley's largest employment sector and one of its strongest selling points for relocating families and businesses.</p>
+
+    <div class="project">
+      <h3>Providence Cedars-Sinai Tarzana Medical Center</h3>
+      <p>The product of a landmark 2019 joint venture between Providence and Cedars-Sinai, this 204-bed hospital (founded 1973) completed <strong>Tarzana Reimagined</strong> — a $542 million expansion described as the largest healthcare construction project ever undertaken in the San Fernando Valley. The centerpiece Friese Family Tower (opened 2023) added 200,000 square feet, 150 private patient rooms, and an emergency department with double the previous capacity, backed by more than $100 million in community philanthropy including a record $50 million gift. A $15 million state grant is funding expanded pediatric and PICU capacity, and a next phase adds five new operating rooms including a hybrid surgical suite.</p>
+      <p class="src"><a href="https://www.providence.org/lp/tarzana" target="_blank">Providence — Tarzana Reimagined</a> · <a href="https://www.beckershospitalreview.com/capital/providence-cedars-sinai-break-ground-on-542m-expansion-at-jointly-owned-hospital/" target="_blank">Becker's Hospital Review</a></p>
+    </div>
+
+    <div class="project">
+      <h3>Kaiser Permanente Woodland Hills Medical Center</h3>
+      <p>A full-service medical center and one of the West Valley's largest employers, with extensive community health, education partnership, and grant programs. Kaiser anchors the northern Warner Center medical employment cluster alongside Health Net and Anthem Blue Cross offices.</p>
+    </div>
+
+    <div class="project">
+      <h3>Additional Anchors</h3>
+      <ul>
+        <li><strong>West Hills Hospital &amp; Medical Center</strong> — full-service community hospital serving the western corridor.</li>
+        <li><strong>Motion Picture &amp; Television Fund (Woodland Hills)</strong> — the entertainment industry's legendary care campus and skilled nursing facility.</li>
+        <li><strong>Tarzana Treatment Centers</strong> — integrated behavioral healthcare provider serving the region since 1972.</li>
+        <li>A dense network of urgent care, surgical, specialty, and rehabilitation providers along the Ventura Boulevard medical corridor.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section id="education">
+  <div class="wrap">
+    <div class="eyebrow">Section 06</div>
+    <h2>Education: K-12 Through Career Training</h2>
+    <p>The West Valley offers a complete educational ladder — among LA's strongest public charter high schools, respected private schools, a major community college, and one of the region's largest career-technical training centers.</p>
+
+    <h3>Public &amp; Charter High Schools</h3>
+    <table>
+      <tr><th>School</th><th>Community</th><th>Profile</th></tr>
+      <tr><td><strong>El Camino Real Charter High School</strong></td><td>Woodland Hills</td><td>~3,261 students; founded 1969; California Distinguished School; nationally renowned Academic Decathlon program; serves Woodland Hills and West Hills</td></tr>
+      <tr><td><strong>Taft Charter High School</strong></td><td>Woodland Hills</td><td>~2,236 students; established 1960; affiliated charter since 2013; strong AP and college-prep emphasis at Ventura Blvd &amp; Winnetka</td></tr>
+      <tr><td><strong>Cleveland Charter High School</strong></td><td>Reseda</td><td>Home of the acclaimed Humanities Magnet</td></tr>
+      <tr><td><strong>Reseda Charter High School</strong></td><td>Reseda</td><td>Police Academy and Science magnet programs</td></tr>
+      <tr><td><strong>Canoga Park High School</strong></td><td>Canoga Park</td><td>Comprehensive LAUSD high school serving Canoga Park and West Hills</td></tr>
+    </table>
+
+    <h3>Private &amp; Independent Schools</h3>
+    <ul>
+      <li><strong>Chaminade College Preparatory (West Hills)</strong> — premier Catholic college-prep campus</li>
+      <li><strong>Louisville High School (Woodland Hills)</strong> — all-girls Catholic college preparatory</li>
+      <li><strong>Woodland Hills Private School</strong> (Oxnard St &amp; Collins campuses) and <strong>The Boulevard School</strong> — established independent K-8 options</li>
+      <li>Strong network of faith-based, Montessori, and specialty elementary programs across all six communities</li>
+    </ul>
+
+    <h3>Higher Education &amp; Career Training</h3>
+    <ul>
+      <li><strong>Los Angeles Pierce College (Woodland Hills)</strong> — major community college with transfer pathways, workforce programs, and its signature working farm; a key Chamber of Commerce education partner.</li>
+      <li><strong>California State University, Northridge (CSUN)</strong> — the Valley's research university, minutes away, supplying internship and hiring pipelines for West Valley employers.</li>
+      <li><strong>West Valley Occupational Center (LAUSD, 6200 Winnetka Ave, Woodland Hills)</strong> — career-technical education in healthcare, trades, business, and technology at accessible cost; day and evening programs.</li>
+      <li><strong>Professional &amp; trade schools:</strong> UEI College (Reseda), Valley College of Medical Careers (West Hills), Los Angeles Career College, College of Nursing &amp; Technology, and additional vocational providers clustered along the Sherman Way and Victory corridors.</li>
+    </ul>
+    <p class="src">Sources: <a href="https://en.wikipedia.org/wiki/El_Camino_Real_Charter_High_School" target="_blank">El Camino Real</a> · <a href="https://en.wikipedia.org/wiki/William_Howard_Taft_Charter_High_School" target="_blank">Taft Charter</a> · <a href="https://www.woodlandhillscc.net/schools.html" target="_blank">Chamber of Commerce school directory</a> · <a href="https://www.greatschools.org/california/woodland-hills/14284-West-Valley-Occupational-Center/" target="_blank">WVOC</a></p>
+  </div>
+</section>
+
+<section id="transit">
+  <div class="wrap">
+    <div class="eyebrow">Section 07</div>
+    <h2>Transportation &amp; Infrastructure</h2>
+    <p>The West Valley sits at the junction of the Ventura (101) Freeway and Topanga Canyon Boulevard (SR-27), with two generational transit investments underway ahead of the 2028 Olympic and Paralympic Games.</p>
+
+    <div class="project">
+      <h3>Metro G Line Improvements — Completing 2027</h3>
+      <p>Metro broke ground on a package of upgrades to the G Line busway — which carries roughly 15,000 riders every weekday across the Valley, terminating at Chatsworth via Warner Center connections. The project builds three new bridges (Van Nuys, Sepulveda, Vesper) to separate buses from car traffic, plus a new aerial Van Nuys station, cutting east–west travel times and improving safety. Completion is scheduled for December 2027, ahead of the 2028 Games.</p>
+      <p class="src"><a href="https://www.metro.net/about/la-metro-breaks-ground-on-improvements-to-bus-safety-speed-reliability-for-g-line-in-san-fernando-valley/" target="_blank">LA Metro — G Line Improvements</a></p>
+    </div>
+
+    <div class="project">
+      <h3>Sepulveda Transit Corridor — The Valley-to-Westside Rail Line</h3>
+      <p>In January 2026, the Metro Board approved the Locally Preferred Alternative: a fully underground heavy-rail line of roughly 13 miles and seven stations connecting the Van Nuys Metrolink Station to the E Line at Expo/Sepulveda, with a direct G Line connection. Projected to serve approximately 120,000 daily riders along a corridor that carries more than 400,000 daily vehicle trips through the Sepulveda Pass, with peak frequencies of 2.5 minutes and an eventual extension to LAX. Expected opening: 2033–2035. For West Valley businesses, this is the long-awaited fix for the 405 — putting UCLA, Westwood, and the Westside within a reliable rail commute of Valley talent.</p>
+      <p class="src"><a href="https://www.metro.net/projects/sepulvedacorridor/" target="_blank">LA Metro — Sepulveda Transit Corridor</a> · <a href="https://lindseyhorvath.lacounty.gov/lpa-sepulveda-transit/" target="_blank">LA County — LPA approval</a></p>
+    </div>
+
+    <p>The Warner Center 2035 Plan itself is built around transit-oriented design — walkability, protected bike lanes, and shuttle connectivity — positioning the district as the Valley's most transit-ready business address.</p>
+  </div>
+</section>
+<section id="business">
+  <div class="wrap">
+    <div class="eyebrow">Section 08</div>
+    <h2>The Business Landscape</h2>
+    <p>The West Valley economy spans healthcare, finance and insurance, professional services, technology, entertainment, retail, hospitality, and a deep small-business base. The Chamber of Commerce network alone connects approximately 600 businesses across these sectors.</p>
+
+    <h3>Anchor Employers &amp; Institutions</h3>
+    <table>
+      <tr><th>Sector</th><th>Anchors</th></tr>
+      <tr><td><strong>Sports &amp; Entertainment</strong></td><td>Los Angeles Rams (headquarters &amp; training facility, Woodland Hills); proximity to Universal Music Group operations and the Valley's studio economy</td></tr>
+      <tr><td><strong>Healthcare</strong></td><td>Kaiser Permanente Woodland Hills, Providence Cedars-Sinai Tarzana, West Hills Hospital, Motion Picture &amp; Television Fund, Tarzana Treatment Centers</td></tr>
+      <tr><td><strong>Insurance &amp; Finance</strong></td><td>Health Net, Anthem Blue Cross offices, and a dense banking, wealth-management, and CPA corridor in Warner Center and along Ventura Blvd</td></tr>
+      <tr><td><strong>Retail</strong></td><td>Westfield Topanga (361 stores incl. Nordstrom, Macy's, Neiman Marcus, Target, luxury wing), The Village (Costco, REI, Crate &amp; Barrel), Topanga Village</td></tr>
+      <tr><td><strong>Hospitality</strong></td><td>Warner Center Marriott, The Village hotel pipeline, regional dining corridors (Ventura Blvd, Sherman Way, Topanga Canyon)</td></tr>
+      <tr><td><strong>Professional Services</strong></td><td>Law firms, accounting practices, real estate brokerages, consultancies, and technology firms concentrated in Warner Center Towers and the Ventura Blvd corridor</td></tr>
+      <tr><td><strong>Education</strong></td><td>Pierce College, LAUSD West Valley schools, West Valley Occupational Center, private and trade institutions</td></tr>
+    </table>
+
+    <h3>Why Businesses Choose the West Valley</h3>
+    <ul>
+      <li><strong>Affluent, growing customer base</strong> — premium household incomes in the 91364/91367/91307 corridors, with ~20,000 new Warner Center housing units adding residents at every income tier.</li>
+      <li><strong>A decade of guaranteed momentum</strong> — $10B+ in announced private investment plus public transit and parks spending, all delivering between now and the mid-2030s.</li>
+      <li><strong>Regional Center designation</strong> — streamlined entitlements and density flexibility under the Warner Center 2035 Plan found nowhere else in the Valley.</li>
+      <li><strong>Talent pipeline</strong> — Pierce College, CSUN, top charter high schools, and career-technical training within minutes.</li>
+      <li><strong>Lifestyle draw for recruiting</strong> — hillside neighborhoods, mountain trail access, world-class retail, an NFL team in the neighborhood, and the 2028 Olympics-ready transit network.</li>
+    </ul>
+
+    <h3>Community Life &amp; Signature Events</h3>
+    <ul>
+      <li><strong>Concerts in the Park</strong> at Warner Center Park — the Valley's flagship free summer concert series</li>
+      <li><strong>Candy Cane Lane</strong> (Woodland Hills) — the famous holiday lights neighborhood drawing visitors region-wide</li>
+      <li><strong>Madrid Theatre</strong> (Canoga Park) — historic performing arts venue on Sherman Way</li>
+      <li><strong>Tarzana Community &amp; Cultural Center</strong> — year-round cultural programming</li>
+      <li><strong>Orcutt Ranch Horticultural Center</strong> (West Hills) — historic ranch, gardens, and seasonal citrus picks</li>
+      <li><strong>Chamber of Commerce calendar</strong> — monthly networking breakfasts, quarterly business expos, and the annual White Lotus Installation Gala with 250+ business and community leaders</li>
+    </ul>
+  </div>
+</section>
+
+<section id="join" class="cta">
+  <div class="wrap">
+    <div class="eyebrow">Section 09</div>
+    <h2>Set Your Roots Where the Growth Is</h2>
+    <p>Everything documented in this guide — the Rams, the towers, the transit, the talent — converges on one place. The West Valley Warner Center Chamber of Commerce is the front door to it: 600+ member businesses, direct relationships with the region's anchor institutions and civic leaders, an online directory drawing 900,000+ unique visits a year, and a seat at the table as the Valley's downtown takes shape.</p>
+    <p>Whether you are a business evaluating the market, a family choosing a community, or a journalist covering the region's transformation — the Chamber of Commerce is your resource.</p>
+    <a class="btn" href="/join.html">Become a Member</a>
+    &nbsp;&nbsp;<a class="btn" style="background:transparent;color:var(--amber);border:1px solid var(--amber)" href="/p/benefits-of-membership">Why Join the Chamber &rarr;</a>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p>West Valley Warner Center Chamber of Commerce · 6100 Topanga Canyon Blvd, Woodland Hills, CA 91367 · (818) 347-4737 · <a href="/index.html" style="color:var(--amber)">woodlandhillscc.net</a></p>
+    <p>Regional Resource Guide, 2026 Edition. Data compiled from public sources including LA City Planning, LA Metro, the Kroenke Organization / Los Angeles Rams, U.S. Census-derived neighborhood estimates, Providence, LAUSD, and regional press; figures current as of June 2026 and subject to change as projects evolve. Verify project specifics with the listed primary sources.</p>
+  </div>
+</footer>
+
+</body>
+</html>
