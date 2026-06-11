@@ -653,7 +653,7 @@ window.Chamber = (function () {
       <div class="grid" style="grid-template-columns:300px 1fr;gap:var(--s-7);align-items:start">
         <aside class="card" style="text-align:center;position:sticky;top:100px">
           ${seal}
-          <span class="badge badge--${tier}">${esc(tierLabel)} Member</span>
+          <span class="badge badge--${tier}">${esc(tierLabel === 'Member' ? 'Member' : tierLabel + ' Member')}</span>
           ${m.leaderStatus ? `<div class="mt-3"><span class="badge badge--leader badge--dot">${esc(m.leaderStatus)}</span></div>` : ''}
           <ul style="list-style:none;margin-top:var(--s-4);display:flex;flex-direction:column;gap:10px;text-align:left;overflow-wrap:anywhere;word-break:break-word">${contactRows}</ul>
           ${ctas ? `<div class="btn-row mt-4" style="justify-content:center">${ctas}</div>` : ''}

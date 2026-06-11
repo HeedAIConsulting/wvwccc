@@ -82,3 +82,8 @@ body.admin { background: var(--cream-deep); }
   .admin-nav { flex-direction: row; flex-wrap: wrap; }
   .admin-nav .grp { display: none; }
 }
+
+/* Designation pills: keep 2-3 per line — a squeezed column was stacking them
+   one-per-line, making member rows ~240px tall */
+.radio-group { min-width: 236px; }
+.admin-table td { vertical-align: middle; }

@@ -183,8 +183,17 @@ window.Admin = (function () {
       try {
         const { members } = await api('/api/admin/members' + (q ? `?q=${encodeURIComponent(q)}` : ''));
         document.getElementById('memberCount').textContent = `${members.length} members`;
-        tbody.innerHTML = members.map((m) => row(m)).join('');
-        bind();
+        // Chunked render — the full roster is ~25k DOM nodes; paint the first 80
+        // instantly and expand on demand. Search still queries the whole roster.
+        const CHUNK = 80;
+        const renderRows = (list) => { tbody.innerHTML = list.map((m) => row(m)).join(''); bind(); };
+        if (members.length > CHUNK + 20) {
+          renderRows(members.slice(0, CHUNK));
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td colspan="9" style="text-align:center;padding:14px"><button class="btn btn--ghost btn--sm" type="button">Show all ${members.length} members ↓</button><div class="sub" style="margin-top:6px">Showing first ${CHUNK} — or use search above</div></td>`;
+          tr.querySelector('button').addEventListener('click', () => renderRows(members));
+          tbody.appendChild(tr);
+        } else renderRows(members);
       } catch (e) { showAuthError(e); }
     }
     function row(m) {

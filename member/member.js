@@ -48,7 +48,7 @@ window.MemberPortal = (function () {
               <h2 style="margin:4px 0">${esc(member.name)}</h2>
               <div class="member-tile__meta">${esc(member.category || '')}${member.neighborhood ? ' · ' + esc(member.neighborhood) : ''}</div>
             </div>
-            <span class="badge badge--${(member.tier || 'member')}">${esc(TIER_LABEL(member.tier))} Member</span>
+            <span class="badge badge--${(member.tier || 'member')}">${esc(TIER_LABEL(member.tier) === 'Member' ? 'Member' : TIER_LABEL(member.tier) + ' Member')}</span>
           </div>
           <p class="mt-4">${esc(member.tagline || 'Add a tagline so neighbors know what you do.')}</p>
           ${member.description ? `<p class="member-tile__meta">${esc(member.description)}</p>` : ''}

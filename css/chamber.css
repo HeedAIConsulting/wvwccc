@@ -574,3 +574,8 @@ html { scrollbar-color: var(--gold) var(--cream-deep); scrollbar-width: thin; }
    column ~20px past the viewport on phones (clipped text at the right edge) */
 .hero__inner > * { min-width: 0; }
 .pill-input input { min-width: 0; }
+
+/* .card resets background to paper LATER in the sheet than .bg-forest sets it
+   dark — so `card bg-forest` rendered white text on a light card (invisible) on
+   join.html and the member dashboard. Specificity fix: */
+.card.bg-forest { background: var(--green-deep); border-color: var(--green-deep); }
