@@ -264,6 +264,10 @@ window.Chamber = (function () {
       ? `${esc(ev.month)} ${esc(ev.day)}${ev.time ? ' · ' + esc(ev.time) : ''}`
       : 'Date to be announced';
     const loc = [ev.venue, ev.neighborhood].filter(Boolean).map(esc).join(' · ');
+    // Don't repeat the venue line as the summary (common in imported events).
+    const sumRaw = String(ev.summary || ev.description || '').trim();
+    const sum = (sumRaw && sumRaw.toLowerCase() !== String(ev.venue || '').trim().toLowerCase()
+      && sumRaw.toLowerCase() !== String(ev.neighborhood || '').trim().toLowerCase()) ? sumRaw : '';
     const cta = ev.ticketed
       ? `<a class="btn btn--gold btn--sm" href="${base}checkout.html?type=ticket&event=${esc(ev.id)}">Buy tickets</a>`
       : `<a class="btn btn--forest btn--sm" href="${base}contact.html?event=${esc(ev.id)}">RSVP</a>`;
@@ -274,7 +278,7 @@ window.Chamber = (function () {
           <span class="badge">${esc(ev.category || 'Event')}</span>
           <h3 class="evp__title">${esc(ev.title)}</h3>
           <div class="evp__meta">📅 ${when}${loc ? ' · ' + loc : ''}</div>
-          <p class="evp__sum">${esc(ev.summary || ev.description || '')}</p>
+          ${sum ? `<p class="evp__sum">${esc(sum)}</p>` : ''}
           <div class="evp__cta">
             <span class="btn btn--ghost btn--sm" role="button" tabindex="0">View details →</span>
             ${cta}

@@ -263,6 +263,32 @@ window.ChamberPartials = (function () {
     mountElevenLabs();
     mountAccessibility(depth);
 
+    // Sticky header lifts off the page once scrolled (soft shadow).
+    const hdr = document.querySelector('.site-header');
+    if (hdr) {
+      const onScroll = () => hdr.classList.toggle('is-scrolled', window.scrollY > 8);
+      onScroll();
+      window.addEventListener('scroll', onScroll, { passive: true });
+    }
+
+    // Gentle rise-in for below-fold content only — anything already on screen
+    // renders instantly (no flash, nothing ever stuck hidden). Respects
+    // prefers-reduced-motion. MutationObserver catches dynamically loaded cards.
+    if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches && 'IntersectionObserver' in window
+        && window.innerHeight > 200) { // skip in degenerate/headless viewports — never risk hidden content
+      const io = new IntersectionObserver((ents) => {
+        for (const e of ents) if (e.isIntersecting) { e.target.classList.add('sr-in'); io.unobserve(e.target); }
+      }, { rootMargin: '0px 0px -36px 0px', threshold: 0.06 });
+      const SEL = '.section-head, .evp, .pricing-card, .leaders-wall__title';
+      const seen = new WeakSet();
+      const register = () => document.querySelectorAll(SEL).forEach((el) => {
+        if (seen.has(el)) return; seen.add(el);
+        if (el.getBoundingClientRect().top > window.innerHeight) { el.classList.add('sr'); io.observe(el); }
+      });
+      register();
+      new MutationObserver(() => requestAnimationFrame(register)).observe(document.body, { childList: true, subtree: true });
+    }
+
     // Leaders wall — tiered, at the bottom of every public page (admin-assigned tiers).
     // (Skips admin/auth; safe no-op if the directory app isn't loaded.)
     if (!/\/(admin|auth)\//.test(window.location.pathname) && window.Chamber && Chamber.initLeaderBanner) {
