@@ -56,6 +56,18 @@
           <div class="panel__head"><h3>Published content</h3></div>
           <table class="admin-table"><thead><tr><th>Title</th><th>Type</th><th>Status</th><th>Action</th></tr></thead><tbody id="liveWrap"></tbody></table>
         </div>
+
+        <div class="panel">
+          <div class="panel__head" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+            <h3>Site pages <span class="sub">(migrated from the old website)</span></h3>
+            <input id="pageSearch" class="admin-select" type="search" placeholder="Filter pages…" style="min-width:220px" />
+          </div>
+          <table class="admin-table"><thead><tr><th>Page</th><th>Section</th><th>Status</th><th>Action</th></tr></thead><tbody id="pageRows"><tr><td colspan="4" class="sub">Loading…</td></tr></tbody></table>
+          <p class="sub" style="padding:0 16px 14px">
+            Hiding a page removes it from the website immediately (menus, the Resources index, and its
+            direct link). Nothing is deleted — restore it anytime.
+          </p>
+        </div>
       </div>
     </div>
   </div>

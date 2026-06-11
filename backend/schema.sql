@@ -129,6 +129,13 @@ CREATE TABLE IF NOT EXISTS placements (
   updated_at  timestamptz DEFAULT now()
 );
 
+-- ── Content-page overrides: staff can hide outdated migrated pages ──
+CREATE TABLE IF NOT EXISTS page_overrides (
+  slug        text PRIMARY KEY,
+  hidden      boolean DEFAULT false,
+  updated_at  timestamptz DEFAULT now()
+);
+
 -- ── Events (admin-managed; full record kept as a jsonb blob so the
 --    flexible fields — images[], links[] — need no schema churn). ──
 CREATE TABLE IF NOT EXISTS events (

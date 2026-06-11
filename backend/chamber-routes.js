@@ -469,13 +469,40 @@ function readPages() {
   catch { _pages = []; }
   return _pages;
 }
-router.get('/pages', (_req, res) => {
-  res.json({ pages: readPages().map((p) => ({ slug: p.slug, title: p.title, group: p.group })) });
+router.get('/pages', async (_req, res) => {
+  try {
+    const ov = await repo.getPageOverrides();
+    res.json({ pages: readPages().filter((p) => !(ov[p.slug] && ov[p.slug].hidden))
+      .map((p) => ({ slug: p.slug, title: p.title, group: p.group })) });
+  } catch (e) { res.json({ pages: readPages().map((p) => ({ slug: p.slug, title: p.title, group: p.group })) }); }
 });
-router.get('/pages/:slug', (req, res) => {
+router.get('/pages/:slug', async (req, res) => {
   const p = readPages().find((x) => x.slug === req.params.slug);
   if (!p) return res.status(404).json({ error: 'not found' });
+  try {
+    const ov = await repo.getPageOverrides();
+    if (ov[p.slug] && ov[p.slug].hidden) return res.status(404).json({ error: 'not found' });
+  } catch (e) {}
   res.json(p);
+});
+
+// Staff page manager — list every migrated page (incl. hidden) and hide/restore.
+router.get('/admin/pages', requireAdmin, async (_req, res) => {
+  try {
+    const ov = await repo.getPageOverrides();
+    res.json({ pages: readPages().map((p) => ({
+      slug: p.slug, title: p.title, group: p.group,
+      hidden: !!(ov[p.slug] && ov[p.slug].hidden),
+      size: (p.html || '').length,
+    })) });
+  } catch (e) { console.error(e); res.status(500).json({ error: 'failed' }); }
+});
+router.patch('/admin/pages/:slug', requireAdmin, async (req, res) => {
+  const p = readPages().find((x) => x.slug === req.params.slug);
+  if (!p) return res.status(404).json({ error: 'not found' });
+  const hidden = !!(req.body || {}).hidden;
+  try { await repo.setPageOverride(p.slug, { hidden }); res.json({ ok: true, slug: p.slug, hidden }); }
+  catch (e) { console.error(e); res.status(500).json({ error: 'save failed' }); }
 });
 
 // ── Community guides (data-driven: Senior Living, Health & Wellness, …) ──

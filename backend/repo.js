@@ -312,6 +312,29 @@ export async function setPlacement(slot, memberId) {
   store.write('placements.json', map);
 }
 
+// ── Content-page overrides (staff hide/restore migrated pages) ──
+export async function getPageOverrides() {
+  if (db.enabled) {
+    const r = await db.query('SELECT slug, hidden FROM page_overrides');
+    const map = {};
+    for (const row of r.rows) map[row.slug] = { hidden: !!row.hidden };
+    return map;
+  }
+  return store.read('page-overrides.json', {});
+}
+export async function setPageOverride(slug, { hidden }) {
+  if (db.enabled) {
+    await db.query(
+      `INSERT INTO page_overrides (slug, hidden, updated_at) VALUES ($1,$2, now())
+       ON CONFLICT (slug) DO UPDATE SET hidden = EXCLUDED.hidden, updated_at = now()`,
+      [slug, !!hidden]);
+    return;
+  }
+  const map = store.read('page-overrides.json', {});
+  map[slug] = { hidden: !!hidden };
+  store.write('page-overrides.json', map);
+}
+
 // ── Manually-added members (offline signups) ────────────────
 export async function listAddedMembers() {
   if (db.enabled) return (await db.query('SELECT data FROM added_members ORDER BY created DESC')).rows.map((x) => x.data);

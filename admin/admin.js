@@ -566,6 +566,41 @@ window.Admin = (function () {
       finally { btn.disabled = false; }
     });
     load();
+
+    // ── Site pages: hide outdated migrated pages / restore them ──
+    const pageRows = document.getElementById('pageRows');
+    if (pageRows) {
+      let allPages = [];
+      const renderPages = (q = '') => {
+        const list = !q ? allPages : allPages.filter((p) =>
+          (p.title + ' ' + p.slug + ' ' + (p.group || '')).toLowerCase().includes(q.toLowerCase()));
+        pageRows.innerHTML = list.length ? list.map((p) => `
+          <tr data-slug="${esc(p.slug)}">
+            <td><span class="name" ${p.hidden ? 'style="opacity:.55;text-decoration:line-through"' : ''}>${esc(p.title)}</span>
+              <div class="sub"><a href="../p/${encodeURIComponent(p.slug)}" target="_blank" rel="noopener">/p/${esc(p.slug)}</a></div></td>
+            <td>${esc(p.group || '—')}</td>
+            <td>${p.hidden ? '<span class="pill pill--suspended">hidden</span>' : '<span class="pill pill--approved">live</span>'}</td>
+            <td>${p.hidden
+              ? '<button class="btn btn--forest btn--sm" data-pg-restore>Restore</button>'
+              : '<button class="btn btn--ghost btn--sm" data-pg-hide>Remove from site</button>'}
+              <span class="saved-flash" data-flash>done ✓</span></td>
+          </tr>`).join('') : '<tr><td colspan="4" class="sub">No pages match.</td></tr>';
+        pageRows.querySelectorAll('tr[data-slug]').forEach((tr) => {
+          const slug = tr.dataset.slug;
+          const set = async (hidden) => {
+            await api('/api/admin/pages/' + encodeURIComponent(slug), { method: 'PATCH', body: JSON.stringify({ hidden }) });
+            const pg = allPages.find((x) => x.slug === slug); if (pg) pg.hidden = hidden;
+            renderPages(document.getElementById('pageSearch').value.trim());
+          };
+          tr.querySelector('[data-pg-hide]')?.addEventListener('click', () => set(true));
+          tr.querySelector('[data-pg-restore]')?.addEventListener('click', () => set(false));
+        });
+      };
+      api('/api/admin/pages').then((d) => { allPages = d.pages || []; renderPages(); })
+        .catch(() => { pageRows.innerHTML = '<tr><td colspan="4" class="sub">Could not load pages.</td></tr>'; });
+      const ps = document.getElementById('pageSearch');
+      if (ps) ps.addEventListener('input', () => renderPages(ps.value.trim()));
+    }
   }
 
   // ── Sponsorships: featured-member placements per page/guide ──
