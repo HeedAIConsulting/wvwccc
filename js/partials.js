@@ -114,12 +114,14 @@ window.ChamberPartials = (function () {
       login:'Member Login', events:'Events', jobs:'Jobs Board', donate:'Donate', sponsor:'Sponsor',
       chamber:'The Chamber', contact:'Contact', access:'Accessibility', privacy:'Privacy' };
     return `
+<section class="leaders-wall" data-leader-section hidden aria-label="Chamber leaders">
+  <div class="container">
+    <h3 class="leaders-wall__title">${L ? 'Líderes' : 'Leaders'}</h3>
+    <div id="leadersWall"></div>
+  </div>
+</section>
 <footer class="site-footer">
   <div class="container">
-    <div class="footer-leaders" data-leader-section hidden>
-      <p class="footer-leaders__label">${L ? 'Nuestros Líderes de la Cámara' : 'Our Chamber Leaders'}</p>
-      <div class="leader-strip" id="footerLeaders" aria-label="Chamber leader members"></div>
-    </div>
     <div class="site-footer__grid">
       <div class="site-footer__brand">
         <div class="brand">
@@ -261,10 +263,10 @@ window.ChamberPartials = (function () {
     mountElevenLabs();
     mountAccessibility(depth);
 
-    // Leader "web banner" in the footer — static on every public page.
+    // Leaders wall — tiered, at the bottom of every public page (admin-assigned tiers).
     // (Skips admin/auth; safe no-op if the directory app isn't loaded.)
     if (!/\/(admin|auth)\//.test(window.location.pathname) && window.Chamber && Chamber.initLeaderBanner) {
-      Chamber.initLeaderBanner('#footerLeaders', { depth: depth, variant: 'names' });
+      Chamber.initLeaderBanner('#leadersWall', { depth: depth });
     }
   }
 

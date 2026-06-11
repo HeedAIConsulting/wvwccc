@@ -283,38 +283,40 @@ window.Chamber = (function () {
       </article>`;
   }
 
-  // Leader / "web banner" — showcases members who invest in the Chamber's
-  // leader-level marketing program (paid tiers). Auto-scrolling logo strip.
-  const LEADER_RANK = { platinum: 1, gold: 2, silver: 3, bronze: 4, supporter: 5 };
+  // Leaders wall — members who invest in the Chamber's leader-level marketing
+  // program. Grouped by tier (admin-assigned on each member). Renders at the
+  // bottom of every page, matching the legacy site's tiered "Leaders" board.
+  const LEADER_RANK = { platinum: 1, gold: 2, silver: 3, bronze: 4, supporter: 5, friend: 6 };
+  const LEADER_LABEL = { platinum: 'Platinum', gold: 'Gold', silver: 'Silver', bronze: 'Bronze', supporter: 'Supporter', friend: 'Friend Leaders' };
   async function initLeaderBanner(sel, opts = {}) {
     const el = typeof sel === 'string' ? document.querySelector(sel) : sel;
     if (!el) return;
     const depth = opts.depth || 0;
+    const section = el.closest('[data-leader-section]');
     let members = [];
     try { members = (await getJSON(ChamberAPI.url('/api/members'))).members || []; }
-    catch (e) { el.closest('[data-leader-section]')?.setAttribute('hidden', ''); return; }
+    catch (e) { section?.setAttribute('hidden', ''); return; }
     const leaders = members
       .filter((m) => LEADER_RANK[(m.tier || '').toLowerCase()] && (m.logo || (m.photos && m.photos[0])))
-      .sort((a, b) => LEADER_RANK[a.tier.toLowerCase()] - LEADER_RANK[b.tier.toLowerCase()]);
-    if (!leaders.length) { el.closest('[data-leader-section]')?.setAttribute('hidden', ''); return; }
-    const variant = opts.variant || 'logos';
+      .sort((a, b) => LEADER_RANK[a.tier.toLowerCase()] - LEADER_RANK[b.tier.toLowerCase()] || String(a.name).localeCompare(String(b.name)));
+    if (!leaders.length) { section?.setAttribute('hidden', ''); return; }
     const fixUrl = (u) => (/^(https?:|\/)/.test(u) ? u : (depth ? '../' : '') + u);
-    const hrefOf = (m) => m.slug ? '/members/' + m.slug : `${depth ? '../' : ''}members/profile.html?id=${encodeURIComponent(m.id)}`;
-    // 'names' = lightweight text links (footer); 'logos' = labeled image tiles (home).
-    const item = (m) => {
-      const href = hrefOf(m);
-      if (variant === 'names') return `<a class="leader-strip__name" href="${href}">${esc(m.name)}</a>`;
+    const hrefOf = (m) => m.slug ? `${depth ? '../' : ''}members/${m.slug}` : `${depth ? '../' : ''}members/profile.html?id=${encodeURIComponent(m.id)}`;
+    const cell = (m) => {
+      const tier = (m.tier || '').toLowerCase();
       const logo = m.logo || (m.photos && m.photos[0]);
-      return `<a class="leader-strip__item" href="${href}" title="${esc(m.name)} · ${esc(m.tier)} leader">
-        <span class="leader-strip__logo"><img src="${esc(fixUrl(logo))}" alt="${esc(m.name)}" loading="lazy"></span>
-        <span class="leader-strip__cap">${esc(m.name)}</span></a>`;
+      return `<a class="leader-cell" href="${hrefOf(m)}" title="${esc(m.name)} · ${esc(LEADER_LABEL[tier] || tier)}">
+        <span class="leader-cell__tier">${esc(LEADER_LABEL[tier] || tier)}</span>
+        <span class="leader-cell__logo"><img src="${esc(fixUrl(logo))}" alt="${esc(m.name)}" loading="lazy"></span>
+      </a>`;
     };
-    const items = leaders.map(item).join('');
-    const marquee = leaders.length > 4;
-    el.classList.toggle('leader-strip--marquee', marquee);
-    el.classList.toggle('leader-strip--names', variant === 'names');
-    el.innerHTML = `<div class="leader-strip__track">${items}${marquee ? items : ''}</div>`;
-    el.closest('[data-leader-section]')?.removeAttribute('hidden');
+    // Main leaders (Platinum→Supporter) above the rule; Friend Leaders below it.
+    const main = leaders.filter((m) => m.tier.toLowerCase() !== 'friend');
+    const friends = leaders.filter((m) => m.tier.toLowerCase() === 'friend');
+    el.innerHTML =
+      `<div class="leader-wall-grid">${main.map(cell).join('')}</div>` +
+      (friends.length ? `<hr class="leader-wall__rule"><div class="leader-wall-grid">${friends.map(cell).join('')}</div>` : '');
+    section?.removeAttribute('hidden');
   }
 
   function initGeoBanner() {
@@ -403,7 +405,6 @@ window.Chamber = (function () {
     initGeoBanner();
     initConcierge();
     initHomeSlider();
-    initLeaderBanner('#leaderBanner', { depth: 0 });
     try {
       const [dir, evd] = await Promise.all([
         getJSON(ChamberAPI.url('/api/members')),

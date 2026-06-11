@@ -152,7 +152,7 @@ window.Admin = (function () {
     mountShell('members');
     let opts = { leaderOptions: ['', 'Leader', 'Board Member', 'New Member', 'Past President', 'Ambassador'], statusOptions: ['approved', 'pending', 'suspended', 'inactive'] };
     try { opts = await api('/api/admin/options'); } catch (e) {}
-    const tiers = ['platinum', 'gold', 'silver', 'bronze', 'supporter', 'member', 'in-kind', 'complimentary'];
+    const tiers = ['platinum', 'gold', 'silver', 'bronze', 'supporter', 'friend', 'member', 'in-kind', 'complimentary'];
     const tbody = document.getElementById('memberRows');
     const search = document.getElementById('memberSearch');
 
