@@ -65,6 +65,8 @@ window.ChamberPartials = (function () {
         <div class="nav-dd">
           <button type="button" aria-haspopup="true">${t.community} <span aria-hidden="true">▾</span></button>
           <div class="nav-dd__menu" data-dd="Our Community">
+            <a href="${p(depth, 'groups/index.html')}">${L?'Grupos y Redes':'Groups & Networks'}</a>
+            <a href="${p(depth, 'gallery.html')}">${L?'Galería de Fotos':'Photo Gallery'}</a>
             <a href="${p(depth, 'community/news.html')}">${t.news}</a>
             <a href="${p(depth, 'community/board.html')}">${L?'Tablón Comunitario':'Community Board'}</a>
             <a href="${p(depth, 'community/our-community.html')}">${L?'Nuestra Comunidad':'Our Community'}</a>
@@ -148,6 +150,8 @@ window.ChamberPartials = (function () {
         <h4>${t.engage}</h4>
         <ul>
           <li><a href="${p(depth,'events/index.html')}">${t.events}</a></li>
+          <li><a href="${p(depth,'groups/index.html')}">${L?'Grupos y Redes':'Groups & Networks'}</a></li>
+          <li><a href="${p(depth,'gallery.html')}">${L?'Galería de Fotos':'Photo Gallery'}</a></li>
           <li><a href="${p(depth,'community/news.html')}">${L?'Noticias':'Valley Biz Buzz'}</a></li>
           <li><a href="${p(depth,'jobs/index.html')}">${t.jobs}</a></li>
           <li><a href="${p(depth,'donate.html')}">${t.donate}</a></li>
@@ -229,9 +233,11 @@ window.ChamberPartials = (function () {
       st.textContent = '.nav-dd{position:relative}'
         // trigger sits on the dark-green header (and dark mobile panel) → always light text
         + '.nav-dd>button{background:none;border:none;font:inherit;cursor:pointer;color:rgba(255,255,255,.82);font-weight:500;font-size:.85rem;padding:0;display:inline-flex;align-items:center;gap:4px;transition:color .2s}'
-        + '.nav-dd>button:hover,.nav-dd:hover>button,.nav-dd:focus-within>button{color:#fff}'
+        + '.nav-dd>button:hover,.nav-dd:hover>button,.nav-dd:focus-within>button,.nav-dd.dd-open>button{color:#fff}'
         + '.nav-dd__menu{position:absolute;top:calc(100% + 8px);left:0;min-width:244px;background:#fff;border:1px solid var(--gold-soft,#e6dcbf);border-radius:12px;box-shadow:0 14px 36px rgba(0,0,0,.16);padding:8px;display:none;z-index:300;max-height:74vh;overflow:auto}'
-        + '.nav-dd:hover .nav-dd__menu,.nav-dd:focus-within .nav-dd__menu{display:block}'
+        // invisible hover bridge spans the 8px gap so the menu doesn't vanish in transit
+        + '.nav-dd::after{content:"";position:absolute;left:-12px;right:-12px;top:100%;height:16px}'
+        + '.nav-dd:hover .nav-dd__menu,.nav-dd:focus-within .nav-dd__menu,.nav-dd.dd-open .nav-dd__menu{display:block}'
         + '.nav-dd__menu a{display:block;padding:7px 12px;border-radius:8px;color:var(--green-ink,#1b3326);text-decoration:none;font-size:.92rem;white-space:nowrap}'
         + '.nav-dd__menu a:hover{background:var(--cream-deep,#f3ecda)}'
         + '.nav-dd__sep{font-family:var(--mono);font-size:.58rem;letter-spacing:.12em;text-transform:uppercase;color:var(--gold-deep);padding:9px 12px 3px}'
@@ -244,6 +250,23 @@ window.ChamberPartials = (function () {
           + '.nav-dd__sep{color:var(--gold-bright)}}';
       document.head.appendChild(st);
     }
+
+    // Dropdown UX: click toggles (sticky until outside click), and hover gets a
+    // grace period — menus no longer vanish while the mouse travels to them.
+    document.querySelectorAll('.nav-dd').forEach((dd) => {
+      const btn = dd.querySelector(':scope > button');
+      if (!btn) return;
+      btn.setAttribute('aria-expanded', 'false');
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        document.querySelectorAll('.nav-dd.dd-open').forEach((o) => { if (o !== dd) o.classList.remove('dd-open'); });
+        btn.setAttribute('aria-expanded', String(dd.classList.toggle('dd-open')));
+      });
+      let t;
+      dd.addEventListener('mouseenter', () => { clearTimeout(t); dd.classList.add('dd-open'); });
+      dd.addEventListener('mouseleave', () => { t = setTimeout(() => { dd.classList.remove('dd-open'); btn.setAttribute('aria-expanded', 'false'); }, 240); });
+    });
+    document.addEventListener('click', () => document.querySelectorAll('.nav-dd.dd-open').forEach((o) => o.classList.remove('dd-open')));
     // fill dropdowns with migrated content pages, grouped
     const ddTargets = document.querySelectorAll('[data-dd-pages]');
     if (ddTargets.length) {

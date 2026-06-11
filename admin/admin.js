@@ -45,6 +45,7 @@ window.Admin = (function () {
     { href: 'renewals.html', icon: '↻', label: 'Renewals', key: 'renewals' },
     { href: 'approvals.html', icon: '✓', label: 'Approvals', key: 'approvals' },
     { href: 'events.html', icon: '◆', label: 'Events', key: 'events' },
+    { href: 'groups.html', icon: '◎', label: 'Groups', key: 'groups' },
     { href: 'content.html', icon: '✎', label: 'Content', key: 'content' },
     { href: 'ai-assistant.html', icon: '✦', label: 'AI Assistant', key: 'assistant' },
     { href: 'users.html', icon: '⚷', label: 'Users & Roles', key: 'users' },
@@ -155,6 +156,7 @@ window.Admin = (function () {
     const tiers = ['platinum', 'gold', 'silver', 'bronze', 'supporter', 'friend', 'member', 'in-kind', 'complimentary'];
     const tbody = document.getElementById('memberRows');
     const search = document.getElementById('memberSearch');
+    const memberById = {};
 
     // Add-member form (offline signup)
     const addToggle = document.getElementById('addMemberToggle');
@@ -186,6 +188,7 @@ window.Admin = (function () {
         // Chunked render — the full roster is ~25k DOM nodes; paint the first 80
         // instantly and expand on demand. Search still queries the whole roster.
         const CHUNK = 80;
+        members.forEach((m) => { memberById[m.id] = m; });
         const renderRows = (list) => { tbody.innerHTML = list.map((m) => row(m)).join(''); bind(); };
         if (members.length > CHUNK + 20) {
           renderRows(members.slice(0, CHUNK));
@@ -210,6 +213,7 @@ window.Admin = (function () {
         <td><div class="radio-group" data-field="leaderStatus">${radios}</div></td>
         <td><label class="toggle"><input type="checkbox" data-field="featured" ${m.featured ? 'checked' : ''}><span class="track"></span></label></td>
         <td style="white-space:nowrap">
+          <button type="button" data-edit title="Edit this member's public profile" style="cursor:pointer;background:var(--green-deep,#1E5631);color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:.8rem;margin-right:8px">Edit profile</button>
           <a href="../members/profile.html?id=${id}" target="_blank" title="View public profile" style="text-decoration:none;margin-right:8px">View ↗</a>
           <button type="button" data-reset title="Force a password reset at next login" style="cursor:pointer;background:none;border:1px solid var(--line,#d7d2c6);border-radius:6px;padding:3px 8px;font-size:.8rem">Reset PW</button>
           <span class="saved-flash" data-flash>saved ✓</span>
@@ -240,8 +244,58 @@ window.Admin = (function () {
             alert(r.message || 'Password reset queued.');
           } catch (e) { showAuthError(e); }
         });
+        tr.querySelector('[data-edit]')?.addEventListener('click', () => openProfileEditor(memberById[id]));
       });
     }
+
+    // ── Profile editor modal: admins edit the member's PUBLIC listing ──
+    function openProfileEditor(m) {
+      if (!m) return;
+      const F = [
+        ['name', 'Business name'], ['category', 'Category'], ['contactName', 'Contact name'],
+        ['phone', 'Phone'], ['website', 'Website'], ['address', 'Address'],
+        ['city', 'City'], ['zip', 'ZIP'], ['neighborhood', 'Neighborhood'],
+        ['tagline', 'Tagline (one line on the card)'], ['video', 'Video URL (YouTube/Vimeo)'],
+      ];
+      const ov = document.createElement('div');
+      ov.style.cssText = 'position:fixed;inset:0;background:rgba(14,42,22,.5);z-index:500;display:flex;align-items:flex-start;justify-content:center;padding:5vh 16px;overflow-y:auto';
+      ov.innerHTML = `
+        <form class="panel" style="max-width:640px;width:100%;padding:var(--s-6);margin:0" role="dialog" aria-modal="true">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--s-4)">
+            <h3 style="margin:0">Edit profile — ${esc(m.name)}</h3>
+            <button type="button" data-x style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--muted)">×</button>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            ${F.map(([k, lbl]) => `<div class="field" style="margin:0;${k === 'tagline' || k === 'name' ? 'grid-column:1/-1' : ''}">
+              <label>${lbl}</label><input name="${k}" value="${esc(m[k] || '')}" /></div>`).join('')}
+            <div class="field" style="grid-column:1/-1;margin:0"><label>Description</label>
+              <textarea name="description" rows="4">${esc(m.description || '')}</textarea></div>
+          </div>
+          <p data-msg class="sub" style="margin:10px 0 0" hidden></p>
+          <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:var(--s-4)">
+            <button type="button" data-x class="btn btn--ghost btn--sm">Cancel</button>
+            <button type="submit" class="btn btn--forest btn--sm">Save profile</button>
+          </div>
+        </form>`;
+      const close = () => ov.remove();
+      ov.addEventListener('click', (e) => { if (e.target === ov || e.target.closest('[data-x]')) close(); });
+      ov.querySelector('form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const fd = new FormData(e.target);
+        const body = Object.fromEntries([...fd.entries()].filter(([, v]) => true));
+        const btn = e.target.querySelector('[type="submit"]'); btn.disabled = true; btn.textContent = 'Saving…';
+        try {
+          await api(`/api/admin/members/${encodeURIComponent(m.id)}/profile`, { method: 'PATCH', body: JSON.stringify(body) });
+          close(); load(search.value.trim());
+        } catch (err) {
+          const msg = ov.querySelector('[data-msg]'); msg.hidden = false; msg.textContent = 'Save failed — try again.';
+          btn.disabled = false; btn.textContent = 'Save profile';
+        }
+      });
+      document.body.appendChild(ov);
+      ov.querySelector('input')?.focus();
+    }
+
     let t; search.addEventListener('input', () => { clearTimeout(t); t = setTimeout(() => load(search.value.trim()), 250); });
     load('');
   }
@@ -685,5 +739,92 @@ window.Admin = (function () {
     console.error(e);
   }
 
-  return { mountShell, initDashboard, initMembers, initApprovals, initOrders, initLeads, initEvents, initContent, initAssistant, initRenewals, initUsers, api, esc };
+  // ── Groups & networks manager ──
+  async function initGroups() {
+    mountShell('groups');
+    const form = document.getElementById('groupForm');
+    const tbody = document.getElementById('groupRows');
+    const msg = document.getElementById('grpMsg');
+    const title = document.getElementById('grpFormTitle');
+    let heroUrl = '', photos = [];
+
+    const note = (t, ok) => { msg.hidden = false; msg.textContent = t; msg.style.color = ok ? 'var(--green)' : 'inherit'; };
+    const upload = async (file) => {
+      const dataUrl = await downscaleImage(file, 1600, 0.85);
+      const r = await api('/api/me/asset', { method: 'POST', body: JSON.stringify({ kind: 'photo', dataUrl }) });
+      return r.url;
+    };
+    document.getElementById('grpHero').addEventListener('change', async (e) => {
+      const f = e.target.files[0]; if (!f) return;
+      note('Uploading hero…');
+      try { heroUrl = await upload(f); document.getElementById('grpHeroPrev').textContent = '✓ hero set'; note('Hero uploaded — remember to Save.', true); }
+      catch (err) { note('Hero upload failed (max ~2.5MB).'); }
+    });
+    document.getElementById('grpPhotos').addEventListener('change', async (e) => {
+      note('Uploading photos…');
+      for (const f of [...e.target.files].slice(0, 12 - photos.length)) {
+        try { photos.push(await upload(f)); } catch (err) {}
+      }
+      document.getElementById('grpPhotosPrev').textContent = `✓ ${photos.length} photo${photos.length === 1 ? '' : 's'}`;
+      note('Photos uploaded — remember to Save.', true);
+    });
+
+    const fill = (g) => {
+      title.textContent = g ? `Edit — ${g.name}` : 'New group';
+      form.id_ = g ? g.id : '';
+      form.querySelector('[name="id"]').value = g ? g.id : '';
+      ['name', 'tagline', 'meetingSchedule', 'contactEmail', 'eventMatch', 'status', 'description', 'meetingNotes']
+        .forEach((k) => { const el = form.querySelector(`[name="${k}"]`); if (el) el.value = g ? (g[k] || '') : (k === 'status' ? 'approved' : ''); });
+      heroUrl = g ? (g.heroImage || '') : '';
+      photos = g ? (g.photos || []).slice() : [];
+      document.getElementById('grpHeroPrev').textContent = heroUrl ? '✓ hero set' : '';
+      document.getElementById('grpPhotosPrev').textContent = photos.length ? `✓ ${photos.length} photos` : '';
+      window.scrollTo({ top: 0 });
+    };
+    document.getElementById('grpReset').addEventListener('click', () => fill(null));
+
+    async function loadList() {
+      try {
+        const { groups } = await api('/api/admin/groups');
+        tbody.innerHTML = groups.length ? groups.map((g) => `
+          <tr data-id="${esc(g.id)}">
+            <td><span class="name">${esc(g.name)}</span><div class="sub">/groups/${esc(g.slug)}</div></td>
+            <td class="sub">${esc(g.meetingSchedule || '—')}</td>
+            <td>${g.status === 'approved' ? '<span class="pill pill--approved">live</span>' : '<span class="pill pill--pending">draft</span>'}</td>
+            <td style="white-space:nowrap">
+              <button type="button" data-edit class="btn btn--ghost btn--sm">Edit</button>
+              <a class="btn btn--ghost btn--sm" href="../groups/${esc(g.slug)}" target="_blank">View ↗</a>
+              <button type="button" data-del class="btn btn--ghost btn--sm" style="color:var(--red)">Delete</button>
+            </td>
+          </tr>`).join('') : '<tr><td colspan="4" class="sub">No groups yet — create the first one above.</td></tr>';
+        tbody.querySelectorAll('tr[data-id]').forEach((tr) => {
+          const g = groups.find((x) => x.id === tr.dataset.id);
+          tr.querySelector('[data-edit]')?.addEventListener('click', () => fill(g));
+          tr.querySelector('[data-del]')?.addEventListener('click', async () => {
+            if (!confirm(`Delete "${g.name}"? The public page goes away immediately.`)) return;
+            try { await api('/api/admin/groups/' + encodeURIComponent(g.id), { method: 'DELETE' }); loadList(); }
+            catch (e) { showAuthError(e); }
+          });
+        });
+      } catch (e) { showAuthError(e); }
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fd = new FormData(form);
+      const body = Object.fromEntries(fd.entries());
+      if (!body.id) delete body.id;
+      body.heroImage = heroUrl; body.photos = photos;
+      const btn = form.querySelector('[type="submit"]'); btn.disabled = true;
+      try {
+        await api('/api/admin/groups', { method: 'POST', body: JSON.stringify(body) });
+        note('Saved ✓', true); fill(null); loadList();
+      } catch (err) { note('Save failed — check required fields.'); }
+      finally { btn.disabled = false; }
+    });
+
+    loadList();
+  }
+
+  return { mountShell, initDashboard, initMembers, initApprovals, initOrders, initLeads, initEvents, initContent, initAssistant, initRenewals, initUsers, initGroups, api, esc };
 })();

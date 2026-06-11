@@ -160,6 +160,36 @@ export async function deleteEvent(id) {
   store.write('events.json', store.read('events.json', []).filter((e) => e.id !== id));
 }
 
+// ── Groups / networks (jsonb blob in Postgres, or dev file) ──
+export async function listGroupsStore() {
+  if (db.enabled) {
+    const r = await db.query("SELECT data FROM groups ORDER BY data->>'name' ASC");
+    return r.rows.map((x) => x.data);
+  }
+  return store.read('groups.json', []);
+}
+export async function hasGroups() {
+  if (db.enabled) return (await db.query('SELECT 1 FROM groups LIMIT 1')).rowCount > 0;
+  return store.read('groups.json', []).length > 0;
+}
+export async function upsertGroup(g) {
+  if (db.enabled) {
+    await db.query(
+      `INSERT INTO groups (id, data, created, updated) VALUES ($1, $2::jsonb, now(), now())
+       ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, updated = now()`,
+      [g.id, JSON.stringify(g)]);
+    return;
+  }
+  const arr = store.read('groups.json', []);
+  const i = arr.findIndex((x) => x.id === g.id);
+  if (i >= 0) arr[i] = g; else arr.push(g);
+  store.write('groups.json', arr);
+}
+export async function deleteGroup(id) {
+  if (db.enabled) { await db.query('DELETE FROM groups WHERE id=$1', [id]); return; }
+  store.write('groups.json', store.read('groups.json', []).filter((g) => g.id !== id));
+}
+
 // ── Image assets (Postgres bytea, or dev files) ─────────────
 export async function addAsset({ id, memberId, kind, mime, buffer }) {
   if (db.enabled) {

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chamber Group — West Valley · Warner Center Chamber of Commerce</title>
+  <meta name="description" content="A West Valley · Warner Center Chamber group — meetings, photos, and how to join." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="/css/chamber.css" />
+</head>
+<body>
+  <div data-partial="header"></div>
+
+  <!-- hero banner (group image + overlay), filled by initGroupView -->
+  <section class="group-hero" id="groupHero">
+    <div class="group-hero__overlay"></div>
+    <div class="container group-hero__inner">
+      <span class="kicker" id="gKicker">Chamber Group</span>
+      <h1 id="gName" style="color:#fff">Loading…</h1>
+      <p class="lead" id="gTagline" style="color:rgba(255,255,255,.88);max-width:60ch"></p>
+      <div class="btn-row mt-4">
+        <a class="btn btn--gold btn--lg" href="#joinGroup">Join this group</a>
+        <a class="btn btn--ghost-light" href="/groups/">← All groups</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="grid" style="grid-template-columns:1.35fr .75fr;gap:var(--s-7);align-items:start" id="groupCols">
+        <div>
+          <div id="gDescription" style="white-space:pre-wrap;line-height:1.7;font-size:1.05rem"></div>
+          <div id="gNotes" hidden class="card mt-6">
+            <span class="kicker">Meeting notes</span>
+            <div id="gNotesBody" style="white-space:pre-wrap;margin-top:var(--s-3)"></div>
+          </div>
+          <div id="gPhotos" hidden class="mt-6">
+            <h3>Photos</h3>
+            <div class="gallery-grid mt-3" id="gPhotoGrid"></div>
+          </div>
+          <div id="gEvents" hidden class="mt-6">
+            <h3>Upcoming meetings &amp; events</h3>
+            <div id="gEventList" class="mt-3" style="display:flex;flex-direction:column;gap:var(--s-4)"></div>
+          </div>
+        </div>
+
+        <aside style="position:sticky;top:100px;display:flex;flex-direction:column;gap:var(--s-4)">
+          <div class="card">
+            <span class="kicker">Meets</span>
+            <p id="gSchedule" style="font-weight:600;margin:8px 0 0">—</p>
+          </div>
+          <div class="card bg-forest" style="color:#fff" id="joinGroup">
+            <h3 style="color:#fff">Join this group</h3>
+            <p style="color:rgba(255,255,255,.85);font-size:.95rem">Tell us who you are and we'll connect you with the group leader.</p>
+            <form id="groupJoinForm" class="mt-3">
+              <div class="field"><label style="color:rgba(255,255,255,.9)">Name</label><input name="name" required /></div>
+              <div class="field"><label style="color:rgba(255,255,255,.9)">Email</label><input name="email" type="email" required /></div>
+              <div class="field"><label style="color:rgba(255,255,255,.9)">Business</label><input name="company" /></div>
+              <input type="hidden" name="message" id="gJoinMsgField" value="" />
+              <p id="groupJoinMsg" class="notice" hidden></p>
+              <button class="btn btn--gold" type="submit" style="width:100%">Request to join</button>
+            </form>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <div data-partial="footer"></div>
+
+  <script src="/js/partials.js"></script>
+  <script src="/js/api-base.js"></script>
+  <script src="/js/chamber.js"></script>
+  <script>
+    ChamberPartials.mount({ active: '', depth: 1, lang: 'en' });
+    Chamber.initGroupView();
+  </script>
+</body>
+</html>

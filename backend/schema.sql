@@ -167,3 +167,11 @@ CREATE TABLE IF NOT EXISTS added_members (
   data     jsonb NOT NULL,                     -- full member object
   created  timestamptz DEFAULT now()
 );
+
+-- Member groups / networks (YPN, Home Improvement, etc.) — jsonb like events
+CREATE TABLE IF NOT EXISTS groups (
+  id      TEXT PRIMARY KEY,
+  data    JSONB NOT NULL,
+  created TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated TIMESTAMPTZ NOT NULL DEFAULT now()
+);

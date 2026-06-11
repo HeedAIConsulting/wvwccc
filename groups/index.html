@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Groups &amp; Networks — West Valley · Warner Center Chamber of Commerce</title>
+  <meta name="description" content="Join a Chamber group — YPN, the Home Improvement Professionals Network, Health & Wellness Resource Network, and more. Smaller circles, stronger referrals." />
+  <link rel="canonical" href="https://woodlandhillscc.net/groups/" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="../css/chamber.css" />
+</head>
+<body>
+  <div data-partial="header"></div>
+
+  <section class="section-sm bg-forest">
+    <div class="container">
+      <span class="kicker">Get involved</span>
+      <h1 style="color:#fff">Groups &amp; Networks</h1>
+      <p class="lead" style="color:rgba(255,255,255,.85);max-width:62ch">
+        Smaller circles inside the Chamber where relationships — and referrals — really happen.
+        Find your group, show up, and grow.
+      </p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="group-grid" id="groupGrid"><p class="member-tile__meta">Loading groups…</p></div>
+    </div>
+  </section>
+
+  <div data-partial="footer"></div>
+
+  <script src="../js/partials.js"></script>
+  <script src="../js/api-base.js"></script>
+  <script src="../js/chamber.js"></script>
+  <script>
+    ChamberPartials.mount({ active: '', depth: 1, lang: 'en' });
+    Chamber.initGroups();
+  </script>
+</body>
+</html>

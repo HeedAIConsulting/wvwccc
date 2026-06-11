@@ -243,7 +243,7 @@ router.get('/assets/:id', async (req, res) => {
 
 // Public posts feed (approved, not expired).
 router.get('/posts', async (req, res) => {
-  const type = ['discount', 'member_post', 'news', 'announcement'].includes(req.query.type) ? req.query.type : undefined;
+  const type = ['discount', 'member_post', 'news', 'announcement', 'gallery'].includes(req.query.type) ? req.query.type : undefined;
   try {
     const now = Date.now();
     const posts = (await repo.listPosts({ type, status: 'approved' }))
@@ -362,6 +362,76 @@ async function loadMembersPublic() {
 router.get('/members', async (_req, res) => {
   try { res.json(await loadMembersPublic()); }
   catch (e) { console.error(e); res.status(500).json({ error: 'directory unavailable' }); }
+});
+
+// ── Groups / networks (YPN, Home Improvement, etc.) ─────────
+function readSeedGroups() {
+  try { return JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'groups.json'), 'utf8')).groups || []; }
+  catch { return []; }
+}
+const slugifyGroup = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60);
+function buildGroup(b, existing = {}) {
+  const name = String(b.name ?? existing.name ?? '').slice(0, 120);
+  return {
+    id: existing.id || b.id || ('grp-' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36)),
+    slug: slugifyGroup(b.slug ?? existing.slug ?? name),
+    name,
+    tagline: String(b.tagline ?? existing.tagline ?? '').slice(0, 200),
+    description: String(b.description ?? existing.description ?? '').slice(0, 8000),
+    heroImage: clampUrl(b.heroImage ?? existing.heroImage ?? ''),
+    photos: Array.isArray(b.photos) ? b.photos.slice(0, 12).map(clampUrl).filter(Boolean) : (existing.photos || []),
+    meetingSchedule: String(b.meetingSchedule ?? existing.meetingSchedule ?? '').slice(0, 200),
+    meetingNotes: String(b.meetingNotes ?? existing.meetingNotes ?? '').slice(0, 12000),
+    contactEmail: String(b.contactEmail ?? existing.contactEmail ?? '').slice(0, 160),
+    eventMatch: String(b.eventMatch ?? existing.eventMatch ?? '').slice(0, 120),
+    status: ['approved', 'draft'].includes(b.status) ? b.status : (existing.status || 'approved'),
+    created: existing.created || new Date().toISOString(),
+    updated: new Date().toISOString(),
+  };
+}
+let _groupsSeeded = false;
+async function loadGroups() {
+  if (!_groupsSeeded) {
+    _groupsSeeded = true;
+    try {
+      if (!(await repo.hasGroups())) {
+        for (const g of readSeedGroups()) await repo.upsertGroup(buildGroup(g, g));
+      } else {
+        // add-only: seed groups that don't exist yet (new networks shipped in code)
+        const have = new Set((await repo.listGroupsStore()).map((g) => g.id));
+        for (const g of readSeedGroups()) if (!have.has(g.id)) await repo.upsertGroup(buildGroup(g, g));
+      }
+    } catch (e) { console.error('group seed failed', e); }
+  }
+  return repo.listGroupsStore();
+}
+router.get('/groups', async (_req, res) => {
+  try { res.json({ groups: (await loadGroups()).filter((g) => g.status === 'approved') }); }
+  catch (e) { console.error(e); res.status(500).json({ error: 'groups unavailable' }); }
+});
+router.get('/groups/:slug', async (req, res) => {
+  try {
+    const g = (await loadGroups()).find((x) => x.slug === req.params.slug || x.id === req.params.slug);
+    if (!g || g.status !== 'approved') return res.status(404).json({ error: 'not found' });
+    res.json({ group: g });
+  } catch (e) { res.status(500).json({ error: 'failed' }); }
+});
+router.get('/admin/groups', requireAdmin, async (_req, res) => {
+  try { res.json({ groups: await loadGroups() }); }
+  catch (e) { res.status(500).json({ error: 'failed' }); }
+});
+router.post('/admin/groups', requireAdmin, async (req, res) => {
+  try {
+    const b = req.body || {};
+    const existing = b.id ? (await loadGroups()).find((g) => g.id === b.id) : null;
+    const g = buildGroup(b, existing || {});
+    await repo.upsertGroup(g);
+    res.json({ ok: true, group: g });
+  } catch (e) { console.error(e); res.status(500).json({ error: 'save failed' }); }
+});
+router.delete('/admin/groups/:id', requireAdmin, async (req, res) => {
+  try { await repo.deleteGroup(req.params.id); res.json({ ok: true }); }
+  catch (e) { res.status(500).json({ error: 'delete failed' }); }
 });
 
 // ── Static content pages (migrated legacy IA) ──
@@ -624,6 +694,19 @@ router.patch('/admin/members/:id', requireAdmin, async (req, res) => {
   } catch (e) { console.error(e); res.status(500).json({ error: 'update failed' }); }
 });
 
+// Admin edit of a member's PUBLIC PROFILE (name, contact, address, tagline…).
+// Same sanitizer + storage as member self-edits, so precedence rules hold.
+router.patch('/admin/members/:id/profile', requireAdmin, async (req, res) => {
+  try {
+    const id = req.params.id;
+    const exists = (await loadMembersFull()).members.some((m) => m.id === id);
+    if (!exists) return res.status(404).json({ error: 'not found' });
+    const patch = sanitizeProfile(req.body || {});
+    await repo.setMemberEdit(id, patch);
+    res.json({ ok: true, id, applied: patch });
+  } catch (e) { console.error(e); res.status(500).json({ error: 'update failed' }); }
+});
+
 // Manually add a member (offline signup — paid offline).
 router.post('/admin/members', requireAdmin, async (req, res) => {
   const b = req.body || {};
@@ -748,7 +831,7 @@ router.get('/admin/posts', requireAdmin, async (req, res) => {
   } catch (e) { res.status(500).json({ error: 'failed' }); }
 });
 
-const ADMIN_POST_TYPES = ['news', 'announcement', 'discount', 'member_post', 'event', 'slide'];
+const ADMIN_POST_TYPES = ['news', 'announcement', 'discount', 'member_post', 'event', 'slide', 'gallery'];
 router.post('/admin/posts', requireAdmin, async (req, res) => {
   const b = req.body || {};
   if (!ADMIN_POST_TYPES.includes(b.type)) return res.status(400).json({ error: 'Invalid type.' });

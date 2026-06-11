@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex" />
+  <title>Groups — WVWCCC Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="../css/chamber.css" />
+  <link rel="stylesheet" href="admin.css" />
+</head>
+<body class="admin">
+  <div class="admin-shell">
+    <aside class="admin-sidebar" data-admin-nav></aside>
+    <div class="admin-main">
+      <div class="admin-topbar"><h1>Groups &amp; Networks</h1></div>
+      <div class="admin-content">
+
+        <div class="admin-notice">Groups appear at <strong>/groups/</strong> on the site. Each group page shows its hero photo, description, meeting schedule &amp; notes, photos, matching upcoming events, and a "Join this group" form (requests land in Inquiries).</div>
+
+        <div class="panel">
+          <div class="panel__head"><h3 id="grpFormTitle">New group</h3></div>
+          <form id="groupForm" class="admin-form" style="padding:16px">
+            <input type="hidden" name="id" />
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+              <div class="field" style="grid-column:1/-1;margin:0"><label>Group name *</label><input name="name" required maxlength="120" placeholder="Young Professionals Network (YPN)" /></div>
+              <div class="field" style="grid-column:1/-1;margin:0"><label>Tagline <span class="sub">(one line under the name)</span></label><input name="tagline" maxlength="200" /></div>
+              <div class="field" style="margin:0"><label>Meeting schedule</label><input name="meetingSchedule" maxlength="200" placeholder="3rd Tuesday of the month · 8 AM" /></div>
+              <div class="field" style="margin:0"><label>Contact email</label><input name="contactEmail" type="email" maxlength="160" /></div>
+              <div class="field" style="margin:0"><label>Event match <span class="sub">(events whose title contains this show on the page)</span></label><input name="eventMatch" maxlength="120" placeholder="Home Improvement" /></div>
+              <div class="field" style="margin:0"><label>Status</label><select name="status" class="admin-select"><option value="approved">Published</option><option value="draft">Draft (hidden)</option></select></div>
+              <div class="field" style="grid-column:1/-1;margin:0"><label>Description</label><textarea name="description" rows="4"></textarea></div>
+              <div class="field" style="grid-column:1/-1;margin:0"><label>Meeting notes <span class="sub">(shown on the group page — agendas, recaps, announcements)</span></label><textarea name="meetingNotes" rows="5"></textarea></div>
+            </div>
+            <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-top:12px">
+              <label class="btn btn--gold btn--sm" style="cursor:pointer">Upload hero photo<input type="file" accept="image/*" hidden id="grpHero"></label>
+              <span id="grpHeroPrev" class="sub"></span>
+              <label class="btn btn--ghost btn--sm" style="cursor:pointer">Add photos<input type="file" accept="image/*" multiple hidden id="grpPhotos"></label>
+              <span id="grpPhotosPrev" class="sub"></span>
+            </div>
+            <p id="grpMsg" class="sub" style="margin:10px 0 0" hidden></p>
+            <div style="display:flex;gap:10px;margin-top:14px">
+              <button class="btn btn--forest" type="submit">Save group</button>
+              <button class="btn btn--ghost" type="button" id="grpReset">Clear / new</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="panel">
+          <div class="panel__head"><h3>All groups</h3></div>
+          <table class="admin-table">
+            <thead><tr><th>Group</th><th>Meets</th><th>Status</th><th></th></tr></thead>
+            <tbody id="groupRows"></tbody>
+          </table>
+        </div>
+
+      </div>
+    </div>
+  </div>
+  <script src="../js/api-base.js"></script>
+  <script src="admin.js"></script>
+  <script>AdminApp.initGroups();</script>
+</body>
+</html>

@@ -1,0 +1,92 @@
+{
+  "_meta": {
+    "note": "Chamber groups & networks seed. Admins manage these in Admin → Groups; this file seeds the store once (add-only, never overwrites admin edits).",
+    "schema_version": 1
+  },
+  "groups": [
+    {
+      "id": "grp-home-improvement",
+      "slug": "home-improvement-network",
+      "name": "Home Improvement Professionals Network",
+      "tagline": "Leads, referrals, and insight for home-improvement pros.",
+      "description": "A credible group of home-improvement industry professionals sharing leads, referrals, and insight. From contractors and designers to inspectors and suppliers — if your business touches the home, this network keeps your pipeline warm and your reputation growing.",
+      "heroImage": "assets/events/11311.jpg",
+      "photos": [],
+      "meetingSchedule": "3rd Tuesday of the month",
+      "meetingNotes": "",
+      "contactEmail": "felicia@woodlandhillscc.net",
+      "eventMatch": "Home Improvement",
+      "status": "approved"
+    },
+    {
+      "id": "grp-health-wellness",
+      "slug": "health-wellness-network",
+      "name": "Health & Wellness Resource Network",
+      "tagline": "Professional leads & referrals for health and wellness practitioners.",
+      "description": "Practitioners, providers, and wellness businesses across the West Valley meet to exchange professional leads and referrals — from medical and dental to fitness, nutrition, and senior care. Save the date: every 4th Monday. Coffee and tea served.",
+      "heroImage": "assets/events/11181.jpg",
+      "photos": [],
+      "meetingSchedule": "4th Monday of the month · 8:30–10:00 AM",
+      "meetingNotes": "",
+      "contactEmail": "felicia@woodlandhillscc.net",
+      "eventMatch": "Health & Wellness",
+      "status": "approved"
+    },
+    {
+      "id": "grp-dbn",
+      "slug": "dynamic-business-networking",
+      "name": "Dynamic Business Networking (DBN)",
+      "tagline": "High-energy referral networking for growing businesses.",
+      "description": "DBN brings together motivated business owners and professionals for structured, high-energy networking — introductions, one-to-ones, and referrals that turn into real business.",
+      "heroImage": "assets/events/11360.jpg",
+      "photos": [],
+      "meetingSchedule": "See upcoming events below",
+      "meetingNotes": "",
+      "contactEmail": "felicia@woodlandhillscc.net",
+      "eventMatch": "Dynamic Business Networking",
+      "status": "approved"
+    },
+    {
+      "id": "grp-lees-luncheon",
+      "slug": "lees-luncheon-connection-circle",
+      "name": "Lee's Luncheon Connection Circle",
+      "tagline": "A smaller circle, deeper connections — over lunch.",
+      "description": "A dedicated lunch group focused on really knowing each other's businesses, so every referral is a confident one. Limited seats keep the conversation personal.",
+      "heroImage": "assets/events/11293.jpg",
+      "photos": [],
+      "meetingSchedule": "See upcoming events below",
+      "meetingNotes": "",
+      "contactEmail": "felicia@woodlandhillscc.net",
+      "eventMatch": "Luncheon Connection Circle",
+      "status": "approved"
+    },
+    {
+      "id": "grp-martins-circle",
+      "slug": "martins-connection-circle",
+      "name": "Martin's Connection Circle",
+      "tagline": "Monday mornings with Martin — coffee, referrals, momentum.",
+      "description": "Start the week connected. A small group dedicated to learning more about each other so we can provide better referrals. Coffee and a small pastry provided at the Chamber offices.",
+      "heroImage": "assets/hero/hero2.jpg",
+      "photos": [],
+      "meetingSchedule": "Mondays · 8:00–9:00 AM · Chamber offices",
+      "meetingNotes": "",
+      "contactEmail": "felicia@woodlandhillscc.net",
+      "eventMatch": "Martin's Connection Circle",
+      "status": "approved"
+    },
+    {
+      "id": "grp-ypn",
+      "slug": "young-professionals-network",
+      "name": "Young Professionals Network (YPN)",
+      "tagline": "The next generation of West Valley business leaders.",
+      "description": "YPN connects rising professionals across the West Valley for networking, mentorship, and community projects — build your circle early and grow with the Chamber.",
+      "heroImage": "assets/hero/hero3.jpg",
+      "photos": [],
+      "meetingSchedule": "Watch for upcoming YPN mixers",
+      "meetingNotes": "",
+      "contactEmail": "felicia@woodlandhillscc.net",
+      "eventMatch": "YPN",
+      "status": "approved"
+    }
+  ]
+}

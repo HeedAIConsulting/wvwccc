@@ -312,6 +312,7 @@ window.Chamber = (function () {
       return `<a class="leader-cell" href="${hrefOf(m)}" title="${esc(m.name)} · ${esc(LEADER_LABEL[tier] || tier)}">
         <span class="leader-cell__tier">${esc(LEADER_LABEL[tier] || tier)}</span>
         <span class="leader-cell__logo"><img src="${esc(fixUrl(logo))}" alt="${esc(m.name)}" loading="lazy"></span>
+        <span class="leader-cell__name">${esc(m.name)}</span>
       </a>`;
     };
     // Main leaders (Platinum→Supporter) above the rule; Friend Leaders below it.
@@ -321,6 +322,98 @@ window.Chamber = (function () {
       `<div class="leader-wall-grid">${main.map(cell).join('')}</div>` +
       (friends.length ? `<hr class="leader-wall__rule"><div class="leader-wall-grid">${friends.map(cell).join('')}</div>` : '');
     section?.removeAttribute('hidden');
+  }
+
+  // ── Groups & networks (YPN, Home Improvement, …) ─────────
+  async function initGroups() {
+    const grid = document.getElementById('groupGrid');
+    if (!grid) return;
+    let groups = [];
+    try { groups = (await getJSON(ChamberAPI.url('/api/groups'))).groups || []; }
+    catch (e) { grid.innerHTML = '<p class="notice">Groups are loading slowly — please refresh.</p>'; return; }
+    if (!groups.length) { grid.innerHTML = '<p class="notice">Groups are being set up — check back soon.</p>'; return; }
+    grid.innerHTML = groups.map((g) => `
+      <a class="group-card card--hover" href="/groups/${esc(g.slug)}">
+        <div class="group-card__media" style="${g.heroImage ? `background-image:url('/${esc(g.heroImage).replace(/^\//, '')}')` : ''}"></div>
+        <div class="group-card__body">
+          <h3>${esc(g.name)}</h3>
+          <p class="member-tile__meta">${esc(g.meetingSchedule || '')}</p>
+          <p class="group-card__tag">${esc(g.tagline || '')}</p>
+          <span class="btn btn--forest btn--sm">View group →</span>
+        </div>
+      </a>`).join('');
+  }
+
+  async function initGroupView() {
+    const slug = decodeURIComponent(location.pathname.split('/').filter(Boolean).pop() || '');
+    let g = null;
+    try { g = (await getJSON(ChamberAPI.url('/api/groups/' + encodeURIComponent(slug)))).group; } catch (e) {}
+    if (!g) {
+      document.getElementById('gName').textContent = 'Group not found';
+      document.getElementById('gTagline').textContent = 'This group may have moved — see all groups below.';
+      return;
+    }
+    document.title = `${g.name} — WVWCCC`;
+    document.getElementById('gName').textContent = g.name;
+    document.getElementById('gTagline').textContent = g.tagline || '';
+    document.getElementById('gDescription').textContent = g.description || '';
+    document.getElementById('gSchedule').textContent = g.meetingSchedule || 'Contact the Chamber office';
+    if (g.heroImage) document.getElementById('groupHero').style.backgroundImage = `url('/${String(g.heroImage).replace(/^\//, '')}')`;
+    if (g.meetingNotes && g.meetingNotes.trim()) {
+      document.getElementById('gNotes').hidden = false;
+      document.getElementById('gNotesBody').textContent = g.meetingNotes;
+    }
+    if (Array.isArray(g.photos) && g.photos.length) {
+      document.getElementById('gPhotos').hidden = false;
+      document.getElementById('gPhotoGrid').innerHTML = g.photos.map((p) =>
+        `<a href="/${esc(String(p).replace(/^\//, ''))}" target="_blank" rel="noopener"><img src="/${esc(String(p).replace(/^\//, ''))}" alt="${esc(g.name)} photo" loading="lazy"></a>`).join('');
+    }
+    // upcoming events that match this group
+    if (g.eventMatch) {
+      try {
+        const evs = (await getJSON(ChamberAPI.url('/api/events'))).events || [];
+        const today = new Date().toISOString().slice(0, 10);
+        const mine = evs.filter((e) => e.confirmed && e.date >= today &&
+          (e.title || '').toLowerCase().includes(g.eventMatch.toLowerCase())).slice(0, 4);
+        if (mine.length) {
+          document.getElementById('gEvents').hidden = false;
+          document.getElementById('gEventList').innerHTML = mine.map((e) => eventPreviewCard(e, 1)).join('');
+        }
+      } catch (e) {}
+    }
+    // join form → standard lead pipeline, tagged with the group name
+    document.getElementById('gJoinMsgField').value = `Wants to join: ${g.name}`;
+    initLeadForm('groupJoinForm', 'groupJoinMsg', 'group-join');
+  }
+
+  // ── Photo gallery (gallery.html) — grid + lightbox ───────
+  async function initGallery() {
+    const grid = document.getElementById('galleryGrid');
+    if (!grid) return;
+    let posts = [];
+    try { posts = (await getJSON(ChamberAPI.url('/api/posts?type=gallery'))).posts || []; } catch (e) {}
+    const shots = posts.filter((p) => p.imageUrl);
+    if (!shots.length) { grid.innerHTML = '<p class="notice">Photos are on the way — check back after our next event!</p>'; return; }
+    grid.innerHTML = shots.map((p, i) => `
+      <figure class="gallery-card">
+        <a href="${esc(p.imageUrl)}" data-lightbox="${i}"><img src="${esc(p.imageUrl)}" alt="${esc(p.title || 'Chamber photo')}" loading="lazy"></a>
+        ${p.title ? `<figcaption>${esc(p.title)}</figcaption>` : ''}
+      </figure>`).join('');
+    // lightbox: click → full-size overlay with caption; Esc / click closes
+    grid.addEventListener('click', (e) => {
+      const a = e.target.closest('[data-lightbox]'); if (!a) return;
+      e.preventDefault();
+      const p = shots[+a.dataset.lightbox];
+      const ov = document.createElement('div');
+      ov.style.cssText = 'position:fixed;inset:0;background:rgba(14,42,22,.92);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;cursor:zoom-out';
+      ov.innerHTML = `<img src="${esc(p.imageUrl)}" alt="" style="max-width:94vw;max-height:84vh;border-radius:12px;box-shadow:0 30px 80px rgba(0,0,0,.5)">
+        ${p.title ? `<p style="color:rgba(255,255,255,.85);margin-top:14px;text-align:center;max-width:70ch">${esc(p.title)}</p>` : ''}`;
+      const close = () => { ov.remove(); document.removeEventListener('keydown', onKey); };
+      const onKey = (ev) => { if (ev.key === 'Escape') close(); };
+      ov.addEventListener('click', close);
+      document.addEventListener('keydown', onKey);
+      document.body.appendChild(ov);
+    });
   }
 
   function initGeoBanner() {
@@ -538,6 +631,9 @@ window.Chamber = (function () {
     // Each query word must hit SOME field; matches in name/category rank far
     // above incidental description mentions, and whole-word beats substring
     // (so "hospital" doesn't rank "hospitality" venues at the top).
+    // Connector words ("and", "the", "for"…) are dropped so "health and wellness"
+    // matches the "Health & Wellness" category; "&" and "and" are interchangeable.
+    const STOP = new Set('a an and the of for in on at to or with near my our your find looking need want best top'.split(' '));
     function scoreOf(m) {
       if (state.category && (m.group || 'Other') !== state.category) return -1;
       if (state.hood && m.neighborhood !== state.hood) return -1;
@@ -545,7 +641,9 @@ window.Chamber = (function () {
       const fields = [[m.name, 10], [m.category, 6], [(m.categories || []).join(' '), 6], [m.typeOfBusiness, 6], [(m.keywords || []).join(' '), 5], [m.group, 5],
         [m.neighborhood, 4], [m.city, 4], [m.contactName, 3], [m.tagline, 3],
         [(m.tags || []).join(' '), 2], [m.description, 1]];
-      const words = state.q.toLowerCase().split(/\s+/).filter(Boolean);
+      const words = state.q.toLowerCase().replace(/&/g, ' ').split(/\s+/)
+        .filter((w) => w && !STOP.has(w));
+      if (!words.length) return 0;
       let total = 0;
       for (const w of words) {
         const wb = new RegExp('\\b' + w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b');
@@ -1209,5 +1307,5 @@ window.Chamber = (function () {
     });
   }
 
-  return { initHome, initDirectory, initProfile, initEvents, initCheckout, initLeadForm, initJobs, initDeals, initCommunity, initNews, initBizBuzz, initBoard, initDining, offerCard, postCard, newsCard, memberTile, eventCard, eventPreviewCard, initLeaderBanner, getJSON, esc };
+  return { initHome, initDirectory, initProfile, initEvents, initCheckout, initLeadForm, initJobs, initDeals, initCommunity, initNews, initBizBuzz, initBoard, initDining, offerCard, postCard, newsCard, memberTile, eventCard, eventPreviewCard, initLeaderBanner, initGroups, initGroupView, initGallery, getJSON, esc };
 })();
