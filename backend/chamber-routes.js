@@ -279,6 +279,95 @@ router.get('/posts', async (req, res) => {
   } catch (e) { res.status(500).json({ error: 'failed' }); }
 });
 
+// ── Link preview (Open Graph unfurl) ────────────────────────
+// Fetches a URL and extracts og:image / title / description so the news feed
+// can show rich preview cards for posts that link out. SSRF-guarded (http(s)
+// only, private ranges blocked), size- and time-capped, cached in memory.
+const _ogCache = new Map(); // url -> { data, exp }
+const OG_TTL = 6 * 60 * 60 * 1000;
+function isBlockedHost(host) {
+  const h = (host || '').toLowerCase().replace(/^\[|\]$/g, '');
+  if (!h || h === 'localhost' || h.endsWith('.local') || h.endsWith('.internal')) return true;
+  if (h === '::1' || h.startsWith('fc') || h.startsWith('fd') || h.startsWith('fe80')) return true;
+  const m = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(h);
+  if (m) {
+    const [a, b] = [Number(m[1]), Number(m[2])];
+    if (a === 10 || a === 127 || a === 0 || a >= 224) return true;
+    if (a === 169 && b === 254) return true;          // link-local / cloud metadata
+    if (a === 192 && b === 168) return true;
+    if (a === 172 && b >= 16 && b <= 31) return true;
+    if (a === 100 && b >= 64 && b <= 127) return true; // CGNAT
+  }
+  return false;
+}
+function metaTag(html, names) {
+  for (const name of names) {
+    const re = new RegExp('<meta[^>]+(?:property|name)=["\']' + name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '["\'][^>]*>', 'i');
+    const tag = re.exec(html);
+    if (tag) {
+      const c = /content=["\']([^"\']*)["\']/i.exec(tag[0]);
+      if (c && c[1]) return c[1].trim();
+    }
+  }
+  return '';
+}
+const decodeEntities = (s) => String(s || '')
+  .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+  .replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'").replace(/&#x27;/gi, "'").replace(/&nbsp;/g, ' ');
+
+router.get('/link-preview', async (req, res) => {
+  let target;
+  try { target = new URL(String(req.query.url || '')); } catch { return res.status(400).json({ error: 'bad url' }); }
+  if (!/^https?:$/.test(target.protocol) || isBlockedHost(target.hostname)) {
+    return res.status(400).json({ error: 'url not allowed' });
+  }
+  const key = target.href;
+  const hit = _ogCache.get(key);
+  if (hit && hit.exp > Date.now()) return res.json(hit.data);
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 6000);
+    const r = await fetch(key, {
+      redirect: 'follow', signal: ctrl.signal,
+      headers: { 'User-Agent': 'WVWCCC-LinkPreview/1.0 (+https://woodlandhillscc.net)', Accept: 'text/html,*/*' },
+    }).finally(() => clearTimeout(timer));
+    const ct = r.headers.get('content-type') || '';
+    if (!r.ok || !/text\/html|application\/xhtml/i.test(ct)) {
+      const data = { url: key, ok: false };
+      _ogCache.set(key, { data, exp: Date.now() + OG_TTL });
+      return res.json(data);
+    }
+    // read at most ~256KB of the <head>
+    const reader = r.body.getReader();
+    let html = '', received = 0;
+    const dec = new TextDecoder();
+    while (received < 262144) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      received += value.length;
+      html += dec.decode(value, { stream: true });
+      if (/<\/head>/i.test(html)) break;
+    }
+    try { await reader.cancel(); } catch {}
+    const titleTag = /<title[^>]*>([^<]*)<\/title>/i.exec(html);
+    let image = metaTag(html, ['og:image:secure_url', 'og:image', 'twitter:image', 'twitter:image:src']);
+    if (image) { try { image = new URL(image, key).href; } catch {} }
+    const data = {
+      url: key, ok: true,
+      siteName: decodeEntities(metaTag(html, ['og:site_name'])) || target.hostname.replace(/^www\./, ''),
+      title: decodeEntities(metaTag(html, ['og:title', 'twitter:title']) || (titleTag ? titleTag[1] : '')).slice(0, 200),
+      description: decodeEntities(metaTag(html, ['og:description', 'twitter:description', 'description'])).slice(0, 300),
+      image: image || '',
+    };
+    _ogCache.set(key, { data, exp: Date.now() + OG_TTL });
+    res.json(data);
+  } catch (e) {
+    const data = { url: key, ok: false };
+    _ogCache.set(key, { data, exp: Date.now() + 10 * 60 * 1000 }); // short cache on failure
+    res.json(data);
+  }
+});
+
 // Homepage hero slider (admin-managed event photos).
 router.get('/slides', async (_req, res) => {
   try { res.json({ slides: (await repo.listPosts({ type: 'slide', status: 'approved' })).filter((s) => s.imageUrl) }); }

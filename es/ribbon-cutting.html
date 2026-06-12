@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Solicitar un Corte de Listón — Cámara de Comercio West Valley · Warner Center</title>
+  <meta name="description" content="Solicite una ceremonia de corte de listón o gran apertura con la Cámara de Comercio West Valley · Warner Center. Coordinamos el evento, las fotos y los reconocimientos de la ciudad y el condado." />
+  <link rel="canonical" href="https://www.woodlandhillscc.net/es/ribbon-cutting.html" />
+  <link rel="alternate" hreflang="en" href="https://www.woodlandhillscc.net/ribbon-cutting.html" />
+  <link rel="alternate" hreflang="es" href="https://www.woodlandhillscc.net/es/ribbon-cutting.html" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="../css/chamber.css" />
+  <style>
+    .rc-grid { display: grid; grid-template-columns: 1.15fr .85fr; gap: var(--s-8); align-items: start; }
+    @media (max-width: 920px) { .rc-grid { grid-template-columns: 1fr; } }
+    .rc-aside { position: sticky; top: 96px; }
+    .rc-step { display: flex; gap: 12px; margin-bottom: var(--s-4); }
+    .rc-step b { flex: none; width: 28px; height: 28px; border-radius: 50%; background: var(--gold); color: var(--green-ink);
+      font-family: var(--display); display: grid; place-items: center; font-size: .95rem; }
+    .rc-step span { color: var(--slate-mid); font-size: .94rem; }
+    .rc-checks { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; margin-top: 6px; }
+    @media (max-width: 560px) { .rc-checks { grid-template-columns: 1fr; } }
+    .rc-check { display: flex; gap: 8px; align-items: flex-start; font-size: .92rem; color: var(--slate); }
+    .rc-check input { margin-top: 3px; }
+    .field-hint { font-size: .8rem; color: var(--muted); margin-top: 3px; }
+  </style>
+</head>
+<body>
+  <div data-partial="header"></div>
+
+  <section class="section-sm bg-forest">
+    <div class="container">
+      <span class="kicker">Celebre con la Cámara</span>
+      <h1 style="color:#fff">Solicitar un Corte de Listón</h1>
+      <p class="lead" style="color:rgba(255,255,255,.85);max-width:64ch">
+        ¿Nueva ubicación? ¿Gran apertura? ¿Un gran logro? La Cámara pone las tijeras, la gente y las fotos —
+        y coordina los reconocimientos de la ciudad y el condado para hacerlo oficial.
+      </p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="rc-grid">
+        <div>
+          <form id="rcForm" class="card" style="padding:var(--s-6)">
+            <h2 style="margin-bottom:var(--s-2)">Cuéntenos sobre su celebración</h2>
+            <p class="member-tile__meta" style="margin-bottom:var(--s-5)">Entre más detalles comparta, más podremos coordinar — incluidos los reconocimientos de sus funcionarios electos. Los campos con * son obligatorios.</p>
+
+            <h3 style="color:var(--gold-deep);font-family:var(--mono);text-transform:uppercase;letter-spacing:.08em;font-size:.72rem;margin-bottom:10px">Su negocio</h3>
+            <div class="grid grid-2" style="gap:var(--s-3)">
+              <div class="field"><label>Negocio / organización *</label><input name="company" required maxlength="160" /></div>
+              <div class="field"><label>Tipo de ocasión</label>
+                <select name="occasion" class="field">
+                  <option>Corte de Listón</option><option>Gran Apertura</option><option>Reapertura / Reubicación</option>
+                  <option>Aniversario Importante</option><option>Colocación de Primera Piedra</option><option>Otra Celebración</option>
+                </select>
+              </div>
+              <div class="field"><label>Nombre de contacto *</label><input name="name" required maxlength="120" autocomplete="name" /></div>
+              <div class="field"><label>¿Es miembro de la Cámara?</label>
+                <select name="member" class="field"><option>Sí — miembro actual</option><option>Todavía no — interesado en unirme</option><option>No estoy seguro</option></select>
+              </div>
+              <div class="field"><label>Correo electrónico *</label><input name="email" type="email" required autocomplete="email" /></div>
+              <div class="field"><label>Teléfono *</label><input name="phone" type="tel" required autocomplete="tel" /></div>
+            </div>
+
+            <h3 style="color:var(--gold-deep);font-family:var(--mono);text-transform:uppercase;letter-spacing:.08em;font-size:.72rem;margin:var(--s-5) 0 10px">Fecha y hora</h3>
+            <div class="grid grid-2" style="gap:var(--s-3)">
+              <div class="field"><label>Fecha preferida *</label><input name="date1" type="date" required /></div>
+              <div class="field"><label>Hora preferida</label><input name="time" type="time" /></div>
+              <div class="field"><label>Fecha alternativa</label><input name="date2" type="date" /></div>
+              <div class="field"><label>2.ª fecha alternativa</label><input name="date3" type="date" /></div>
+            </div>
+            <p class="field-hint">Los reconocimientos de la ciudad y el condado requieren tiempo — por favor solicite con al menos 3 a 4 semanas de anticipación cuando sea posible.</p>
+
+            <h3 style="color:var(--gold-deep);font-family:var(--mono);text-transform:uppercase;letter-spacing:.08em;font-size:.72rem;margin:var(--s-5) 0 10px">Ubicación</h3>
+            <div class="field"><label>Nombre del lugar</label><input name="venue" maxlength="160" placeholder="p. ej. su local, un salón de eventos" /></div>
+            <div class="field"><label>Dirección *</label><input name="address" required maxlength="200" placeholder="Calle, Ciudad, Código Postal" /></div>
+            <div class="grid grid-2" style="gap:var(--s-3)">
+              <div class="field"><label>Asistencia esperada</label><input name="attendance" maxlength="40" placeholder="p. ej. 40–60 invitados" /></div>
+              <div class="field"><label>Notas de estacionamiento / acceso</label><input name="parking" maxlength="160" /></div>
+            </div>
+
+            <h3 style="color:var(--gold-deep);font-family:var(--mono);text-transform:uppercase;letter-spacing:.08em;font-size:.72rem;margin:var(--s-5) 0 10px">Reconocimiento de la ciudad y el condado</h3>
+            <p class="member-tile__meta" style="margin-bottom:6px">¿Qué reconocimientos desea que la Cámara coordine? (Haremos las solicitudes por usted.)</p>
+            <div class="rc-checks">
+              <label class="rc-check"><input type="checkbox" name="rec" value="LA City Council District 3 (Blumenfield)"> Concejo de LA, Distrito 3</label>
+              <label class="rc-check"><input type="checkbox" name="rec" value="LA City Council District 12 (Lee)"> Concejo de LA, Distrito 12</label>
+              <label class="rc-check"><input type="checkbox" name="rec" value="LA County Supervisor, 3rd District (Horvath)"> Supervisor del Condado (Distrito 3)</label>
+              <label class="rc-check"><input type="checkbox" name="rec" value="State Assembly AD-46 (Gabriel)"> Asambleísta Estatal</label>
+              <label class="rc-check"><input type="checkbox" name="rec" value="State Senate (Stern / Menjivar)"> Senador Estatal</label>
+              <label class="rc-check"><input type="checkbox" name="rec" value="U.S. Representative (Sherman)"> Representante Federal</label>
+              <label class="rc-check"><input type="checkbox" name="rec" value="Chamber certificate"> Certificado de la Cámara</label>
+              <label class="rc-check"><input type="checkbox" name="rec" value="Not sure — advise me"> No estoy seguro — asesórenme</label>
+            </div>
+
+            <h3 style="color:var(--gold-deep);font-family:var(--mono);text-transform:uppercase;letter-spacing:.08em;font-size:.72rem;margin:var(--s-5) 0 10px">Algo más</h3>
+            <div class="rc-checks" style="margin-bottom:10px">
+              <label class="rc-check"><input type="checkbox" name="extra" value="Chamber photographer"> Solicitar fotógrafo de la Cámara</label>
+              <label class="rc-check"><input type="checkbox" name="extra" value="Press / media outreach"> Difusión a prensa y medios</label>
+              <label class="rc-check"><input type="checkbox" name="extra" value="Promote on Chamber social"> Promover en redes de la Cámara</label>
+              <label class="rc-check"><input type="checkbox" name="extra" value="Add to Events calendar"> Agregar al calendario de eventos</label>
+            </div>
+            <div class="field"><label>Detalles, historia o solicitudes especiales</label><textarea name="details" rows="4" placeholder="¿Qué está celebrando? ¿A quién debemos asegurarnos de invitar o agradecer?"></textarea></div>
+
+            <input type="text" name="_gotcha" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px" aria-hidden="true" />
+            <p id="rcMsg" class="notice" hidden></p>
+            <button class="btn btn--gold btn--lg" type="submit" style="margin-top:var(--s-3)">Enviar solicitud</button>
+          </form>
+        </div>
+
+        <aside class="rc-aside">
+          <div class="card" style="padding:var(--s-6);background:var(--cream-deep);border:1px solid var(--gold-soft)">
+            <h3 style="margin-bottom:var(--s-4)">Cómo funciona</h3>
+            <div class="rc-step"><b>1</b><span>Envíe esta solicitud — entre más aviso, mejor (3 a 4 semanas para reconocimientos de la ciudad).</span></div>
+            <div class="rc-step"><b>2</b><span>El personal de la Cámara confirma su fecha y comienza a coordinar funcionarios, certificados y prensa.</span></div>
+            <div class="rc-step"><b>3</b><span>Promovemos el evento, preparamos las tijeras ceremoniales y el listón grande, y convocamos a los miembros a asistir.</span></div>
+            <div class="rc-step"><b>4</b><span>Celebre — y capturamos las fotos para el Valley Biz Buzz y las redes sociales.</span></div>
+            <hr style="border:none;border-top:1px solid var(--gold-soft);margin:var(--s-5) 0">
+            <p class="member-tile__meta">¿Preguntas primero? Llame a la oficina de la Cámara al <strong>(818) 347-4737</strong> o <a href="../contact.html">contáctenos</a>.</p>
+            <p class="member-tile__meta mt-3">¿Aún no es miembro? Los cortes de listón son un beneficio de membresía — <a href="../join.html">únase a la Cámara</a> y lo incluimos en su bienvenida.</p>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <div data-partial="footer"></div>
+  <script src="../js/partials.js"></script>
+  <script src="../js/api-base.js"></script>
+  <script src="../js/forms.js"></script>
+  <script>
+    ChamberPartials.mount({ active: '', depth: 1, lang: 'es' });
+    (function () {
+      var form = document.getElementById('rcForm');
+      var msg = document.getElementById('rcMsg');
+      if (window.ChamberForms) ChamberForms.mountTurnstile(form);
+      form.addEventListener('submit', async function (e) {
+        e.preventDefault();
+        if (form.querySelector('[name="_gotcha"]').value) return;
+        if (!form.reportValidity()) return;
+        var fd = new FormData(form);
+        var recs = fd.getAll('rec').join(', ') || 'none specified';
+        var extras = fd.getAll('extra').join(', ') || 'none';
+        var lines = [
+          '[Submitted in Spanish]',
+          'OCCASION: ' + fd.get('occasion'),
+          'BUSINESS: ' + fd.get('company') + (fd.get('member') ? ' (' + fd.get('member') + ')' : ''),
+          'PREFERRED DATE: ' + (fd.get('date1') || '—') + (fd.get('time') ? ' at ' + fd.get('time') : ''),
+          'ALT DATES: ' + ([fd.get('date2'), fd.get('date3')].filter(Boolean).join(' / ') || '—'),
+          'LOCATION: ' + [fd.get('venue'), fd.get('address')].filter(Boolean).join(' — '),
+          'ATTENDANCE: ' + (fd.get('attendance') || '—'),
+          'PARKING/ACCESS: ' + (fd.get('parking') || '—'),
+          'RECOGNITION REQUESTED: ' + recs,
+          'ALSO REQUESTED: ' + extras,
+          '',
+          'DETAILS: ' + (fd.get('details') || '—'),
+        ];
+        var payload = {
+          kind: 'ribbon-cutting',
+          reason: 'Ribbon Cutting (ES) — ' + fd.get('occasion'),
+          name: fd.get('name'), email: fd.get('email'), phone: fd.get('phone'),
+          company: fd.get('company'), event: fd.get('date1') || '',
+          message: lines.join('\n'),
+        };
+        var token = form.querySelector('[name="cf-turnstile-response"]');
+        if (token) payload['cf-turnstile-response'] = token.value;
+        var btn = form.querySelector('button[type="submit"]');
+        btn.disabled = true; btn.textContent = 'Enviando…';
+        try {
+          var r = await fetch((window.ChamberAPI ? ChamberAPI.url('') : '') + '/api/contact', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+          });
+          msg.hidden = false;
+          if (r.ok) {
+            form.querySelectorAll('input,select,textarea,button').forEach(function (el) { el.disabled = true; });
+            msg.style.borderColor = 'var(--green)';
+            msg.innerHTML = '<strong>¡Solicitud recibida!</strong> El personal de la Cámara se comunicará para confirmar su fecha y comenzar a coordinar. Para algo urgente, llame al (818) 347-4737.';
+            msg.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          } else {
+            msg.style.borderColor = 'var(--red)';
+            msg.textContent = 'Lo sentimos — no se pudo enviar. Por favor llame a la Cámara al (818) 347-4737.';
+            btn.disabled = false; btn.textContent = 'Enviar solicitud';
+          }
+        } catch (err) {
+          msg.hidden = false; msg.style.borderColor = 'var(--red)';
+          msg.textContent = 'Error de red — por favor llame a la Cámara al (818) 347-4737.';
+          btn.disabled = false; btn.textContent = 'Enviar solicitud';
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

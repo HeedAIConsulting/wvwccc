@@ -282,6 +282,108 @@ window.ChamberPartials = (function () {
     setTimeout(() => { document.body.appendChild(card); requestAnimationFrame(() => card.classList.add('in')); }, 6000);
   }
 
+  // Logo page transition — a split-panel wipe with the Chamber seal. On an
+  // internal-link click the green panels close over the screen (seal at center);
+  // the next page parts them to reveal itself. GPU transforms only; fully
+  // skipped under prefers-reduced-motion. Coordinated across page loads via
+  // sessionStorage so the exit and entrance feel like one motion.
+  function mountPageTransition(depth) {
+    if (/\/admin\//.test(window.location.pathname)) return;
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (document.getElementById('wv-trans')) return;
+
+    if (!document.getElementById('wv-trans-css')) {
+      var st = document.createElement('style'); st.id = 'wv-trans-css';
+      st.textContent =
+        '#wv-trans{position:fixed;inset:0;z-index:2147483000;pointer-events:none;visibility:hidden}'
+        + '#wv-trans.on{visibility:visible}'
+        + '.wv-trans__panel{position:absolute;left:0;right:0;height:50.5%;background:var(--green-ink,#143C20);'
+        + 'background-image:radial-gradient(ellipse at 50% 100%,rgba(201,162,39,.16),transparent 62%);'
+        + 'transition:transform .5s cubic-bezier(.76,0,.24,1);will-change:transform}'
+        + '.wv-trans__panel--top{top:0;transform:translateY(-101%)}'
+        + '.wv-trans__panel--bottom{bottom:0;background-image:radial-gradient(ellipse at 50% 0%,rgba(201,162,39,.16),transparent 62%);transform:translateY(101%)}'
+        + '.wv-trans__seam{position:absolute;left:0;right:0;top:50%;height:2px;transform:translateY(-1px) scaleX(0);'
+        + 'background:linear-gradient(90deg,transparent,var(--gold,#C9A227),transparent);transition:transform .5s cubic-bezier(.76,0,.24,1);opacity:.9}'
+        + '.wv-trans__seal{position:absolute;top:50%;left:50%;width:108px;height:108px;margin:-54px 0 0 -54px;'
+        + 'border-radius:50%;display:grid;place-items:center;opacity:0;transform:scale(.7) rotate(-12deg);'
+        + 'transition:opacity .42s ease,transform .55s cubic-bezier(.34,1.56,.64,1)}'
+        + '.wv-trans__seal img{width:84px;height:84px;border-radius:50%;display:block;'
+        + 'box-shadow:0 8px 30px rgba(0,0,0,.4),0 0 0 1px rgba(228,190,69,.4)}'
+        + '.wv-trans__seal::before{content:"";position:absolute;inset:-12px;border-radius:50%;'
+        + 'border:2px solid transparent;border-top-color:var(--gold-bright,#E4BE45);border-right-color:var(--gold-bright,#E4BE45);'
+        + 'opacity:0;transition:opacity .4s ease}'
+        // covering (exit) — panels meet, seal blooms, ring spins
+        + '#wv-trans.cover .wv-trans__panel--top,#wv-trans.cover .wv-trans__panel--bottom{transform:translateY(0)}'
+        + '#wv-trans.cover .wv-trans__seam{transform:translateY(-1px) scaleX(1)}'
+        + '#wv-trans.cover .wv-trans__seal{opacity:1;transform:scale(1) rotate(0)}'
+        + '#wv-trans.cover .wv-trans__seal::before{opacity:1;animation:wv-spin 1.1s linear infinite}'
+        // revealing (enter) — start covered, then panels part outward, seal lifts away
+        + '#wv-trans.reveal .wv-trans__panel--top{transform:translateY(-101%)}'
+        + '#wv-trans.reveal .wv-trans__panel--bottom{transform:translateY(101%)}'
+        + '#wv-trans.reveal .wv-trans__seam{transform:translateY(-1px) scaleX(0)}'
+        + '#wv-trans.reveal .wv-trans__seal{opacity:0;transform:scale(1.18) rotate(6deg)}'
+        + '#wv-trans.no-anim .wv-trans__panel,#wv-trans.no-anim .wv-trans__seal,#wv-trans.no-anim .wv-trans__seam{transition:none}'
+        + '@keyframes wv-spin{to{transform:rotate(360deg)}}';
+      document.head.appendChild(st);
+    }
+
+    var ov = document.createElement('div');
+    ov.id = 'wv-trans'; ov.setAttribute('aria-hidden', 'true');
+    ov.innerHTML = '<div class="wv-trans__panel wv-trans__panel--top"></div>'
+      + '<div class="wv-trans__panel wv-trans__panel--bottom"></div>'
+      + '<div class="wv-trans__seam"></div>'
+      + '<div class="wv-trans__seal"><img src="' + p(depth, 'images/wvwccc-logo.png') + '" alt=""></div>';
+    document.body.appendChild(ov);
+
+    // Entrance: if we arrived via an in-site nav, start covered then part.
+    try {
+      if (sessionStorage.getItem('wv-nav')) {
+        sessionStorage.removeItem('wv-nav');
+        ov.classList.add('on', 'no-anim', 'cover');
+        // force layout so the covered state paints, then animate the reveal
+        void ov.offsetWidth;
+        requestAnimationFrame(function () {
+          ov.classList.remove('no-anim');
+          requestAnimationFrame(function () {
+            ov.classList.remove('cover'); ov.classList.add('reveal');
+            setTimeout(function () { ov.classList.remove('on', 'reveal'); }, 620);
+          });
+        });
+      }
+    } catch (e) {}
+
+    // Exit: intercept qualifying internal links and cover before navigating.
+    function qualifies(a) {
+      if (!a || a.target === '_blank' || a.hasAttribute('download')) return false;
+      var href = a.getAttribute('href') || '';
+      if (!href || href[0] === '#' || /^(mailto:|tel:|sms:|javascript:)/i.test(href)) return false;
+      if (a.dataset.noTransition !== undefined) return false;
+      var url;
+      try { url = new URL(a.href, location.href); } catch (e) { return false; }
+      if (url.origin !== location.origin) return false;
+      // same page (only hash differs) → let the browser handle it
+      if (url.pathname === location.pathname && url.search === location.search && url.hash) return false;
+      if (/\/(admin|auth)\//.test(url.pathname)) return false;
+      return true;
+    }
+    document.addEventListener('click', function (e) {
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      var a = e.target.closest('a[href]');
+      if (!qualifies(a)) return;
+      e.preventDefault();
+      var dest = a.href;
+      try { sessionStorage.setItem('wv-nav', '1'); } catch (err) {}
+      ov.classList.remove('reveal'); ov.classList.add('on', 'cover');
+      var go = function () { window.location.href = dest; };
+      setTimeout(go, 480);
+      // safety: if navigation stalls, don't trap the user behind the overlay
+      setTimeout(function () { if (!document.hidden) ov.classList.remove('on', 'cover'); }, 4000);
+    }, true);
+
+    // Returning via back/forward (bfcache): make sure the overlay isn't stuck.
+    window.addEventListener('pageshow', function (ev) { if (ev.persisted) ov.classList.remove('on', 'cover', 'reveal'); });
+  }
+
   // ADA / WCAG accessibility toolkit on every page except the admin console.
   function mountAccessibility(depth) {
     if (/\/admin\//.test(window.location.pathname)) return;
@@ -351,6 +453,7 @@ window.ChamberPartials = (function () {
 
     mountElevenLabs();
     mountAccessibility(depth);
+    mountPageTransition(depth);
     mountGuidePromo(depth, lang);
 
     // Sticky header lifts off the page once scrolled (soft shadow).
