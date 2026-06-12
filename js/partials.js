@@ -6,7 +6,7 @@
    Production scope: Directory · Events · Jobs · Donate · Join
    ============================================================ */
 window.ChamberPartials = (function () {
-  function p(depth, path) { return (depth ? '../' : '') + path; }
+  function p(depth, path) { return '../'.repeat(depth || 0) + path; }
 
   // Real, verified contact data only. Social handles intentionally
   // omitted until verified — see footer placeholder.
@@ -37,7 +37,7 @@ window.ChamberPartials = (function () {
       home: 'Home', dir: 'Directory', dining: 'Dining', events: 'Events', jobs: 'Jobs',
       deals: 'Deals', community: 'Community', news: 'Biz Buzz', resources: 'Resources', about: 'The Chamber', join: 'Join'
     };
-    const base = depth ? '../' : '';
+    const base = '../'.repeat(depth || 0);
     return `
 <header class="site-header">
   <div class="site-header__top">
