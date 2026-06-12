@@ -98,6 +98,11 @@ app.get('/guides/:slug', (req, res, next) => {
   if ((req.params.slug || '').includes('.')) return next();
   res.sendFile(path.join(__dirname, 'guides', 'view.html'), (err) => { if (err) next(); });
 });
+// Spanish pretty guide URLs: /es/guides/<slug> → Spanish guide renderer.
+app.get('/es/guides/:slug', (req, res, next) => {
+  if ((req.params.slug || '').includes('.')) return next();
+  res.sendFile(path.join(__dirname, 'es', 'guides', 'view.html'), (err) => { if (err) next(); });
+});
 
 // ── 404 fallback ───────────────────────────────────────────
 app.use((req, res) => {

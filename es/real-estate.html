@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bienes Raíces — Cámara de Comercio West Valley · Warner Center</title>
+  <meta name="description" content="Anuncios de bienes raíces comerciales y residenciales de agentes y corredores miembros de la Cámara West Valley · Warner Center." />
+  <link rel="canonical" href="https://www.woodlandhillscc.net/es/real-estate.html" />
+  <link rel="alternate" hreflang="en" href="https://www.woodlandhillscc.net/real-estate.html" />
+  <link rel="alternate" hreflang="es" href="https://www.woodlandhillscc.net/es/real-estate.html" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="../css/chamber.css" />
+</head>
+<body>
+  <div data-partial="header"></div>
+
+  <section class="section-sm bg-forest">
+    <div class="container">
+      <span class="kicker">Viva y trabaje en el West Valley</span>
+      <h1 style="color:#fff">Bienes Raíces</h1>
+      <p class="lead" style="color:rgba(255,255,255,.85);max-width:64ch">
+        Anuncios comerciales y residenciales de agentes y corredores miembros de la Cámara — la gente que mejor
+        conoce Woodland Hills, Tarzana, Reseda y Warner Center.
+      </p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div id="reFeatured" hidden></div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--s-5);flex-wrap:wrap;gap:var(--s-3)">
+        <div class="chips" role="tablist" aria-label="Tipo de anuncio">
+          <button class="chip chip--active" type="button" data-re-tab="all">Todos los anuncios</button>
+          <button class="chip" type="button" data-re-tab="Commercial">Comercial</button>
+          <button class="chip" type="button" data-re-tab="Residential">Residencial</button>
+        </div>
+        <div id="reCount" class="member-tile__meta"></div>
+      </div>
+      <div id="reList" class="grid grid-3" style="gap:var(--s-4)"><p class="member-tile__meta">Cargando…</p></div>
+
+      <div class="notice mt-6">
+        <strong>¿Es agente o corredor miembro?</strong> Publique sus anuncios gratis desde el
+        <a href="../member/post.html">portal de miembros</a> — cada anuncio es revisado por la Cámara antes de salir.
+      </div>
+
+      <div class="section-head mt-8" style="margin-bottom:var(--s-5)">
+        <span class="kicker">Conozca a los profesionales</span>
+        <h2>Agentes y Corredores Miembros</h2>
+        <p id="reAgentsCount" class="member-tile__meta"></p>
+      </div>
+      <div id="reAgents" class="grid grid-3" style="gap:var(--s-4)"></div>
+
+      <div data-join-cta></div>
+    </div>
+  </section>
+
+  <div data-partial="footer"></div>
+  <script src="../js/partials.js"></script>
+  <script src="../js/api-base.js"></script>
+  <script src="../js/chamber.js"></script>
+  <script>
+    ChamberPartials.mount({ active: 'resources', depth: 1, lang: 'es' });
+    Chamber.initRealEstate();
+    Chamber.mountJoinCta('[data-join-cta]', { depth: 1, what: 'correduría' });
+  </script>
+</body>
+</html>

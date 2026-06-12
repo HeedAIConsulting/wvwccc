@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Directorio de Miembros — Cámara de Comercio West Valley · Warner Center</title>
+  <meta name="description" content="Busque en el directorio de miembros de la Cámara West Valley · Warner Center — negocios locales verificados en Tarzana, Woodland Hills, Reseda y Warner Center." />
+  <link rel="canonical" href="https://www.woodlandhillscc.net/es/members/directory.html" />
+  <link rel="alternate" hreflang="en" href="https://www.woodlandhillscc.net/members/directory.html" />
+  <link rel="alternate" hreflang="es" href="https://www.woodlandhillscc.net/es/members/directory.html" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="../../css/chamber.css" />
+</head>
+<body>
+  <div data-partial="header"></div>
+
+  <section class="section-sm bg-forest">
+    <div class="container">
+      <span class="kicker">El Directorio</span>
+      <h1 style="color:#fff">Encuentre un negocio local verificado</h1>
+      <p class="lead" style="color:rgba(255,255,255,.85);max-width:60ch">
+        Cada ficha es un miembro de la Cámara — local, responsable y parte de la comunidad desde 1930.
+      </p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div id="dirFeatured" hidden></div>
+      <form id="dirSearch" class="hero__concierge" style="max-width:640px;margin:0 0 var(--s-6)">
+        <div class="pill-input" style="box-shadow:var(--sh-sm)">
+          <span aria-hidden="true">🔎</span>
+          <input id="dirQuery" type="search" placeholder="Busque por nombre, categoría o servicio…" autocomplete="off" />
+          <button class="btn btn--forest btn--sm" type="submit">Buscar</button>
+        </div>
+      </form>
+
+      <div class="dir-toolbar">
+        <div class="dir-filters">
+          <div class="dd" id="categoryDD"></div>
+          <div class="dd" id="hoodDD"></div>
+          <button type="button" id="clearAll" class="dd__clear" hidden>Limpiar ✕</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:var(--s-3)">
+          <div id="resultCount" class="member-tile__meta"></div>
+          <div id="dataNotice"></div>
+        </div>
+      </div>
+
+      <div class="dir-grid" id="memberGrid"></div>
+      <div id="emptyState" hidden class="notice" style="margin-top:var(--s-5)">Ningún miembro coincide con esos filtros. <button type="button" id="clearFilters" style="color:var(--green);font-weight:600;text-decoration:underline">Limpiar filtros</button></div>
+    </div>
+  </section>
+
+  <div data-partial="footer"></div>
+
+  <script src="../../js/partials.js"></script>
+  <script src="../../js/api-base.js"></script>
+  <script src="../../js/chamber.js"></script>
+  <script>
+    ChamberPartials.mount({ active: 'members', depth: 2, lang: 'es' });
+    Chamber.initDirectory();
+    Chamber.initFeaturedSlot('directory', '#dirFeatured', { depth: 2 });
+  </script>
+</body>
+</html>

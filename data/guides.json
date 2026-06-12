@@ -11,8 +11,28 @@
       "emoji": "🌅",
       "lede": "Trusted senior care, living communities, and support services across the West Valley.",
       "intro": "The West Valley is one of Los Angeles' most senior-friendly communities — home to nationally recognized retirement communities, in-home care agencies, and advocacy organizations. Every provider listed here is a Chamber member business, accountable to our community.",
-      "categories": ["Senior Care", "Senior Living Community", "Senior Advocacy", "Home Care Services", "Home Health Care", "Hospice", "Hearing Services"],
-      "keywords": ["senior", "elder", "assisted living", "retirement", "caregiver", "memory care", "in-home care"]
+      "categories": [
+        "Senior Care",
+        "Senior Living Community",
+        "Senior Advocacy",
+        "Home Care Services",
+        "Home Health Care",
+        "Hospice",
+        "Hearing Services"
+      ],
+      "keywords": [
+        "senior",
+        "elder",
+        "assisted living",
+        "retirement",
+        "caregiver",
+        "memory care",
+        "in-home care"
+      ],
+      "title_es": "Vida y Recursos para Mayores",
+      "kicker_es": "Guía Comunitaria",
+      "lede_es": "Cuidado de mayores, comunidades de vida asistida y servicios de apoyo de confianza en todo el West Valley.",
+      "intro_es": "El West Valley es una de las comunidades más amigables para los adultos mayores de Los Ángeles — hogar de comunidades de retiro reconocidas, agencias de cuidado en casa y organizaciones de defensa. Cada proveedor aquí es un negocio miembro de la Cámara, responsable ante nuestra comunidad."
     },
     {
       "slug": "health-wellness",
@@ -21,8 +41,49 @@
       "emoji": "💆",
       "lede": "Hospitals, medical practices, spas, fitness, and wellness professionals in the West Valley.",
       "intro": "From world-class hospitals like UCLA Health and Providence Cedars-Sinai Tarzana to neighborhood spas, chiropractors, and fitness studios — the West Valley is a healthcare and wellness hub. Find a Chamber member provider below.",
-      "categories": ["Health & Wellness", "Fitness/Wellness", "Spa & Massage", "Chiropractor", "Acupuncturist", "Medical", "Hospital", "Healthcare", "Dentist", "Orthodontist", "Pediatric", "Pharmacy", "Optical", "Cancer Center", "Behavioral Health", "Counseling Services", "Psychologist", "Psychotherapist", "Therapist", "Physical Therapists", "Physical & Occupational Therapy", "Sports Medicine", "Weight Management Services", "Beauty Salon", "Beauty and Skin Care Services", "Martial Arts", "Children's Gym", "Sports Rehab"],
-      "keywords": ["wellness", "spa", "massage", "fitness", "yoga", "medical", "health"]
+      "categories": [
+        "Health & Wellness",
+        "Fitness/Wellness",
+        "Spa & Massage",
+        "Chiropractor",
+        "Acupuncturist",
+        "Medical",
+        "Hospital",
+        "Healthcare",
+        "Dentist",
+        "Orthodontist",
+        "Pediatric",
+        "Pharmacy",
+        "Optical",
+        "Cancer Center",
+        "Behavioral Health",
+        "Counseling Services",
+        "Psychologist",
+        "Psychotherapist",
+        "Therapist",
+        "Physical Therapists",
+        "Physical & Occupational Therapy",
+        "Sports Medicine",
+        "Weight Management Services",
+        "Beauty Salon",
+        "Beauty and Skin Care Services",
+        "Martial Arts",
+        "Children's Gym",
+        "Sports Rehab"
+      ],
+      "keywords": [
+        "wellness",
+        "spa",
+        "massage",
+        "fitness",
+        "yoga",
+        "medical",
+        "health"
+      ],
+      "title_es": "Salud, Spas y Bienestar",
+      "kicker_es": "Guía Comunitaria",
+      "lede_es": "Hospitales, consultorios médicos, spas, fitness y profesionales del bienestar en el West Valley.",
+      "intro_es": "Desde hospitales de primer nivel como UCLA Health y Providence Cedars-Sinai Tarzana hasta spas, quiroprácticos y estudios de fitness del vecindario — el West Valley es un centro de salud y bienestar. Encuentre un proveedor miembro de la Cámara abajo."
     },
     {
       "slug": "home-improvement",
@@ -31,8 +92,45 @@
       "emoji": "🛠️",
       "lede": "Contractors, plumbers, electricians, landscapers, and home pros you can trust.",
       "intro": "Hiring for your home is easier when the business is a Chamber member — local, established, and invested in this community. From full remodels to a single repair, start here.",
-      "categories": ["Home Improvement", "General Contractor", "Contractors", "Electrical Contractor", "Plumbing", "Roofing Contractor", "Paint Contractor", "Glass Contractor", "Handyman", "Landscaping", "Heating, Air Conditioning & Ventilating", "Garage Door & Window Repair and Installation", "Kitchen,Bath & Lighting Design", "Interior Design and Furnishing", "Appliance Repair", "Pest Control", "Cleaning & Restoration", "Restoration,Water & Fire", "Window Covering", "Solar Company", "Solar Broker", "Hardware Store", "Cleaning / Janitorial Services", "Commercial Cleaners"],
-      "keywords": ["remodel", "repair", "plumber", "electrician", "hvac", "roofing", "landscap"]
+      "categories": [
+        "Home Improvement",
+        "General Contractor",
+        "Contractors",
+        "Electrical Contractor",
+        "Plumbing",
+        "Roofing Contractor",
+        "Paint Contractor",
+        "Glass Contractor",
+        "Handyman",
+        "Landscaping",
+        "Heating, Air Conditioning & Ventilating",
+        "Garage Door & Window Repair and Installation",
+        "Kitchen,Bath & Lighting Design",
+        "Interior Design and Furnishing",
+        "Appliance Repair",
+        "Pest Control",
+        "Cleaning & Restoration",
+        "Restoration,Water & Fire",
+        "Window Covering",
+        "Solar Company",
+        "Solar Broker",
+        "Hardware Store",
+        "Cleaning / Janitorial Services",
+        "Commercial Cleaners"
+      ],
+      "keywords": [
+        "remodel",
+        "repair",
+        "plumber",
+        "electrician",
+        "hvac",
+        "roofing",
+        "landscap"
+      ],
+      "title_es": "Mejoras y Servicios del Hogar",
+      "kicker_es": "Guía Comunitaria",
+      "lede_es": "Contratistas, plomeros, electricistas, jardineros y profesionales del hogar de confianza.",
+      "intro_es": "Contratar para su hogar es más fácil cuando el negocio es miembro de la Cámara — local, establecido e invertido en esta comunidad. Desde remodelaciones completas hasta una sola reparación, empiece aquí."
     },
     {
       "slug": "entertainment",
@@ -41,8 +139,40 @@
       "emoji": "🎭",
       "lede": "Theatres, events, recreation, and fun across the West Valley and Warner Center.",
       "intro": "There's more to do in the West Valley than ever — live theatre, bowling, golf, wine tastings, and event pros who can turn any occasion into a memory. All Chamber members, all local.",
-      "categories": ["Bowling Alley", "Theatre - Plays", "Orchestra", "Golf Simulator", "Country Club", "Wine Tasting / Wine Sales", "Entertainment & Event Planning", "Event Planning", "Events Services", "Special Events", "Party Equipment Rental - Special Events Consultants", "Party Rental Equipment", "Photobooth", "Balloon Artists", "Dance Academy", "Dance Instruction", "Sports Franchise", "Catering", "Banquet/Reception Hall", "Limousine Service"],
-      "keywords": ["entertainment", "events", "party", "theatre", "music", "recreation"]
+      "categories": [
+        "Bowling Alley",
+        "Theatre - Plays",
+        "Orchestra",
+        "Golf Simulator",
+        "Country Club",
+        "Wine Tasting / Wine Sales",
+        "Entertainment & Event Planning",
+        "Event Planning",
+        "Events Services",
+        "Special Events",
+        "Party Equipment Rental - Special Events Consultants",
+        "Party Rental Equipment",
+        "Photobooth",
+        "Balloon Artists",
+        "Dance Academy",
+        "Dance Instruction",
+        "Sports Franchise",
+        "Catering",
+        "Banquet/Reception Hall",
+        "Limousine Service"
+      ],
+      "keywords": [
+        "entertainment",
+        "events",
+        "party",
+        "theatre",
+        "music",
+        "recreation"
+      ],
+      "title_es": "Entretenimiento y Qué Hacer",
+      "kicker_es": "Guía Comunitaria",
+      "lede_es": "Teatros, eventos, recreación y diversión en el West Valley y Warner Center.",
+      "intro_es": "Hay más que hacer en el West Valley que nunca — teatro en vivo, boliche, golf, catas de vino y profesionales de eventos que convierten cualquier ocasión en un recuerdo. Todos miembros de la Cámara, todos locales."
     },
     {
       "slug": "schools",
@@ -51,8 +181,29 @@
       "emoji": "🎓",
       "lede": "Schools, tutoring, child care, and adult education in the West Valley.",
       "intro": "The West Valley's schools — public, private, and specialty — are a major reason families put down roots here. These Chamber member schools and education services serve every age.",
-      "categories": ["Schools", "Schools - Adult", "School - Early Childhood", "School, K-5th Grades", "Educational Services", "Education / Non-Profit", "Technical Education Center", "Child Care and Education Services", "Language Instruction, Translation"],
-      "keywords": ["school", "education", "tutor", "academy", "learning", "preschool"]
+      "categories": [
+        "Schools",
+        "Schools - Adult",
+        "School - Early Childhood",
+        "School, K-5th Grades",
+        "Educational Services",
+        "Education / Non-Profit",
+        "Technical Education Center",
+        "Child Care and Education Services",
+        "Language Instruction, Translation"
+      ],
+      "keywords": [
+        "school",
+        "education",
+        "tutor",
+        "academy",
+        "learning",
+        "preschool"
+      ],
+      "title_es": "Escuelas y Educación",
+      "kicker_es": "Guía Comunitaria",
+      "lede_es": "Escuelas, tutorías, cuidado infantil y educación para adultos en el West Valley.",
+      "intro_es": "Las escuelas del West Valley — públicas, privadas y especializadas — son una de las razones por las que las familias echan raíces aquí. Estas escuelas y servicios educativos miembros de la Cámara sirven a todas las edades."
     },
     {
       "slug": "shopping",
@@ -61,8 +212,32 @@
       "emoji": "🛍️",
       "lede": "From Westfield Topanga & The Village to one-of-a-kind local shops.",
       "intro": "Anchored by Westfield Topanga & The Village — one of the country's premier shopping destinations — and surrounded by specialty retailers you won't find anywhere else. Shop local, shop member.",
-      "categories": ["Retailer, Specialty", "Shopping Center", "Clothing", "Electronics Retailer", "Mattress Retailer", "Cosmetics", "Florist", "Office Supplies", "Picture Framing/Custom Art Sales", "Promotional Products", "Grocery", "Bakery", "Hardware Store", "Pawn Broker"],
-      "keywords": ["shop", "retail", "boutique", "store"]
+      "categories": [
+        "Retailer, Specialty",
+        "Shopping Center",
+        "Clothing",
+        "Electronics Retailer",
+        "Mattress Retailer",
+        "Cosmetics",
+        "Florist",
+        "Office Supplies",
+        "Picture Framing/Custom Art Sales",
+        "Promotional Products",
+        "Grocery",
+        "Bakery",
+        "Hardware Store",
+        "Pawn Broker"
+      ],
+      "keywords": [
+        "shop",
+        "retail",
+        "boutique",
+        "store"
+      ],
+      "title_es": "Compras y Comercio",
+      "kicker_es": "Guía Comunitaria",
+      "lede_es": "Desde Westfield Topanga & The Village hasta tiendas locales únicas.",
+      "intro_es": "Anclado por Westfield Topanga & The Village — uno de los principales destinos de compras del país — y rodeado de comercios especializados que no encontrará en ningún otro lugar. Compre local, compre con miembros."
     }
   ]
 }

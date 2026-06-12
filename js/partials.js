@@ -31,12 +31,14 @@ window.ChamberPartials = (function () {
   // English page (graceful — never a 404). Extend as ES pages are built.
   const ES_PAGES = new Set([
     '/index.html', '/about.html', '/contact.html', '/join.html', '/resources.html', '/ribbon-cutting.html',
+    '/members/directory.html', '/events/index.html', '/dining.html', '/deals.html',
+    '/jobs/index.html', '/real-estate.html', '/community/news.html', '/guides/index.html',
     '/landing/salons.html', '/landing/restaurants.html', '/landing/schools.html', '/landing/home-repair.html',
     '/landing/entertainment.html', '/landing/retail.html', '/landing/professional.html', '/landing/health.html',
     '/landing/real-estate.html', '/landing/nonprofit.html',
-    // App pages (directory, events, dining, deals, jobs, real-estate, news, guides),
-    // inquire/donate/legal, and the legacy /p/ content pages get their Spanish
-    // versions in a following pass; until then nav falls back to English (no 404).
+    // Member profiles, groups/gallery, inquire/donate/legal, and the legacy /p/
+    // content pages get their Spanish versions in a following pass; until then
+    // nav falls back to English (no 404).
   ]);
   // Absolute, language-aware nav href (site is always served at domain root).
   function navHref(absEn, lang) {

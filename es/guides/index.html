@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Guías Comunitarias — Cámara de Comercio West Valley · Warner Center</title>
+  <meta name="description" content="Guías seleccionadas de negocios miembros del West Valley — vida para mayores, salud y bienestar, mejoras del hogar, entretenimiento, escuelas y compras." />
+  <link rel="canonical" href="https://www.woodlandhillscc.net/es/guides/index.html" />
+  <link rel="alternate" hreflang="en" href="https://www.woodlandhillscc.net/guides/index.html" />
+  <link rel="alternate" hreflang="es" href="https://www.woodlandhillscc.net/es/guides/index.html" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="../../css/chamber.css" />
+</head>
+<body>
+  <div data-partial="header"></div>
+
+  <section class="section-sm bg-forest">
+    <div class="container">
+      <span class="kicker">Encuéntrelo local</span>
+      <h1 style="color:#fff">Guías Comunitarias</h1>
+      <p class="lead" style="color:rgba(255,255,255,.85);max-width:64ch">
+        Guías seleccionadas de negocios miembros de confianza — organizadas como usted realmente los busca.
+      </p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div id="guideGrid" class="grid grid-3" style="gap:var(--s-4)"><p class="member-tile__meta">Cargando…</p></div>
+      <div data-join-cta></div>
+    </div>
+  </section>
+
+  <div data-partial="footer"></div>
+  <script src="../../js/partials.js"></script>
+  <script src="../../js/api-base.js"></script>
+  <script src="../../js/chamber.js"></script>
+  <script>
+    ChamberPartials.mount({ active: 'resources', depth: 2, lang: 'es' });
+    Chamber.initGuides();
+    Chamber.mountJoinCta('[data-join-cta]', { depth: 2 });
+  </script>
+</body>
+</html>

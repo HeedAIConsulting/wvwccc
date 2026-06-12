@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bolsa de Empleo — Cámara de Comercio West Valley · Warner Center</title>
+  <meta name="description" content="Empleos locales de los negocios miembros de la Cámara West Valley · Warner Center. Encuentre su próximo puesto o publique una vacante." />
+  <link rel="canonical" href="https://www.woodlandhillscc.net/es/jobs/index.html" />
+  <link rel="alternate" hreflang="en" href="https://www.woodlandhillscc.net/jobs/index.html" />
+  <link rel="alternate" hreflang="es" href="https://www.woodlandhillscc.net/es/jobs/index.html" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="../../css/chamber.css" />
+</head>
+<body>
+  <div data-partial="header"></div>
+
+  <section class="section-sm bg-forest">
+    <div class="container">
+      <span class="kicker">Carreras en el Valle</span>
+      <h1 style="color:#fff">Bolsa de Empleo</h1>
+      <p class="lead" style="color:rgba(255,255,255,.85);max-width:62ch">
+        Vacantes locales de los negocios miembros de la Cámara en todo el West Valley y Warner Center.
+      </p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div id="jobsFeatured" hidden></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--s-5);flex-wrap:wrap;gap:var(--s-3)">
+        <div id="jobsCount" class="member-tile__meta"></div>
+        <div style="display:flex;gap:var(--s-3);flex-wrap:wrap;align-items:center">
+          <input id="jobsSearch" type="search" placeholder="Buscar puesto, empresa, ubicación…" style="border:1px solid var(--line);border-radius:10px;padding:9px 12px;min-width:250px" />
+          <a class="btn btn--gold" href="../../member/post.html">Publicar empleo →</a>
+        </div>
+      </div>
+      <div id="jobsList" class="grid" style="gap:var(--s-4)"></div>
+
+      <div class="notice mt-6">
+        <strong>¿Está contratando?</strong> Los miembros publican vacantes gratis desde el
+        <a href="../../member/post.html">portal de miembros</a> — cada publicación es revisada por el personal de la Cámara antes de salir.
+        ¿Aún no es miembro? <a href="../join.html">Únase a la Cámara</a> para llegar al talento local.
+      </div>
+      <div data-join-cta></div>
+    </div>
+  </section>
+
+  <div data-partial="footer"></div>
+
+  <script src="../../js/partials.js"></script>
+  <script src="../../js/api-base.js"></script>
+  <script src="../../js/chamber.js"></script>
+  <script>
+    ChamberPartials.mount({ active: 'jobs', depth: 2, lang: 'es' });
+    Chamber.initJobs();
+    Chamber.mountJoinCta('[data-join-cta]', { depth: 2 });
+  </script>
+</body>
+</html>

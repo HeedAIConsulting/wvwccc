@@ -603,7 +603,8 @@ function readGuides() {
   return _guides;
 }
 router.get('/guides', (_req, res) => {
-  res.json({ guides: readGuides().map(({ slug, title, kicker, lede, emoji }) => ({ slug, title, kicker, lede, emoji })) });
+  res.json({ guides: readGuides().map(({ slug, title, kicker, lede, emoji, title_es, kicker_es, lede_es }) =>
+    ({ slug, title, kicker, lede, emoji, title_es, kicker_es, lede_es })) });
 });
 router.get('/guides/:slug', (req, res) => {
   const g = readGuides().find((x) => x.slug === req.params.slug);

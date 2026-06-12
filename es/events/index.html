@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Eventos y Boletos — Cámara de Comercio West Valley · Warner Center</title>
+  <meta name="description" content="Desayunos, mixers, cortes de listón y la gala anual de la Cámara. Confirme asistencia y compre boletos para los eventos de la Cámara West Valley · Warner Center." />
+  <link rel="canonical" href="https://www.woodlandhillscc.net/es/events/index.html" />
+  <link rel="alternate" hreflang="en" href="https://www.woodlandhillscc.net/events/index.html" />
+  <link rel="alternate" hreflang="es" href="https://www.woodlandhillscc.net/es/events/index.html" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="../../css/chamber.css" />
+</head>
+<body>
+  <div data-partial="header"></div>
+
+  <section class="section-sm bg-forest">
+    <div class="container">
+      <span class="kicker">Lo que está pasando</span>
+      <h1 style="color:#fff">Eventos y boletos de la Cámara</h1>
+      <p class="lead" style="color:rgba(255,255,255,.85);max-width:62ch">
+        Desayunos mensuales, grupos de networking, cortes de listón y nuestra gala insignia —
+        <em>Black, White &amp; Bold!</em> el 25 de julio. Confirme asistencia y compre boletos aquí.
+      </p>
+      <div class="btn-row mt-4">
+        <a class="btn btn--gold" href="../ribbon-cutting.html">✂ Solicitar un corte de listón</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:var(--s-5)">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+          <select id="evCat" aria-label="Filtrar por categoría" style="padding:9px 13px;border:1px solid var(--gold-soft,#e6dcbf);border-radius:8px;background:#fff;font:inherit;color:var(--green-ink,#1b3326)"><option value="">Todas las categorías</option></select>
+          <select id="evWhen" aria-label="Filtrar por periodo" style="padding:9px 13px;border:1px solid var(--gold-soft,#e6dcbf);border-radius:8px;background:#fff;font:inherit;color:var(--green-ink,#1b3326)">
+            <option value="upcoming">Próximos</option>
+            <option value="30">Próximos 30 días</option>
+            <option value="90">Próximos 90 días</option>
+            <option value="month">Este mes</option>
+            <option value="all">Todas las fechas</option>
+          </select>
+          <span id="evCount" class="member-tile__meta"></span>
+        </div>
+        <div class="view-toggle" role="tablist" aria-label="Vista de calendario">
+          <button data-view="list" class="active" type="button">Lista</button>
+          <button data-view="grid" type="button">Mes</button>
+        </div>
+      </div>
+
+      <div id="eventsList" class="grid" style="gap:var(--s-4)"></div>
+      <div id="eventsGrid" hidden></div>
+    </div>
+  </section>
+
+  <div data-partial="footer"></div>
+
+  <script src="../../js/partials.js"></script>
+  <script src="../../js/chamber.js"></script>
+  <script>
+    ChamberPartials.mount({ active: 'events', depth: 2, lang: 'es' });
+    Chamber.initEvents();
+  </script>
+</body>
+</html>

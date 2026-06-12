@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Comer en el West Valley — Cámara de Comercio West Valley · Warner Center</title>
+  <meta name="description" content="Restaurantes, cafés y establecimientos que son miembros de la Cámara de Comercio West Valley · Warner Center. Coma local, apoye a los miembros." />
+  <link rel="canonical" href="https://www.woodlandhillscc.net/es/dining.html" />
+  <link rel="alternate" hreflang="en" href="https://www.woodlandhillscc.net/dining.html" />
+  <link rel="alternate" hreflang="es" href="https://www.woodlandhillscc.net/es/dining.html" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="../css/chamber.css" />
+</head>
+<body>
+  <div data-partial="header"></div>
+  <section class="section-sm bg-forest">
+    <div class="container">
+      <span class="kicker">Comer en el West Valley</span>
+      <h1 style="color:#fff">Coma local. Coma con miembros.</h1>
+      <p class="lead" style="color:rgba(255,255,255,.85);max-width:62ch">
+        Cada restaurante aquí es miembro de la Cámara — desde Tarzana hasta Woodland Hills, Reseda y Warner Center. <span id="diningCount"></span>
+      </p>
+    </div>
+  </section>
+  <section class="section">
+    <div class="container">
+      <div id="diningFeatured" hidden></div>
+      <div class="card" style="padding:18px 20px;margin-bottom:var(--s-6);background:var(--cream-deep,#f3ecda);border:1px solid var(--gold-soft,#e6dcbf)">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><span style="font-size:1.3rem">🍽️</span><strong>Pregúntele a Wendy dónde comer</strong> <span class="member-tile__meta">— p. ej. "sushi en Tarzana" o "un steakhouse para una cena de negocios"</span></div>
+        <form id="diningAsk" style="display:flex;gap:8px;flex-wrap:wrap">
+          <input id="diningAskInput" placeholder="¿Qué se le antoja?" style="flex:1;min-width:220px;padding:11px 14px;border:1px solid var(--gold-soft,#e6dcbf);border-radius:10px;font:inherit" />
+          <button class="btn btn--forest" type="submit">Preguntar a Wendy</button>
+        </form>
+        <div id="diningAskOut" style="margin-top:12px"></div>
+        <div style="margin-top:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <input id="diningSearch" type="search" placeholder="O filtre la lista — nombre, cocina, vecindario…" style="flex:1;min-width:220px;padding:10px 13px;border:1px solid var(--line,#d7d2c6);border-radius:10px;font:inherit" />
+        </div>
+      </div>
+      <div id="diningGrid" class="grid grid-3" style="gap:var(--s-5)"><p class="member-tile__meta">Cargando restaurantes miembros…</p></div>
+    </div>
+  </section>
+  <div data-partial="footer"></div>
+  <script src="../js/partials.js"></script>
+  <script src="../js/api-base.js"></script>
+  <script src="../js/chamber.js"></script>
+  <script>ChamberPartials.mount({ active: 'dining', depth: 1, lang: 'es' }); Chamber.initDining(); Chamber.initFeaturedSlot('dining', '#diningFeatured', { depth: 1 });</script>
+</body>
+</html>

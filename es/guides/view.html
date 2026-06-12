@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Guía Comunitaria — Cámara de Comercio West Valley · Warner Center</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="../../css/chamber.css" />
+</head>
+<body>
+  <div data-partial="header"></div>
+
+  <section class="section-sm bg-forest">
+    <div class="container">
+      <span class="kicker" id="guideKicker">Guía Comunitaria</span>
+      <h1 id="guideTitle" style="color:#fff">Cargando…</h1>
+      <p class="lead" id="guideLede" style="color:rgba(255,255,255,.85);max-width:64ch"></p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <p id="guideIntro" class="lead" style="max-width:72ch;margin-bottom:var(--s-6)"></p>
+      <div id="guideFeatured" hidden></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--s-5);flex-wrap:wrap;gap:var(--s-3)">
+        <div id="guideCount" class="member-tile__meta"></div>
+        <input id="guideSearch" type="search" placeholder="Filtrar esta guía…" class="admin-select" style="min-width:240px;border:1px solid var(--line);border-radius:10px;padding:9px 12px" />
+      </div>
+      <div id="guideMembers" class="grid grid-3" style="gap:var(--s-4)"><p class="member-tile__meta">Cargando…</p></div>
+      <p class="mt-6"><a class="btn btn--ghost" href="./">← Todas las guías comunitarias</a></p>
+      <div data-join-cta></div>
+    </div>
+  </section>
+
+  <div data-partial="footer"></div>
+  <script src="../../js/partials.js"></script>
+  <script src="../../js/api-base.js"></script>
+  <script src="../../js/chamber.js"></script>
+  <script>
+    ChamberPartials.mount({ active: 'resources', depth: 2, lang: 'es' });
+    Chamber.initGuideView(2);
+    Chamber.mountJoinCta('[data-join-cta]', { depth: 2 });
+  </script>
+</body>
+</html>
