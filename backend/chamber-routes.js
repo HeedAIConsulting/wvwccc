@@ -558,12 +558,14 @@ function readPages() {
   catch { _pages = []; }
   return _pages;
 }
-router.get('/pages', async (_req, res) => {
+router.get('/pages', async (req, res) => {
+  const es = req.query.lang === 'es';
+  const title = (p) => (es && p.title_es) ? p.title_es : p.title;
   try {
     const ov = await repo.getPageOverrides();
     res.json({ pages: readPages().filter((p) => !(ov[p.slug] && ov[p.slug].hidden))
-      .map((p) => ({ slug: p.slug, title: p.title, group: p.group })) });
-  } catch (e) { res.json({ pages: readPages().map((p) => ({ slug: p.slug, title: p.title, group: p.group })) }); }
+      .map((p) => ({ slug: p.slug, title: title(p), group: p.group, translated: !!p.html_es })) });
+  } catch (e) { res.json({ pages: readPages().map((p) => ({ slug: p.slug, title: title(p), group: p.group, translated: !!p.html_es })) }); }
 });
 router.get('/pages/:slug', async (req, res) => {
   const p = readPages().find((x) => x.slug === req.params.slug);
@@ -572,6 +574,13 @@ router.get('/pages/:slug', async (req, res) => {
     const ov = await repo.getPageOverrides();
     if (ov[p.slug] && ov[p.slug].hidden) return res.status(404).json({ error: 'not found' });
   } catch (e) {}
+  if (req.query.lang === 'es') {
+    return res.json({
+      slug: p.slug, group: p.group,
+      title: p.title_es || p.title, html: p.html_es || p.html,
+      translated: !!p.html_es,
+    });
+  }
   res.json(p);
 });
 

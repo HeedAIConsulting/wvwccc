@@ -88,6 +88,11 @@ app.get('/p/:slug', (req, res, next) => {
   if ((req.params.slug || '').includes('.')) return next();
   res.sendFile(path.join(__dirname, 'pages', 'view.html'), (err) => { if (err) next(); });
 });
+// Spanish content-page URLs: /es/p/<slug> → the Spanish page renderer.
+app.get('/es/p/:slug', (req, res, next) => {
+  if ((req.params.slug || '').includes('.')) return next();
+  res.sendFile(path.join(__dirname, 'es', 'pages', 'view.html'), (err) => { if (err) next(); });
+});
 // Pretty group URLs: /groups/<slug> → group page (real files served by static above).
 app.get('/groups/:slug', (req, res, next) => {
   if ((req.params.slug || '').includes('.')) return next();

@@ -35,7 +35,7 @@
     const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
     const LBL = { 'About & Membership':'La Cámara y Membresía', 'Our Community':'Nuestra Comunidad', 'Resources & Visitor Info':'Recursos e Info para Visitantes', 'More':'Más' };
     const ORDER = ['About & Membership', 'Our Community', 'Resources & Visitor Info', 'More'];
-    fetch(ChamberAPI.url('/api/pages')).then((r) => r.json()).then((d) => {
+    fetch(ChamberAPI.url('/api/pages?lang=es')).then((r) => r.json()).then((d) => {
       const groups = {};
       (d.pages || []).forEach((p) => { (groups[p.group] = groups[p.group] || []).push(p); });
       const el = document.getElementById('resGroups');
@@ -44,7 +44,7 @@
         <div style="margin-bottom:var(--s-8)">
           <h2 style="margin-bottom:var(--s-4)">${esc(LBL[g] || g)}</h2>
           <div class="grid grid-3" style="gap:var(--s-3)">
-            ${groups[g].sort((a, b) => a.title.localeCompare(b.title)).map((p) => `<a class="card card--hover" style="text-decoration:none;color:inherit;padding:15px 18px;display:flex;align-items:center;gap:10px" href="../p/${encodeURIComponent(p.slug)}"><span style="color:var(--gold-deep)">›</span><strong>${esc(p.title)}</strong></a>`).join('')}
+            ${groups[g].sort((a, b) => a.title.localeCompare(b.title)).map((p) => `<a class="card card--hover" style="text-decoration:none;color:inherit;padding:15px 18px;display:flex;align-items:center;gap:10px" href="/es/p/${encodeURIComponent(p.slug)}"><span style="color:var(--gold-deep)">›</span><strong>${esc(p.title)}</strong></a>`).join('')}
           </div>
         </div>`).join('') || '<p class="notice">Aún no hay páginas.</p>';
     }).catch(() => { document.getElementById('resGroups').innerHTML = '<p class="notice">No se pudieron cargar los recursos.</p>'; });
