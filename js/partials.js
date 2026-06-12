@@ -26,8 +26,26 @@ window.ChamberPartials = (function () {
     { id: 'yelp', label: 'Yelp', url: 'https://www.yelp.com/biz/west-valley-warner-center-chamber-of-commerce-woodland-hills-2' },
   ];
 
+  // Pages that have a Spanish version under /es/. Nav links use these to keep
+  // Spanish visitors on Spanish pages; anything not listed falls back to the
+  // English page (graceful — never a 404). Extend as ES pages are built.
+  const ES_PAGES = new Set([
+    '/index.html', '/about.html', '/contact.html', '/join.html', '/resources.html', '/ribbon-cutting.html',
+    '/landing/salons.html', '/landing/restaurants.html', '/landing/schools.html', '/landing/home-repair.html',
+    '/landing/entertainment.html', '/landing/retail.html', '/landing/professional.html', '/landing/health.html',
+    '/landing/real-estate.html', '/landing/nonprofit.html',
+    // App pages (directory, events, dining, deals, jobs, real-estate, news, guides),
+    // inquire/donate/legal, and the legacy /p/ content pages get their Spanish
+    // versions in a following pass; until then nav falls back to English (no 404).
+  ]);
+  // Absolute, language-aware nav href (site is always served at domain root).
+  function navHref(absEn, lang) {
+    return (lang === 'es' && ES_PAGES.has(absEn)) ? '/es' + absEn : absEn;
+  }
+
   function header(active, depth, lang) {
     const L = lang === 'es';
+    const nv = (abs) => navHref(abs, lang);
     const t = L ? {
       login: 'Acceso', staff: 'Personal', contact: 'Contacto',
       home: 'Inicio', dir: 'Directorio', dining: 'Comida', events: 'Eventos', jobs: 'Empleos',
@@ -48,20 +66,20 @@ window.ChamberPartials = (function () {
         <span>&#128336; ${CONTACT.since}</span>
       </div>
       <div class="site-header__top-actions">
-        <a href="${p(depth, 'auth/login.html')}">${t.login}</a>
+        <a href="/auth/login.html">${t.login}</a>
         <span style="color:rgba(255,255,255,.3)">·</span>
-        <a href="${p(depth, 'contact.html')}">${t.contact}</a>
+        <a href="${nv('/contact.html')}">${t.contact}</a>
         <span style="color:rgba(255,255,255,.3)">·</span>
         <span class="lang-switch">
-          <a href="${base}index.html" class="${!L?'active':''}">EN</a>
-          <a href="${base}es/index.html" class="${L?'active':''}">ES</a>
+          <a href="/index.html" class="${!L?'active':''}">EN</a>
+          <a href="/es/index.html" class="${L?'active':''}">ES</a>
         </span>
       </div>
     </div>
   </div>
   <div class="container">
     <div class="site-header__main">
-      <a href="${p(depth, 'index.html')}" class="brand" aria-label="WVWCCC home">
+      <a href="${nv('/index.html')}" class="brand" aria-label="WVWCCC home">
         <img class="brand__logo" src="${p(depth,'images/wvwccc-logo.png')}" alt="West Valley · Warner Center Chamber of Commerce seal" width="56" height="56">
         <span class="brand__text">
           <span class="brand__name">West Valley · Warner Center</span>
@@ -69,43 +87,43 @@ window.ChamberPartials = (function () {
         </span>
       </a>
       <nav class="nav" aria-label="Main">
-        <a href="${p(depth, 'index.html')}" ${active==='home'?'class="active"':''}>${t.home}</a>
-        <a href="${p(depth, 'members/directory.html')}" ${active==='members'?'class="active"':''}>${t.dir}</a>
-        <a href="${p(depth, 'events/index.html')}" ${active==='events'?'class="active"':''}>${t.events}</a>
+        <a href="${nv('/index.html')}" ${active==='home'?'class="active"':''}>${t.home}</a>
+        <a href="${nv('/members/directory.html')}" ${active==='members'?'class="active"':''}>${t.dir}</a>
+        <a href="${nv('/events/index.html')}" ${active==='events'?'class="active"':''}>${t.events}</a>
         <div class="nav-dd">
           <button type="button" aria-haspopup="true">${t.community} <span aria-hidden="true">▾</span></button>
           <div class="nav-dd__menu" data-dd="Our Community">
-            <a href="${p(depth, 'groups/index.html')}">${L?'Grupos y Redes':'Groups & Networks'}</a>
-            <a href="${p(depth, 'gallery.html')}">${L?'Galería de Fotos':'Photo Gallery'}</a>
-            <a href="${p(depth, 'community/news.html')}">${t.news}</a>
-            <a href="${p(depth, 'community/board.html')}">${L?'Tablón Comunitario':'Community Board'}</a>
-            <a href="${p(depth, 'community/our-community.html')}">${L?'Nuestra Comunidad':'Our Community'}</a>
-            <a href="${p(depth, 'community/grateful-hearts.html')}">Grateful Hearts</a>
-            <a href="${p(depth, 'community/history.html')}">${L?'Historia':'Our History'}</a>
+            <a href="/groups/index.html">${L?'Grupos y Redes':'Groups & Networks'}</a>
+            <a href="/gallery.html">${L?'Galería de Fotos':'Photo Gallery'}</a>
+            <a href="${nv('/community/news.html')}">${t.news}</a>
+            <a href="/community/board.html">${L?'Tablón Comunitario':'Community Board'}</a>
+            <a href="/community/our-community.html">${L?'Nuestra Comunidad':'Our Community'}</a>
+            <a href="/community/grateful-hearts.html">Grateful Hearts</a>
+            <a href="/community/history.html">${L?'Historia':'Our History'}</a>
           </div>
         </div>
         <div class="nav-dd">
           <button type="button" aria-haspopup="true">${t.resources} <span aria-hidden="true">▾</span></button>
           <div class="nav-dd__menu" data-dd="Resources & Visitor Info">
-            <a href="${p(depth, 'dining.html')}">${t.dining}</a>
-            <a href="${p(depth, 'deals.html')}">${t.deals}</a>
-            <a href="${p(depth, 'jobs/index.html')}">${t.jobs}</a>
-            <a href="${p(depth, 'real-estate.html')}">${L?'Bienes Raíces':'Real Estate'}</a>
-            <a href="${p(depth, 'guides/index.html')}">${L?'Guías Comunitarias':'Community Guides'}</a>
-            <a href="${p(depth, 'regional-resource-guide.html')}">${L?'Guía Regional 2026':'Regional Resource Guide'}</a>
-            <a href="${p(depth, 'resources.html')}">${L?'Todos los recursos':'All Resources'} →</a>
+            <a href="${nv('/dining.html')}">${t.dining}</a>
+            <a href="${nv('/deals.html')}">${t.deals}</a>
+            <a href="${nv('/jobs/index.html')}">${t.jobs}</a>
+            <a href="${nv('/real-estate.html')}">${L?'Bienes Raíces':'Real Estate'}</a>
+            <a href="${nv('/guides/index.html')}">${L?'Guías Comunitarias':'Community Guides'}</a>
+            <a href="/regional-resource-guide.html">${L?'Guía Regional 2026':'Regional Resource Guide'}</a>
+            <a href="${nv('/resources.html')}">${L?'Todos los recursos':'All Resources'} →</a>
           </div>
         </div>
         <div class="nav-dd">
           <button type="button" aria-haspopup="true">${t.about} <span aria-hidden="true">▾</span></button>
           <div class="nav-dd__menu" data-dd="About & Membership">
-            <a href="${p(depth, 'about.html')}">${L?'Acerca de':'About Us'}</a>
-            <a href="${p(depth, 'leadership.html')}">${L?'Junta y Liderazgo':'Board & Leadership'}</a>
-            <a href="${p(depth, 'p/benefits-of-membership')}">${L?'Por qué unirse':'Why Join the Chamber'}</a>
-            <a href="${p(depth, 'resources.html')}">${L?'Más sobre la Cámara':'More Chamber pages'} →</a>
+            <a href="${nv('/about.html')}">${L?'Acerca de':'About Us'}</a>
+            <a href="/leadership.html">${L?'Junta y Liderazgo':'Board & Leadership'}</a>
+            <a href="/p/benefits-of-membership">${L?'Por qué unirse':'Why Join the Chamber'}</a>
+            <a href="${nv('/resources.html')}">${L?'Más sobre la Cámara':'More Chamber pages'} →</a>
           </div>
         </div>
-        <a href="${p(depth, 'join.html')}" class="btn btn--gold btn--sm nav-cta">${t.join}</a>
+        <a href="${nv('/join.html')}" class="btn btn--gold btn--sm nav-cta">${t.join}</a>
       </nav>
       <button class="menu-toggle" aria-label="Toggle menu" aria-expanded="false">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
@@ -117,6 +135,7 @@ window.ChamberPartials = (function () {
 
   function footer(depth, lang) {
     const L = lang === 'es';
+    const nv = (abs) => navHref(abs, lang);
     const t = L ? { tag:'Conectando a las empresas y residentes de Tarzana, Woodland Hills, Reseda y Warner Center desde 1930.',
       members:'Miembros', engage:'Participa', about:'Acerca de', join:'Únete', dir:'Directorio',
       login:'Acceso de Miembros', events:'Eventos', jobs:'Bolsa de Empleo', donate:'Donar', sponsor:'Patrocinar',
@@ -151,38 +170,38 @@ window.ChamberPartials = (function () {
       <div>
         <h4>${t.members}</h4>
         <ul>
-          <li><a href="${p(depth,'join.html')}">${t.join}</a></li>
-          <li><a href="${p(depth,'members/directory.html')}">${t.dir}</a></li>
-          <li><a href="${p(depth,'auth/login.html')}">${t.login}</a></li>
-          <li><a href="${p(depth,'auth/login.html')}">${L?'Acceso Personal / Admin':'Staff / Admin'}</a></li>
+          <li><a href="${nv('/join.html')}">${t.join}</a></li>
+          <li><a href="${nv('/members/directory.html')}">${t.dir}</a></li>
+          <li><a href="/auth/login.html">${t.login}</a></li>
+          <li><a href="/auth/login.html">${L?'Acceso Personal / Admin':'Staff / Admin'}</a></li>
         </ul>
       </div>
       <div>
         <h4>${t.engage}</h4>
         <ul>
-          <li><a href="${p(depth,'events/index.html')}">${t.events}</a></li>
-          <li><a href="${p(depth,'groups/index.html')}">${L?'Grupos y Redes':'Groups & Networks'}</a></li>
-          <li><a href="${p(depth,'gallery.html')}">${L?'Galería de Fotos':'Photo Gallery'}</a></li>
-          <li><a href="${p(depth,'community/news.html')}">${L?'Noticias':'Valley Biz Buzz'}</a></li>
-          <li><a href="${p(depth,'jobs/index.html')}">${t.jobs}</a></li>
-          <li><a href="${p(depth,'real-estate.html')}">${L?'Bienes Raíces':'Real Estate'}</a></li>
-          <li><a href="${p(depth,'guides/index.html')}">${L?'Guías':'Community Guides'}</a></li>
-          <li><a href="${p(depth,'donate.html')}">${t.donate}</a></li>
-          <li><a href="${p(depth,'inquire.html')}?type=sponsorship">${t.sponsor}</a></li>
-          <li><a href="${p(depth,'inquire.html')}?type=membership">${L?'Consultas':'Inquiries'}</a></li>
+          <li><a href="${nv('/events/index.html')}">${t.events}</a></li>
+          <li><a href="/groups/index.html">${L?'Grupos y Redes':'Groups & Networks'}</a></li>
+          <li><a href="/gallery.html">${L?'Galería de Fotos':'Photo Gallery'}</a></li>
+          <li><a href="${nv('/community/news.html')}">${L?'Noticias':'Valley Biz Buzz'}</a></li>
+          <li><a href="${nv('/jobs/index.html')}">${t.jobs}</a></li>
+          <li><a href="${nv('/real-estate.html')}">${L?'Bienes Raíces':'Real Estate'}</a></li>
+          <li><a href="${nv('/guides/index.html')}">${L?'Guías':'Community Guides'}</a></li>
+          <li><a href="${nv('/donate.html')}">${t.donate}</a></li>
+          <li><a href="${nv('/inquire.html')}?type=sponsorship">${t.sponsor}</a></li>
+          <li><a href="${nv('/inquire.html')}?type=membership">${L?'Consultas':'Inquiries'}</a></li>
         </ul>
       </div>
       <div>
         <h4>${t.about}</h4>
         <ul>
-          <li><a href="${p(depth,'about.html')}">${t.chamber}</a></li>
-          <li><a href="${p(depth,'leadership.html')}">${L?'Junta y Liderazgo':'Board & Leadership'}</a></li>
-          <li><a href="${p(depth,'community/our-community.html')}">${L?'Nuestra Comunidad':'Our Community'}</a></li>
-          <li><a href="${p(depth,'community/grateful-hearts.html')}">Grateful Hearts</a></li>
-          <li><a href="${p(depth,'community/history.html')}">${L?'Historia':'Our History'}</a></li>
-          <li><a href="${p(depth,'contact.html')}">${t.contact}</a></li>
-          <li><a href="${p(depth,'accessibility.html')}">${t.access}</a></li>
-          <li><a href="${p(depth,'privacy.html')}">${t.privacy}</a></li>
+          <li><a href="${nv('/about.html')}">${t.chamber}</a></li>
+          <li><a href="/leadership.html">${L?'Junta y Liderazgo':'Board & Leadership'}</a></li>
+          <li><a href="/community/our-community.html">${L?'Nuestra Comunidad':'Our Community'}</a></li>
+          <li><a href="/community/grateful-hearts.html">Grateful Hearts</a></li>
+          <li><a href="/community/history.html">${L?'Historia':'Our History'}</a></li>
+          <li><a href="${nv('/contact.html')}">${t.contact}</a></li>
+          <li><a href="${nv('/accessibility.html')}">${t.access}</a></li>
+          <li><a href="${nv('/privacy.html')}">${t.privacy}</a></li>
         </ul>
       </div>
     </div>

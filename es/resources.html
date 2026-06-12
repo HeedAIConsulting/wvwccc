@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Recursos e Información — Cámara de Comercio West Valley · Warner Center</title>
+  <meta name="description" content="Recursos de la Cámara y la comunidad — sobre la Cámara, membresía, nuestra comunidad, información para visitantes, números importantes y más." />
+  <link rel="canonical" href="https://www.woodlandhillscc.net/es/resources.html" />
+  <link rel="alternate" hreflang="en" href="https://www.woodlandhillscc.net/resources.html" />
+  <link rel="alternate" hreflang="es" href="https://www.woodlandhillscc.net/es/resources.html" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="../css/chamber.css" />
+</head>
+<body>
+  <div data-partial="header"></div>
+  <section class="section-sm bg-forest">
+    <div class="container">
+      <span class="kicker">Explore</span>
+      <h1 style="color:#fff">Recursos e Información</h1>
+      <p class="lead" style="color:rgba(255,255,255,.85);max-width:64ch">Todo sobre el West Valley · Warner Center — la Cámara, la membresía, nuestra comunidad y la información para visitantes.</p>
+    </div>
+  </section>
+  <section class="section">
+    <div class="container">
+      <div class="notice" style="margin-bottom:var(--s-6)">Algunas páginas de recursos están disponibles por ahora solo en inglés. ¿Necesita ayuda en español? Llame a la Cámara al <strong>(818) 347-4737</strong>.</div>
+      <div id="resGroups"><p class="member-tile__meta">Cargando…</p></div>
+    </div>
+  </section>
+  <div data-partial="footer"></div>
+  <script src="../js/partials.js"></script>
+  <script src="../js/api-base.js"></script>
+  <script>
+    ChamberPartials.mount({ active: 'resources', depth: 1, lang: 'es' });
+    const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const LBL = { 'About & Membership':'La Cámara y Membresía', 'Our Community':'Nuestra Comunidad', 'Resources & Visitor Info':'Recursos e Info para Visitantes', 'More':'Más' };
+    const ORDER = ['About & Membership', 'Our Community', 'Resources & Visitor Info', 'More'];
+    fetch(ChamberAPI.url('/api/pages')).then((r) => r.json()).then((d) => {
+      const groups = {};
+      (d.pages || []).forEach((p) => { (groups[p.group] = groups[p.group] || []).push(p); });
+      const el = document.getElementById('resGroups');
+      const order = ORDER.filter((g) => groups[g]).concat(Object.keys(groups).filter((g) => !ORDER.includes(g)));
+      el.innerHTML = order.map((g) => `
+        <div style="margin-bottom:var(--s-8)">
+          <h2 style="margin-bottom:var(--s-4)">${esc(LBL[g] || g)}</h2>
+          <div class="grid grid-3" style="gap:var(--s-3)">
+            ${groups[g].sort((a, b) => a.title.localeCompare(b.title)).map((p) => `<a class="card card--hover" style="text-decoration:none;color:inherit;padding:15px 18px;display:flex;align-items:center;gap:10px" href="../p/${encodeURIComponent(p.slug)}"><span style="color:var(--gold-deep)">›</span><strong>${esc(p.title)}</strong></a>`).join('')}
+          </div>
+        </div>`).join('') || '<p class="notice">Aún no hay páginas.</p>';
+    }).catch(() => { document.getElementById('resGroups').innerHTML = '<p class="notice">No se pudieron cargar los recursos.</p>'; });
+  </script>
+</body>
+</html>

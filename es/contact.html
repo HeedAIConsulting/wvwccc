@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Contacto — Cámara de Comercio West Valley · Warner Center</title>
+  <meta name="description" content="Comuníquese con la Cámara de Comercio West Valley · Warner Center. Llame al (818) 347-4737 o envíe un mensaje — le responderemos." />
+  <link rel="canonical" href="https://www.woodlandhillscc.net/es/contact.html" />
+  <link rel="alternate" hreflang="en" href="https://www.woodlandhillscc.net/contact.html" />
+  <link rel="alternate" hreflang="es" href="https://www.woodlandhillscc.net/es/contact.html" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="../css/chamber.css" />
+</head>
+<body>
+  <div data-partial="header"></div>
+
+  <section class="section">
+    <div class="container">
+      <div class="grid" style="grid-template-columns:1fr 1fr;gap:var(--s-8);align-items:start">
+        <div>
+          <span class="kicker">Comuníquese</span>
+          <h1>Contacte a la Cámara</h1>
+          <p class="lead">¿Preguntas sobre membresía, eventos, patrocinios o la comunidad? Estamos aquí. Con gusto le atendemos en español.</p>
+          <ul style="list-style:none;display:flex;flex-direction:column;gap:var(--s-3);margin-top:var(--s-5)">
+            <li>📞 <strong>(818) 347-4737</strong></li>
+            <li>📍 Sirviendo a Tarzana · Woodland Hills · Reseda · Warner Center</li>
+            <li>🕒 La Cámara del West Valley desde 1930</li>
+          </ul>
+          <h3 class="mt-6" style="font-size:1.1rem">Consultas específicas</h3>
+          <div class="chips mt-3">
+            <a class="chip" href="../inquire.html?type=membership">Membresía</a>
+            <a class="chip" href="../inquire.html?type=sponsorship">Patrocinio y publicidad</a>
+            <a class="chip" href="../inquire.html?type=events">Eventos y locales</a>
+            <a class="chip" href="../inquire.html?type=press">Prensa y alianzas</a>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Envíe un mensaje</h3>
+          <form id="contactForm" class="mt-4">
+            <div class="field"><label>Nombre</label><input name="name" required /></div>
+            <div class="field"><label>Correo electrónico</label><input name="email" type="email" required /></div>
+            <div class="field"><label>Teléfono</label><input name="phone" type="tel" /></div>
+            <div class="field"><label>Motivo</label>
+              <select name="reason">
+                <option>Consulta general</option>
+                <option>Membresía</option>
+                <option>Evento / RSVP</option>
+                <option>Patrocinio</option>
+                <option>Prensa / alianza</option>
+              </select>
+            </div>
+            <div class="field"><label>Mensaje</label><textarea name="message" rows="4" required></textarea></div>
+            <p id="contactMsg" class="notice" hidden></p>
+            <button class="btn btn--forest btn--lg" type="submit" style="width:100%">Enviar mensaje</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div data-partial="footer"></div>
+
+  <script src="../js/partials.js"></script>
+  <script src="../js/api-base.js"></script>
+  <script src="../js/chamber.js"></script>
+  <script>
+    ChamberPartials.mount({ active: '', depth: 1, lang: 'es' });
+    Chamber.initLeadForm('contactForm', 'contactMsg', 'contact');
+  </script>
+</body>
+</html>
