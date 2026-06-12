@@ -13,3 +13,6 @@ Thumbs.db
 
 # reference screenshots — do NOT deploy (would be public)
 SCREENSHOTS/
+
+# Member roster exports — PII, never commit
+*.xlsx
