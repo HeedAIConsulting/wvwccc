@@ -67,7 +67,7 @@
       <div class="section-head mt-7" style="margin-top:var(--s-9);margin-bottom:var(--s-5)">
         <span class="kicker">Elija su nivel</span>
         <h2>Membresía anual</h2>
-        <p class="lead">Elija el nivel que se ajuste a su negocio. Únase en línea en minutos — facturación anual.</p>
+        <p class="lead">Elija el nivel que se ajuste a su negocio y luego solicite abajo — la oficina de la Cámara establece personalmente cada membresía y confirma su cuota.</p>
       </div>
       <div class="pricing-grid" id="memberTiers" aria-busy="true">
         <p class="member-tile__meta">Cargando niveles de membresía…</p>
@@ -75,9 +75,9 @@
       <p class="member-tile__meta text-center mt-4">¿No está seguro de qué nivel? Las cuotas pueden ajustarse al tamaño del negocio — <a href="contact.html" style="text-decoration:underline">pregunte a la oficina</a> o solicite abajo y lo confirmamos.</p>
 
       <div class="grid" style="grid-template-columns:1.1fr .9fr;gap:var(--s-7);margin-top:var(--s-8);align-items:start">
-        <div class="card">
+        <div class="card" id="apply">
           <h2>Solicitar membresía</h2>
-          <p class="member-tile__meta">Las cuotas se basan en su número de empleados. Envíe abajo y la oficina de la Cámara confirmará su nivel y cuota, o proceda al pago si conoce su monto.</p>
+          <p class="member-tile__meta">Envíe abajo y la oficina de la Cámara confirmará personalmente su nivel y cuota y establecerá su membresía — sin pago en línea.</p>
           <form id="joinForm" class="mt-5">
             <div class="grid grid-2" style="gap:var(--s-3)">
               <div class="field"><label>Empresa</label><input name="company" required /></div>
@@ -91,7 +91,10 @@
               <div class="field"><label>Correo electrónico</label><input name="email" type="email" required /></div>
               <div class="field"><label>Teléfono</label><input name="phone" type="tel" /></div>
             </div>
-            <div class="field"><label>Tipo de negocio</label><input name="businessType" /></div>
+            <div class="grid grid-2" style="gap:var(--s-3)">
+              <div class="field"><label>Tipo de negocio</label><input name="businessType" /></div>
+              <div class="field"><label>Nivel de membresía de interés</label><input id="joinLevel" name="level" placeholder="Elija un nivel arriba — o le ayudamos a decidir" /></div>
+            </div>
             <p id="joinMsg" class="notice" hidden></p>
             <div class="btn-row mt-3">
               <button class="btn btn--forest btn--lg" type="submit">Enviar solicitud</button>
@@ -137,9 +140,15 @@
           <h3 class="pricing-card__name">${esc(t.label)}</h3>
           <div class="pricing-card__amt">$${esc(t.amount)}<span>/año</span></div>
           ${t.blurb ? `<p class="pricing-card__blurb">${esc(t.blurb)}</p>` : ''}
-          <a class="btn ${t.popular ? 'btn--gold' : 'btn--forest'} btn--lg" href="../checkout.html?type=membership&sku=${encodeURIComponent(t.sku)}">Unirse — $${esc(t.amount)}</a>
+          <button type="button" class="btn ${t.popular ? 'btn--gold' : 'btn--forest'} btn--lg wv-pick-level" data-level="${esc(t.label)} ($${esc(t.amount)}/año)">Solicitar este nivel →</button>
         </article>`).join('');
       wrap.removeAttribute('aria-busy');
+      // Los botones de nivel dirigen al formulario de la oficina (sin pago en línea).
+      wrap.querySelectorAll('.wv-pick-level').forEach((b) => b.addEventListener('click', () => {
+        const lvl = document.getElementById('joinLevel'); if (lvl) lvl.value = b.dataset.level;
+        document.getElementById('apply').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        const c = document.querySelector('#joinForm [name="company"]'); if (c) setTimeout(() => c.focus(), 450);
+      }));
     })();
   </script>
 </body>

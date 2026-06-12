@@ -882,6 +882,12 @@ window.Chamber = (function () {
   async function initCheckout() {
     const params = new URLSearchParams(location.search);
     const kind = params.get('type') || 'donation';
+    // Memberships are processed by the Chamber office only — no self-serve online
+    // payment. Send anyone who lands here for membership to the application form.
+    if (kind === 'membership') {
+      location.replace(/\/es\//.test(location.pathname) ? '/es/join.html#apply' : '/join.html#apply');
+      return;
+    }
     const summary = document.getElementById('orderSummary');
     const title = document.getElementById('coTitle');
     const amountInput = document.getElementById('amount');

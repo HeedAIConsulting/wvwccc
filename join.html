@@ -67,7 +67,7 @@
       <div class="section-head mt-7" style="margin-top:var(--s-9);margin-bottom:var(--s-5)">
         <span class="kicker">Choose your level</span>
         <h2>Annual membership</h2>
-        <p class="lead">Pick the level that fits your business. Join online in minutes — billed annually.</p>
+        <p class="lead">Pick the level that fits your business, then apply below — the Chamber office personally sets up every membership and confirms your dues.</p>
       </div>
       <div class="pricing-grid" id="memberTiers" aria-busy="true">
         <p class="member-tile__meta">Loading membership levels…</p>
@@ -75,9 +75,9 @@
       <p class="member-tile__meta text-center mt-4">Not sure which level? Dues can scale with business size — <a href="contact.html" style="text-decoration:underline">ask the office</a> or apply below and we’ll confirm.</p>
 
       <div class="grid" style="grid-template-columns:1.1fr .9fr;gap:var(--s-7);margin-top:var(--s-8);align-items:start">
-        <div class="card">
+        <div class="card" id="apply">
           <h2>Apply for membership</h2>
-          <p class="member-tile__meta">Dues are based on your number of employees. Submit below and the Chamber office will confirm your tier and dues, or proceed to payment if you know your amount.</p>
+          <p class="member-tile__meta">Submit below and the Chamber office will personally confirm your level and dues and set up your membership — no online payment needed.</p>
           <form id="joinForm" class="mt-5">
             <div class="grid grid-2" style="gap:var(--s-3)">
               <div class="field"><label>Company</label><input name="company" required /></div>
@@ -91,7 +91,10 @@
               <div class="field"><label>Email</label><input name="email" type="email" required /></div>
               <div class="field"><label>Phone</label><input name="phone" type="tel" /></div>
             </div>
-            <div class="field"><label>Type of business</label><input name="businessType" /></div>
+            <div class="grid grid-2" style="gap:var(--s-3)">
+              <div class="field"><label>Type of business</label><input name="businessType" /></div>
+              <div class="field"><label>Membership level of interest</label><input id="joinLevel" name="level" placeholder="Pick a level above — or we’ll help you choose" /></div>
+            </div>
             <p id="joinMsg" class="notice" hidden></p>
             <div class="btn-row mt-3">
               <button class="btn btn--forest btn--lg" type="submit">Submit application</button>
@@ -138,9 +141,15 @@
           <h3 class="pricing-card__name">${esc(t.label)}</h3>
           <div class="pricing-card__amt">$${esc(t.amount)}<span>/year</span></div>
           ${t.blurb ? `<p class="pricing-card__blurb">${esc(t.blurb)}</p>` : ''}
-          <a class="btn ${t.popular ? 'btn--gold' : 'btn--forest'} btn--lg" href="checkout.html?type=membership&sku=${encodeURIComponent(t.sku)}">Join — $${esc(t.amount)}</a>
+          <button type="button" class="btn ${t.popular ? 'btn--gold' : 'btn--forest'} btn--lg wv-pick-level" data-level="${esc(t.label)} ($${esc(t.amount)}/yr)">Request this level →</button>
         </article>`).join('');
       wrap.removeAttribute('aria-busy');
+      // Tier buttons route to the office application form (no online payment).
+      wrap.querySelectorAll('.wv-pick-level').forEach((b) => b.addEventListener('click', () => {
+        const lvl = document.getElementById('joinLevel'); if (lvl) lvl.value = b.dataset.level;
+        document.getElementById('apply').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        const c = document.querySelector('#joinForm [name="company"]'); if (c) setTimeout(() => c.focus(), 450);
+      }));
     })();
   </script>
 </body>
