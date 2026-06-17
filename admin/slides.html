@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex" />
+  <title>Hero Slider — WVWCCC Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="../css/chamber.css" />
+  <link rel="stylesheet" href="admin.css" />
+</head>
+<body class="admin">
+  <div class="admin-shell">
+    <aside class="admin-sidebar" data-admin-nav></aside>
+    <div class="admin-main">
+      <div class="admin-topbar"><h1>Homepage hero slider</h1></div>
+      <div class="admin-content">
+        <p id="adminError" class="admin-notice" hidden></p>
+
+        <div class="panel">
+          <div class="panel__head"><h3>Add a slide</h3></div>
+          <div style="padding:var(--s-5)">
+            <form id="slideForm" class="grid" style="gap:var(--s-3);max-width:680px">
+              <div class="field"><label>Slide image <span class="sub">(required — for best results, upload a wide landscape photo)</span></label><input id="slideImage" type="file" accept="image/*" /><div id="slideImgPrev"></div></div>
+              <div class="grid grid-2" style="gap:var(--s-3)">
+                <div class="field"><label>Title / caption <span class="sub">(optional)</span></label><input name="title" maxlength="200" placeholder="e.g. Annual Gala 2026" /></div>
+                <div class="field"><label>Link <span class="sub">(optional)</span></label><input name="linkUrl" type="url" placeholder="https://" /></div>
+              </div>
+              <p id="slideMsg" class="admin-notice" hidden></p>
+              <button class="btn btn--forest" type="submit" style="width:fit-content">Add slide</button>
+            </form>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel__head"><h3>Current slides <span class="sub">(top to bottom = the order they rotate on the homepage)</span></h3></div>
+          <table class="admin-table">
+            <thead><tr><th>Order</th><th>Image</th><th>Title</th><th>Action</th></tr></thead>
+            <tbody id="slideRows"><tr><td colspan="4" class="sub">Loading…</td></tr></tbody>
+          </table>
+          <p class="sub" style="padding:0 16px 14px">
+            Use ↑ / ↓ to reorder — changes save automatically. Delete removes a slide from the
+            hero immediately. With no slides, the hero shows the solid green background.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="../js/api-base.js"></script>
+  <script src="admin.js"></script>
+  <script>Admin.initSlides();</script>
+</body>
+</html>

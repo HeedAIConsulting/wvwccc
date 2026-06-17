@@ -368,10 +368,15 @@ router.get('/link-preview', async (req, res) => {
   }
 });
 
-// Homepage hero slider (admin-managed event photos).
+// Homepage hero slider (admin-managed). Order is set in Admin → Hero Slider and
+// stored on each slide's meta.sortOrder; slides without one sort to the end.
+const slideOrder = (s) => { const n = Number(s && s.meta && s.meta.sortOrder); return Number.isFinite(n) ? n : 1e9; };
 router.get('/slides', async (_req, res) => {
-  try { res.json({ slides: (await repo.listPosts({ type: 'slide', status: 'approved' })).filter((s) => s.imageUrl) }); }
-  catch (e) { res.status(500).json({ error: 'failed' }); }
+  try {
+    const slides = (await repo.listPosts({ type: 'slide', status: 'approved' })).filter((s) => s.imageUrl);
+    slides.sort((a, b) => slideOrder(a) - slideOrder(b));
+    res.json({ slides });
+  } catch (e) { res.status(500).json({ error: 'failed' }); }
 });
 
 // ── Events ──────────────────────────────────────────────────
@@ -1094,6 +1099,29 @@ router.delete('/admin/posts/:id', requireAdmin, async (req, res) => {
   catch (e) { res.status(500).json({ error: 'delete failed' }); }
 });
 
+// ── Hero slider manager (admin) ─────────────────────────────
+// Slides are `slide`-type posts; display order lives in meta.sortOrder.
+// Create/delete reuse the posts routes above; these add ordered listing + reorder.
+router.get('/admin/slides', requireAdmin, async (_req, res) => {
+  try {
+    const slides = (await repo.listPosts({ type: 'slide' }));
+    slides.sort((a, b) => slideOrder(a) - slideOrder(b));
+    res.json({ slides });
+  } catch (e) { res.status(500).json({ error: 'failed' }); }
+});
+
+// Persist a new order. Body: { order: [id, id, ...] } — index becomes sortOrder.
+router.post('/admin/slides/reorder', requireAdmin, async (req, res) => {
+  const order = Array.isArray(req.body && req.body.order) ? req.body.order : null;
+  if (!order) return res.status(400).json({ error: 'order array required' });
+  try {
+    for (let i = 0; i < order.length; i++) {
+      await repo.updatePost(String(order[i]), { meta: { sortOrder: i } });
+    }
+    res.json({ ok: true });
+  } catch (e) { console.error('slides/reorder', e); res.status(500).json({ error: 'reorder failed' }); }
+});
+
 // ── Admin events (full CRUD; seeds the store from data/events.json on first write) ──
 router.get('/admin/events', requireAdmin, async (_req, res) => {
   try { await ensureEventsSeeded(); res.json({ events: await loadEvents() }); }
@@ -1157,7 +1185,7 @@ router.get('/admin/llm-test', requireAdmin, async (_req, res) => {
 // Flyer → event: Claude/Gemini vision reads a flyer and returns a draft to review.
 router.post('/admin/events/from-flyer', requireAdmin, async (req, res) => {
   const b = req.body || {};
-  if (!b.dataUrl) return res.status(400).json({ error: 'Upload a flyer image.' });
+  if (!b.dataUrl) return res.status(400).json({ error: 'Upload a flyer image or PDF.' });
   try {
     const year = new Date().getFullYear();
     const instruction = 'You are reading an event flyer/poster for a Chamber of Commerce. Extract the event into JSON with EXACTLY these keys: '
@@ -1172,7 +1200,7 @@ router.post('/admin/events/from-flyer', requireAdmin, async (req, res) => {
     catch (e) { const mm = /\{[\s\S]*\}/.exec(raw); if (mm) { try { parsed = JSON.parse(mm[0]); } catch (_) {} } }
     if (!parsed || typeof parsed !== 'object') parsed = {};
     res.json({ ok: true, draft: parsed, provider: out.provider, model: out.model });
-  } catch (e) { console.error('from-flyer', e); res.status(500).json({ error: 'Could not read the flyer. Try a clearer image (PNG/JPG, under ~4MB).' }); }
+  } catch (e) { console.error('from-flyer', e); res.status(500).json({ error: 'Could not read the flyer. Try a clearer image (PNG/JPG) or a PDF, under ~4MB.' }); }
 });
 
 // ── Internal admin assistant (Claude / Anthropic) ───────────

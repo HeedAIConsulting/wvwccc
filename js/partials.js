@@ -222,12 +222,37 @@ window.ChamberPartials = (function () {
     if (/\/(admin|auth)\//.test(window.location.pathname)) return;
     // Hidden on mobile (phones) — the floating widget crowds small screens.
     if (window.matchMedia && window.matchMedia('(max-width: 767px)').matches) return;
+    // Visitor closed Wendy earlier this session — respect it (don't re-add on nav).
+    try { if (sessionStorage.getItem('wv-wendy-closed')) return; } catch (e) {}
     if (!document.querySelector('elevenlabs-convai')) {
       var el = document.createElement('elevenlabs-convai');
       el.setAttribute('agent-id', ELEVENLABS_AGENT_ID);
       el.setAttribute('action-text', 'Ask Wendy');
       el.setAttribute('start-call-text', 'Talk to Wendy');
+      // Brand the orb in the Chamber's green → gold. The widget renders in a
+      // shadow DOM, so these color attributes are the reliable theming hook.
+      el.setAttribute('avatar-orb-color-1', '#143C20'); // green-ink
+      el.setAttribute('avatar-orb-color-2', '#C9A227'); // gold
       document.body.appendChild(el);
+
+      // Small close affordance so visitors can dismiss Wendy for the session.
+      if (!document.getElementById('wv-wendy-close')) {
+        var btn = document.createElement('button');
+        btn.id = 'wv-wendy-close';
+        btn.type = 'button';
+        btn.setAttribute('aria-label', 'Close Wendy');
+        btn.textContent = '✕';
+        btn.style.cssText = 'position:fixed;z-index:2147483600;bottom:96px;right:18px;'
+          + 'width:26px;height:26px;border-radius:50%;border:1px solid var(--gold,#C9A227);'
+          + 'background:var(--green-ink,#143C20);color:var(--gold-bright,#E4BE45);'
+          + 'font-size:.8rem;line-height:1;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.3)';
+        btn.addEventListener('click', function () {
+          try { sessionStorage.setItem('wv-wendy-closed', '1'); } catch (e) {}
+          var w = document.querySelector('elevenlabs-convai'); if (w) w.remove();
+          btn.remove();
+        });
+        document.body.appendChild(btn);
+      }
     }
     if (!document.querySelector('script[src*="@elevenlabs/convai-widget-embed"]')) {
       var s = document.createElement('script');

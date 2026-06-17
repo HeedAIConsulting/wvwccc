@@ -38,6 +38,13 @@ window.Admin = (function () {
     return res.json();
   }
 
+  // Sign out — clears the session cookie server-side, then back to staff login.
+  // Direct fetch (not api()) so a stale session 401 doesn't hijack the redirect.
+  async function logout() {
+    try { await fetch(apiBase + '/api/auth/logout', { method: 'POST', credentials: 'same-origin' }); } catch (e) {}
+    location.href = '../auth/staff-login.html';
+  }
+
   const NAV = [
     { grp: 'Manage' },
     { href: 'index.html', icon: '▦', label: 'Dashboard', key: 'dashboard' },
@@ -47,6 +54,7 @@ window.Admin = (function () {
     { href: 'events.html', icon: '◆', label: 'Events', key: 'events' },
     { href: 'groups.html', icon: '◎', label: 'Groups', key: 'groups' },
     { href: 'content.html', icon: '✎', label: 'Content', key: 'content' },
+    { href: 'slides.html', icon: '▭', label: 'Hero Slider', key: 'slides' },
     { href: 'sponsorships.html', icon: '★', label: 'Sponsorships', key: 'sponsorships' },
     { href: 'ai-assistant.html', icon: '✦', label: 'AI Assistant', key: 'assistant' },
     { href: 'users.html', icon: '⚷', label: 'Users & Roles', key: 'users' },
@@ -71,7 +79,10 @@ window.Admin = (function () {
         </nav>
         <div class="admin-sidebar__foot">
           <a href="../index.html">↗ View live site</a>
+          <button type="button" class="admin-logout" data-admin-logout>⎋ Sign out</button>
         </div>`;
+      const out = side.querySelector('[data-admin-logout]');
+      if (out) out.addEventListener('click', logout);
     }
   }
 
@@ -479,16 +490,24 @@ window.Admin = (function () {
     const flyerMsg = document.getElementById('evFlyerMsg');
     if (flyer) flyer.addEventListener('change', async (e) => {
       const f = e.target.files[0]; if (!f) return;
+      // PDFs can't go through the canvas downscaler (image-only) — read them raw.
+      const isPdf = f.type === 'application/pdf' || /\.pdf$/i.test(f.name || '');
       flyerMsg.textContent = 'Reading flyer with AI…';
       try {
-        const dataUrl = await downscaleImage(f, 1600, 0.85);
+        const dataUrl = isPdf
+          ? await new Promise((resolve, reject) => { const r = new FileReader(); r.onload = () => resolve(r.result); r.onerror = reject; r.readAsDataURL(f); })
+          : await downscaleImage(f, 1600, 0.85);
         const out = await api('/api/admin/events/from-flyer', { method: 'POST', body: JSON.stringify({ dataUrl }) });
         const d = out.draft || {};
+        // Attach the flyer as the event image only when it's an actual image —
+        // a PDF isn't a usable display image, so the admin adds a square one below.
         let imgs = [];
-        try { const up = await api('/api/me/asset', { method: 'POST', body: JSON.stringify({ kind: 'photo', dataUrl }) }); imgs = [up.url]; } catch (_) {}
+        if (!isPdf) { try { const up = await api('/api/me/asset', { method: 'POST', body: JSON.stringify({ kind: 'photo', dataUrl }) }); imgs = [up.url]; } catch (_) {} }
         fillForm({ ...d, images: imgs, links: Array.isArray(d.links) ? d.links : [], status: 'pending' });
         window.scrollTo({ top: 0, behavior: 'smooth' });
-        flyerMsg.textContent = 'Filled from flyer — review the fields and click Save.';
+        flyerMsg.textContent = isPdf
+          ? 'Filled from PDF — review the fields, add a square image, and click Save.'
+          : 'Filled from flyer — review the fields and click Save.';
       } catch (err) { flyerMsg.textContent = 'Could not read the flyer (' + (err.message || 'error') + ').'; }
       finally { flyer.value = ''; }
     });
@@ -915,5 +934,86 @@ window.Admin = (function () {
     loadList();
   }
 
-  return { mountShell, initDashboard, initMembers, initApprovals, initOrders, initLeads, initEvents, initContent, initAssistant, initRenewals, initUsers, initGroups, initSponsorships, api, esc };
+  // ── Hero slider manager (add / delete / reorder) ──
+  async function initSlides() {
+    mountShell('slides');
+    const form = document.getElementById('slideForm');
+    const msg = document.getElementById('slideMsg');
+    const tbody = document.getElementById('slideRows');
+    const prev = document.getElementById('slideImgPrev');
+    let imageUrl = '';
+    let slides = [];
+
+    const imgInput = document.getElementById('slideImage');
+    if (imgInput) imgInput.addEventListener('change', async (e) => {
+      const f = e.target.files[0]; if (!f) return;
+      msg.hidden = false; msg.textContent = 'Uploading image…';
+      try {
+        const dataUrl = await downscaleImage(f, 1800, 0.85);
+        const up = await api('/api/me/asset', { method: 'POST', body: JSON.stringify({ kind: 'photo', dataUrl }) });
+        imageUrl = up.url;
+        if (prev) prev.innerHTML = `<img src="${imageUrl}" alt="" style="max-width:260px;border-radius:8px;margin-top:8px">`;
+        msg.textContent = 'Image ready — add an optional title, then click Add slide.';
+      } catch (err) { msg.textContent = 'Image upload failed (PNG/JPG, ≤2.5MB).'; }
+    });
+
+    async function persistOrder() {
+      try { await api('/api/admin/slides/reorder', { method: 'POST', body: JSON.stringify({ order: slides.map((s) => s.id) }) }); }
+      catch (e) { showAuthError(e); }
+    }
+    async function load() {
+      try { slides = (await api('/api/admin/slides')).slides || []; render(); }
+      catch (e) { showAuthError(e); }
+    }
+    function render() {
+      if (!slides.length) {
+        tbody.innerHTML = '<tr><td colspan="4" class="sub">No slides yet — the homepage hero stays solid green until you add one above.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = slides.map((s, i) => `
+        <tr data-id="${esc(s.id)}">
+          <td style="white-space:nowrap">
+            <button type="button" class="btn btn--ghost btn--sm" data-up ${i === 0 ? 'disabled' : ''}>↑</button>
+            <button type="button" class="btn btn--ghost btn--sm" data-down ${i === slides.length - 1 ? 'disabled' : ''}>↓</button>
+          </td>
+          <td>${s.imageUrl ? `<img src="${esc(s.imageUrl)}" alt="" style="width:120px;height:64px;object-fit:cover;border-radius:6px;border:1px solid var(--line,#ddd)">` : '<span class="sub">no image</span>'}</td>
+          <td><span class="name">${esc(s.title || 'Hero slide')}</span>${s.linkUrl ? `<div class="sub">${esc(s.linkUrl)}</div>` : ''}${s.status !== 'approved' ? ' <span class="pill pill--pending">draft</span>' : ''}</td>
+          <td><button type="button" class="btn btn--ghost btn--sm" data-del style="color:var(--red)">Delete</button></td>
+        </tr>`).join('');
+      tbody.querySelectorAll('tr[data-id]').forEach((tr, i) => {
+        const id = tr.dataset.id;
+        tr.querySelector('[data-up]')?.addEventListener('click', async () => {
+          if (i <= 0) return; [slides[i - 1], slides[i]] = [slides[i], slides[i - 1]]; render(); await persistOrder();
+        });
+        tr.querySelector('[data-down]')?.addEventListener('click', async () => {
+          if (i >= slides.length - 1) return; [slides[i + 1], slides[i]] = [slides[i], slides[i + 1]]; render(); await persistOrder();
+        });
+        tr.querySelector('[data-del]')?.addEventListener('click', async () => {
+          if (!confirm('Delete this slide from the homepage hero?')) return;
+          try { await api('/api/admin/posts/' + encodeURIComponent(id), { method: 'DELETE' }); load(); }
+          catch (e) { showAuthError(e); }
+        });
+      });
+    }
+
+    if (form) form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!imageUrl) { msg.hidden = false; msg.textContent = 'Upload a slide image first.'; return; }
+      const fd = new FormData(form);
+      const body = { type: 'slide', title: (fd.get('title') || '').trim() || 'Hero slide', linkUrl: fd.get('linkUrl') || '', imageUrl, status: 'approved' };
+      const btn = form.querySelector('button[type="submit"]'); btn.disabled = true;
+      try {
+        await api('/api/admin/posts', { method: 'POST', body: JSON.stringify(body) });
+        form.reset(); imageUrl = ''; if (prev) prev.innerHTML = '';
+        await load();           // new slide sorts to the end (no sortOrder yet)
+        await persistOrder();   // lock in 0..n so its order is explicit
+        msg.hidden = false; msg.textContent = 'Slide added ✓';
+      } catch (err) { msg.hidden = false; msg.textContent = 'Could not add slide.'; }
+      finally { btn.disabled = false; }
+    });
+
+    load();
+  }
+
+  return { mountShell, initDashboard, initMembers, initApprovals, initOrders, initLeads, initEvents, initContent, initAssistant, initRenewals, initUsers, initGroups, initSponsorships, initSlides, api, esc };
 })();

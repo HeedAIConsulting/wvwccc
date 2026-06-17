@@ -21,9 +21,9 @@
           <div class="panel__head"><h3 id="evFormTitle">New event</h3></div>
           <div style="padding:14px 16px;border-bottom:1px solid var(--line,#eee);background:#faf8f3">
             <strong>✦ Auto-fill from a flyer</strong>
-            <span class="sub">— upload a poster/flyer and the AI reads it and fills the form below for you to review &amp; approve.</span>
+            <span class="sub">— upload a poster/flyer (image or PDF) and the AI reads it and fills the form below for you to review &amp; approve.</span>
             <div style="margin-top:8px">
-              <label class="btn btn--gold btn--sm" style="cursor:pointer">Upload flyer<input type="file" accept="image/*" hidden id="evFlyer"></label>
+              <label class="btn btn--gold btn--sm" style="cursor:pointer">Upload flyer<input type="file" accept="image/*,application/pdf,.pdf" hidden id="evFlyer"></label>
               <span id="evFlyerMsg" class="sub" style="margin-left:8px"></span>
             </div>
           </div>
@@ -50,7 +50,7 @@
               <label class="toggle" style="display:flex;align-items:center;gap:8px"><input type="checkbox" name="featured"><span class="track"></span> Feature on homepage</label>
             </div>
 
-            <div class="field"><label>Images <span class="sub">(up to 3)</span></label><div id="evImages" style="margin-top:6px"></div></div>
+            <div class="field"><label>Images <span class="sub">(up to 3 — for best results, upload a square image)</span></label><div id="evImages" style="margin-top:6px"></div></div>
             <div class="field"><label>Links <span class="sub">(tickets, sponsors, registration, details)</span></label><div id="evLinks" style="margin-top:6px"></div></div>
 
             <p id="eventMsg" class="notice" hidden style="margin-top:10px"></p>

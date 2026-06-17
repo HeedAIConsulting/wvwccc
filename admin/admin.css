@@ -18,8 +18,10 @@ body.admin { background: var(--cream-deep); }
 .admin-nav a.active { background: var(--green); color: #fff; }
 .admin-nav a .ico { width: 18px; text-align: center; opacity: .9; }
 .admin-nav .grp { font-family: var(--mono); font-size: .62rem; letter-spacing: .14em; text-transform: uppercase; color: rgba(255,255,255,.4); padding: var(--s-4) 14px 6px; }
-.admin-sidebar__foot { padding: var(--s-4) var(--s-5); border-top: 1px solid rgba(255,255,255,.1); font-size: .8rem; }
+.admin-sidebar__foot { padding: var(--s-4) var(--s-5); border-top: 1px solid rgba(255,255,255,.1); font-size: .8rem; display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
 .admin-sidebar__foot a { color: var(--gold-bright); }
+.admin-logout { background: none; border: 1px solid rgba(255,255,255,.18); border-radius: var(--r-md); color: rgba(255,255,255,.82); font: inherit; font-size: .8rem; padding: 6px 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: background .18s, color .18s, border-color .18s; }
+.admin-logout:hover { background: rgba(255,255,255,.08); color: #fff; border-color: rgba(255,255,255,.4); }
 
 /* ── Main ── */
 .admin-main { padding: 0 0 var(--s-8); }

@@ -18,9 +18,15 @@ export const geminiEnabled = () => !!GEMINI_KEY();
 /* Extract structured JSON from an image (flyer/poster). Anthropic vision first,
    Gemini vision fallback. Returns { text, provider, model }. */
 export async function visionJSON({ instruction, imageDataUrl, system = '', maxTokens = 1400 } = {}) {
-  const m = /^data:(image\/(png|jpe?g|gif|webp));base64,(.+)$/s.exec(imageDataUrl || '');
-  if (!m) throw new Error('Provide a PNG, JPG, GIF, or WebP image.');
-  const mediaType = m[1], data = m[3];
+  // Accepts an image (PNG/JPG/GIF/WebP) or a PDF flyer. PDF goes to Claude as a
+  // `document` block (GA — no beta header) and to Gemini as inline PDF data.
+  const m = /^data:(image\/(?:png|jpe?g|gif|webp)|application\/pdf);base64,(.+)$/s.exec(imageDataUrl || '');
+  if (!m) throw new Error('Provide a PNG, JPG, GIF, or WebP image, or a PDF.');
+  const mediaType = m[1], data = m[2];
+  const isPdf = mediaType === 'application/pdf';
+  const mediaBlock = isPdf
+    ? { type: 'document', source: { type: 'base64', media_type: mediaType, data } }
+    : { type: 'image', source: { type: 'base64', media_type: mediaType, data } };
   const sys = (system ? system + '\n' : '') + 'Respond with valid JSON only — no markdown fences, no prose.';
   if (ANTHROPIC_KEY()) {
     for (const mod of ['claude-sonnet-4-5-20250929', 'claude-haiku-4-5-20251001']) {
@@ -29,7 +35,7 @@ export async function visionJSON({ instruction, imageDataUrl, system = '', maxTo
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'x-api-key': ANTHROPIC_KEY(), 'anthropic-version': '2023-06-01' },
           body: JSON.stringify({ model: mod, max_tokens: maxTokens, system: sys, messages: [{ role: 'user', content: [
-            { type: 'image', source: { type: 'base64', media_type: mediaType, data } }, { type: 'text', text: instruction }] }] }),
+            mediaBlock, { type: 'text', text: instruction }] }] }),
         });
         if (!res.ok) { console.error('[vision:anthropic]', mod, res.status, (await res.text()).slice(0, 160)); continue; }
         const d = await res.json();
