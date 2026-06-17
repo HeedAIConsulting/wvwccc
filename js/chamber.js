@@ -280,7 +280,7 @@ window.Chamber = (function () {
       <div class="event-row" id="${esc(ev.id)}" data-ev-detail="${esc(ev.id)}" style="cursor:pointer">
         ${dateBlock}
         <div>
-          <span class="badge">${esc(ev.category || 'Event')}</span>
+          <span class="badge">${esc(ev.category || 'Event')}</span>${ev.featured ? '<span class="badge badge--gold" style="margin-left:6px">★ Featured</span>' : ''}
           <h4 style="margin:6px 0 4px">${esc(ev.title)} <span style="color:var(--gold-bright,#b8860b);font-size:.8rem;font-weight:600">Details →</span></h4>
           <div class="member-tile__meta">${when} · ${esc(ev.venue || ev.neighborhood || '')}</div>
           <p style="margin:6px 0 0;color:var(--slate-mid);font-size:.95rem">${esc(ev.summary || '')}</p>
@@ -317,7 +317,7 @@ window.Chamber = (function () {
       <article class="evp card--hover" id="${esc(ev.id)}" data-ev-detail="${esc(ev.id)}">
         ${media}
         <div class="evp__body">
-          <span class="badge">${esc(ev.category || 'Event')}</span>
+          <span class="badge">${esc(ev.category || 'Event')}</span>${ev.featured ? '<span class="badge badge--gold" style="margin-left:6px">★ Featured</span>' : ''}
           <h3 class="evp__title">${esc(ev.title)}</h3>
           <div class="evp__meta">📅 ${when}${loc ? ' · ' + loc : ''}</div>
           ${sum ? `<p class="evp__sum">${esc(sum)}</p>` : ''}
@@ -870,8 +870,11 @@ window.Chamber = (function () {
       const cat = catEl ? catEl.value : '';
       const when = whenEl ? whenEl.value : 'upcoming';
       const filtered = events.filter((e) => (!cat || e.category === cat) && inWindow(e, when));
-      listEl.innerHTML = filtered.length
-        ? filtered.map((e) => eventCard(e, 1)).join('')
+      // Featured events float to the top (keeping date order within each group),
+      // so the admin "Feature on homepage" toggle visibly affects placement here too.
+      const ordered = filtered.filter((e) => e.featured).concat(filtered.filter((e) => !e.featured));
+      listEl.innerHTML = ordered.length
+        ? ordered.map((e) => eventCard(e, 1)).join('')
         : '<p class="notice">No events match these filters — try widening the timeframe or choosing “All categories.”</p>';
       if (countEl) countEl.textContent = filtered.length + ' event' + (filtered.length !== 1 ? 's' : '');
     }
@@ -1318,23 +1321,37 @@ window.Chamber = (function () {
         </a>
       </article>`;
   }
+  const LEADER_GROUP_LABEL = { 'Leader': 'Officers & Leadership', 'Board Member': 'Board of Directors', 'Past President': 'Past Presidents', 'Ambassador': 'Ambassadors' };
   async function initBoard(depth = 0) {
     const el = document.getElementById('boardGrid'); if (!el) return;
+    // Each designation is its own deep-linkable view: leadership.html?group=<status>.
+    const only = new URLSearchParams(location.search).get('group') || '';
     let members = [];
     try { members = (await getJSON(ChamberAPI.url('/api/members'))).members || []; }
     catch (e) { el.innerHTML = '<p class="notice">Could not load the roster right now.</p>'; return; }
     const ORDER = ['Leader', 'Board Member', 'Past President', 'Ambassador'];
-    const board = members.filter((m) => ORDER.includes(m.leaderStatus))
+    const base = depth ? '../' : '';
+    // Sub-nav so visitors can jump to the Board, Ambassadors, or officers page.
+    const tabs = [['', 'Everyone'], ['Leader', 'Officers'], ['Board Member', 'Board of Directors'], ['Ambassador', 'Ambassadors']];
+    const subnav = `<nav class="chips" style="justify-content:center;margin-bottom:var(--s-6)" aria-label="Leadership groups">${tabs.map(([g, l]) =>
+      `<a class="chip${only === g ? ' chip--gold' : ''}" href="${base}leadership.html${g ? ('?group=' + encodeURIComponent(g)) : ''}">${l}</a>`).join('')}</nav>`;
+    const want = only && ORDER.includes(only) ? [only] : ORDER;
+    const heading = (only && LEADER_GROUP_LABEL[only]) ? `<h2 style="text-align:center;margin-bottom:var(--s-5)">${esc(LEADER_GROUP_LABEL[only])}</h2>` : '';
+    const board = members.filter((m) => want.includes(m.leaderStatus))
       .sort((a, b) => (ORDER.indexOf(a.leaderStatus) - ORDER.indexOf(b.leaderStatus)) || String(a.contactName || a.name).localeCompare(b.contactName || b.name));
-    if (!board.length) { el.innerHTML = '<p class="notice">Our board &amp; leadership roster is being finalized — check back soon. (Admins: set each member\'s designation under Members.)</p>'; return; }
+    if (!board.length) { el.innerHTML = subnav + '<p class="notice">This roster is being finalized — check back soon. (Admins: set each member\'s designation under Members.)</p>'; return; }
     // group by designation
     const groups = {};
     board.forEach((m) => { (groups[m.leaderStatus] = groups[m.leaderStatus] || []).push(m); });
-    el.innerHTML = ORDER.filter((g) => groups[g]).map((g) => `
-      <div style="margin-bottom:var(--s-7)">
-        <h2 style="text-align:center;margin-bottom:var(--s-5)">${esc(g === 'Leader' ? 'Officers & Leadership' : g === 'Board Member' ? 'Board of Directors' : g === 'Past President' ? 'Past Presidents' : 'Ambassadors')}</h2>
-        <div class="grid grid-4" style="gap:var(--s-6)">${groups[g].map((m) => boardCard(m, depth)).join('')}</div>
-      </div>`).join('');
+    // Single-group view: one heading, no per-group repeat. Combined view: a section per group.
+    const body = only
+      ? `<div class="grid grid-4" style="gap:var(--s-6)">${board.map((m) => boardCard(m, depth)).join('')}</div>`
+      : ORDER.filter((g) => groups[g]).map((g) => `
+        <div style="margin-bottom:var(--s-7)">
+          <h2 style="text-align:center;margin-bottom:var(--s-5)">${esc(LEADER_GROUP_LABEL[g])}</h2>
+          <div class="grid grid-4" style="gap:var(--s-6)">${groups[g].map((m) => boardCard(m, depth)).join('')}</div>
+        </div>`).join('');
+    el.innerHTML = subnav + heading + body;
   }
 
   // ── Dining Guide — Chamber member restaurants only ──

@@ -121,6 +121,8 @@ window.ChamberPartials = (function () {
           <div class="nav-dd__menu" data-dd="About & Membership">
             <a href="${nv('/about.html')}">${L?'Acerca de':'About Us'}</a>
             <a href="/leadership.html">${L?'Junta y Liderazgo':'Board & Leadership'}</a>
+            <a href="/leadership.html?group=Board%20Member">${L?'Junta Directiva':'Board of Directors'}</a>
+            <a href="/leadership.html?group=Ambassador">${L?'Embajadores':'Ambassadors'}</a>
             <a href="/p/benefits-of-membership">${L?'Por qué unirse':'Why Join the Chamber'}</a>
             <a href="${nv('/resources.html')}">${L?'Más sobre la Cámara':'More Chamber pages'} →</a>
           </div>

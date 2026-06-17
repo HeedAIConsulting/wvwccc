@@ -545,8 +545,11 @@ a.member-tile__name:hover { color: var(--green); }
 .dd__opt.is-active { background: var(--leaf-soft); color: var(--green-deep); font-weight: 600; }
 .dd__clear { background: none; border: none; color: var(--gold-deep); font-weight: 600; cursor: pointer; font-size: .88rem; padding: 6px 4px; }
 .dd__clear:hover { text-decoration: underline; }
-.dir-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(256px, 1fr)); gap: var(--s-4); }
-@media (max-width: 560px) { .dir-grid { grid-template-columns: 1fr; } }
+/* Denser "quadrant" directory: smaller boxes, more per row (Chamber feedback). */
+.dir-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: var(--s-3); }
+.dir-grid .member-tile.card { padding: var(--s-4); gap: var(--s-2); }
+.dir-grid .member-tile__seal { width: 44px; height: 44px; font-size: 1.1rem; }
+@media (max-width: 560px) { .dir-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); } }
 
 /* ── Member video embed (responsive 16:9) ── */
 .video-embed { position: relative; width: 100%; aspect-ratio: 16/9; border-radius: var(--r-lg); overflow: hidden; box-shadow: var(--sh-md); }
