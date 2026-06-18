@@ -54,6 +54,35 @@ const FIELD_ALIASES = {
   id:            ['id', 'accounts_id', 'account_id', 'member_id', 'user_id', 'view_id'],
 };
 
+// ── CSV parser (no deps) ────────────────────────────────────
+// ChamberWare desktop exports the directory/member list as CSV, not a SQL dump.
+// Returns the same { tables, rows } shape as parseDump so the rest of the
+// pipeline (column mapping, member/user build) is identical for both formats.
+export function parseCsv(text, tableName = 'csv') {
+  const records = []; let field = '', record = [], q = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (q) {
+      if (ch === '"') { if (text[i + 1] === '"') { field += '"'; i++; } else q = false; }
+      else field += ch;
+      continue;
+    }
+    if (ch === '"') { q = true; continue; }
+    if (ch === ',') { record.push(field); field = ''; continue; }
+    if (ch === '\r') continue;
+    if (ch === '\n') { record.push(field); records.push(record); record = []; field = ''; continue; }
+    field += ch;
+  }
+  if (field.length || record.length) { record.push(field); records.push(record); }
+  const recs = records.filter((r) => !(r.length === 1 && r[0].trim() === ''));
+  if (!recs.length) return { tables: {}, rows: {} };
+  const columns = recs[0].map((h) => h.trim().replace(/^﻿/, '')); // strip BOM on first header
+  const data = recs.slice(1).map((r) => {
+    const o = {}; columns.forEach((c, i) => { o[c] = r[i] !== undefined ? r[i] : ''; }); return o;
+  });
+  return { tables: { [tableName]: { columns } }, rows: { [tableName]: data } };
+}
+
 // ── tiny SQL-dump parser (no deps) ──────────────────────────
 export function parseDump(sql) {
   const tables = {};        // name -> { columns: [..] }
@@ -210,10 +239,14 @@ function main() {
   const file = args.find((a) => !a.startsWith('--'));
   const discover = args.includes('--discover');
   const tableArg = (args[args.indexOf('--table') + 1] || '').replace(/^--.*/, '');
-  if (!file) { console.error('Usage: node scripts/import-chamberware.js <dump.sql> [--table NAME] [--discover]'); process.exit(1); }
+  if (!file) { console.error('Usage: node scripts/import-chamberware.js <dump.sql|export.csv> [--table NAME] [--discover]'); process.exit(1); }
 
-  const sql = fs.readFileSync(file, 'utf8');
-  const { tables, rows } = parseDump(sql);
+  const raw = fs.readFileSync(file, 'utf8');
+  // CSV (ChamberWare desktop export) vs MySQL dump (legacy website DB) — detect
+  // by extension, falling back to content sniffing.
+  const isCsv = /\.csv$/i.test(file) || !/CREATE TABLE|INSERT INTO/i.test(raw);
+  const { tables, rows } = isCsv ? parseCsv(raw, path.basename(file, path.extname(file)) || 'csv') : parseDump(raw);
+  if (isCsv) console.log(`(parsed as CSV — ${Object.values(rows)[0] ? Object.values(rows)[0].length : 0} rows)`);
 
   console.log('\nDiscovered tables:');
   for (const [name, t] of Object.entries(tables)) {
