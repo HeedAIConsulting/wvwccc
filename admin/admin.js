@@ -84,6 +84,19 @@ window.Admin = (function () {
       const out = side.querySelector('[data-admin-logout]');
       if (out) out.addEventListener('click', logout);
     }
+    // Also surface Sign out in the top bar — far more discoverable than the
+    // sidebar foot, especially for non-technical staff (Chamber feedback).
+    const bar = document.querySelector('.admin-topbar');
+    if (bar && !bar.querySelector('[data-admin-logout-top]')) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'admin-logout';
+      b.setAttribute('data-admin-logout-top', '');
+      b.setAttribute('aria-label', 'Sign out');
+      b.textContent = '⎋ Sign out';
+      b.addEventListener('click', logout);
+      bar.appendChild(b);
+    }
   }
 
   function statusPill(s) { s = s || 'approved'; return `<span class="pill pill--${s}">${esc(s)}</span>`; }

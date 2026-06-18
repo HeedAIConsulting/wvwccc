@@ -22,6 +22,9 @@ body.admin { background: var(--cream-deep); }
 .admin-sidebar__foot a { color: var(--gold-bright); }
 .admin-logout { background: none; border: 1px solid rgba(255,255,255,.18); border-radius: var(--r-md); color: rgba(255,255,255,.82); font: inherit; font-size: .8rem; padding: 6px 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: background .18s, color .18s, border-color .18s; }
 .admin-logout:hover { background: rgba(255,255,255,.08); color: #fff; border-color: rgba(255,255,255,.4); }
+/* Top-bar variant sits on the light paper bar, so it needs dark ink + a solid fill. */
+.admin-topbar .admin-logout { background: var(--green-deep); color: #fff; border-color: var(--green-deep); font-weight: 600; flex: none; }
+.admin-topbar .admin-logout:hover { background: var(--green-ink); color: #fff; border-color: var(--green-ink); }
 
 /* ── Main ── */
 .admin-main { padding: 0 0 var(--s-8); }
