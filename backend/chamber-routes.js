@@ -866,6 +866,29 @@ router.post('/admin/members/:id/reset-password', requireAdmin, async (req, res) 
   } catch (e) { console.error('reset-password', e); res.status(500).json({ error: 'could not reset' }); }
 });
 
+// Admin sets a login's password directly (e.g. the office sets it for a member
+// over the phone). Keyed by email (shown on the Users & Roles page). Min 8 chars;
+// clears any pending reset so the member can sign in immediately.
+router.post('/admin/users/:email/set-password', requireAdmin, async (req, res) => {
+  const pw = String((req.body && req.body.password) || '');
+  if (pw.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters.' });
+  try {
+    await users.updatePassword(decodeURIComponent(req.params.email), auth.hashPassword(pw));
+    res.json({ ok: true });
+  } catch (e) { console.error('admin set-password', e); res.status(500).json({ error: 'could not set password' }); }
+});
+
+// Admin generates a password-reset LINK for a login — useful while transactional
+// email isn't configured yet: staff can copy the link and send it to the member.
+router.get('/admin/users/:email/reset-link', requireAdmin, async (req, res) => {
+  try {
+    const em = decodeURIComponent(req.params.email);
+    const token = auth.signResetToken(em);
+    const base = process.env.SITE_URL || `${req.protocol}://${req.get('host')}`;
+    res.json({ ok: true, email: em, link: `${base}/auth/reset.html?token=${encodeURIComponent(token)}`, expiresInHours: 1 });
+  } catch (e) { console.error('reset-link', e); res.status(500).json({ error: 'could not generate link' }); }
+});
+
 // Admin-only: verify the transactional-email pipeline end-to-end.
 // GET /api/admin/email-test?to=someone@example.com  (defaults to the chamber notify inbox)
 router.get('/admin/email-test', requireAdmin, async (req, res) => {

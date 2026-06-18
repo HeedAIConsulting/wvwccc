@@ -826,13 +826,34 @@ window.Admin = (function () {
           const level = m ? esc(m.tier || 'member') : '<span class="sub">—</span>';
           const contact = m ? (esc(m.contactName || '') || '<span class="sub">—</span>') : '<span class="sub">—</span>';
           const exp = m ? `<input type="date" data-exp data-id="${esc(m.id)}" value="${esc(m.expireDate || '')}" class="admin-select" style="width:auto"> <span class="saved-flash" data-flash>✓</span>` : '<span class="sub">—</span>';
+          const pwCell = `<button type="button" class="btn btn--forest btn--sm" data-setpw="${esc(u.email)}">Set password</button>
+            <button type="button" class="btn btn--ghost btn--sm" data-resetlink="${esc(u.email)}" title="Copy a reset link to send the member">Reset link</button>`;
           return `<tr>
             <td><span class="name">${esc(u.username || u.email)}</span><div class="sub">${esc(u.email)}</div></td>
-            <td>${biz}</td><td>${level}</td><td>${contact}</td><td>${exp}</td><td>${roleCell}</td></tr>`;
-        }).join('') || '<tr><td colspan="6" class="sub">No accounts yet.</td></tr>';
+            <td>${biz}</td><td>${level}</td><td>${contact}</td><td>${exp}</td><td>${roleCell}</td><td style="white-space:nowrap">${pwCell}</td></tr>`;
+        }).join('') || '<tr><td colspan="7" class="sub">No accounts yet.</td></tr>';
         tbody.querySelectorAll('[data-role]').forEach((sel) => sel.addEventListener('change', async () => {
           try { await api('/api/admin/users/' + encodeURIComponent(sel.dataset.email) + '/role', { method: 'PATCH', body: JSON.stringify({ role: sel.value }) }); }
           catch (e) { alert('Could not change role: ' + (e.message || '')); load(); }
+        }));
+        // Set a password directly (office sets it for a member over the phone).
+        tbody.querySelectorAll('[data-setpw]').forEach((b) => b.addEventListener('click', async () => {
+          const email = b.dataset.setpw;
+          const pw = prompt(`Set a new password for ${email} (minimum 8 characters).\nThe member can sign in with it immediately.`);
+          if (pw === null) return;
+          if (pw.length < 8) { alert('Password must be at least 8 characters.'); return; }
+          b.disabled = true; const old = b.textContent; b.textContent = 'Saving…';
+          try { await api('/api/admin/users/' + encodeURIComponent(email) + '/set-password', { method: 'POST', body: JSON.stringify({ password: pw }) });
+            b.textContent = 'Set ✓'; setTimeout(() => { b.textContent = old; b.disabled = false; }, 1600); }
+          catch (e) { alert('Could not set password: ' + (e.message || '')); b.textContent = old; b.disabled = false; }
+        }));
+        // Generate a reset link to copy/send (works even before email is configured).
+        tbody.querySelectorAll('[data-resetlink]').forEach((b) => b.addEventListener('click', async () => {
+          try {
+            const r = await api('/api/admin/users/' + encodeURIComponent(b.dataset.resetlink) + '/reset-link');
+            const copied = navigator.clipboard ? await navigator.clipboard.writeText(r.link).then(() => true).catch(() => false) : false;
+            window.prompt(copied ? 'Reset link copied — paste it to the member (expires in 1 hour):' : 'Copy this reset link and send it to the member (expires in 1 hour):', r.link);
+          } catch (e) { alert('Could not generate a reset link: ' + (e.message || '')); }
         }));
         tbody.querySelectorAll('[data-exp]').forEach((inp) => inp.addEventListener('change', async () => {
           const flash = inp.parentElement.querySelector('[data-flash]');
