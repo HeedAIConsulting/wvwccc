@@ -151,7 +151,7 @@ window.Admin = (function () {
         const soon = rows.filter((x) => x.days <= 90).slice(0, 8);
         const tb = document.getElementById('renewSoon');
         tb.innerHTML = soon.length ? soon.map(({ m, r, days }) => `<tr data-id="${esc(m.id)}">
-          <td><span class="name">${esc(m.name)}</span></td>
+          <td><a class="name" href="members.html?focus=${encodeURIComponent(m.id)}" title="Open in Members">${esc(m.name)}</a></td>
           <td>${r.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</td>
           <td>${days <= 0 ? 'now' : days + ' days'}</td>
           <td><button class="btn btn--forest btn--sm" data-renew>Renew +1 yr</button> <span class="saved-flash" data-flash>renewed ✓</span></td></tr>`).join('')
@@ -169,7 +169,7 @@ window.Admin = (function () {
       }
       const newest = members.filter((m) => m.joinDate).sort((a, b) => String(b.joinDate).localeCompare(String(a.joinDate))).slice(0, 8);
       const nm = document.getElementById('newestMembers');
-      if (nm) nm.innerHTML = newest.length ? newest.map((m) => `<tr><td><span class="name">${esc(m.name)}</span><div class="sub">${esc(m.neighborhood || m.city || '')}</div></td><td>${esc(m.category || '')}</td><td>${esc(m.joinDate || '')}</td></tr>`).join('') : '<tr><td colspan="3" class="sub">—</td></tr>';
+      if (nm) nm.innerHTML = newest.length ? newest.map((m) => `<tr><td><a class="name" href="members.html?focus=${encodeURIComponent(m.id)}" title="Open in Members">${esc(m.name)}</a><div class="sub">${esc(m.neighborhood || m.city || '')}</div></td><td>${esc(m.category || '')}</td><td>${esc(m.joinDate || '')}</td></tr>`).join('') : '<tr><td colspan="3" class="sub">—</td></tr>';
     } catch (e) { /* dashboard extras best-effort */ }
   }
 
@@ -231,16 +231,23 @@ window.Admin = (function () {
         const lbl = o || 'None';
         return `<input type="radio" name="ld-${id}" id="ld-${id}-${esc(o || 'none')}" value="${esc(o)}" ${checked}><label for="ld-${id}-${esc(o || 'none')}">${esc(lbl)}</label>`;
       }).join('');
+      const emailLine = m.email
+        ? `<div class="sub">✉ <a href="mailto:${esc(m.email)}">${esc(m.email)}</a></div>`
+        : '<div class="sub" style="opacity:.7">no login email on file</div>';
+      const pwActions = m.email
+        ? `<button type="button" data-setpw="${esc(m.email)}" title="Set this member's password now" style="cursor:pointer;background:none;border:1px solid var(--line,#d7d2c6);border-radius:6px;padding:3px 8px;font-size:.8rem">Set password</button>
+           <button type="button" data-resetlink="${esc(m.email)}" title="Copy a reset link to send them" style="cursor:pointer;background:none;border:1px solid var(--line,#d7d2c6);border-radius:6px;padding:3px 8px;font-size:.8rem">Reset link</button>`
+        : `<button type="button" data-reset title="Force a password reset at next login" style="cursor:pointer;background:none;border:1px solid var(--line,#d7d2c6);border-radius:6px;padding:3px 8px;font-size:.8rem">Reset PW</button>`;
       return `<tr data-id="${id}">
-        <td><span class="name">${esc(m.name)}</span><div class="sub">${esc(m.category || '')}${m.neighborhood ? ' · ' + esc(m.neighborhood) : ''}</div></td>
+        <td><button type="button" data-editname title="Edit this member" style="background:none;border:none;padding:0;font:inherit;font-weight:600;color:var(--green-deep,#1E5631);cursor:pointer;text-align:left">${esc(m.name)}</button><div class="sub">${esc(m.category || '')}${m.neighborhood ? ' · ' + esc(m.neighborhood) : ''}</div>${emailLine}</td>
         <td><select class="admin-select" data-field="tier">${tiers.map((t) => `<option ${((m.tier || 'member') === t) ? 'selected' : ''}>${t}</option>`).join('')}</select></td>
         <td><select class="admin-select" data-field="status">${opts.statusOptions.map((s) => `<option ${((m.status || 'approved') === s) ? 'selected' : ''}>${s}</option>`).join('')}</select></td>
         <td><div class="radio-group" data-field="leaderStatus">${radios}</div></td>
         <td><label class="toggle"><input type="checkbox" data-field="featured" ${m.featured ? 'checked' : ''}><span class="track"></span></label></td>
         <td style="white-space:nowrap">
-          <button type="button" data-edit title="Edit this member's public profile" style="cursor:pointer;background:var(--green-deep,#1E5631);color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:.8rem;margin-right:8px">Edit profile</button>
-          <a href="../members/profile.html?id=${id}" target="_blank" title="View public profile" style="text-decoration:none;margin-right:8px">View ↗</a>
-          <button type="button" data-reset title="Force a password reset at next login" style="cursor:pointer;background:none;border:1px solid var(--line,#d7d2c6);border-radius:6px;padding:3px 8px;font-size:.8rem">Reset PW</button>
+          <button type="button" data-edit title="Edit this member's public profile" style="cursor:pointer;background:var(--green-deep,#1E5631);color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:.8rem;margin-right:6px">Edit profile</button>
+          <a href="../members/profile.html?id=${id}" target="_blank" title="View public profile" style="text-decoration:none;margin-right:6px">View ↗</a>
+          ${pwActions}
           <span class="saved-flash" data-flash>saved ✓</span>
         </td>
       </tr>`;
@@ -270,6 +277,26 @@ window.Admin = (function () {
           } catch (e) { showAuthError(e); }
         });
         tr.querySelector('[data-edit]')?.addEventListener('click', () => openProfileEditor(memberById[id]));
+        // Clicking the business name opens the same admin editor.
+        tr.querySelector('[data-editname]')?.addEventListener('click', () => openProfileEditor(memberById[id]));
+        // Set this member's password now (e.g. over the phone).
+        tr.querySelector('[data-setpw]')?.addEventListener('click', async (e) => {
+          const email = e.currentTarget.dataset.setpw;
+          const pw = prompt(`Set a new password for ${email} (minimum 8 characters).\nThe member can sign in with it immediately.`);
+          if (pw === null) return;
+          if (pw.length < 8) { alert('Password must be at least 8 characters.'); return; }
+          try { await api('/api/admin/users/' + encodeURIComponent(email) + '/set-password', { method: 'POST', body: JSON.stringify({ password: pw }) });
+            flash.classList.add('show'); setTimeout(() => flash.classList.remove('show'), 1500); alert('Password set for ' + email); }
+          catch (err) { alert('Could not set password: ' + (err.message || '')); }
+        });
+        // Copy a reset link to send the member (works before email is configured).
+        tr.querySelector('[data-resetlink]')?.addEventListener('click', async (e) => {
+          try {
+            const r = await api('/api/admin/users/' + encodeURIComponent(e.currentTarget.dataset.resetlink) + '/reset-link');
+            const copied = navigator.clipboard ? await navigator.clipboard.writeText(r.link).then(() => true).catch(() => false) : false;
+            window.prompt(copied ? 'Reset link copied — paste it to the member (expires in 1 hour):' : 'Copy this reset link and send it to the member (expires in 1 hour):', r.link);
+          } catch (err) { alert('Could not generate a reset link: ' + (err.message || '')); }
+        });
       });
     }
 
@@ -322,7 +349,13 @@ window.Admin = (function () {
     }
 
     let t; search.addEventListener('input', () => { clearTimeout(t); t = setTimeout(() => load(search.value.trim()), 250); });
-    load('');
+    // Deep links from the dashboard / other admin pages: ?q= prefills search,
+    // ?focus=<memberId> opens that member's editor straight away.
+    const params = new URLSearchParams(location.search);
+    const focusId = params.get('focus');
+    const q = params.get('q') || '';
+    if (q && search) search.value = q;
+    load(q).then(() => { if (focusId && memberById[focusId]) openProfileEditor(memberById[focusId]); });
   }
 
   // ── Approvals queue ──

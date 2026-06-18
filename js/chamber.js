@@ -212,12 +212,17 @@ window.Chamber = (function () {
     if (ev.time) s += ' · ' + ev.time + (ev.endTime ? '–' + ev.endTime : '');
     return s;
   }
+  // Event image src: leave absolute URLs (http, leading /, data:) alone; prefix
+  // relative paths (e.g. "assets/events/11311.jpg") with the page base so they
+  // resolve from subdirectory pages like /events/ instead of 404ing.
+  function evImgSrc(u, base) { u = String(u || ''); return /^(https?:|\/|data:)/i.test(u) ? u : (base || '') + u; }
+
   function openEventModal(ev) {
     if (!ev) return;
     const base = /\/(events|members|member|community|admin|auth|es)\//.test(location.pathname) ? '../' : '';
     const loc = [ev.venue, ev.address, ev.neighborhood].filter(Boolean).join(' · ');
     const imgs = (ev.images && ev.images.length)
-      ? `<div style="display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px">${ev.images.slice(0, 3).map((u) => `<img src="${esc(u)}" alt="" style="width:100%;max-width:180px;height:130px;object-fit:cover;border-radius:10px">`).join('')}</div>` : '';
+      ? `<div style="display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px">${ev.images.slice(0, 3).map((u) => `<img src="${esc(evImgSrc(u, base))}" alt="" style="width:100%;max-width:180px;height:130px;object-fit:cover;border-radius:10px">`).join('')}</div>` : '';
     const links = (ev.links && ev.links.length)
       ? `<div style="display:flex;flex-wrap:wrap;gap:8px;margin:0 0 14px">${ev.links.map((l) => `<a class="btn btn--gold btn--sm" target="_blank" rel="noopener" href="${esc(l.url)}">${esc(l.label || l.type || 'Details')}</a>`).join('')}</div>` : '';
     const cta = ev.ticketed
@@ -271,7 +276,7 @@ window.Chamber = (function () {
           : `<a class="btn btn--ghost btn--sm" href="${base}contact.html?event=${esc(ev.id)}">Notify me</a>`)
       : `<a class="btn btn--ghost btn--sm" href="${base}contact.html?event=${esc(ev.id)}">RSVP</a>`;
     const imgs = (ev.images && ev.images.length)
-      ? `<div class="event-imgs" style="display:flex;gap:6px;margin:8px 0 0;flex-wrap:wrap">${ev.images.slice(0, 3).map((u) => `<img src="${esc(u)}" alt="" loading="lazy" style="width:88px;height:64px;object-fit:cover;border-radius:8px">`).join('')}</div>`
+      ? `<div class="event-imgs" style="display:flex;gap:6px;margin:8px 0 0;flex-wrap:wrap">${ev.images.slice(0, 3).map((u) => `<img src="${esc(evImgSrc(u, base))}" alt="" loading="lazy" style="width:88px;height:64px;object-fit:cover;border-radius:8px">`).join('')}</div>`
       : '';
     const links = (ev.links && ev.links.length)
       ? `<div class="event-links" style="display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 0">${ev.links.map((l) => `<a class="chip chip--gold" target="_blank" rel="noopener" href="${esc(l.url)}">${esc(l.label || l.type || 'Details')}</a>`).join('')}</div>`
@@ -300,7 +305,7 @@ window.Chamber = (function () {
     const base = depth ? '../' : '';
     const img = ev.image || (ev.images && ev.images[0]) || '';
     const media = img
-      ? `<div class="evp__media" style="background-image:url('${esc(base + img)}')" role="img" aria-label="${esc(ev.title)} flyer"></div>`
+      ? `<div class="evp__media" style="background-image:url('${esc(evImgSrc(img, base))}')" role="img" aria-label="${esc(ev.title)} flyer"></div>`
       : `<div class="evp__media evp__media--ph"><span>${esc(ev.month || 'TBA')}</span><strong>${esc(ev.day || '·')}</strong></div>`;
     const when = (ev.confirmed && ev.day)
       ? `${esc(ev.month)} ${esc(ev.day)}${ev.time ? ' · ' + esc(ev.time) : ''}`
