@@ -221,10 +221,16 @@ window.Chamber = (function () {
     if (!ev) return;
     const base = /\/(events|members|member|community|admin|auth|es)\//.test(location.pathname) ? '../' : '';
     const loc = [ev.venue, ev.address, ev.neighborhood].filter(Boolean).join(' · ');
-    const imgs = (ev.images && ev.images.length)
-      ? `<div style="display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px">${ev.images.slice(0, 3).map((u) => `<img src="${esc(evImgSrc(u, base))}" alt="" style="width:100%;max-width:180px;height:130px;object-fit:cover;border-radius:10px">`).join('')}</div>` : '';
+    // Full flyer leads the modal (portrait-friendly); the image strip follows.
+    const flyerImg = ev.flyer
+      ? `<img src="${esc(evImgSrc(ev.flyer, base))}" alt="${esc(ev.title)} flyer" style="display:block;width:100%;max-height:540px;object-fit:contain;border-radius:12px;margin:0 0 14px;background:var(--cream-deep,#f3ecda)">` : '';
+    const imgs = flyerImg + ((ev.images && ev.images.length)
+      ? `<div style="display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px">${ev.images.slice(0, 3).map((u) => `<img src="${esc(evImgSrc(u, base))}" alt="" style="width:100%;max-width:180px;height:130px;object-fit:cover;border-radius:10px">`).join('')}</div>` : '');
     const links = (ev.links && ev.links.length)
       ? `<div style="display:flex;flex-wrap:wrap;gap:8px;margin:0 0 14px">${ev.links.map((l) => `<a class="btn btn--gold btn--sm" target="_blank" rel="noopener" href="${esc(l.url)}">${esc(l.label || l.type || 'Details')}</a>`).join('')}</div>` : '';
+    // Attached PDFs (donation form, sponsorship levels, …).
+    const docs = (ev.documents && ev.documents.length)
+      ? `<div style="display:flex;flex-wrap:wrap;gap:8px;margin:0 0 14px">${ev.documents.map((dme) => `<a class="btn btn--ghost btn--sm" target="_blank" rel="noopener" href="${esc(evImgSrc(dme.url, base))}">📄 ${esc(dme.label || 'Document')}</a>`).join('')}</div>` : '';
     const cta = ev.ticketed
       ? `<a class="btn btn--gold" href="${base}checkout.html?type=ticket&event=${esc(ev.id)}">Get tickets</a>`
       : `<a class="btn btn--forest" href="${base}contact.html?event=${esc(ev.id)}">RSVP / Notify me</a>`;
@@ -242,6 +248,7 @@ window.Chamber = (function () {
         ${imgs}
         ${desc ? `<div style="white-space:pre-wrap;line-height:1.6;color:var(--slate-mid,#333);margin:0 0 16px">${esc(desc)}</div>` : ''}
         ${links}
+        ${docs}
         ${ev.confirmed ? calendarMenu(ev) : ''}
         ${shareMenu(ev.title, location.origin + (base ? '/' : location.pathname) + (base ? 'events/index.html' : '') + '#' + encodeURIComponent(ev.id))}
         <div style="margin-top:18px">${cta}</div>
@@ -303,7 +310,7 @@ window.Chamber = (function () {
   function eventPreviewCard(ev, depth = 0) {
     _eventReg[ev.id] = ev;
     const base = depth ? '../' : '';
-    const img = ev.image || (ev.images && ev.images[0]) || '';
+    const img = ev.thumbnail || ev.image || (ev.images && ev.images[0]) || '';
     const media = img
       ? `<div class="evp__media" style="background-image:url('${esc(evImgSrc(img, base))}')" role="img" aria-label="${esc(ev.title)} flyer"></div>`
       : `<div class="evp__media evp__media--ph"><span>${esc(ev.month || 'TBA')}</span><strong>${esc(ev.day || '·')}</strong></div>`;
@@ -604,7 +611,11 @@ window.Chamber = (function () {
       const upcoming = allEv.filter((e) => e.date >= todayISO);
       // Upcoming first (featured upcoming float to the top); fall back to most recent.
       const pool = upcoming.length ? upcoming : allEv.slice(-4);
-      const events = pool.filter((e) => e.featured).concat(pool.filter((e) => !e.featured)).slice(0, 4);
+      // Featured events lead, in the admin-set Home order (lower number = higher);
+      // unordered featured and the rest keep date order.
+      const homeOrd = (e) => { const n = Number(e.homeOrder); return Number.isFinite(n) ? n : 1e9; };
+      const featuredEv = pool.filter((e) => e.featured).sort((a, b) => homeOrd(a) - homeOrd(b));
+      const events = featuredEv.concat(pool.filter((e) => !e.featured)).slice(0, 4);
       const elist = document.getElementById('eventList');
       if (elist) elist.innerHTML = events.length
         ? events.map((e) => eventPreviewCard(e, 0)).join('')

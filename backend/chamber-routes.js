@@ -249,13 +249,17 @@ router.get('/me/posts', auth.requireAuth(), async (req, res) => {
 // Image upload (data URL) → stored in Postgres, served at /api/assets/:id.
 router.post('/me/asset', auth.requireAuth(), async (req, res) => {
   const b = req.body || {};
-  const m = /^data:(image\/(png|jpe?g|gif|webp));base64,([A-Za-z0-9+/=]+)$/.exec(b.dataUrl || '');
-  if (!m) return res.status(400).json({ error: 'Provide a PNG, JPG, GIF, or WebP image.' });
-  const buffer = Buffer.from(m[3], 'base64');
-  if (buffer.length > 2_500_000) return res.status(413).json({ error: 'Image too large (max ~2.5MB).' });
+  // Accept images (logos/photos/flyers/thumbnails) and PDFs (event documents).
+  const m = /^data:(image\/(?:png|jpe?g|gif|webp)|application\/pdf);base64,([A-Za-z0-9+/=]+)$/.exec(b.dataUrl || '');
+  if (!m) return res.status(400).json({ error: 'Provide a PNG, JPG, GIF, or WebP image, or a PDF.' });
+  const mime = m[1];
+  const buffer = Buffer.from(m[2], 'base64');
+  const limit = mime === 'application/pdf' ? 6_000_000 : 2_500_000;
+  if (buffer.length > limit) return res.status(413).json({ error: mime === 'application/pdf' ? 'PDF too large (max ~6MB).' : 'Image too large (max ~2.5MB).' });
+  const kind = mime === 'application/pdf' ? 'doc' : (b.kind === 'logo' ? 'logo' : 'photo');
   const id = 'asset-' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36);
   try {
-    await repo.addAsset({ id, memberId: req.user.mid || null, kind: b.kind === 'logo' ? 'logo' : 'photo', mime: m[1], buffer });
+    await repo.addAsset({ id, memberId: req.user.mid || null, kind, mime, buffer });
     res.json({ ok: true, id, url: '/api/assets/' + id });
   } catch (e) { console.error(e); res.status(500).json({ error: 'upload failed' }); }
 });
@@ -446,6 +450,26 @@ function buildEvent(b, existing = {}) {
     ticketCap: b.ticketCap ?? existing.ticketCap ?? null,
     rsvpCutoff: b.rsvpCutoff ?? existing.rsvpCutoff ?? null,
     featured: b.featured !== undefined ? !!b.featured : (existing.featured ?? false),
+    // Home-page placement order (lower = higher on the home page; among featured events).
+    homeOrder: b.homeOrder !== undefined ? (b.homeOrder === null || b.homeOrder === '' ? null : Number(b.homeOrder)) : (existing.homeOrder ?? null),
+    // Distinct images: a portrait flyer (detail) + a square thumbnail (cards). Fall back to images[].
+    flyer: b.flyer !== undefined ? clampUrl(b.flyer) : (existing.flyer ?? ''),
+    thumbnail: b.thumbnail !== undefined ? clampUrl(b.thumbnail) : (existing.thumbnail ?? ''),
+    homeBlurb: String(b.homeBlurb ?? existing.homeBlurb ?? '').slice(0, 400),
+    showOnCalendar: b.showOnCalendar !== undefined ? !!b.showOnCalendar : (existing.showOnCalendar ?? true),
+    // Up to 3 attached PDFs (forms: donation, sponsorship levels, …).
+    documents: Array.isArray(b.documents)
+      ? b.documents.slice(0, 3).map((dme) => ({ label: String(dme.label || 'Document').slice(0, 80), url: clampUrl(dme.url) })).filter((dme) => dme.url)
+      : (existing.documents || []),
+    // Ticket types for AGMS checkout: name / price / quantity / available.
+    ticketTypes: Array.isArray(b.ticketTypes)
+      ? b.ticketTypes.slice(0, 12).map((t) => ({
+          name: String(t.name || '').slice(0, 80),
+          price: Math.max(0, Number(t.price) || 0),
+          qty: (t.qty === null || t.qty === undefined || t.qty === '') ? null : Math.max(0, parseInt(t.qty, 10) || 0),
+          available: t.available !== false,
+        })).filter((t) => t.name)
+      : (existing.ticketTypes || []),
     status: ['approved', 'pending', 'draft'].includes(b.status) ? b.status : (existing.status || 'approved'),
     images, links,
     created: existing.created || new Date().toISOString(),

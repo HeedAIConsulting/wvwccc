@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="../css/chamber.css" />
-  <link rel="stylesheet" href="admin.css?v=20260618d" />
+  <link rel="stylesheet" href="admin.css?v=20260619a" />
 </head>
 <body class="admin">
   <div class="admin-shell">
@@ -45,12 +45,23 @@
               <div class="field"><label>RSVP / ticket cutoff <span class="sub">(optional)</span></label><input name="rsvpCutoff" type="date" /></div>
             </div>
 
-            <div style="display:flex;gap:24px;margin:10px 0;flex-wrap:wrap">
+            <div style="display:flex;gap:24px;margin:10px 0;flex-wrap:wrap;align-items:center">
               <label style="display:inline-flex;align-items:center;gap:10px;cursor:pointer"><span class="toggle"><input type="checkbox" name="ticketed"><span class="track"></span></span> Ticketed event</label>
               <label style="display:inline-flex;align-items:center;gap:10px;cursor:pointer"><span class="toggle"><input type="checkbox" name="featured"><span class="track"></span></span> Feature on homepage</label>
+              <label style="display:inline-flex;align-items:center;gap:10px;cursor:pointer"><span class="toggle"><input type="checkbox" name="showOnCalendar" checked><span class="track"></span></span> Show on calendar</label>
+              <span style="display:inline-flex;align-items:center;gap:6px"><label style="margin:0">Home order</label><input name="homeOrder" type="number" min="0" style="width:80px" title="Lower shows first among featured events" /></span>
             </div>
 
-            <div class="field"><label>Images <span class="sub">(up to 3 — for best results, upload a square image)</span></label><div id="evImages" style="margin-top:6px"></div></div>
+            <div class="field"><label>Home-page blurb <span class="sub">(optional — short text shown with this event on the home page)</span></label><textarea name="homeBlurb" rows="2" maxlength="400"></textarea></div>
+
+            <div class="grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+              <div class="field"><label>Main flyer <span class="sub">(portrait; shown on the event detail)</span></label><input type="file" id="evFlyerImg" accept="image/*" /><div id="evFlyerPrev" style="margin-top:6px"></div></div>
+              <div class="field"><label>Thumbnail <span class="sub">(square; shown on cards)</span></label><input type="file" id="evThumb" accept="image/*" /><div id="evThumbPrev" style="margin-top:6px"></div></div>
+            </div>
+
+            <div class="field"><label>Images <span class="sub">(up to 3 extra photos — square works best)</span></label><div id="evImages" style="margin-top:6px"></div></div>
+            <div class="field"><label>Attached PDFs <span class="sub">(up to 3 — e.g. donation form, sponsorship levels)</span></label><div id="evDocs" style="margin-top:6px"></div></div>
+            <div class="field"><label>Ticket types <span class="sub">(name, price, quantity — for the Buy Tickets checkout)</span></label><div id="evTickets" style="margin-top:6px"></div></div>
             <div class="field"><label>Links <span class="sub">(tickets, sponsors, registration, details)</span></label><div id="evLinks" style="margin-top:6px"></div></div>
 
             <p id="eventMsg" class="notice" hidden style="margin-top:10px"></p>
@@ -70,7 +81,7 @@
     </div>
   </div>
   <script src="../js/api-base.js"></script>
-  <script src="admin.js?v=20260618d"></script>
+  <script src="admin.js?v=20260619a"></script>
   <script>Admin.initEvents();</script>
 </body>
 </html>

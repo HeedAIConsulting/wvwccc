@@ -437,9 +437,65 @@ window.Admin = (function () {
     const rowsEl = document.getElementById('eventRows');
     const imgWrap = document.getElementById('evImages');
     const linkWrap = document.getElementById('evLinks');
+    const docWrap = document.getElementById('evDocs');
+    const tixWrap = document.getElementById('evTickets');
     let editingId = null;
     let images = [];
     let links = [];
+    let documents = [];
+    let ticketTypes = [];
+    let flyerUrl = '';
+    let thumbnail = '';
+
+    // Single-image uploader factory (flyer, thumbnail).
+    function bindSingleImage(inputId, prevId, set, get) {
+      const inp = document.getElementById(inputId);
+      const prev = document.getElementById(prevId);
+      const draw = () => { if (prev) prev.innerHTML = get() ? `<img src="${esc(get())}" alt="" style="max-width:140px;border-radius:8px"> <button type="button" data-clr class="btn btn--ghost btn--sm">remove</button>` : ''; if (prev) { const c = prev.querySelector('[data-clr]'); if (c) c.addEventListener('click', () => { set(''); draw(); }); } };
+      if (inp) inp.addEventListener('change', (e) => {
+        const f = e.target.files[0]; if (!f) return;
+        const r = new FileReader();
+        r.onload = async () => { try { const up = await api('/api/me/asset', { method: 'POST', body: JSON.stringify({ kind: 'photo', dataUrl: r.result }) }); set(up.url); draw(); } catch (err) { msg.hidden = false; msg.textContent = 'Image upload failed (PNG/JPG, ≤2.5MB).'; } };
+        r.readAsDataURL(f);
+      });
+      draw._draw = draw; return draw;
+    }
+    const drawFlyer = bindSingleImage('evFlyerImg', 'evFlyerPrev', (v) => { flyerUrl = v; }, () => flyerUrl);
+    const drawThumb = bindSingleImage('evThumb', 'evThumbPrev', (v) => { thumbnail = v; }, () => thumbnail);
+
+    function renderDocs() {
+      docWrap.innerHTML = documents.map((dme, i) => `<div style="display:flex;gap:6px;margin-bottom:6px;align-items:center;flex-wrap:wrap">
+        <a href="${esc(dme.url)}" target="_blank" rel="noopener">📄</a>
+        <input data-dlbl="${i}" placeholder="Label (e.g. Sponsorship levels)" value="${esc(dme.label || '')}" style="flex:1;min-width:160px">
+        <button type="button" data-rmdoc="${i}" class="btn btn--ghost btn--sm">×</button>
+      </div>`).join('') + (documents.length < 3
+        ? `<label class="btn btn--ghost btn--sm" style="cursor:pointer">+ PDF<input type="file" accept="application/pdf,.pdf" hidden id="evDocInput"></label>`
+        : '<span class="sub">Max 3 PDFs.</span>');
+      const inp = document.getElementById('evDocInput');
+      if (inp) inp.addEventListener('change', (e) => {
+        const f = e.target.files[0]; if (!f) return;
+        const r = new FileReader();
+        r.onload = async () => { try { const up = await api('/api/me/asset', { method: 'POST', body: JSON.stringify({ dataUrl: r.result }) }); documents.push({ label: (f.name || 'Document').replace(/\.pdf$/i, ''), url: up.url }); renderDocs(); } catch (err) { msg.hidden = false; msg.textContent = 'PDF upload failed (max ~6MB).'; } };
+        r.readAsDataURL(f);
+      });
+      docWrap.querySelectorAll('[data-dlbl]').forEach((el) => el.addEventListener('input', () => { documents[+el.dataset.dlbl].label = el.value; }));
+      docWrap.querySelectorAll('[data-rmdoc]').forEach((b) => b.addEventListener('click', () => { documents.splice(+b.dataset.rmdoc, 1); renderDocs(); }));
+    }
+    function renderTickets() {
+      tixWrap.innerHTML = ticketTypes.map((t, i) => `<div style="display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap;align-items:center">
+        <input data-tk="${i}" data-f="name" placeholder="Ticket name (e.g. General)" value="${esc(t.name || '')}" style="flex:2;min-width:140px">
+        <input data-tk="${i}" data-f="price" type="number" min="0" step="0.01" placeholder="Price" value="${t.price != null ? esc(t.price) : ''}" style="width:90px">
+        <input data-tk="${i}" data-f="qty" type="number" min="0" placeholder="Qty" value="${t.qty != null ? esc(t.qty) : ''}" style="width:70px" title="Leave blank for unlimited">
+        <label style="display:inline-flex;align-items:center;gap:4px;font-size:.85rem"><input data-tk="${i}" data-f="available" type="checkbox" ${t.available !== false ? 'checked' : ''}> available</label>
+        <button type="button" data-rmtk="${i}" class="btn btn--ghost btn--sm">×</button>
+      </div>`).join('') + `<button type="button" id="evAddTix" class="btn btn--ghost btn--sm">+ Ticket type</button>`;
+      tixWrap.querySelector('#evAddTix').addEventListener('click', () => { ticketTypes.push({ name: '', price: 0, qty: null, available: true }); renderTickets(); });
+      tixWrap.querySelectorAll('[data-tk]').forEach((el) => el.addEventListener('input', () => {
+        const t = ticketTypes[+el.dataset.tk]; const f = el.dataset.f;
+        t[f] = f === 'available' ? el.checked : (f === 'price' ? el.value : (f === 'qty' ? (el.value === '' ? null : el.value) : el.value));
+      }));
+      tixWrap.querySelectorAll('[data-rmtk]').forEach((b) => b.addEventListener('click', () => { ticketTypes.splice(+b.dataset.rmtk, 1); renderTickets(); }));
+    }
 
     function renderImages() {
       imgWrap.innerHTML = images.map((u, i) => `<span style="position:relative;display:inline-block;margin:0 8px 8px 0">
@@ -484,9 +540,16 @@ window.Admin = (function () {
       form.ticketCap.value = ev && ev.ticketCap != null ? ev.ticketCap : '';
       form.rsvpCutoff.value = v('rsvpCutoff'); form.status.value = v('status', 'approved');
       form.ticketed.checked = !!(ev && ev.ticketed); form.featured.checked = !!(ev && ev.featured);
+      form.showOnCalendar.checked = ev ? (ev.showOnCalendar !== false) : true;
+      form.homeOrder.value = ev && ev.homeOrder != null ? ev.homeOrder : '';
+      form.homeBlurb.value = v('homeBlurb');
+      flyerUrl = ev && ev.flyer ? ev.flyer : '';
+      thumbnail = ev && ev.thumbnail ? ev.thumbnail : '';
       images = ev && ev.images ? ev.images.slice() : [];
       links = ev && ev.links ? ev.links.map((l) => ({ ...l })) : [];
-      renderImages(); renderLinks();
+      documents = ev && ev.documents ? ev.documents.map((d) => ({ ...d })) : [];
+      ticketTypes = ev && ev.ticketTypes ? ev.ticketTypes.map((t) => ({ ...t })) : [];
+      renderImages(); renderLinks(); renderDocs(); renderTickets(); drawFlyer(); drawThumb();
       document.getElementById('evFormTitle').textContent = editingId ? 'Edit event' : 'New event';
       document.getElementById('evCancel').hidden = !editingId;
       msg.hidden = true;
@@ -518,6 +581,12 @@ window.Admin = (function () {
         summary: form.summary.value.trim(), description: form.description.value.trim(),
         ticketed: form.ticketed.checked, ticketCap: form.ticketCap.value ? Number(form.ticketCap.value) : null,
         rsvpCutoff: form.rsvpCutoff.value || null, featured: form.featured.checked, status: form.status.value,
+        showOnCalendar: form.showOnCalendar.checked,
+        homeOrder: form.homeOrder.value === '' ? null : Number(form.homeOrder.value),
+        homeBlurb: form.homeBlurb.value.trim(),
+        flyer: flyerUrl, thumbnail,
+        documents: documents.filter((d) => d.url),
+        ticketTypes: ticketTypes.filter((t) => (t.name || '').trim()),
         images, links: links.filter((l) => l.url),
       };
       if (!body.title) { msg.hidden = false; msg.textContent = 'Title is required.'; return; }
