@@ -132,9 +132,20 @@ function rawMembers() {
 // Merge precedence: base directory  <  member self-edits  <  admin overrides.
 async function loadMembersFull() {
   const { source, members } = rawMembers();
-  const [edits, overrides, added] = await Promise.all([repo.getMemberEdits(), repo.getOverrides(), repo.listAddedMembers()]);
+  const [edits, overrides, added, userList] = await Promise.all([
+    repo.getMemberEdits(), repo.getOverrides(), repo.listAddedMembers(),
+    users.listUsers().catch(() => []),
+  ]);
+  // The directory roster doesn't carry the login email (it lives in the auth/users
+  // store). Map it back by member id so admin views can show + act on each login.
+  const emailByMember = {};
+  for (const u of (userList || [])) if (u.memberId && u.email && !emailByMember[u.memberId]) emailByMember[u.memberId] = u.email;
   const base = members.concat(added || []);
-  return { source, members: base.map((m) => ({ ...m, ...(edits[m.id] || {}), ...(overrides[m.id] || {}) })) };
+  return { source, members: base.map((m) => {
+    const merged = { ...m, ...(edits[m.id] || {}), ...(overrides[m.id] || {}) };
+    if (!merged.email) merged.email = emailByMember[m.id] || '';
+    return merged;
+  }) };
 }
 const slugify = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60);
 

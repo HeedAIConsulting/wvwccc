@@ -107,20 +107,21 @@ window.Admin = (function () {
     try {
       const s = await api('/api/admin/summary');
       const cards = [
-        { num: s.members, lbl: 'Members', },
-        { num: s.pendingMembers, lbl: 'Pending approval', accent: s.pendingMembers > 0 },
-        { num: s.leaders, lbl: 'Leaders / Board' },
-        { num: s.newLeads, lbl: 'New inquiries', accent: s.newLeads > 0 },
-        { num: s.pendingPosts, lbl: 'Pending content', accent: s.pendingPosts > 0 },
-        { num: s.orders, lbl: 'Payments logged' },
-        { num: '$' + (s.revenue || 0).toLocaleString(), lbl: 'Revenue processed' },
+        { num: s.members, lbl: 'Members', href: 'members.html' },
+        { num: s.pendingMembers, lbl: 'Pending approval', accent: s.pendingMembers > 0, href: 'approvals.html' },
+        { num: s.leaders, lbl: 'Leaders / Board', href: 'members.html' },
+        { num: s.newLeads, lbl: 'New inquiries', accent: s.newLeads > 0, href: 'leads.html' },
+        { num: s.pendingPosts, lbl: 'Pending content', accent: s.pendingPosts > 0, href: 'content.html' },
+        { num: s.orders, lbl: 'Payments logged', href: 'payments.html' },
+        { num: '$' + (s.revenue || 0).toLocaleString(), lbl: 'Revenue processed', href: 'payments.html' },
       ];
+      // Every stat card is a shortcut to its section (Chamber feedback: make the dashboard clickable).
       document.getElementById('statRow').innerHTML = cards.map((c) =>
-        `<div class="stat-card ${c.accent ? 'accent' : ''}"><div class="num">${esc(c.num)}</div><div class="lbl">${esc(c.lbl)}</div></div>`).join('');
+        `<a class="stat-card${c.accent ? ' accent' : ''}" href="${c.href}" style="text-decoration:none;color:inherit;cursor:pointer"><div class="num">${esc(c.num)}</div><div class="lbl">${esc(c.lbl)} →</div></a>`).join('');
       // (Roster is the imported live membership; no import-needed notice.)
       const leads = (await api('/api/admin/leads')).leads.slice(0, 5);
       document.getElementById('recentLeads').innerHTML = leads.length
-        ? leads.map((l) => `<tr><td><span class="name">${esc(l.name || '—')}</span><div class="sub">${esc(l.email)}</div></td><td>${esc(l.reason || l.kind)}</td><td>${statusPill(l.status)}</td></tr>`).join('')
+        ? leads.map((l) => `<tr><td><a class="name" href="leads.html" title="Open inquiries">${esc(l.name || '—')}</a><div class="sub">${esc(l.email)}</div></td><td>${esc(l.reason || l.kind)}</td><td>${statusPill(l.status)}</td></tr>`).join('')
         : '<tr><td colspan="3" class="sub">No inquiries yet.</td></tr>';
     } catch (e) { showAuthError(e); }
 
@@ -637,10 +638,49 @@ window.Admin = (function () {
     const TYPES = ['news', 'announcement', 'discount', 'member_post', 'event'];
     const form = document.getElementById('postForm');
     const msg = document.getElementById('postMsg');
+    const postById = {};
+
+    // Click a content title to open it for review/edit.
+    function openPostEditor(p) {
+      if (!p) return;
+      const ov = document.createElement('div');
+      ov.style.cssText = 'position:fixed;inset:0;background:rgba(14,42,22,.5);z-index:600;display:flex;align-items:flex-start;justify-content:center;padding:5vh 16px;overflow-y:auto';
+      ov.innerHTML = `
+        <form class="panel" style="max-width:620px;width:100%;padding:var(--s-6);margin:0" role="dialog" aria-modal="true">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--s-4)">
+            <h3 style="margin:0">Edit content <span class="sub">(${esc(p.type)})</span></h3>
+            <button type="button" data-x style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--muted)">×</button>
+          </div>
+          ${p.imageUrl ? `<img src="${esc(p.imageUrl)}" alt="" style="max-width:100%;max-height:200px;border-radius:8px;margin-bottom:12px">` : ''}
+          <div class="field"><label>Title</label><input name="title" value="${esc(p.title || '')}" /></div>
+          <div class="field"><label>Body</label><textarea name="body" rows="5">${esc(p.body || '')}</textarea></div>
+          <div class="field"><label>Link (optional)</label><input name="linkUrl" type="url" value="${esc(p.linkUrl || '')}" placeholder="https://" /></div>
+          <label style="display:flex;gap:8px;align-items:center;margin:6px 0"><input type="checkbox" name="featuredHome" ${p.featuredHome ? 'checked' : ''}> Feature on the home page</label>
+          <p data-msg class="sub" style="margin:8px 0 0" hidden></p>
+          <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:var(--s-4)">
+            <button type="button" data-x class="btn btn--ghost btn--sm">Cancel</button>
+            <button type="submit" class="btn btn--forest btn--sm">Save</button>
+          </div>
+        </form>`;
+      const close = () => ov.remove();
+      ov.addEventListener('click', (e) => { if (e.target === ov || e.target.closest('[data-x]')) close(); });
+      ov.querySelector('form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const fd = new FormData(e.target);
+        const btn = e.target.querySelector('[type="submit"]'); btn.disabled = true; btn.textContent = 'Saving…';
+        try {
+          await api('/api/admin/posts/' + encodeURIComponent(p.id), { method: 'PATCH', body: JSON.stringify({ title: fd.get('title'), body: fd.get('body'), linkUrl: fd.get('linkUrl'), featuredHome: fd.get('featuredHome') === 'on' }) });
+          close(); load();
+        } catch (err) { const m = ov.querySelector('[data-msg]'); m.hidden = false; m.textContent = 'Save failed — try again.'; btn.disabled = false; btn.textContent = 'Save'; }
+      });
+      document.body.appendChild(ov);
+      ov.querySelector('input[name="title"]').focus();
+    }
 
     async function load() {
       try {
         const { posts } = await api('/api/admin/posts');
+        posts.forEach((p) => { postById[p.id] = p; });
         const pending = posts.filter((p) => p.status === 'pending');
         const live = posts.filter((p) => p.status !== 'pending');
         document.getElementById('pendingWrap').innerHTML = pending.length
@@ -655,7 +695,7 @@ window.Admin = (function () {
     function rowFor(p, isPending) {
       const id = esc(p.id);
       return `<tr data-id="${id}">
-        <td><span class="name">${esc(p.title)}</span><div class="sub">${esc(p.authorName || '')}</div></td>
+        <td><button type="button" class="name" data-editpost title="Open / edit" style="background:none;border:none;padding:0;font:inherit;font-weight:600;color:var(--green-deep);cursor:pointer;text-align:left">${esc(p.title)}</button><div class="sub">${esc(p.authorName || '')}</div></td>
         <td>${esc(p.type)}</td>
         <td>${statusPill(p.status)}${p.featuredHome ? ' <span class="pill pill--approved">home</span>' : ''}</td>
         <td>
@@ -671,6 +711,7 @@ window.Admin = (function () {
         tr.querySelector('[data-reject]')?.addEventListener('click', () => patch({ status: 'rejected' }));
         tr.querySelector('[data-feature]')?.addEventListener('click', () => patch({ featuredHome: !tr.querySelector('.pill--approved') }));
         tr.querySelector('[data-del]')?.addEventListener('click', async () => { await api('/api/admin/posts/' + encodeURIComponent(id), { method: 'DELETE' }); load(); });
+        tr.querySelector('[data-editpost]')?.addEventListener('click', () => openPostEditor(postById[id]));
       });
     }
     // image upload (event photos for slider, or any post image)

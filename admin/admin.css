@@ -50,6 +50,11 @@ body.admin { background: var(--cream-deep); }
 .admin-table tr:hover td { background: var(--cream); }
 .admin-table .name { font-weight: 600; color: var(--green-deep); }
 .admin-table .sub { font-size: .8rem; color: var(--muted); }
+/* Clickable names/cards across admin lists (Chamber feedback: make everything clickable). */
+a.name { text-decoration: none; cursor: pointer; }
+a.name:hover { text-decoration: underline; }
+a.stat-card { display: block; transition: box-shadow .15s ease, transform .15s ease, border-color .15s ease; }
+a.stat-card:hover { box-shadow: var(--sh-md, 0 8px 24px rgba(0,0,0,.10)); transform: translateY(-1px); border-color: var(--gold-soft, #e6dcbf); }
 
 /* ── Status radios (Diana's requirement) ── */
 .radio-group { display: inline-flex; flex-wrap: wrap; gap: 4px; }
