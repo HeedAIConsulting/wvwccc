@@ -868,6 +868,8 @@ window.Chamber = (function () {
     ].filter(Boolean).join('');
     // Member video (YouTube/Vimeo URL → responsive embed; else native <video>).
     const video = m.video ? videoEmbed(m.video) : '';
+    const richSection = (title, text) => (text && String(text).trim())
+      ? `<div class="mt-5"><h3>${esc(title)}</h3><p style="white-space:pre-wrap;line-height:1.7">${esc(text)}</p></div>` : '';
 
     el.innerHTML = `
       <div class="grid" style="grid-template-columns:300px 1fr;gap:var(--s-7);align-items:start">
@@ -884,6 +886,9 @@ window.Chamber = (function () {
           <h1>${esc(m.name)}</h1>
           <p class="lead">${esc(m.tagline || '')}</p>
           ${m.description ? `<p>${esc(m.description)}</p>` : ''}
+          ${richSection('Services', m.services)}
+          ${richSection('Accomplishments', m.accomplishments)}
+          ${richSection('Associations', m.associations)}
           ${facts ? `<ul class="grid grid-3 mt-5" style="list-style:none;gap:var(--s-4)">${facts}</ul>` : ''}
           ${video}
           ${photos}

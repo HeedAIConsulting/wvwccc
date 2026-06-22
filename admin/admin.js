@@ -57,6 +57,7 @@ window.Admin = (function () {
     { href: 'slides.html', icon: '▭', label: 'Hero Slider', key: 'slides' },
     { href: 'sponsorships.html', icon: '★', label: 'Sponsorships', key: 'sponsorships' },
     { href: 'ai-assistant.html', icon: '✦', label: 'AI Assistant', key: 'assistant' },
+    { href: 'ai-assistant.html?tpl=1', icon: '❏', label: 'Email Templates', key: 'templates' },
     { href: 'users.html', icon: '⚷', label: 'Users & Roles', key: 'users' },
     { grp: 'Revenue & contact' },
     { href: 'payments.html', icon: '$', label: 'Pay Log', key: 'payments' },
@@ -323,6 +324,16 @@ window.Admin = (function () {
               <label>${lbl}</label><input name="${k}" value="${esc(m[k] || '')}" /></div>`).join('')}
             <div class="field" style="grid-column:1/-1;margin:0"><label>Description</label>
               <textarea name="description" rows="4">${esc(m.description || '')}</textarea></div>
+            <div class="field" style="grid-column:1/-1;margin:0"><label>Services <span class="sub">(what this business offers)</span></label>
+              <textarea name="services" rows="3">${esc(m.services || '')}</textarea></div>
+            <div class="field" style="grid-column:1/-1;margin:0"><label>Accomplishments <span class="sub">(awards, recognition, milestones)</span></label>
+              <textarea name="accomplishments" rows="3">${esc(m.accomplishments || '')}</textarea></div>
+            <div class="field" style="grid-column:1/-1;margin:0"><label>Associations <span class="sub">(affiliations &amp; memberships)</span></label>
+              <textarea name="associations" rows="3">${esc(m.associations || '')}</textarea></div>
+            <div class="field" style="grid-column:1/-1;margin:0"><label>Social media links</label>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                ${['facebook', 'instagram', 'linkedin', 'x', 'youtube', 'tiktok'].map((k) => `<input name="soc_${k}" placeholder="${k === 'x' ? 'X (Twitter)' : k.charAt(0).toUpperCase() + k.slice(1)} URL" value="${esc((m.social && m.social[k]) || '')}" />`).join('')}
+              </div></div>
           </div>
           <p data-msg class="sub" style="margin:10px 0 0" hidden></p>
           <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:var(--s-4)">
@@ -335,7 +346,11 @@ window.Admin = (function () {
       ov.querySelector('form').addEventListener('submit', async (e) => {
         e.preventDefault();
         const fd = new FormData(e.target);
-        const body = Object.fromEntries([...fd.entries()].filter(([, v]) => true));
+        const body = Object.fromEntries([...fd.entries()]);
+        // Collect the soc_* inputs into a single social object.
+        const social = {};
+        ['facebook', 'instagram', 'linkedin', 'x', 'youtube', 'tiktok'].forEach((k) => { if (body['soc_' + k]) social[k] = body['soc_' + k].trim(); delete body['soc_' + k]; });
+        body.social = social;
         const btn = e.target.querySelector('[type="submit"]'); btn.disabled = true; btn.textContent = 'Saving…';
         try {
           await api(`/api/admin/members/${encodeURIComponent(m.id)}/profile`, { method: 'PATCH', body: JSON.stringify(body) });
@@ -1068,6 +1083,11 @@ window.Admin = (function () {
     document.addEventListener('click', (e) => { if (histPop && !histPop.hidden && !e.target.closest('.chat-menu')) histPop.hidden = true; });
 
     initTemplates({ insertToChat: (text) => { input.value = text; input.focus(); input.dispatchEvent(new Event('input')); } });
+
+    // Deep link from the "Email Templates" nav item → open the templates modal.
+    if (new URLSearchParams(location.search).get('tpl')) {
+      const t = document.getElementById('tplOpen'); if (t) t.click();
+    }
   }
 
   // ── Message-template library + AI redraft ──
