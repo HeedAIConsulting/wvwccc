@@ -33,12 +33,26 @@
               <div class="field" style="grid-column:1/-1;margin:0"><label>Description</label><textarea name="description" rows="4"></textarea></div>
               <div class="field" style="grid-column:1/-1;margin:0"><label>Meeting notes <span class="sub">(shown on the group page — agendas, recaps, announcements)</span></label><textarea name="meetingNotes" rows="5"></textarea></div>
             </div>
+
+            <div style="margin-top:16px;border-top:1px solid var(--line,#eee);padding-top:14px">
+              <h4 style="margin:0 0 8px">Group / Network manager <span class="sub">(receives this group's join requests &amp; meeting RSVPs)</span></h4>
+              <div class="field" style="position:relative;margin:0 0 10px">
+                <label>Find a member to set as manager <span class="sub">(optional — fills name &amp; email)</span></label>
+                <input id="grpMgrSearch" autocomplete="off" placeholder="Search the directory…" />
+                <div id="grpMgrSuggest" class="sp-suggest" hidden></div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                <div class="field" style="margin:0"><label>Manager name</label><input id="grpMgrName" maxlength="160" placeholder="Jane Doe" /></div>
+                <div class="field" style="margin:0"><label>Manager email</label><input id="grpMgrEmail" type="email" maxlength="160" placeholder="jane@example.com" /></div>
+              </div>
+            </div>
             <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-top:12px">
               <label class="btn btn--gold btn--sm" style="cursor:pointer">Upload hero photo<input type="file" accept="image/*" hidden id="grpHero"></label>
               <span id="grpHeroPrev" class="sub"></span>
               <label class="btn btn--ghost btn--sm" style="cursor:pointer">Add photos<input type="file" accept="image/*" multiple hidden id="grpPhotos"></label>
               <span id="grpPhotosPrev" class="sub"></span>
             </div>
+            <div id="grpPhotoList" style="margin-top:10px;display:flex;flex-direction:column;gap:8px"></div>
 
             <div style="margin-top:18px;border-top:1px solid var(--line,#eee);padding-top:14px">
               <h4 style="margin:0 0 8px">Members <span class="sub" id="grpMemberCount"></span></h4>
@@ -81,7 +95,7 @@
     </div>
   </div>
   <script src="../js/api-base.js"></script>
-  <script src="admin.js?v=20260622b"></script>
+  <script src="admin.js?v=20260622c"></script>
   <script>Admin.initGroups();</script>
 </body>
 </html>

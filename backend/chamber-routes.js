@@ -545,12 +545,26 @@ function normalizeGroupMembers(list) {
   })).filter((m) => m.name);
 }
 
-// Strip a group to what's safe for the public site: only ACTIVE members, and
-// never their email / pending requests / internal notes.
+// The person who runs a group — receives its join requests & meeting RSVPs.
+function normalizeGroupManager(m) {
+  m = m || {};
+  return { name: String(m.name || '').slice(0, 160), email: String(m.email || '').slice(0, 160), memberId: m.memberId ? String(m.memberId).slice(0, 48) : null };
+}
+// Group photos may carry an optional date + associated event for captions.
+function normalizeGroupPhotos(list) {
+  if (!Array.isArray(list)) return [];
+  return list.slice(0, 24).map((p) => {
+    const o = (typeof p === 'string') ? { url: p } : (p || {});
+    return { url: clampUrl(o.url || ''), date: String(o.date || '').slice(0, 10), event: String(o.event || '').slice(0, 160) };
+  }).filter((p) => p.url);
+}
+
+// Strip a group to what's safe for the public site: only ACTIVE members, the
+// manager's NAME (never email), and never pending requests / internal notes.
 function publicGroup(g) {
   const members = (g.members || []).filter((m) => m.status === 'active')
     .map((m) => ({ memberId: m.memberId || null, name: m.name, business: m.business || '', role: m.role || 'Member' }));
-  return { ...g, members, memberCount: members.length };
+  return { ...g, members, memberCount: members.length, manager: { name: (g.manager && g.manager.name) || '' } };
 }
 
 function buildGroup(b, existing = {}) {
@@ -562,7 +576,8 @@ function buildGroup(b, existing = {}) {
     tagline: String(b.tagline ?? existing.tagline ?? '').slice(0, 200),
     description: String(b.description ?? existing.description ?? '').slice(0, 8000),
     heroImage: clampUrl(b.heroImage ?? existing.heroImage ?? ''),
-    photos: Array.isArray(b.photos) ? b.photos.slice(0, 12).map(clampUrl).filter(Boolean) : (existing.photos || []),
+    photos: normalizeGroupPhotos(b.photos ?? existing.photos),
+    manager: normalizeGroupManager(b.manager ?? existing.manager),
     meetingSchedule: String(b.meetingSchedule ?? existing.meetingSchedule ?? '').slice(0, 200),
     meetingNotes: String(b.meetingNotes ?? existing.meetingNotes ?? '').slice(0, 12000),
     contactEmail: String(b.contactEmail ?? existing.contactEmail ?? '').slice(0, 160),
@@ -605,23 +620,28 @@ router.post('/groups/:slug/join', async (req, res) => {
   try {
     const b = req.body || {};
     const name = String(b.name || '').trim().slice(0, 160);
-    const email = String(b.email || '').trim().slice(0, 160);
-    if (!name || !email) return res.status(400).json({ error: 'Name and email are required.' });
+    const reqEmail = String(b.email || '').trim().slice(0, 160);
+    const business = String(b.business || b.company || '').slice(0, 160);
+    if (!name || !reqEmail) return res.status(400).json({ error: 'Name and email are required.' });
     const g = (await loadGroups()).find((x) => x.slug === req.params.slug || x.id === req.params.slug);
     if (!g || g.status !== 'approved') return res.status(404).json({ error: 'not found' });
     g.members = Array.isArray(g.members) ? g.members : [];
-    const dupe = g.members.some((m) => m.email && m.email.toLowerCase() === email.toLowerCase()
+    const dupe = g.members.some((m) => m.email && m.email.toLowerCase() === reqEmail.toLowerCase()
       && (m.status === 'pending' || m.status === 'active'));
     if (!dupe) {
       g.members.push({
         id: 'gm-' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36),
-        memberId: null, name, business: String(b.business || b.company || '').slice(0, 160), email,
+        memberId: null, name, business, email: reqEmail,
         role: 'Member', status: 'pending', source: 'request',
         message: String(b.message || '').slice(0, 500), added: new Date().toISOString(),
       });
       await repo.upsertGroup(g);
-      // Also log a lead so the request surfaces in Inquiries as a backstop.
-      try { await repo.addLead({ id: 'lead-' + Date.now().toString(36), kind: 'group-join', name, email, company: b.business || b.company || '', reason: `Join request: ${g.name}`, message: b.message || '', status: 'new' }); } catch (e) {}
+      // Notify the group manager (falls back to the Chamber office), and log a
+      // lead so the request also surfaces in Inquiries as a backstop.
+      const to = (g.manager && g.manager.email) || email.notifyTo();
+      email.send({ to, replyTo: reqEmail, subject: `New join request: ${g.name}`,
+        text: `${name} <${reqEmail}>${business ? ` — ${business}` : ''} requested to join ${g.name}.\n\n${b.message || ''}\n\nApprove or decline in the admin → Groups & Networks.` }).catch(() => {});
+      try { await repo.addLead({ id: 'lead-' + Date.now().toString(36), kind: 'group-join', name, email: reqEmail, company: business, reason: `Join request: ${g.name}`, message: b.message || '', status: 'new' }); } catch (e) {}
     }
     res.json({ ok: true });
   } catch (e) { console.error('group join', e); res.status(500).json({ error: 'Could not submit your request.' }); }
@@ -872,17 +892,26 @@ router.post('/contact', async (req, res) => {
     reason: b.reason || b.kind || '', event: b.event || '', message: b.message || '',
     status: 'new', received: new Date().toISOString(),
   };
+  // If the inquiry came from a group page (e.g. a meeting RSVP), route the
+  // notification to that group's manager instead of the general office.
+  let notifyTo = email.notifyTo(), groupName = '';
+  if (b.group) {
+    try {
+      const g = (await loadGroups()).find((x) => x.slug === b.group || x.id === b.group);
+      if (g) { groupName = g.name; if (g.manager && g.manager.email) notifyTo = g.manager.email; lead.reason = lead.reason || `Group: ${g.name}`; }
+    } catch (e) {}
+  }
   try {
     await repo.addLead(lead);
     res.json({ ok: true });
-    // Notify the Chamber office (Wendy's mailbox) — best-effort, after responding.
+    // Notify the manager (group) or the Chamber office — best-effort, after responding.
     const body = `New ${lead.reason || lead.kind} from the website\n\n`
       + `Name: ${lead.name || '—'}\nEmail: ${lead.email}\nPhone: ${lead.phone || '—'}\n`
-      + `Company: ${lead.company || '—'}\nEvent: ${lead.event || '—'}\n\nMessage:\n${lead.message || '—'}\n`;
+      + `Company: ${lead.company || '—'}\nEvent: ${lead.event || '—'}${groupName ? `\nGroup: ${groupName}` : ''}\n\nMessage:\n${lead.message || '—'}\n`;
     email.send({
-      to: email.notifyTo(),
+      to: notifyTo,
       replyTo: lead.email,
-      subject: `Website inquiry: ${lead.reason || lead.kind}${lead.company ? ' — ' + lead.company : ''}`,
+      subject: `${groupName ? `[${groupName}] ` : ''}Website inquiry: ${lead.reason || lead.kind}${lead.company ? ' — ' + lead.company : ''}`,
       text: body,
     }).catch((e) => console.error('notify email failed', e));
   } catch (e) { console.error('lead save failed', e); res.status(500).json({ ok: false, error: 'could not send' }); }

@@ -1257,12 +1257,30 @@ window.Admin = (function () {
     });
     document.getElementById('grpPhotos').addEventListener('change', async (e) => {
       note('Uploading photos…');
-      for (const f of [...e.target.files].slice(0, 12 - photos.length)) {
-        try { photos.push(await upload(f)); } catch (err) {}
+      for (const f of [...e.target.files].slice(0, 24 - photos.length)) {
+        try { photos.push({ url: await upload(f), date: '', event: '' }); } catch (err) {}
       }
-      document.getElementById('grpPhotosPrev').textContent = `✓ ${photos.length} photo${photos.length === 1 ? '' : 's'}`;
-      note('Photos uploaded — remember to Save.', true);
+      renderPhotos();
+      note('Photos uploaded — add a date/event if you like, then Save.', true);
     });
+    function renderPhotos() {
+      const wrap = document.getElementById('grpPhotoList');
+      const prev = document.getElementById('grpPhotosPrev');
+      if (prev) prev.textContent = photos.length ? `${photos.length} photo${photos.length === 1 ? '' : 's'}` : '';
+      if (!wrap) return;
+      wrap.innerHTML = photos.map((p, i) => `<div data-pi="${i}" style="display:flex;gap:10px;align-items:center;border:1px solid var(--line,#eee);border-radius:10px;padding:8px">
+        <img src="${esc(p.url)}" alt="" style="width:64px;height:48px;object-fit:cover;border-radius:6px;flex-shrink:0">
+        <div class="field" style="margin:0;flex:0 0 150px"><label class="sub">Date</label><input type="date" data-pdate value="${esc(p.date || '')}" class="admin-select" style="width:100%"></div>
+        <div class="field" style="margin:0;flex:1"><label class="sub">Event / caption</label><input data-pevent maxlength="160" value="${esc(p.event || '')}" placeholder="e.g. June Mixer at the Country Club"></div>
+        <button type="button" class="btn btn--ghost btn--sm" data-premove style="color:var(--red)">Remove</button>
+      </div>`).join('');
+      wrap.querySelectorAll('[data-pi]').forEach((row) => {
+        const i = +row.dataset.pi;
+        row.querySelector('[data-pdate]')?.addEventListener('change', (e) => { photos[i].date = e.target.value; });
+        row.querySelector('[data-pevent]')?.addEventListener('input', (e) => { photos[i].event = e.target.value; });
+        row.querySelector('[data-premove]')?.addEventListener('click', () => { photos.splice(i, 1); renderPhotos(); });
+      });
+    }
 
     // ── Members roster: existing directory members + manual entries + pending approvals ──
     let members = [];
@@ -1333,6 +1351,28 @@ window.Admin = (function () {
       nm.value = ''; document.getElementById('grpManualBiz').value = ''; document.getElementById('grpManualEmail').value = '';
     });
 
+    // ── Group manager picker (optional autofill from the directory) ──
+    let managerMemberId = null;
+    const mgrSearch = document.getElementById('grpMgrSearch');
+    const mgrSugg = document.getElementById('grpMgrSuggest');
+    if (mgrSearch && mgrSugg) {
+      mgrSearch.addEventListener('input', async () => {
+        const q = mgrSearch.value.trim().toLowerCase();
+        if (q.length < 2) { mgrSugg.hidden = true; return; }
+        const list = (await directory()).filter((m) => [m.name, m.category, m.contactName, m.neighborhood].filter(Boolean).join(' ').toLowerCase().includes(q)).slice(0, 8);
+        mgrSugg.innerHTML = list.length ? list.map((m) => `<button type="button" data-mgr="${esc(m.id)}"><b>${esc(m.contactName || m.name)}</b><span>${esc(m.name)}${m.email ? ' · ' + esc(m.email) : ''}</span></button>`).join('') : '<button type="button" disabled><span>No matches</span></button>';
+        mgrSugg.hidden = false;
+        mgrSugg.querySelectorAll('[data-mgr]').forEach((b) => b.addEventListener('click', () => {
+          const m = (_dir || []).find((x) => x.id === b.dataset.mgr); if (!m) return;
+          managerMemberId = m.id;
+          document.getElementById('grpMgrName').value = m.contactName || m.name || '';
+          document.getElementById('grpMgrEmail').value = m.email || '';
+          mgrSearch.value = ''; mgrSugg.hidden = true;
+        }));
+      });
+      document.addEventListener('click', (e) => { if (!e.target.closest('#grpMgrSearch,#grpMgrSuggest')) mgrSugg.hidden = true; });
+    }
+
     const fill = (g) => {
       title.textContent = g ? `Edit — ${g.name}` : 'New group';
       form.id_ = g ? g.id : '';
@@ -1340,11 +1380,14 @@ window.Admin = (function () {
       ['name', 'tagline', 'meetingSchedule', 'contactEmail', 'eventMatch', 'status', 'description', 'meetingNotes']
         .forEach((k) => { const el = form.querySelector(`[name="${k}"]`); if (el) el.value = g ? (g[k] || '') : (k === 'status' ? 'approved' : ''); });
       heroUrl = g ? (g.heroImage || '') : '';
-      photos = g ? (g.photos || []).slice() : [];
+      photos = g ? (g.photos || []).map((p) => (typeof p === 'string') ? { url: p, date: '', event: '' } : { url: p.url, date: p.date || '', event: p.event || '' }) : [];
       members = g ? (g.members || []).slice() : [];
+      managerMemberId = g && g.manager ? (g.manager.memberId || null) : null;
+      document.getElementById('grpMgrName').value = g && g.manager ? (g.manager.name || '') : '';
+      document.getElementById('grpMgrEmail').value = g && g.manager ? (g.manager.email || '') : '';
       renderRoster();
+      renderPhotos();
       document.getElementById('grpHeroPrev').textContent = heroUrl ? '✓ hero set' : '';
-      document.getElementById('grpPhotosPrev').textContent = photos.length ? `✓ ${photos.length} photos` : '';
       window.scrollTo({ top: 0 });
     };
     document.getElementById('grpReset').addEventListener('click', () => fill(null));
@@ -1354,7 +1397,7 @@ window.Admin = (function () {
         const { groups } = await api('/api/admin/groups');
         tbody.innerHTML = groups.length ? groups.map((g) => `
           <tr data-id="${esc(g.id)}">
-            <td><span class="name">${esc(g.name)}</span><div class="sub">/groups/${esc(g.slug)}</div></td>
+            <td><a class="name" href="#" data-open>${esc(g.name)}</a><div class="sub">/groups/${esc(g.slug)}</div></td>
             <td class="sub">${esc(g.meetingSchedule || '—')}</td>
             <td>${g.status === 'approved' ? '<span class="pill pill--approved">live</span>' : '<span class="pill pill--pending">draft</span>'}</td>
             <td style="white-space:nowrap">
@@ -1365,6 +1408,7 @@ window.Admin = (function () {
           </tr>`).join('') : '<tr><td colspan="4" class="sub">No groups yet — create the first one above.</td></tr>';
         tbody.querySelectorAll('tr[data-id]').forEach((tr) => {
           const g = groups.find((x) => x.id === tr.dataset.id);
+          tr.querySelector('[data-open]')?.addEventListener('click', (e) => { e.preventDefault(); fill(g); });
           tr.querySelector('[data-edit]')?.addEventListener('click', () => fill(g));
           tr.querySelector('[data-del]')?.addEventListener('click', async () => {
             if (!confirm(`Delete "${g.name}"? The public page goes away immediately.`)) return;
@@ -1381,6 +1425,7 @@ window.Admin = (function () {
       const body = Object.fromEntries(fd.entries());
       if (!body.id) delete body.id;
       body.heroImage = heroUrl; body.photos = photos; body.members = members;
+      body.manager = { name: document.getElementById('grpMgrName').value.trim(), email: document.getElementById('grpMgrEmail').value.trim(), memberId: managerMemberId };
       const btn = form.querySelector('[type="submit"]'); btn.disabled = true;
       try {
         await api('/api/admin/groups', { method: 'POST', body: JSON.stringify(body) });

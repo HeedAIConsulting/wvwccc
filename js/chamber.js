@@ -200,6 +200,9 @@ window.Chamber = (function () {
 
   // ── Event detail modal (click an event to see full info, links, images) ──
   const _eventReg = {};
+  // When the modal is opened from a group page, RSVPs route to that group's
+  // manager (via contact.html?group=…). Set by initGroupView, null elsewhere.
+  let _groupCtx = null;
   function fullDate(ev) {
     if (!ev.date) return 'Date to be announced';
     const d = new Date(ev.date + 'T12:00:00');
@@ -216,10 +219,16 @@ window.Chamber = (function () {
   // relative paths (e.g. "assets/events/11311.jpg") with the page base so they
   // resolve from subdirectory pages like /events/ instead of 404ing.
   function evImgSrc(u, base) { u = String(u || ''); return /^(https?:|\/|data:)/i.test(u) ? u : (base || '') + u; }
+  // Friendly date for a group photo's optional date (YYYY-MM-DD → "Jun 8, 2026").
+  function fmtPhotoDate(d) {
+    if (!d) return '';
+    const dt = new Date(String(d) + 'T12:00:00');
+    return isNaN(dt) ? String(d) : dt.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  }
 
   function openEventModal(ev) {
     if (!ev) return;
-    const base = /\/(events|members|member|community|admin|auth|es)\//.test(location.pathname) ? '../' : '';
+    const base = /\/(events|members|member|community|admin|auth|es|groups|guides|jobs)\//.test(location.pathname) ? '../' : '';
     const loc = [ev.venue, ev.address, ev.neighborhood].filter(Boolean).join(' · ');
     // Full flyer leads the modal (portrait-friendly); the image strip follows.
     const flyerImg = ev.flyer
@@ -231,9 +240,10 @@ window.Chamber = (function () {
     // Attached PDFs (donation form, sponsorship levels, …).
     const docs = (ev.documents && ev.documents.length)
       ? `<div style="display:flex;flex-wrap:wrap;gap:8px;margin:0 0 14px">${ev.documents.map((dme) => `<a class="btn btn--ghost btn--sm" target="_blank" rel="noopener" href="${esc(evImgSrc(dme.url, base))}">📄 ${esc(dme.label || 'Document')}</a>`).join('')}</div>` : '';
+    const grpQ = _groupCtx ? `&group=${encodeURIComponent(_groupCtx.slug)}` : '';
     const cta = ev.ticketed
       ? `<a class="btn btn--gold" href="${base}checkout.html?type=ticket&event=${esc(ev.id)}">Get tickets</a>`
-      : `<a class="btn btn--forest" href="${base}contact.html?event=${esc(ev.id)}">RSVP / Notify me</a>`;
+      : `<a class="btn btn--forest" href="${base}contact.html?event=${esc(ev.id)}${grpQ}">RSVP / Notify me</a>`;
     const desc = ev.description || ev.summary || '';
     const overlay = document.createElement('div');
     overlay.className = 'ev-modal';
@@ -408,6 +418,7 @@ window.Chamber = (function () {
 
   async function initGroupView() {
     const slug = decodeURIComponent(location.pathname.split('/').filter(Boolean).pop() || '');
+    _groupCtx = { slug };
     let g = null;
     try { g = (await getJSON(ChamberAPI.url('/api/groups/' + encodeURIComponent(slug)))).group; } catch (e) {}
     if (!g) {
@@ -420,6 +431,14 @@ window.Chamber = (function () {
     document.getElementById('gTagline').textContent = g.tagline || '';
     document.getElementById('gDescription').textContent = g.description || '';
     document.getElementById('gSchedule').textContent = g.meetingSchedule || 'Contact the Chamber office';
+    if (g.manager && g.manager.name) {
+      const sch = document.getElementById('gSchedule');
+      const mgr = document.createElement('p');
+      mgr.className = 'member-tile__meta';
+      mgr.style.margin = '8px 0 0';
+      mgr.textContent = `Group manager: ${g.manager.name}`;
+      sch.insertAdjacentElement('afterend', mgr);
+    }
     if (g.heroImage) document.getElementById('groupHero').style.backgroundImage = `url('/${String(g.heroImage).replace(/^\//, '')}')`;
     if (g.meetingNotes && g.meetingNotes.trim()) {
       document.getElementById('gNotes').hidden = false;
@@ -427,8 +446,11 @@ window.Chamber = (function () {
     }
     if (Array.isArray(g.photos) && g.photos.length) {
       document.getElementById('gPhotos').hidden = false;
-      document.getElementById('gPhotoGrid').innerHTML = g.photos.map((p) =>
-        `<a href="/${esc(String(p).replace(/^\//, ''))}" target="_blank" rel="noopener"><img src="/${esc(String(p).replace(/^\//, ''))}" alt="${esc(g.name)} photo" loading="lazy"></a>`).join('');
+      document.getElementById('gPhotoGrid').innerHTML = g.photos.map((p) => {
+        const url = String((p && p.url != null) ? p.url : p).replace(/^\//, '');
+        const cap = [p && p.event, p && p.date ? fmtPhotoDate(p.date) : ''].filter(Boolean).join(' · ');
+        return `<figure style="margin:0"><a href="/${esc(url)}" target="_blank" rel="noopener"><img src="/${esc(url)}" alt="${esc(g.name)} photo" loading="lazy"></a>${cap ? `<figcaption class="member-tile__meta" style="margin-top:4px">${esc(cap)}</figcaption>` : ''}</figure>`;
+      }).join('');
     }
     // upcoming events that match this group
     if (g.eventMatch) {
@@ -1153,6 +1175,7 @@ window.Chamber = (function () {
       const payload = { kind };
       new FormData(form).forEach((v, k) => { payload[k] = v; });
       if (params.get('event')) payload.event = params.get('event');
+      if (params.get('group')) payload.group = params.get('group');
       const btn = form.querySelector('button[type="submit"]');
       const label = btn.textContent; btn.disabled = true; btn.textContent = 'Sending…';
       try {
