@@ -231,15 +231,19 @@ window.Chamber = (function () {
     const base = /\/(events|members|member|community|admin|auth|es|groups|guides|jobs)\//.test(location.pathname) ? '../' : '';
     const loc = [ev.venue, ev.address, ev.neighborhood].filter(Boolean).join(' · ');
     // Full flyer leads the modal (portrait-friendly); the image strip follows.
-    const flyerImg = ev.flyer
-      ? `<img src="${esc(evImgSrc(ev.flyer, base))}" alt="${esc(ev.title)} flyer" style="display:block;width:100%;max-height:540px;object-fit:contain;border-radius:12px;margin:0 0 14px;background:var(--cream-deep,#f3ecda)">` : '';
-    const imgs = flyerImg + ((ev.images && ev.images.length)
-      ? `<div style="display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px">${ev.images.slice(0, 3).map((u) => `<img src="${esc(evImgSrc(u, base))}" alt="" style="width:100%;max-width:180px;height:130px;object-fit:cover;border-radius:10px">`).join('')}</div>` : '');
+    // Hero: the portrait flyer leads; fall back to the first photo so the modal
+    // always feels image-forward (logos/flyers/images — Felicia's request).
+    const hero = ev.flyer || ev.thumbnail || (ev.images && ev.images[0]) || '';
+    const flyerImg = hero
+      ? `<img class="ev-card__flyer" src="${esc(evImgSrc(hero, base))}" alt="${esc(ev.title)} flyer" onerror="this.style.display='none'">` : '';
+    const extra = (ev.images || []).filter((u) => u && u !== hero).slice(0, 3);
+    const imgs = flyerImg + (extra.length
+      ? `<div class="ev-card__imgs">${extra.map((u) => `<img src="${esc(evImgSrc(u, base))}" alt="" loading="lazy">`).join('')}</div>` : '');
     const links = (ev.links && ev.links.length)
-      ? `<div style="display:flex;flex-wrap:wrap;gap:8px;margin:0 0 14px">${ev.links.map((l) => `<a class="btn btn--gold btn--sm" target="_blank" rel="noopener" href="${esc(l.url)}">${esc(l.label || l.type || 'Details')}</a>`).join('')}</div>` : '';
+      ? `<div class="ev-card__row">${ev.links.map((l) => `<a class="btn btn--gold btn--sm" target="_blank" rel="noopener" href="${esc(l.url)}">${esc(l.label || l.type || 'Details')}</a>`).join('')}</div>` : '';
     // Attached PDFs (donation form, sponsorship levels, …).
     const docs = (ev.documents && ev.documents.length)
-      ? `<div style="display:flex;flex-wrap:wrap;gap:8px;margin:0 0 14px">${ev.documents.map((dme) => `<a class="btn btn--ghost btn--sm" target="_blank" rel="noopener" href="${esc(evImgSrc(dme.url, base))}">📄 ${esc(dme.label || 'Document')}</a>`).join('')}</div>` : '';
+      ? `<div class="ev-card__row">${ev.documents.map((dme) => `<a class="btn btn--ghost btn--sm" target="_blank" rel="noopener" href="${esc(evImgSrc(dme.url, base))}">📄 ${esc(dme.label || 'Document')}</a>`).join('')}</div>` : '';
     const grpQ = _groupCtx ? `&group=${encodeURIComponent(_groupCtx.slug)}` : '';
     const cta = ev.ticketed
       ? `<a class="btn btn--gold" href="${base}checkout.html?type=ticket&event=${esc(ev.id)}">Get tickets</a>`
@@ -247,21 +251,33 @@ window.Chamber = (function () {
     const desc = ev.description || ev.summary || '';
     const overlay = document.createElement('div');
     overlay.className = 'ev-modal';
-    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(20,30,25,.55);display:flex;align-items:flex-start;justify-content:center;padding:5vh 16px;z-index:9999;overflow-y:auto';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(14,42,22,.62);display:flex;align-items:flex-start;justify-content:center;padding:5vh 16px;z-index:9999;overflow-y:auto';
     overlay.innerHTML = `
-      <div role="dialog" aria-modal="true" style="background:#fff;max-width:680px;width:100%;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.3);padding:24px 26px;position:relative">
-        <button aria-label="Close" data-ev-close style="position:absolute;top:12px;right:14px;border:none;background:none;font-size:1.6rem;line-height:1;cursor:pointer;color:#666">×</button>
-        <span class="badge">${esc(ev.category || 'Event')}</span>
-        <h2 style="margin:8px 0 6px;font-size:1.5rem">${esc(ev.title)}</h2>
-        <div style="color:var(--forest,#1f4d3a);font-weight:600;margin-bottom:4px">📅 ${esc(fullDate(ev))}</div>
-        ${loc ? `<div class="member-tile__meta" style="margin-bottom:14px">📍 ${esc(loc)}</div>` : '<div style="margin-bottom:10px"></div>'}
-        ${imgs}
-        ${desc ? `<div style="white-space:pre-wrap;line-height:1.6;color:var(--slate-mid,#333);margin:0 0 16px">${esc(desc)}</div>` : ''}
-        ${links}
-        ${docs}
-        ${ev.confirmed ? calendarMenu(ev) : ''}
-        ${shareMenu(ev.title, location.origin + (base ? '/' : location.pathname) + (base ? 'events/index.html' : '') + '#' + encodeURIComponent(ev.id))}
-        <div style="margin-top:18px">${cta}</div>
+      <div class="ev-card" role="dialog" aria-modal="true">
+        <div class="ev-card__accent"></div>
+        <button aria-label="Close" data-ev-close class="ev-card__x">×</button>
+        <div class="ev-card__body">
+          <div class="ev-card__head">
+            <img class="ev-card__seal" src="/images/wvwccc-logo.png" alt="" onerror="this.style.display='none'">
+            <div>
+              <span class="ev-card__kicker">${esc(ev.category || 'Chamber Event')}</span>
+              <h2 class="ev-card__title">${esc(ev.title)}</h2>
+            </div>
+          </div>
+          <div class="ev-card__meta">
+            <div class="ev-card__when">📅 ${esc(fullDate(ev))}</div>
+            ${loc ? `<div>📍 ${esc(loc)}</div>` : ''}
+          </div>
+          ${imgs}
+          ${desc ? `<div class="ev-card__desc">${esc(desc)}</div>` : ''}
+          ${links}
+          ${docs}
+          <div class="ev-card__foot">
+            ${ev.confirmed ? calendarMenu(ev) : ''}
+            ${shareMenu(ev.title, location.origin + (base ? '/' : location.pathname) + (base ? 'events/index.html' : '') + '#' + encodeURIComponent(ev.id))}
+            <div class="ev-card__cta">${cta}</div>
+          </div>
+        </div>
       </div>`;
     const close = () => overlay.remove();
     overlay.addEventListener('click', (e) => { if (e.target === overlay || e.target.closest('[data-ev-close]')) close(); });

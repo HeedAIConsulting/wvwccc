@@ -672,3 +672,38 @@ html { scrollbar-color: var(--gold) var(--cream-deep); scrollbar-width: thin; }
 .social-card .btn { flex: none; }
 .social-card__icon { flex: none; width: 46px; height: 46px; border-radius: 12px; display: grid; place-items: center;
   color: #fff; font-weight: 700; font-size: 1.3rem; }
+
+/* ── Event detail modal — refined, branded "program card" (Est. 1930) ── */
+.ev-modal { animation: evFade .22s ease; }
+@keyframes evFade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes evRise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+.ev-card {
+  background: var(--paper); width: 100%; max-width: 660px; border-radius: var(--r-xl);
+  box-shadow: var(--sh-lg); position: relative; overflow: hidden;
+  border: 1px solid var(--line); animation: evRise .3s cubic-bezier(.2,.7,.3,1) both;
+}
+.ev-card__accent { height: 6px; background: linear-gradient(90deg, var(--green-ink), var(--green) 45%, var(--gold) 100%); }
+.ev-card__x { position: absolute; top: 12px; right: 14px; width: 34px; height: 34px; border-radius: 50%;
+  border: none; background: rgba(255,255,255,.7); backdrop-filter: blur(4px); font-size: 1.4rem; line-height: 1;
+  cursor: pointer; color: var(--green-ink); z-index: 2; transition: background .15s, transform .15s; }
+.ev-card__x:hover { background: #fff; transform: rotate(90deg); }
+.ev-card__body { padding: 26px 30px 28px; }
+.ev-card__head { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+.ev-card__seal { width: 46px; height: 46px; border-radius: 50%; flex: none; box-shadow: 0 0 0 2px var(--gold); }
+.ev-card__kicker { font-family: var(--mono); font-size: .66rem; letter-spacing: .18em; text-transform: uppercase;
+  color: var(--gold-deep); display: block; margin-bottom: 3px; }
+.ev-card__title { font-family: var(--display); font-size: 1.7rem; line-height: 1.1; margin: 0; color: var(--green-ink); }
+.ev-card__meta { display: flex; flex-wrap: wrap; gap: 6px 18px; padding: 12px 0 4px; border-top: 1px solid var(--line-soft);
+  border-bottom: 1px solid var(--line-soft); margin-bottom: 16px; }
+.ev-card__meta > div { font-size: .95rem; color: var(--slate); font-weight: 600; }
+.ev-card__meta .ev-card__when { color: var(--green-deep); }
+.ev-card__flyer { display: block; width: 100%; max-height: 560px; object-fit: contain; border-radius: var(--r-lg);
+  margin: 0 0 16px; background: var(--cream-deep); border: 1px solid var(--line); box-shadow: var(--sh-sm); }
+.ev-card__imgs { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 16px; }
+.ev-card__imgs img { width: 120px; height: 88px; object-fit: cover; border-radius: var(--r-md); border: 1px solid var(--line); }
+.ev-card__desc { white-space: pre-wrap; line-height: 1.7; color: var(--slate); margin: 0 0 18px; }
+.ev-card__row { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 14px; }
+.ev-card__foot { border-top: 1px solid var(--line); margin-top: 6px; padding-top: 16px; display: flex; flex-wrap: wrap;
+  align-items: center; gap: 12px; }
+.ev-card__foot .ev-card__cta { margin-left: auto; }
+@media (max-width: 560px) { .ev-card__body { padding: 22px 18px 24px; } .ev-card__title { font-size: 1.4rem; } .ev-card__foot .ev-card__cta { margin-left: 0; width: 100%; } .ev-card__foot .ev-card__cta .btn { width: 100%; } }
