@@ -87,17 +87,33 @@ export async function diagnose() {
 
 /* Multi-turn chat for the internal admin assistant. Prefers Anthropic (Claude)
    for content quality; falls back to Gemini (flattened) if no Anthropic key. */
-export async function chat({ system = '', messages = [], model, maxTokens = 1500 } = {}) {
+export async function chat({ system = '', messages = [], model, maxTokens = 1500, attachments = [] } = {}) {
+  // Attachments (images / PDFs) ride along with the LAST user turn so the admin
+  // can "chat with" an uploaded flyer, contract, or screenshot.
+  const atts = (attachments || []).filter((a) => a && a.data && a.mediaType
+    && /^(image\/(png|jpe?g|gif|webp)|application\/pdf)$/.test(a.mediaType));
+  const lastUserIdx = (() => { for (let i = messages.length - 1; i >= 0; i--) if (messages[i].role === 'user') return i; return -1; })();
+
   if (ANTHROPIC_KEY()) {
     // Prefer Sonnet (best for content); fall back to Haiku (known-good) on any error.
     const candidates = [...new Set([model, 'claude-sonnet-4-5-20250929', 'claude-haiku-4-5-20251001'].filter(Boolean))];
+    const amsgs = messages.map((m, i) => {
+      if (i === lastUserIdx && atts.length) {
+        const blocks = atts.map((a) => a.mediaType === 'application/pdf'
+          ? { type: 'document', source: { type: 'base64', media_type: a.mediaType, data: a.data } }
+          : { type: 'image', source: { type: 'base64', media_type: a.mediaType, data: a.data } });
+        blocks.push({ type: 'text', text: m.content || 'Please review the attached file(s).' });
+        return { role: 'user', content: blocks };
+      }
+      return { role: m.role, content: m.content };
+    });
     let lastErr;
     for (const m of candidates) {
       try {
         const res = await fetch('https://api.anthropic.com/v1/messages', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'x-api-key': ANTHROPIC_KEY(), 'anthropic-version': '2023-06-01' },
-          body: JSON.stringify({ model: m, max_tokens: maxTokens, system, messages }),
+          body: JSON.stringify({ model: m, max_tokens: maxTokens, system, messages: amsgs }),
         });
         if (!res.ok) { lastErr = new Error(`anthropic ${res.status}: ${(await res.text()).slice(0, 200)}`); console.error('[llm.chat]', m, lastErr.message); continue; }
         const data = await res.json();
@@ -108,8 +124,21 @@ export async function chat({ system = '', messages = [], model, maxTokens = 1500
     if (!GEMINI_KEY()) throw lastErr || new Error('anthropic failed');
   }
   if (GEMINI_KEY()) {
-    const prompt = messages.map((m) => (m.role === 'user' ? 'Admin: ' : 'Assistant: ') + m.content).join('\n\n');
-    return { text: await gemini(system, prompt, false, maxTokens), provider: 'gemini', model: 'gemini-flash-latest' };
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_KEY()}`;
+    const contents = messages.map((m, i) => {
+      const parts = [];
+      if (i === lastUserIdx && atts.length) atts.forEach((a) => parts.push({ inlineData: { mimeType: a.mediaType, data: a.data } }));
+      parts.push({ text: m.content || 'Please review the attached file(s).' });
+      return { role: m.role === 'assistant' ? 'model' : 'user', parts };
+    });
+    const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
+      systemInstruction: system ? { parts: [{ text: system }] } : undefined,
+      contents,
+      generationConfig: { maxOutputTokens: maxTokens, temperature: 0.4 },
+    }) });
+    if (!res.ok) throw new Error(`gemini ${res.status}: ${(await res.text()).slice(0, 200)}`);
+    const data = await res.json();
+    return { text: data?.candidates?.[0]?.content?.parts?.map((p) => p.text).join('') || '', provider: 'gemini', model: 'gemini-flash-latest' };
   }
   return { text: "The assistant isn't configured yet — add an ANTHROPIC_API_KEY (preferred) or GEMINI_API_KEY to enable it.", provider: 'mock', model: null };
 }

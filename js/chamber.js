@@ -265,13 +265,21 @@ window.Chamber = (function () {
       if (!t) return;
       if (e.target.closest('a,button')) return; // let real buttons/links work
       e.preventDefault();
+      // On the All-Events list, open the event's detail in a new tab (the page
+      // auto-opens the matching event from the URL hash). Elsewhere, open inline.
+      const newTab = t.getAttribute('data-ev-newtab');
+      if (newTab) { window.open(newTab, '_blank', 'noopener'); return; }
       openEventModal(_eventReg[t.getAttribute('data-ev-detail')]);
     });
   }
 
-  function eventCard(ev, depth = 0) {
+  function eventCard(ev, depth = 0, opts = {}) {
     _eventReg[ev.id] = ev;
     const base = depth ? '../' : '';
+    // On the All-Events list we open the detail in a NEW TAB (deep link to the
+    // same events page, which auto-opens the event from the hash). Same-folder
+    // link works for both the English and Spanish events pages.
+    const newTab = opts.newTab ? ` data-ev-newtab="index.html#${encodeURIComponent(ev.id)}"` : '';
     const confirmed = ev.confirmed && ev.day;
     const dateBlock = confirmed
       ? `<div class="event-date"><div class="event-date__mo">${esc(ev.month)}</div><div class="event-date__day">${esc(ev.day)}</div></div>`
@@ -289,11 +297,11 @@ window.Chamber = (function () {
       ? `<div class="event-links" style="display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 0">${ev.links.map((l) => `<a class="chip chip--gold" target="_blank" rel="noopener" href="${esc(l.url)}">${esc(l.label || l.type || 'Details')}</a>`).join('')}</div>`
       : '';
     return `
-      <div class="event-row" id="${esc(ev.id)}" data-ev-detail="${esc(ev.id)}" style="cursor:pointer">
+      <div class="event-row" id="${esc(ev.id)}" data-ev-detail="${esc(ev.id)}"${newTab} style="cursor:pointer">
         ${dateBlock}
         <div>
           <span class="badge">${esc(ev.category || 'Event')}</span>${ev.featured ? '<span class="badge badge--gold" style="margin-left:6px">★ Featured</span>' : ''}
-          <h4 style="margin:6px 0 4px">${esc(ev.title)} <span style="color:var(--gold-bright,#b8860b);font-size:.8rem;font-weight:600">Details →</span></h4>
+          <h4 style="margin:6px 0 4px">${esc(ev.title)} <span style="color:var(--gold-bright,#b8860b);font-size:.8rem;font-weight:600">${opts.newTab ? 'Open ↗' : 'Details →'}</span></h4>
           <div class="member-tile__meta">${when} · ${esc(ev.venue || ev.neighborhood || '')}</div>
           <p style="margin:6px 0 0;color:var(--slate-mid);font-size:.95rem">${esc(ev.summary || '')}</p>
           ${imgs}
@@ -890,13 +898,25 @@ window.Chamber = (function () {
       // so the admin "Feature on homepage" toggle visibly affects placement here too.
       const ordered = filtered.filter((e) => e.featured).concat(filtered.filter((e) => !e.featured));
       listEl.innerHTML = ordered.length
-        ? ordered.map((e) => eventCard(e, 1)).join('')
+        ? ordered.map((e) => eventCard(e, 1, { newTab: true })).join('')
         : '<p class="notice">No events match these filters — try widening the timeframe or choosing “All categories.”</p>';
       if (countEl) countEl.textContent = filtered.length + ' event' + (filtered.length !== 1 ? 's' : '');
     }
     renderList();
     if (catEl) catEl.addEventListener('change', renderList);
     if (whenEl) whenEl.addEventListener('change', renderList);
+
+    // Deep link: /events/index.html#<eventId> opens that event's detail directly
+    // (this is what the new-tab click and Share links point to). Look in the full
+    // list so it opens even if the current filter would hide it.
+    function openFromHash() {
+      const id = decodeURIComponent((location.hash || '').replace(/^#/, ''));
+      if (!id) return;
+      const ev = events.find((e) => e.id === id) || _eventReg[id];
+      if (ev) openEventModal(ev);
+    }
+    openFromHash();
+    window.addEventListener('hashchange', openFromHash);
 
     // month grid
     function buildGrid(year, month) {

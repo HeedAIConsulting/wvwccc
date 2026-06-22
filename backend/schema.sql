@@ -192,3 +192,19 @@ CREATE TABLE IF NOT EXISTS groups (
   created TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- ── AI Assistant: saved conversation threads (shared across all staff) ──
+CREATE TABLE IF NOT EXISTS assistant_threads (
+  id      TEXT PRIMARY KEY,                       -- 'th-...'
+  data    JSONB NOT NULL,                         -- { title, messages:[...], savedBy, updated }
+  created TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- ── Reusable message templates (Felicia's email library; shared) ──
+CREATE TABLE IF NOT EXISTS message_templates (
+  id      TEXT PRIMARY KEY,                       -- 'tpl-...'
+  data    JSONB NOT NULL,                         -- { name, category, subject, body, savedBy, updated }
+  created TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated TIMESTAMPTZ NOT NULL DEFAULT now()
+);

@@ -1287,6 +1287,22 @@ async function chamberSnapshot() {
   ].join('\n');
 }
 
+// Parse data: URLs (image/PDF) into { mediaType, data } base64 blocks. Caps the
+// number and total size so a stray upload can't blow the request budget.
+function parseAttachments(list) {
+  const re = /^data:(image\/(?:png|jpe?g|gif|webp)|application\/pdf);base64,([A-Za-z0-9+/=]+)$/;
+  const out = [];
+  let bytes = 0;
+  for (const a of (Array.isArray(list) ? list : []).slice(0, 4)) {
+    const m = re.exec(typeof a === 'string' ? a : (a && a.dataUrl) || '');
+    if (!m) continue;
+    bytes += Math.floor(m[2].length * 0.75);
+    if (bytes > 12 * 1024 * 1024) break; // ~12MB total ceiling
+    out.push({ mediaType: m[1], data: m[2] });
+  }
+  return out;
+}
+
 router.post('/staff-assistant', requireAdmin, async (req, res) => {
   const b = req.body || {};
   const messages = (Array.isArray(b.messages) ? b.messages : [])
@@ -1296,6 +1312,7 @@ router.post('/staff-assistant', requireAdmin, async (req, res) => {
   if (!messages.length || messages[messages.length - 1].role !== 'user') {
     return res.status(400).json({ error: 'Send at least one user message.' });
   }
+  const attachments = parseAttachments(b.attachments);
   try {
     const ctx = await chamberSnapshot();
     const system = 'You are the internal staff assistant for the West Valley · Warner Center Chamber of Commerce, powered by Claude. '
@@ -1304,10 +1321,78 @@ router.post('/staff-assistant', requireAdmin, async (req, res) => {
       + 'Voice: warm, local, professional, and concise. When asked to write something, return polished copy the admin can paste and send — '
       + 'use clear subject lines for emails. When analyzing, ground every claim in the live data below and be specific (cite category counts). '
       + 'If asked which categories need more members, reason from the per-category counts (low or missing categories are the gaps).\n\n'
+      + (attachments.length ? 'The admin has attached one or more files (images/PDFs) — read them and use their contents to answer or draft. '
+        + 'Common uses: read a flyer to build an event, summarize a contract, or rewrite a past email the admin pasted/attached.\n\n' : '')
       + '=== LIVE CHAMBER DATA (today) ===\n' + ctx;
-    const out = await llm.chat({ system, messages, maxTokens: 1800 });
+    const out = await llm.chat({ system, messages, attachments, maxTokens: 1800 });
     res.json({ ok: true, answer: out.text, provider: out.provider, model: out.model });
   } catch (e) { console.error('staff-assistant', e); res.status(500).json({ error: 'The assistant is unavailable right now.' }); }
+});
+
+// ── Saved conversations (shared across staff) ───────────────
+router.get('/admin/assistant/threads', requireAdmin, async (_req, res) => {
+  try { res.json({ threads: await repo.listThreads() }); }
+  catch (e) { console.error('listThreads', e); res.status(500).json({ error: 'could not load saved conversations' }); }
+});
+router.post('/admin/assistant/threads', requireAdmin, async (req, res) => {
+  const b = req.body || {};
+  const messages = (Array.isArray(b.messages) ? b.messages : [])
+    .filter((m) => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
+    .map((m) => ({ role: m.role, content: m.content.slice(0, 12000) }));
+  if (!messages.length) return res.status(400).json({ error: 'Nothing to save yet.' });
+  const id = (b.id && /^th-/.test(b.id)) ? b.id : ('th-' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36));
+  const title = String(b.title || messages.find((m) => m.role === 'user')?.content || 'Conversation').slice(0, 120);
+  const thread = { id, title, messages, savedBy: (req.user && req.user.sub) || 'staff', updated: new Date().toISOString() };
+  try { await repo.upsertThread(thread); res.json({ ok: true, thread }); }
+  catch (e) { console.error('saveThread', e); res.status(500).json({ error: 'could not save' }); }
+});
+router.delete('/admin/assistant/threads/:id', requireAdmin, async (req, res) => {
+  try { await repo.deleteThread(req.params.id); res.json({ ok: true }); }
+  catch (e) { console.error('deleteThread', e); res.status(500).json({ error: 'could not delete' }); }
+});
+
+// ── Message template library (Felicia's reusable emails) ────
+router.get('/admin/templates', requireAdmin, async (_req, res) => {
+  try { res.json({ templates: await repo.listTemplates() }); }
+  catch (e) { console.error('listTemplates', e); res.status(500).json({ error: 'could not load templates' }); }
+});
+router.post('/admin/templates', requireAdmin, async (req, res) => {
+  const b = req.body || {};
+  const name = String(b.name || '').trim();
+  const body = String(b.body || '').trim();
+  if (!name || !body) return res.status(400).json({ error: 'A name and the message body are required.' });
+  const id = (b.id && /^tpl-/.test(b.id)) ? b.id : ('tpl-' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36));
+  const tpl = { id, name: name.slice(0, 120), category: String(b.category || '').slice(0, 60),
+    subject: String(b.subject || '').slice(0, 200), body: body.slice(0, 16000),
+    savedBy: (req.user && req.user.sub) || 'staff', updated: new Date().toISOString() };
+  try { await repo.upsertTemplate(tpl); res.json({ ok: true, template: tpl }); }
+  catch (e) { console.error('saveTemplate', e); res.status(500).json({ error: 'could not save template' }); }
+});
+router.delete('/admin/templates/:id', requireAdmin, async (req, res) => {
+  try { await repo.deleteTemplate(req.params.id); res.json({ ok: true }); }
+  catch (e) { console.error('deleteTemplate', e); res.status(500).json({ error: 'could not delete template' }); }
+});
+
+// AI redraft: take a saved template (or pasted body) + specifics → fresh copy.
+router.post('/admin/template-draft', requireAdmin, async (req, res) => {
+  const b = req.body || {};
+  let base = String(b.body || '').trim();
+  if (!base && b.templateId) {
+    try { const t = (await repo.listTemplates()).find((x) => x.id === b.templateId); if (t) base = `${t.subject ? 'Subject: ' + t.subject + '\n\n' : ''}${t.body}`; } catch (e) {}
+  }
+  if (!base) return res.status(400).json({ error: 'Pick a template or paste an example message first.' });
+  const instructions = String(b.instructions || '').slice(0, 2000);
+  try {
+    const ctx = await chamberSnapshot();
+    const system = 'You are the internal staff assistant for the West Valley · Warner Center Chamber of Commerce, powered by Claude. '
+      + 'Felicia keeps a library of past emails she reuses. Given ONE example message and a few specifics, write a fresh version '
+      + 'that keeps the original tone, structure, and signature style but adapts the details. Return ready-to-send copy: a clear '
+      + '"Subject:" line on the first line when it is an email, then the body. No commentary, no markdown fences.\n\n'
+      + '=== LIVE CHAMBER DATA (for accurate names/numbers) ===\n' + ctx;
+    const prompt = `EXAMPLE MESSAGE (match this voice and format):\n"""\n${base.slice(0, 12000)}\n"""\n\nSPECIFICS FOR THE NEW VERSION:\n${instructions || '(none given — produce a clean, reusable version of the example)'}`;
+    const out = await llm.chat({ system, messages: [{ role: 'user', content: prompt }], maxTokens: 1400 });
+    res.json({ ok: true, draft: out.text, provider: out.provider, model: out.model });
+  } catch (e) { console.error('template-draft', e); res.status(500).json({ error: 'Could not draft right now.' }); }
 });
 
 export default router;

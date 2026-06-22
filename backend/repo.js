@@ -192,6 +192,58 @@ export async function deleteGroup(id) {
   store.write('groups.json', store.read('groups.json', []).filter((g) => g.id !== id));
 }
 
+// ── AI Assistant saved threads (shared conversation history) ────
+export async function listThreads() {
+  if (db.enabled) {
+    const r = await db.query('SELECT id, data, updated FROM assistant_threads ORDER BY updated DESC');
+    return r.rows.map((x) => ({ ...x.data, id: x.id, updated: x.updated }));
+  }
+  return store.read('threads.json', []).slice().sort((a, b) => String(b.updated || '').localeCompare(String(a.updated || '')));
+}
+export async function upsertThread(t) {
+  if (db.enabled) {
+    await db.query(
+      `INSERT INTO assistant_threads (id, data, created, updated) VALUES ($1, $2::jsonb, now(), now())
+       ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, updated = now()`,
+      [t.id, JSON.stringify(t)]);
+    return;
+  }
+  const arr = store.read('threads.json', []);
+  const i = arr.findIndex((x) => x.id === t.id);
+  if (i >= 0) arr[i] = t; else arr.push(t);
+  store.write('threads.json', arr);
+}
+export async function deleteThread(id) {
+  if (db.enabled) { await db.query('DELETE FROM assistant_threads WHERE id=$1', [id]); return; }
+  store.write('threads.json', store.read('threads.json', []).filter((t) => t.id !== id));
+}
+
+// ── Reusable message templates (Felicia's email library) ────────
+export async function listTemplates() {
+  if (db.enabled) {
+    const r = await db.query('SELECT id, data, updated FROM message_templates ORDER BY updated DESC');
+    return r.rows.map((x) => ({ ...x.data, id: x.id, updated: x.updated }));
+  }
+  return store.read('templates.json', []).slice().sort((a, b) => String(b.updated || '').localeCompare(String(a.updated || '')));
+}
+export async function upsertTemplate(t) {
+  if (db.enabled) {
+    await db.query(
+      `INSERT INTO message_templates (id, data, created, updated) VALUES ($1, $2::jsonb, now(), now())
+       ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, updated = now()`,
+      [t.id, JSON.stringify(t)]);
+    return;
+  }
+  const arr = store.read('templates.json', []);
+  const i = arr.findIndex((x) => x.id === t.id);
+  if (i >= 0) arr[i] = t; else arr.push(t);
+  store.write('templates.json', arr);
+}
+export async function deleteTemplate(id) {
+  if (db.enabled) { await db.query('DELETE FROM message_templates WHERE id=$1', [id]); return; }
+  store.write('templates.json', store.read('templates.json', []).filter((t) => t.id !== id));
+}
+
 // ── Image assets (Postgres bytea, or dev files) ─────────────
 export async function addAsset({ id, memberId, kind, mime, buffer }) {
   if (db.enabled) {

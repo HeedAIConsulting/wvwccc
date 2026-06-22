@@ -903,46 +903,256 @@ window.Admin = (function () {
     try { all = (await api('/api/admin/members')).members; render(); } catch (e) { showAuthError(e); }
   }
 
+  // ── Minimal, safe Markdown → HTML (assistant output only) ──
+  // Escapes first, then renders headings, lists, tables, bold/italic/code, links, hr.
+  function mdToHtml(src) {
+    const e = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const inline = (t) => e(t)
+      .replace(/`([^`]+)`/g, '<code>$1</code>')
+      .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+      .replace(/(^|[^*])\*([^*\n]+)\*/g, '$1<em>$2</em>')
+      .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+    const lines = String(src == null ? '' : src).replace(/\r\n/g, '\n').split('\n');
+    const isSep = (s) => /^\s*\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)+\|?\s*$/.test(s);
+    const cells = (s) => s.replace(/^\s*\|/, '').replace(/\|\s*$/, '').split('|').map((c) => c.trim());
+    let out = '', i = 0, para = [];
+    const flush = () => { if (para.length) { out += '<p>' + para.map(inline).join('<br>') + '</p>'; para = []; } };
+    while (i < lines.length) {
+      const ln = lines[i];
+      if (!ln.trim()) { flush(); i++; continue; }
+      let m;
+      if ((m = /^(#{1,6})\s+(.*)$/.exec(ln))) { flush(); const lvl = Math.min(Math.max(m[1].length, 2), 4); out += `<h${lvl}>${inline(m[2])}</h${lvl}>`; i++; continue; }
+      if (/^\s*([-*_])(\s*\1){2,}\s*$/.test(ln)) { flush(); out += '<hr>'; i++; continue; }
+      if (/^\s*\|.*\|/.test(ln) && i + 1 < lines.length && isSep(lines[i + 1])) {
+        flush(); const head = cells(ln); i += 2; const rows = [];
+        while (i < lines.length && /^\s*\|.*\|/.test(lines[i])) { rows.push(cells(lines[i])); i++; }
+        out += '<table><thead><tr>' + head.map((c) => `<th>${inline(c)}</th>`).join('') + '</tr></thead><tbody>'
+          + rows.map((r) => '<tr>' + r.map((c) => `<td>${inline(c)}</td>`).join('') + '</tr>').join('') + '</tbody></table>';
+        continue;
+      }
+      if (/^\s*[-*]\s+/.test(ln)) { flush(); out += '<ul>'; while (i < lines.length && /^\s*[-*]\s+/.test(lines[i])) { out += `<li>${inline(lines[i].replace(/^\s*[-*]\s+/, ''))}</li>`; i++; } out += '</ul>'; continue; }
+      if (/^\s*\d+\.\s+/.test(ln)) { flush(); out += '<ol>'; while (i < lines.length && /^\s*\d+\.\s+/.test(lines[i])) { out += `<li>${inline(lines[i].replace(/^\s*\d+\.\s+/, ''))}</li>`; i++; } out += '</ol>'; continue; }
+      para.push(ln); i++;
+    }
+    flush();
+    return out;
+  }
+
   // ── Internal AI assistant (Claude) ──
   async function initAssistant() {
     mountShell('assistant');
     const log = document.getElementById('chatLog');
     const form = document.getElementById('chatForm');
     const input = document.getElementById('chatInput');
-    const messages = [];
-    function bubble(role, text) {
+    const filesBar = document.getElementById('chatFiles');
+    const attachInput = document.getElementById('chatAttach');
+    let messages = [];
+    let attachments = [];      // { name, dataUrl }
+    let currentThreadId = null;
+
+    function bubble(role, text, opts) {
+      opts = opts || {};
       const wrap = document.createElement('div');
       wrap.style.cssText = 'margin:0 0 14px;display:flex;' + (role === 'user' ? 'justify-content:flex-end' : '');
       const who = role === 'user' ? 'You' : 'Claude';
-      wrap.innerHTML = `<div style="max-width:720px;width:fit-content">
+      const inner = role === 'assistant' && !opts.plain
+        ? `<div class="md" style="background:#fff;border:1px solid var(--line,#e4e0d6);border-radius:12px;padding:12px 14px">${mdToHtml(text)}</div>`
+        : `<div style="white-space:pre-wrap;line-height:1.55;background:${role === 'user' ? 'var(--forest,#1f4d3a)' : '#fff'};color:${role === 'user' ? '#fff' : 'inherit'};border:1px solid var(--line,#e4e0d6);border-radius:12px;padding:12px 14px">${esc(text)}</div>`;
+      const fileNote = (opts.files && opts.files.length)
+        ? `<div class="sub" style="margin-top:5px;${role === 'user' ? 'text-align:right' : ''}">📎 ${opts.files.map((f) => esc(f)).join(', ')}</div>` : '';
+      wrap.innerHTML = `<div style="max-width:760px;width:fit-content">
         <div class="sub" style="margin-bottom:3px;${role === 'user' ? 'text-align:right' : ''}">${who}</div>
-        <div style="white-space:pre-wrap;line-height:1.55;background:${role === 'user' ? 'var(--forest,#1f4d3a)' : '#fff'};color:${role === 'user' ? '#fff' : 'inherit'};border:1px solid var(--line,#e4e0d6);border-radius:12px;padding:12px 14px">${esc(text)}</div>
-        ${role === 'assistant' ? '<button class="btn btn--ghost btn--sm" data-copy style="margin-top:6px">Copy</button>' : ''}</div>`;
-      if (role === 'assistant') {
+        ${inner}${fileNote}
+        ${role === 'assistant' && !opts.plain ? '<button class="btn btn--ghost btn--sm" data-copy style="margin-top:6px">Copy</button>' : ''}</div>`;
+      if (role === 'assistant' && !opts.plain) {
         const cp = wrap.querySelector('[data-copy]');
         if (cp) cp.addEventListener('click', () => { if (navigator.clipboard) navigator.clipboard.writeText(text); cp.textContent = 'Copied ✓'; setTimeout(() => cp.textContent = 'Copy', 1400); });
       }
       log.appendChild(wrap); log.scrollTop = log.scrollHeight;
       return wrap;
     }
+
+    function renderFiles() {
+      if (!filesBar) return;
+      filesBar.hidden = !attachments.length;
+      filesBar.innerHTML = attachments.map((a, idx) => `<span class="chat-file">📎 ${esc(a.name)} <button type="button" data-rmfile="${idx}" aria-label="Remove">×</button></span>`).join('');
+      filesBar.querySelectorAll('[data-rmfile]').forEach((b) => b.addEventListener('click', () => { attachments.splice(+b.dataset.rmfile, 1); renderFiles(); }));
+    }
+    const readFile = (file) => new Promise((resolve, reject) => { const r = new FileReader(); r.onload = () => resolve(r.result); r.onerror = reject; r.readAsDataURL(file); });
+    if (attachInput) attachInput.addEventListener('change', async () => {
+      for (const f of Array.from(attachInput.files || [])) {
+        if (attachments.length >= 4) { alert('Up to 4 files per message.'); break; }
+        if (f.size > 8 * 1024 * 1024) { alert(`"${f.name}" is over 8MB — please attach a smaller file.`); continue; }
+        try { attachments.push({ name: f.name, dataUrl: await readFile(f) }); } catch (e) {}
+      }
+      attachInput.value = ''; renderFiles();
+    });
+
     async function send(text) {
-      text = (text || '').trim(); if (!text) return;
+      text = (text || '').trim();
+      if (!text && !attachments.length) return;
+      if (!text) text = 'Please review the attached file(s).';
       const empty = document.getElementById('chatEmpty'); if (empty) empty.hidden = true;
+      const sentFiles = attachments.map((a) => a.name);
+      const payloadAtt = attachments.map((a) => a.dataUrl);
       messages.push({ role: 'user', content: text });
-      bubble('user', text);
+      bubble('user', text, { files: sentFiles });
       input.value = ''; input.style.height = 'auto';
-      const thinking = bubble('assistant', '…thinking');
+      attachments = []; renderFiles();
+      const thinking = bubble('assistant', '…thinking', { plain: true });
       try {
-        const r = await api('/api/staff-assistant', { method: 'POST', body: JSON.stringify({ messages }) });
+        const r = await api('/api/staff-assistant', { method: 'POST', body: JSON.stringify({ messages, attachments: payloadAtt }) });
         thinking.remove();
         messages.push({ role: 'assistant', content: r.answer });
         bubble('assistant', r.answer);
-      } catch (e) { thinking.remove(); bubble('assistant', 'Sorry — I could not reach the assistant (' + (e.message || 'error') + ').'); }
+      } catch (e) { thinking.remove(); bubble('assistant', 'Sorry — I could not reach the assistant (' + (e.message || 'error') + ').', { plain: true }); }
     }
     form.addEventListener('submit', (e) => { e.preventDefault(); send(input.value); });
     input.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(input.value); } });
     input.addEventListener('input', () => { input.style.height = 'auto'; input.style.height = Math.min(input.scrollHeight, 180) + 'px'; });
-    document.querySelectorAll('[data-suggest]').forEach((b) => b.addEventListener('click', () => send(b.textContent)));
+    document.querySelectorAll('[data-suggest]').forEach((b) => b.addEventListener('click', () => { input.value = b.textContent; input.focus(); }));
+
+    // ── New chat / Save / History ──
+    function clearBubbles() { Array.from(log.children).forEach((n) => { if (n.id !== 'chatEmpty') n.remove(); }); }
+    function resetChat() {
+      messages = []; attachments = []; currentThreadId = null; renderFiles();
+      clearBubbles();
+      const empty = document.getElementById('chatEmpty'); if (empty) empty.hidden = false;
+    }
+    function rebuild() {
+      clearBubbles();
+      const empty = document.getElementById('chatEmpty'); if (empty) empty.hidden = true;
+      messages.forEach((m) => bubble(m.role, m.content));
+    }
+    const newBtn = document.getElementById('chatNew');
+    if (newBtn) newBtn.addEventListener('click', resetChat);
+    const saveBtn = document.getElementById('chatSave');
+    if (saveBtn) saveBtn.addEventListener('click', async () => {
+      if (!messages.length) { alert('Nothing to save yet — start a conversation first.'); return; }
+      const def = (messages.find((m) => m.role === 'user') || {}).content || 'Conversation';
+      const title = prompt('Name this saved conversation:', def.slice(0, 80));
+      if (title === null) return;
+      saveBtn.disabled = true;
+      try {
+        const r = await api('/api/admin/assistant/threads', { method: 'POST', body: JSON.stringify({ id: currentThreadId, title, messages }) });
+        currentThreadId = r.thread.id; saveBtn.textContent = '✓ Saved'; setTimeout(() => saveBtn.textContent = '⭑ Save conversation', 1600);
+      } catch (e) { alert('Could not save: ' + (e.message || 'error')); }
+      finally { saveBtn.disabled = false; }
+    });
+
+    const histBtn = document.getElementById('chatHistoryBtn');
+    const histPop = document.getElementById('chatHistoryPop');
+    async function loadHistory() {
+      histPop.innerHTML = '<div class="sub" style="padding:8px 10px">Loading…</div>';
+      try {
+        const r = await api('/api/admin/assistant/threads');
+        const list = r.threads || [];
+        if (!list.length) { histPop.innerHTML = '<div class="sub" style="padding:8px 10px">No saved conversations yet.</div>'; return; }
+        histPop.innerHTML = list.map((t) => `<div class="chat-pop__item" data-open="${esc(t.id)}">
+          <span class="grow"><b>${esc(t.title || 'Conversation')}</b><span class="sub">${esc((t.savedBy || '').split('@')[0])} · ${esc(String(t.updated || '').slice(0, 10))}</span></span>
+          <button data-del="${esc(t.id)}" title="Delete">🗑</button></div>`).join('');
+        histPop.querySelectorAll('[data-open]').forEach((el) => el.addEventListener('click', (ev) => {
+          if (ev.target.closest('[data-del]')) return;
+          const t = list.find((x) => x.id === el.dataset.open); if (!t) return;
+          messages = (t.messages || []).map((m) => ({ role: m.role, content: m.content }));
+          currentThreadId = t.id; rebuild(); histPop.hidden = true;
+        }));
+        histPop.querySelectorAll('[data-del]').forEach((b) => b.addEventListener('click', async (ev) => {
+          ev.stopPropagation();
+          if (!confirm('Delete this saved conversation?')) return;
+          try { await api('/api/admin/assistant/threads/' + encodeURIComponent(b.dataset.del), { method: 'DELETE' }); loadHistory(); } catch (e) { alert('Could not delete.'); }
+        }));
+      } catch (e) { histPop.innerHTML = '<div class="sub" style="padding:8px 10px">Could not load.</div>'; }
+    }
+    if (histBtn) histBtn.addEventListener('click', (e) => { e.stopPropagation(); const show = histPop.hidden; histPop.hidden = !show; if (show) loadHistory(); });
+    document.addEventListener('click', (e) => { if (histPop && !histPop.hidden && !e.target.closest('.chat-menu')) histPop.hidden = true; });
+
+    initTemplates({ insertToChat: (text) => { input.value = text; input.focus(); input.dispatchEvent(new Event('input')); } });
+  }
+
+  // ── Message-template library + AI redraft ──
+  async function initTemplates({ insertToChat }) {
+    const modal = document.getElementById('tplModal');
+    if (!modal) return;
+    const listEl = document.getElementById('tplList');
+    const form = document.getElementById('tplForm');
+    const msg = document.getElementById('tplMsg');
+    const draftWrap = document.getElementById('tplDraft');
+    let active = null;
+
+    const open = () => { modal.hidden = false; load(); };
+    const close = () => { modal.hidden = true; draftWrap.hidden = true; };
+    document.getElementById('tplOpen').addEventListener('click', open);
+    document.getElementById('tplClose').addEventListener('click', close);
+    modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
+
+    async function load() {
+      listEl.innerHTML = '<p class="sub">Loading…</p>';
+      try {
+        const r = await api('/api/admin/templates');
+        const list = r.templates || [];
+        listEl.innerHTML = list.length ? '' : '<p class="sub">No templates yet. Add one below — paste an email Felicia reuses.</p>';
+        list.forEach((t) => {
+          const row = document.createElement('div'); row.className = 'tpl-row';
+          row.innerHTML = `<span class="grow"><b>${esc(t.name)}</b><span class="sub">${esc(t.category || '')}${t.subject ? ' · ' + esc(t.subject) : ''}</span></span>
+            <span class="actions"><button class="btn btn--gold btn--sm" data-use>Use</button>
+            <button class="btn btn--ghost btn--sm" data-edit>Edit</button>
+            <button class="btn btn--ghost btn--sm" data-del title="Delete">🗑</button></span>`;
+          row.querySelector('[data-use]').addEventListener('click', () => startDraft(t));
+          row.querySelector('[data-edit]').addEventListener('click', () => {
+            form.id.value = t.id; form.name.value = t.name; form.category.value = t.category || '';
+            form.subject.value = t.subject || ''; form.body.value = t.body || '';
+            document.getElementById('tplNewWrap').open = true; form.scrollIntoView({ behavior: 'smooth' });
+          });
+          row.querySelector('[data-del]').addEventListener('click', async () => {
+            if (!confirm('Delete template “' + t.name + '”?')) return;
+            try { await api('/api/admin/templates/' + encodeURIComponent(t.id), { method: 'DELETE' }); load(); } catch (e) { alert('Could not delete.'); }
+          });
+          listEl.appendChild(row);
+        });
+      } catch (e) { listEl.innerHTML = '<p class="notice">Could not load templates.</p>'; }
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      msg.hidden = true;
+      const body = { id: form.id.value || undefined, name: form.name.value, category: form.category.value, subject: form.subject.value, body: form.body.value };
+      try {
+        await api('/api/admin/templates', { method: 'POST', body: JSON.stringify(body) });
+        form.reset(); form.id.value = ''; document.getElementById('tplNewWrap').open = false; load();
+      } catch (err) { msg.hidden = false; msg.textContent = err.message || 'Could not save.'; }
+    });
+
+    function startDraft(t) {
+      active = t;
+      draftWrap.hidden = false;
+      document.getElementById('tplDraftName').textContent = t.name;
+      document.getElementById('tplDraftInstr').value = '';
+      document.getElementById('tplDraftOut').hidden = true;
+      document.getElementById('tplDraftStatus').textContent = '';
+      draftWrap.scrollIntoView({ behavior: 'smooth' });
+    }
+    document.getElementById('tplDraftCancel').addEventListener('click', () => { draftWrap.hidden = true; });
+    document.getElementById('tplDraftGo').addEventListener('click', async () => {
+      if (!active) return;
+      const status = document.getElementById('tplDraftStatus');
+      status.textContent = 'Drafting…';
+      try {
+        const r = await api('/api/admin/template-draft', { method: 'POST', body: JSON.stringify({ templateId: active.id, instructions: document.getElementById('tplDraftInstr').value }) });
+        document.getElementById('tplDraftText').textContent = r.draft || '';
+        document.getElementById('tplDraftOut').hidden = false; status.textContent = '';
+      } catch (e) { status.textContent = 'Could not draft: ' + (e.message || 'error'); }
+    });
+    document.getElementById('tplDraftCopy').addEventListener('click', () => {
+      const txt = document.getElementById('tplDraftText').textContent;
+      if (navigator.clipboard) navigator.clipboard.writeText(txt);
+      const b = document.getElementById('tplDraftCopy'); b.textContent = 'Copied ✓'; setTimeout(() => b.textContent = 'Copy', 1400);
+    });
+    document.getElementById('tplDraftToChat').addEventListener('click', () => {
+      const txt = document.getElementById('tplDraftText').textContent;
+      if (insertToChat) insertToChat('Here is a draft — help me refine it:\n\n' + txt);
+      close();
+    });
   }
 
   // ── Users & Roles (super-admin can grant/revoke admin) ──
