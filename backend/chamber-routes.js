@@ -526,6 +526,33 @@ function readSeedGroups() {
   catch { return []; }
 }
 const slugifyGroup = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60);
+// Group roster entries. Handles directory members (memberId set), manual
+// additions (name/email only), and pending join requests (status 'pending').
+function normalizeGroupMembers(list) {
+  if (!Array.isArray(list)) return [];
+  const ROLES = ['Member', 'Leader', 'Chair', 'Co-Chair', 'Ambassador'];
+  return list.slice(0, 1000).map((m, i) => ({
+    id: String(m.id || ('gm-' + Date.now().toString(36) + i.toString(36) + Math.floor(Math.random() * 1e3).toString(36))),
+    memberId: m.memberId ? String(m.memberId).slice(0, 48) : null,
+    name: String(m.name || '').slice(0, 160),
+    business: String(m.business || '').slice(0, 160),
+    email: String(m.email || '').slice(0, 160),
+    role: ROLES.includes(m.role) ? m.role : 'Member',
+    status: m.status === 'pending' ? 'pending' : 'active',
+    source: ['admin', 'manual', 'request'].includes(m.source) ? m.source : 'admin',
+    message: m.message ? String(m.message).slice(0, 500) : undefined,
+    added: m.added || new Date().toISOString(),
+  })).filter((m) => m.name);
+}
+
+// Strip a group to what's safe for the public site: only ACTIVE members, and
+// never their email / pending requests / internal notes.
+function publicGroup(g) {
+  const members = (g.members || []).filter((m) => m.status === 'active')
+    .map((m) => ({ memberId: m.memberId || null, name: m.name, business: m.business || '', role: m.role || 'Member' }));
+  return { ...g, members, memberCount: members.length };
+}
+
 function buildGroup(b, existing = {}) {
   const name = String(b.name ?? existing.name ?? '').slice(0, 120);
   return {
@@ -541,6 +568,7 @@ function buildGroup(b, existing = {}) {
     contactEmail: String(b.contactEmail ?? existing.contactEmail ?? '').slice(0, 160),
     eventMatch: String(b.eventMatch ?? existing.eventMatch ?? '').slice(0, 120),
     status: ['approved', 'draft'].includes(b.status) ? b.status : (existing.status || 'approved'),
+    members: normalizeGroupMembers(b.members ?? existing.members ?? []),
     created: existing.created || new Date().toISOString(),
     updated: new Date().toISOString(),
   };
@@ -562,15 +590,41 @@ async function loadGroups() {
   return repo.listGroupsStore();
 }
 router.get('/groups', async (_req, res) => {
-  try { res.json({ groups: (await loadGroups()).filter((g) => g.status === 'approved') }); }
+  try { res.json({ groups: (await loadGroups()).filter((g) => g.status === 'approved').map(publicGroup) }); }
   catch (e) { console.error(e); res.status(500).json({ error: 'groups unavailable' }); }
 });
 router.get('/groups/:slug', async (req, res) => {
   try {
     const g = (await loadGroups()).find((x) => x.slug === req.params.slug || x.id === req.params.slug);
     if (!g || g.status !== 'approved') return res.status(404).json({ error: 'not found' });
-    res.json({ group: g });
+    res.json({ group: publicGroup(g) });
   } catch (e) { res.status(500).json({ error: 'failed' }); }
+});
+// Public "Join this group" → a PENDING roster entry the admin approves.
+router.post('/groups/:slug/join', async (req, res) => {
+  try {
+    const b = req.body || {};
+    const name = String(b.name || '').trim().slice(0, 160);
+    const email = String(b.email || '').trim().slice(0, 160);
+    if (!name || !email) return res.status(400).json({ error: 'Name and email are required.' });
+    const g = (await loadGroups()).find((x) => x.slug === req.params.slug || x.id === req.params.slug);
+    if (!g || g.status !== 'approved') return res.status(404).json({ error: 'not found' });
+    g.members = Array.isArray(g.members) ? g.members : [];
+    const dupe = g.members.some((m) => m.email && m.email.toLowerCase() === email.toLowerCase()
+      && (m.status === 'pending' || m.status === 'active'));
+    if (!dupe) {
+      g.members.push({
+        id: 'gm-' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36),
+        memberId: null, name, business: String(b.business || b.company || '').slice(0, 160), email,
+        role: 'Member', status: 'pending', source: 'request',
+        message: String(b.message || '').slice(0, 500), added: new Date().toISOString(),
+      });
+      await repo.upsertGroup(g);
+      // Also log a lead so the request surfaces in Inquiries as a backstop.
+      try { await repo.addLead({ id: 'lead-' + Date.now().toString(36), kind: 'group-join', name, email, company: b.business || b.company || '', reason: `Join request: ${g.name}`, message: b.message || '', status: 'new' }); } catch (e) {}
+    }
+    res.json({ ok: true });
+  } catch (e) { console.error('group join', e); res.status(500).json({ error: 'Could not submit your request.' }); }
 });
 router.get('/admin/groups', requireAdmin, async (_req, res) => {
   try { res.json({ groups: await loadGroups() }); }

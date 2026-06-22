@@ -1264,6 +1264,75 @@ window.Admin = (function () {
       note('Photos uploaded — remember to Save.', true);
     });
 
+    // ── Members roster: existing directory members + manual entries + pending approvals ──
+    let members = [];
+    let _dir = null;
+    async function directory() { if (!_dir) { try { _dir = (await api('/api/admin/members')).members || []; } catch (e) { _dir = []; } } return _dir; }
+    const roleOpts = (sel) => ['Member', 'Leader', 'Co-Chair', 'Chair', 'Ambassador'].map((r) => `<option ${r === sel ? 'selected' : ''}>${r}</option>`).join('');
+    function renderRoster() {
+      const pendEl = document.getElementById('grpPending');
+      const rosEl = document.getElementById('grpRoster');
+      const cnt = document.getElementById('grpMemberCount');
+      const active = members.filter((m) => m.status !== 'pending');
+      const pending = members.filter((m) => m.status === 'pending');
+      if (cnt) cnt.textContent = `${active.length ? `· ${active.length} active` : ''}${pending.length ? `${active.length ? ', ' : '· '}${pending.length} pending` : ''}`;
+      if (pendEl) {
+        pendEl.innerHTML = pending.length ? `<div style="background:var(--gold-soft,#f7efd5);border-radius:8px;padding:10px 12px;margin-bottom:10px">
+          <div class="sub" style="font-weight:700;margin-bottom:6px">Pending join requests</div>
+          ${pending.map((m) => `<div data-mid="${esc(m.id)}" style="display:flex;align-items:flex-start;gap:8px;padding:5px 0">
+            <span style="flex:1"><strong>${esc(m.name)}</strong>${m.business ? ` · ${esc(m.business)}` : ''}${m.email ? `<div class="sub">${esc(m.email)}</div>` : ''}${m.message ? `<div class="sub">“${esc(m.message)}”</div>` : ''}</span>
+            <button type="button" class="btn btn--forest btn--sm" data-approve>Approve</button>
+            <button type="button" class="btn btn--ghost btn--sm" data-decline style="color:var(--red)">Decline</button>
+          </div>`).join('')}</div>` : '';
+        pendEl.querySelectorAll('[data-mid]').forEach((row) => {
+          const m = members.find((x) => x.id === row.dataset.mid);
+          row.querySelector('[data-approve]')?.addEventListener('click', () => { m.status = 'active'; renderRoster(); });
+          row.querySelector('[data-decline]')?.addEventListener('click', () => { members = members.filter((x) => x.id !== m.id); renderRoster(); });
+        });
+      }
+      if (rosEl) {
+        rosEl.innerHTML = active.length ? active.map((m) => `<div data-mid="${esc(m.id)}" style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--line,#eee)">
+          <span style="flex:1"><strong>${esc(m.name)}</strong>${m.business ? ` <span class="sub">· ${esc(m.business)}</span>` : ''}${m.memberId ? '' : ' <span class="sub">(manual)</span>'}</span>
+          <select class="admin-select" data-role style="padding:3px 6px">${roleOpts(m.role)}</select>
+          <button type="button" class="btn btn--ghost btn--sm" data-remove style="color:var(--red)">Remove</button>
+        </div>`).join('') : '<p class="sub" style="margin:4px 0">No members yet — add from the directory or manually below.</p>';
+        rosEl.querySelectorAll('[data-mid]').forEach((row) => {
+          const m = members.find((x) => x.id === row.dataset.mid);
+          row.querySelector('[data-role]')?.addEventListener('change', (e) => { m.role = e.target.value; });
+          row.querySelector('[data-remove]')?.addEventListener('click', () => { members = members.filter((x) => x.id !== m.id); renderRoster(); });
+        });
+      }
+    }
+    function addMember(entry) {
+      if (entry.memberId && members.some((m) => m.memberId === entry.memberId)) { note('That member is already in the group.'); return; }
+      members.push(Object.assign({ id: 'gm-' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36), role: 'Member', status: 'active', source: entry.memberId ? 'admin' : 'manual' }, entry));
+      renderRoster();
+    }
+    const searchEl = document.getElementById('grpMemberSearch');
+    const suggEl = document.getElementById('grpMemberSuggest');
+    if (searchEl && suggEl) {
+      searchEl.addEventListener('input', async () => {
+        const q = searchEl.value.trim().toLowerCase();
+        if (q.length < 2) { suggEl.hidden = true; return; }
+        const list = (await directory()).filter((m) => [m.name, m.category, m.neighborhood, m.contactName].filter(Boolean).join(' ').toLowerCase().includes(q)).slice(0, 8);
+        suggEl.innerHTML = list.length ? list.map((m) => `<button type="button" data-add="${esc(m.id)}"><b>${esc(m.name)}</b><span>${esc(m.category || '')}${m.neighborhood ? ' · ' + esc(m.neighborhood) : ''}</span></button>`).join('') : '<button type="button" disabled><span>No matches</span></button>';
+        suggEl.hidden = false;
+        suggEl.querySelectorAll('[data-add]').forEach((b) => b.addEventListener('click', () => {
+          const m = (_dir || []).find((x) => x.id === b.dataset.add); if (!m) return;
+          addMember({ memberId: m.id, name: m.name, business: m.category || '' });
+          searchEl.value = ''; suggEl.hidden = true;
+        }));
+      });
+      document.addEventListener('click', (e) => { if (!e.target.closest('#grpMemberSearch,#grpMemberSuggest')) suggEl.hidden = true; });
+    }
+    const manualBtn = document.getElementById('grpManualAdd');
+    if (manualBtn) manualBtn.addEventListener('click', () => {
+      const nm = document.getElementById('grpManualName');
+      if (!nm.value.trim()) { note('Enter a name to add.'); return; }
+      addMember({ name: nm.value.trim(), business: document.getElementById('grpManualBiz').value.trim(), email: document.getElementById('grpManualEmail').value.trim() });
+      nm.value = ''; document.getElementById('grpManualBiz').value = ''; document.getElementById('grpManualEmail').value = '';
+    });
+
     const fill = (g) => {
       title.textContent = g ? `Edit — ${g.name}` : 'New group';
       form.id_ = g ? g.id : '';
@@ -1272,6 +1341,8 @@ window.Admin = (function () {
         .forEach((k) => { const el = form.querySelector(`[name="${k}"]`); if (el) el.value = g ? (g[k] || '') : (k === 'status' ? 'approved' : ''); });
       heroUrl = g ? (g.heroImage || '') : '';
       photos = g ? (g.photos || []).slice() : [];
+      members = g ? (g.members || []).slice() : [];
+      renderRoster();
       document.getElementById('grpHeroPrev').textContent = heroUrl ? '✓ hero set' : '';
       document.getElementById('grpPhotosPrev').textContent = photos.length ? `✓ ${photos.length} photos` : '';
       window.scrollTo({ top: 0 });
@@ -1309,7 +1380,7 @@ window.Admin = (function () {
       const fd = new FormData(form);
       const body = Object.fromEntries(fd.entries());
       if (!body.id) delete body.id;
-      body.heroImage = heroUrl; body.photos = photos;
+      body.heroImage = heroUrl; body.photos = photos; body.members = members;
       const btn = form.querySelector('[type="submit"]'); btn.disabled = true;
       try {
         await api('/api/admin/groups', { method: 'POST', body: JSON.stringify(body) });

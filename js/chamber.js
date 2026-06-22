@@ -443,9 +443,43 @@ window.Chamber = (function () {
         }
       } catch (e) {}
     }
-    // join form → standard lead pipeline, tagged with the group name
-    document.getElementById('gJoinMsgField').value = `Wants to join: ${g.name}`;
-    initLeadForm('groupJoinForm', 'groupJoinMsg', 'group-join');
+    // Members roster (active only — the API already strips pending/emails)
+    if (Array.isArray(g.members) && g.members.length) {
+      const sec = document.getElementById('gMembers');
+      if (sec) {
+        sec.hidden = false;
+        const sorted = g.members.slice().sort((a, b) => (a.role === 'Member' ? 1 : 0) - (b.role === 'Member' ? 1 : 0));
+        document.getElementById('gMemberList').innerHTML = sorted.map((m) => {
+          const meta = m.business ? ` <span class="member-tile__meta">· ${esc(m.business)}</span>` : '';
+          const role = (m.role && m.role !== 'Member') ? ` <span class="badge badge--gold" style="font-size:.62rem;vertical-align:middle">${esc(m.role)}</span>` : '';
+          const inner = `<strong>${esc(m.name)}</strong>${meta}${role}`;
+          return m.memberId
+            ? `<a href="/members/profile.html?id=${encodeURIComponent(m.memberId)}" style="display:block;padding:9px 0;border-bottom:1px solid var(--line,#eee);text-decoration:none;color:inherit">${inner}</a>`
+            : `<div style="padding:9px 0;border-bottom:1px solid var(--line,#eee)">${inner}</div>`;
+        }).join('');
+      }
+    }
+
+    // join form → a PENDING request on this group (admin approves it)
+    const jf = document.getElementById('groupJoinForm');
+    if (jf) {
+      const jmsg = document.getElementById('groupJoinMsg');
+      jf.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const fd = new FormData(jf);
+        const body = { name: fd.get('name'), email: fd.get('email'), business: fd.get('company') || '' };
+        const btn = jf.querySelector('[type="submit"]'); if (btn) btn.disabled = true;
+        try {
+          const r = await fetch(ChamberAPI.url('/api/groups/' + encodeURIComponent(slug) + '/join'),
+            { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+          if (!r.ok) throw new Error('failed');
+          if (jmsg) { jmsg.hidden = false; jmsg.textContent = 'Thanks! Your request to join was sent — the Chamber will be in touch.'; }
+          jf.reset();
+        } catch (err) {
+          if (jmsg) { jmsg.hidden = false; jmsg.textContent = 'Sorry — could not send your request. Please try again or call the office.'; }
+        } finally { if (btn) btn.disabled = false; }
+      });
+    }
   }
 
   // ── Photo gallery (gallery.html) — grid + lightbox ───────

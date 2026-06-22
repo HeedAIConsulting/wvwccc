@@ -17,7 +17,7 @@
       <div class="admin-topbar"><h1>Groups &amp; Networks</h1></div>
       <div class="admin-content">
 
-        <div class="admin-notice">Groups appear at <strong>/groups/</strong> on the site. Each group page shows its hero photo, description, meeting schedule &amp; notes, photos, matching upcoming events, and a "Join this group" form (requests land in Inquiries).</div>
+        <div class="admin-notice">Groups appear at <strong>/groups/</strong> on the site. Each group page shows its hero photo, description, meeting schedule &amp; notes, photos, the member roster, matching upcoming events, and a "Join this group" form. Join requests appear as <strong>pending members</strong> on the group below for you to approve.</div>
 
         <div class="panel">
           <div class="panel__head"><h3 id="grpFormTitle">New group</h3></div>
@@ -39,6 +39,28 @@
               <label class="btn btn--ghost btn--sm" style="cursor:pointer">Add photos<input type="file" accept="image/*" multiple hidden id="grpPhotos"></label>
               <span id="grpPhotosPrev" class="sub"></span>
             </div>
+
+            <div style="margin-top:18px;border-top:1px solid var(--line,#eee);padding-top:14px">
+              <h4 style="margin:0 0 8px">Members <span class="sub" id="grpMemberCount"></span></h4>
+              <div id="grpPending"></div>
+              <div id="grpRoster"></div>
+              <div class="field" style="position:relative;margin:12px 0 0">
+                <label>Add an existing member <span class="sub">(from your directory)</span></label>
+                <input id="grpMemberSearch" autocomplete="off" placeholder="Search by business name, category, or area…" />
+                <div id="grpMemberSuggest" class="sp-suggest" hidden></div>
+              </div>
+              <details style="margin-top:8px">
+                <summary class="sub" style="cursor:pointer">＋ Add someone manually (not in the directory)</summary>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px">
+                  <div class="field" style="margin:0"><label>Name *</label><input id="grpManualName" maxlength="160" /></div>
+                  <div class="field" style="margin:0"><label>Business</label><input id="grpManualBiz" maxlength="160" /></div>
+                  <div class="field" style="margin:0"><label>Email</label><input id="grpManualEmail" type="email" maxlength="160" /></div>
+                  <div class="field" style="margin:0;align-self:end"><button type="button" class="btn btn--ghost btn--sm" id="grpManualAdd">Add to group</button></div>
+                </div>
+              </details>
+              <p class="sub" style="margin:8px 0 0">Roster changes are saved when you click <strong>Save group</strong> below.</p>
+            </div>
+
             <p id="grpMsg" class="sub" style="margin:10px 0 0" hidden></p>
             <div style="display:flex;gap:10px;margin-top:14px">
               <button class="btn btn--forest" type="submit">Save group</button>
@@ -59,7 +81,7 @@
     </div>
   </div>
   <script src="../js/api-base.js"></script>
-  <script src="admin.js?v=20260622a"></script>
+  <script src="admin.js?v=20260622b"></script>
   <script>Admin.initGroups();</script>
 </body>
 </html>
