@@ -613,10 +613,13 @@ window.Chamber = (function () {
     let slides = [];
     try { slides = (await getJSON(ChamberAPI.url('/api/slides'))).slides || []; } catch (e) { return; }
     if (!slides.length) return; // keep the solid green hero
+    // Resolve slide images root-absolute so they work on the homepage, the
+    // /es/ homepage, and anywhere else (seed slides store relative paths).
+    const heroSrc = (u) => { u = String(u || ''); return /^(https?:|data:|\/)/i.test(u) ? u : '/' + u.replace(/^\.?\//, ''); };
     const layer = document.createElement('div');
     layer.className = 'hero__slides';
     layer.innerHTML = slides.map((s, i) =>
-      `<div class="hero__slide${i === 0 ? ' is-active' : ''}" style="background-image:url('${esc(s.imageUrl)}')"></div>`).join('')
+      `<div class="hero__slide${i === 0 ? ' is-active' : ''}" style="background-image:url('${esc(heroSrc(s.imageUrl))}')"></div>`).join('')
       + '<div class="hero__overlay"></div>';
     hero.prepend(layer);
     if (slides.length < 2) return;

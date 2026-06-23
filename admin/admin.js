@@ -1575,13 +1575,16 @@ window.Admin = (function () {
         tbody.innerHTML = '<tr><td colspan="4" class="sub">No slides yet — the homepage hero stays solid green until you add one above.</td></tr>';
         return;
       }
+      // Seed slides store relative paths (assets/hero/…); resolve root-absolute
+      // so thumbnails load from /admin/ (not /admin/assets/…).
+      const heroSrc = (u) => { u = String(u || ''); return /^(https?:|data:|\/)/i.test(u) ? u : '/' + u.replace(/^\.?\//, ''); };
       tbody.innerHTML = slides.map((s, i) => `
         <tr data-id="${esc(s.id)}">
           <td style="white-space:nowrap">
             <button type="button" class="btn btn--ghost btn--sm" data-up ${i === 0 ? 'disabled' : ''}>↑</button>
             <button type="button" class="btn btn--ghost btn--sm" data-down ${i === slides.length - 1 ? 'disabled' : ''}>↓</button>
           </td>
-          <td>${s.imageUrl ? `<img src="${esc(s.imageUrl)}" alt="" style="width:120px;height:64px;object-fit:cover;border-radius:6px;border:1px solid var(--line,#ddd)">` : '<span class="sub">no image</span>'}</td>
+          <td>${s.imageUrl ? `<img src="${esc(heroSrc(s.imageUrl))}" alt="" style="width:120px;height:64px;object-fit:cover;border-radius:6px;border:1px solid var(--line,#ddd)">` : '<span class="sub">no image</span>'}</td>
           <td><span class="name">${esc(s.title || 'Hero slide')}</span>${s.linkUrl ? `<div class="sub">${esc(s.linkUrl)}</div>` : ''}${s.status !== 'approved' ? ' <span class="pill pill--pending">draft</span>' : ''}</td>
           <td><button type="button" class="btn btn--ghost btn--sm" data-del style="color:var(--red)">Delete</button></td>
         </tr>`).join('');
