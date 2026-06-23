@@ -114,21 +114,36 @@ export async function listPosts({ type, status, memberId } = {}) {
   arr.sort((a, b) => String(b.created || '').localeCompare(String(a.created || '')));
   return arr;
 }
+// Seed post + patch → a full live record (used when editing/reordering a
+// seed-backed post for the first time, so the change has a row to live on).
+function mergeSeed(seed, patch) {
+  const out = { ...seed, ...patch };
+  if (patch && patch.meta) out.meta = { ...(seed.meta || {}), ...patch.meta };
+  return out;
+}
 export async function updatePost(id, patch) {
   const allowed = ['title', 'body', 'imageUrl', 'linkUrl', 'ctaLabel', 'ctaUrl', 'code', 'status', 'featuredHome', 'expiresAt', 'meta'];
   const colMap = { imageUrl: 'image_url', linkUrl: 'link_url', ctaLabel: 'cta_label', ctaUrl: 'cta_url', featuredHome: 'featured_home', expiresAt: 'expires_at' };
   const keys = Object.keys(patch).filter((k) => allowed.includes(k));
   if (!keys.length) return false;
+  const seed = readPostsSeed().find((p) => p.id === id);
   if (db.enabled) {
     const sets = keys.map((k, i) => `${colMap[k] || k} = $${i + 2}`);
     const vals = keys.map((k) => (k === 'meta' && patch[k] != null) ? JSON.stringify(patch[k]) : patch[k]);
     const r = await db.query(`UPDATE posts SET ${sets.join(',')} WHERE id = $1`, [id, ...vals]);
-    return r.rowCount > 0;
+    if (r.rowCount > 0) return true;
+    // No live row: a seed-backed post (e.g. a hero slide). Materialize it with
+    // the patch applied so the edit/reorder sticks (the seed merge then skips it).
+    if (seed) { await addPost(mergeSeed(seed, patch)); return true; }
+    return false;
   }
   const arr = store.read('posts.json', []);
-  const p = arr.find((x) => x.id === id);
-  if (!p) return false;
-  keys.forEach((k) => { p[k] = patch[k]; });
+  let p = arr.find((x) => x.id === id);
+  if (!p) {
+    if (!seed) return false;
+    p = { ...seed }; arr.push(p);          // materialize the seed as a live row
+  }
+  keys.forEach((k) => { p[k] = (k === 'meta') ? { ...(p.meta || {}), ...(patch.meta || {}) } : patch[k]; });
   store.write('posts.json', arr); return true;
 }
 export async function deletePost(id) {

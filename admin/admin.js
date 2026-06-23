@@ -387,6 +387,7 @@ window.Admin = (function () {
     // ── Profile editor modal: admins edit the member's PUBLIC listing ──
     function openProfileEditor(m) {
       if (!m) return;
+      let logoUrl = m.logo || '';
       const F = [
         ['name', 'Business name'], ['category', 'Category'], ['contactName', 'Contact name'],
         ['phone', 'Phone'], ['website', 'Website'], ['address', 'Address'],
@@ -402,6 +403,17 @@ window.Admin = (function () {
             <button type="button" data-x style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--muted)">×</button>
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div class="field" style="grid-column:1/-1;margin:0">
+              <label>Logo <span class="sub">(shown on the directory card &amp; public profile)</span></label>
+              <div style="display:flex;align-items:center;gap:14px">
+                <div data-logo-prev style="flex:none;width:72px;height:72px;border-radius:12px;border:1px solid var(--line,#e4dcc8);overflow:hidden;display:grid;place-items:center;background:#f6f3ea"></div>
+                <div style="flex:1">
+                  <input type="file" data-logo-file accept="image/png,image/jpeg,image/webp" />
+                  <p class="sub" style="margin:4px 0 0">PNG, JPG or WebP, up to ~2.5&nbsp;MB. Replaces the current logo on Save.</p>
+                </div>
+                <button type="button" data-logo-clear class="btn btn--ghost btn--sm" style="flex:none">Remove</button>
+              </div>
+            </div>
             ${F.map(([k, lbl]) => `<div class="field" style="margin:0;${k === 'tagline' || k === 'name' ? 'grid-column:1/-1' : ''}">
               <label>${lbl}</label><input name="${k}" value="${esc(m[k] || '')}" /></div>`).join('')}
             <div class="field" style="grid-column:1/-1;margin:0"><label>Description</label>
@@ -433,6 +445,7 @@ window.Admin = (function () {
         const social = {};
         ['facebook', 'instagram', 'linkedin', 'x', 'youtube', 'tiktok'].forEach((k) => { if (body['soc_' + k]) social[k] = body['soc_' + k].trim(); delete body['soc_' + k]; });
         body.social = social;
+        body.logo = logoUrl;
         const btn = e.target.querySelector('[type="submit"]'); btn.disabled = true; btn.textContent = 'Saving…';
         try {
           await api(`/api/admin/members/${encodeURIComponent(m.id)}/profile`, { method: 'PATCH', body: JSON.stringify(body) });
@@ -443,7 +456,29 @@ window.Admin = (function () {
         }
       });
       document.body.appendChild(ov);
-      ov.querySelector('input')?.focus();
+      // ── Logo upload (file → data URL → /api/me/asset → url, saved with the profile) ──
+      const logoPrev = ov.querySelector('[data-logo-prev]');
+      const logoFile = ov.querySelector('[data-logo-file]');
+      const logoClear = ov.querySelector('[data-logo-clear]');
+      const msgEl = ov.querySelector('[data-msg]');
+      const drawLogo = () => {
+        logoPrev.innerHTML = logoUrl
+          ? `<img src="${esc(logoUrl)}" alt="logo" style="width:100%;height:100%;object-fit:cover" />`
+          : '<span class="sub" style="font-size:.62rem;text-align:center;line-height:1.2;padding:4px">No logo</span>';
+      };
+      drawLogo();
+      logoFile?.addEventListener('change', async (e) => {
+        const f = e.target.files[0]; if (!f) return;
+        if (f.size > 2.6 * 1024 * 1024) { msgEl.hidden = false; msgEl.textContent = 'Logo too large — please use an image under ~2.5 MB.'; return; }
+        msgEl.hidden = false; msgEl.textContent = 'Uploading logo…';
+        try {
+          const dataUrl = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(f); });
+          const up = await api('/api/me/asset', { method: 'POST', body: JSON.stringify({ kind: 'logo', dataUrl }) });
+          logoUrl = up.url; drawLogo(); msgEl.textContent = 'Logo uploaded — click Save profile to apply.';
+        } catch (err) { msgEl.textContent = 'Logo upload failed (PNG/JPG/WebP, ≤2.5 MB).'; }
+      });
+      logoClear?.addEventListener('click', () => { logoUrl = ''; drawLogo(); if (logoFile) logoFile.value = ''; msgEl.hidden = false; msgEl.textContent = 'Logo will be removed on Save.'; });
+      ov.querySelector('input:not([type=file])')?.focus();
     }
 
     let t; search.addEventListener('input', () => { clearTimeout(t); t = setTimeout(() => load(search.value.trim()), 250); });
@@ -1548,6 +1583,14 @@ window.Admin = (function () {
     const prev = document.getElementById('slideImgPrev');
     let imageUrl = '';
     let slides = [];
+    let editingId = null;                         // null = add mode; id = editing that slide
+    const fTitle = document.getElementById('slideFormTitle');
+    const fSubmit = document.getElementById('slideSubmit');
+    const fCancel = document.getElementById('slideCancel');
+    const fImgLabel = document.getElementById('slideImageLabel');
+    // Seed slides store relative paths (assets/hero/…); resolve root-absolute
+    // so thumbnails/previews load from /admin/ (not /admin/assets/…).
+    const heroSrc = (u) => { u = String(u || ''); return /^(https?:|data:|\/)/i.test(u) ? u : '/' + u.replace(/^\.?\//, ''); };
 
     const imgInput = document.getElementById('slideImage');
     if (imgInput) imgInput.addEventListener('change', async (e) => {
@@ -1558,9 +1601,34 @@ window.Admin = (function () {
         const up = await api('/api/me/asset', { method: 'POST', body: JSON.stringify({ kind: 'photo', dataUrl }) });
         imageUrl = up.url;
         if (prev) prev.innerHTML = `<img src="${imageUrl}" alt="" style="max-width:260px;border-radius:8px;margin-top:8px">`;
-        msg.textContent = 'Image ready — add an optional title, then click Add slide.';
+        msg.textContent = editingId ? 'New image ready — click Save changes.' : 'Image ready — add an optional title, then click Add slide.';
       } catch (err) { msg.textContent = 'Image upload failed (PNG/JPG, ≤2.5MB).'; }
     });
+
+    // Switch the form between "add" and "edit" modes.
+    function startEdit(s) {
+      editingId = s.id;
+      imageUrl = '';                              // empty = keep current image unless a new one is uploaded
+      if (form) { form.title.value = (s.title && s.title !== 'Hero slide') ? s.title : ''; form.linkUrl.value = s.linkUrl || ''; }
+      if (imgInput) imgInput.value = '';
+      if (prev) prev.innerHTML = `<img src="${esc(heroSrc(s.imageUrl))}" alt="" style="max-width:260px;border-radius:8px;margin-top:8px"><div class="sub" style="margin-top:4px">Current image — upload a new one only if you want to replace it.</div>`;
+      if (fTitle) fTitle.textContent = 'Edit slide';
+      if (fSubmit) fSubmit.textContent = 'Save changes';
+      if (fCancel) fCancel.hidden = false;
+      if (fImgLabel) fImgLabel.innerHTML = 'Replace image <span class="sub">(optional — leave blank to keep the current image)</span>';
+      msg.hidden = true; msg.textContent = '';
+      form?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    function resetForm() {
+      editingId = null; imageUrl = '';
+      if (form) form.reset();
+      if (prev) prev.innerHTML = '';
+      if (fTitle) fTitle.textContent = 'Add a slide';
+      if (fSubmit) fSubmit.textContent = 'Add slide';
+      if (fCancel) fCancel.hidden = true;
+      if (fImgLabel) fImgLabel.innerHTML = 'Slide image <span class="sub">(required — for best results, upload a wide landscape photo)</span>';
+    }
+    if (fCancel) fCancel.addEventListener('click', () => { resetForm(); msg.hidden = true; });
 
     async function persistOrder() {
       try { await api('/api/admin/slides/reorder', { method: 'POST', body: JSON.stringify({ order: slides.map((s) => s.id) }) }); }
@@ -1575,9 +1643,6 @@ window.Admin = (function () {
         tbody.innerHTML = '<tr><td colspan="4" class="sub">No slides yet — the homepage hero stays solid green until you add one above.</td></tr>';
         return;
       }
-      // Seed slides store relative paths (assets/hero/…); resolve root-absolute
-      // so thumbnails load from /admin/ (not /admin/assets/…).
-      const heroSrc = (u) => { u = String(u || ''); return /^(https?:|data:|\/)/i.test(u) ? u : '/' + u.replace(/^\.?\//, ''); };
       tbody.innerHTML = slides.map((s, i) => `
         <tr data-id="${esc(s.id)}">
           <td style="white-space:nowrap">
@@ -1586,7 +1651,10 @@ window.Admin = (function () {
           </td>
           <td>${s.imageUrl ? `<img src="${esc(heroSrc(s.imageUrl))}" alt="" style="width:120px;height:64px;object-fit:cover;border-radius:6px;border:1px solid var(--line,#ddd)">` : '<span class="sub">no image</span>'}</td>
           <td><span class="name">${esc(s.title || 'Hero slide')}</span>${s.linkUrl ? `<div class="sub">${esc(s.linkUrl)}</div>` : ''}${s.status !== 'approved' ? ' <span class="pill pill--pending">draft</span>' : ''}</td>
-          <td><button type="button" class="btn btn--ghost btn--sm" data-del style="color:var(--red)">Delete</button></td>
+          <td style="white-space:nowrap">
+            <button type="button" class="btn btn--ghost btn--sm" data-edit>Edit</button>
+            <button type="button" class="btn btn--ghost btn--sm" data-del style="color:var(--red)">Delete</button>
+          </td>
         </tr>`).join('');
       tbody.querySelectorAll('tr[data-id]').forEach((tr, i) => {
         const id = tr.dataset.id;
@@ -1596,8 +1664,10 @@ window.Admin = (function () {
         tr.querySelector('[data-down]')?.addEventListener('click', async () => {
           if (i >= slides.length - 1) return; [slides[i + 1], slides[i]] = [slides[i], slides[i + 1]]; render(); await persistOrder();
         });
+        tr.querySelector('[data-edit]')?.addEventListener('click', () => startEdit(slides[i]));
         tr.querySelector('[data-del]')?.addEventListener('click', async () => {
           if (!confirm('Delete this slide from the homepage hero?')) return;
+          if (editingId === id) resetForm();
           try { await api('/api/admin/posts/' + encodeURIComponent(id), { method: 'DELETE' }); load(); }
           catch (e) { showAuthError(e); }
         });
@@ -1606,17 +1676,28 @@ window.Admin = (function () {
 
     if (form) form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      if (!imageUrl) { msg.hidden = false; msg.textContent = 'Upload a slide image first.'; return; }
       const fd = new FormData(form);
-      const body = { type: 'slide', title: (fd.get('title') || '').trim() || 'Hero slide', linkUrl: fd.get('linkUrl') || '', imageUrl, status: 'approved' };
-      const btn = form.querySelector('button[type="submit"]'); btn.disabled = true;
+      const title = (fd.get('title') || '').trim() || 'Hero slide';
+      const linkUrl = fd.get('linkUrl') || '';
+      const btn = fSubmit || form.querySelector('button[type="submit"]'); btn.disabled = true;
       try {
-        await api('/api/admin/posts', { method: 'POST', body: JSON.stringify(body) });
-        form.reset(); imageUrl = ''; if (prev) prev.innerHTML = '';
-        await load();           // new slide sorts to the end (no sortOrder yet)
-        await persistOrder();   // lock in 0..n so its order is explicit
-        msg.hidden = false; msg.textContent = 'Slide added ✓';
-      } catch (err) { msg.hidden = false; msg.textContent = 'Could not add slide.'; }
+        if (editingId) {
+          // Edit existing slide: only replace the image if a new one was uploaded.
+          const patch = { title, linkUrl };
+          if (imageUrl) patch.imageUrl = imageUrl;
+          await api('/api/admin/posts/' + encodeURIComponent(editingId), { method: 'PATCH', body: JSON.stringify(patch) });
+          resetForm();
+          await load();
+          msg.hidden = false; msg.textContent = 'Slide updated ✓';
+        } else {
+          if (!imageUrl) { msg.hidden = false; msg.textContent = 'Upload a slide image first.'; return; }
+          await api('/api/admin/posts', { method: 'POST', body: JSON.stringify({ type: 'slide', title, linkUrl, imageUrl, status: 'approved' }) });
+          resetForm();
+          await load();           // new slide sorts to the end (no sortOrder yet)
+          await persistOrder();   // lock in 0..n so its order is explicit
+          msg.hidden = false; msg.textContent = 'Slide added ✓';
+        }
+      } catch (err) { msg.hidden = false; msg.textContent = editingId ? 'Could not update slide.' : 'Could not add slide.'; }
       finally { btn.disabled = false; }
     });
 
