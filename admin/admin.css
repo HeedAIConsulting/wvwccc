@@ -142,6 +142,19 @@ a.stat-card:hover { box-shadow: var(--sh-md, 0 8px 24px rgba(0,0,0,.10)); transf
 .tpl-row .sub { font-size: .76rem; }
 .tpl-row .actions { display: flex; gap: 6px; flex-shrink: 0; }
 
+/* ── Help assistant: searchable rows, "Show me", tip banner, pulse ── */
+.help-row { display: flex; align-items: center; gap: 12px; border: 1px solid var(--line, #e4dcc8); border-radius: 11px; padding: 12px 14px; text-decoration: none; color: inherit; transition: border-color .15s, box-shadow .15s, transform .15s; }
+.help-row:hover { border-color: var(--gold, #C9A227); box-shadow: var(--sh-sm); transform: translateY(-1px); }
+.help-row .grow { flex: 1; min-width: 0; }
+.help-row .help-t { display: block; font-weight: 700; color: var(--green-deep, #1E5631); margin-bottom: 2px; }
+.help-row .help-show { flex: none; font-family: var(--mono); font-size: .72rem; letter-spacing: .04em; text-transform: uppercase; color: #fff; background: var(--green); padding: 7px 11px; border-radius: 999px; white-space: nowrap; }
+.help-banner { display: flex; align-items: center; gap: 12px; background: var(--gold-soft, #F4E9C1); border: 1px solid var(--gold, #C9A227); color: var(--gold-deep, #8C6E14); border-radius: 10px; padding: 11px 14px; margin: 0 0 var(--s-5); font-size: .92rem; line-height: 1.5; }
+.help-banner span { flex: 1; }
+.help-banner strong { color: var(--green-ink, #143C20); }
+.help-banner button { border: none; background: none; cursor: pointer; font-size: 1rem; color: var(--gold-deep); line-height: 1; }
+.help-pulse { animation: helpPulse 1s ease-out 3; border-radius: 8px; outline-offset: 3px; }
+@keyframes helpPulse { 0% { box-shadow: 0 0 0 0 rgba(201,162,39,.65); } 70% { box-shadow: 0 0 0 8px rgba(201,162,39,0); } 100% { box-shadow: 0 0 0 0 rgba(201,162,39,0); } }
+
 /* ── Sponsorships: member search suggestions ── */
 .sp-suggest { position: absolute; z-index: 50; top: calc(100% + 4px); left: 0; min-width: 280px;
   background: #fff; border: 1px solid var(--line, #e3ded2); border-radius: 10px;

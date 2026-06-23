@@ -97,7 +97,7 @@ window.Admin = (function () {
       guide.setAttribute('data-admin-guide', '');
       guide.style.cssText = 'background:var(--gold,#C9A227);color:var(--green-ink,#143c20);border-color:var(--gold,#C9A227);font-weight:600';
       guide.textContent = '❔ Guide';
-      guide.addEventListener('click', () => openTour());
+      guide.addEventListener('click', () => openHelp());
       bar.appendChild(guide);
       const b = document.createElement('button');
       b.type = 'button';
@@ -108,49 +108,78 @@ window.Admin = (function () {
       b.addEventListener('click', logout);
       bar.appendChild(b);
     }
-    // First visit: auto-open the guided tour once (reopen anytime via ❔ Guide).
-    try { if (!localStorage.getItem('wv_admin_tour_seen')) { openTour(); localStorage.setItem('wv_admin_tour_seen', '1'); } } catch (e) {}
+    // First visit: auto-open the help assistant once (reopen anytime via ❔ Guide).
+    try { if (!localStorage.getItem('wv_admin_tour_seen')) { openHelp(); localStorage.setItem('wv_admin_tour_seen', '1'); } } catch (e) {}
+    // If we arrived via a "Show me" link, highlight the relevant control.
+    helpHighlight();
   }
 
-  // ── Guided tour / help (closable + re-openable) ──
-  function openTour() {
-    if (document.querySelector('[data-admin-tour]')) return;
-    const SEC = [
-      ['▦ Dashboard', 'Your home base — key counts (members, pending approvals, renewals, inquiries). Click any card to jump straight to that area.'],
-      ['◉ Members', 'Search and manage every member. Click a member to edit their public listing (description, services, accomplishments, associations, social links, logo & photos), set their membership expiration, or set/reset their password.'],
-      ['✓ Approvals', 'New member sign-ups and member-submitted posts wait here for your approval before they go public.'],
-      ['↻ Renewals', 'See who is expiring soon and renew them in one click.'],
-      ['◆ Events', 'Create & edit events. Upload a flyer and the AI can auto-fill the details; add a thumbnail, tickets, PDFs, and feature an event on the homepage.'],
-      ['◎ Groups & Networks', 'Manage your Connection Circles & Networks: set each group’s manager, add members (from the directory or manually), assign leaders, and approve people who request to join.'],
-      ['✎ Content', 'Write news posts, member-board posts, offers/deals, and gallery photos.'],
-      ['▭ Hero Slider', 'Manage the rotating banner images on the homepage.'],
-      ['★ Sponsorships', 'Manage featured placements and sponsor logos.'],
-      ['✦ AI Assistant', 'Your staff assistant (powered by Claude). Ask it to analyze the membership or draft content, and attach a flyer / PDF / image to work from. Save conversations to share between you.'],
-      ['❏ Email Templates', 'Save the emails you reuse, then pick one, add the few specifics, and the assistant drafts a fresh version in the same voice.'],
-      ['⚷ Users & Roles', 'Create logins and (Super Admins) set staff roles and member expirations.'],
-      ['$ Pay Log', 'Every payment through the site — dues, tickets, donations — with receipts.'],
-      ['✉ Inquiries', 'Contact-form messages and “Join this group” requests from the website.'],
-      ['ⓘ About / Support', 'Site version & technology, plus a form to send a support request (with a screenshot) straight to Heed.'],
-    ];
+  // ── Help assistant: searchable how-to with clickable "Show me" links ──
+  const HELP = [
+    { id: 'group-add-members', t: 'Add members to a group / Connection Circle', kw: 'group network connection circle roster add member leader join', href: 'groups.html', sel: '#grpMemberSearch', tip: 'Open a group, then search your directory here and click a member to add them. You can also “Add someone manually.”' },
+    { id: 'group-manager', t: 'Set a group / network manager', kw: 'group manager rsvp join request leader contact', href: 'groups.html', sel: '#grpMgrSearch', tip: 'Search a member to set as the group’s manager — they receive that group’s join requests and meeting RSVPs.' },
+    { id: 'group-approve', t: 'Approve a “Join this group” request', kw: 'group join request approve pending decline', href: 'groups.html', sel: '#grpPending', tip: 'Edit a group; pending join requests show here with Approve / Decline, then Save group.' },
+    { id: 'event-create', t: 'Create or edit an event', kw: 'event create edit add date venue ticket calendar feature homepage', href: 'events.html', sel: '#eventForm', tip: 'Fill in the event here. Toggle “Feature on homepage” to spotlight it.' },
+    { id: 'event-flyer', t: 'Make an event from a flyer (AI auto-fill)', kw: 'event flyer poster pdf upload ai autofill', href: 'events.html', sel: '#evFlyer', tip: 'Upload a flyer (image or PDF) and the AI reads it and fills the event form for you to review.' },
+    { id: 'member-edit', t: 'Edit a member’s profile / listing', kw: 'member profile edit description services accomplishments associations social logo photos', href: 'members.html', sel: '#memberSearch', tip: 'Search the member, then click their name to edit their public listing (incl. services, accomplishments, associations & social links).' },
+    { id: 'member-password', t: 'Set or reset a member’s password', kw: 'password reset set member login access', href: 'members.html', sel: '#memberSearch', tip: 'Find the member, then use “Set password” or “Reset link.”' },
+    { id: 'approve-member', t: 'Approve a new member sign-up', kw: 'approve new member signup pending application', href: 'approvals.html', tip: 'New sign-ups and member-submitted posts wait here for your OK before they go public.' },
+    { id: 'renew', t: 'Renew a member', kw: 'renew renewal expiring expire membership dues', href: 'renewals.html', tip: 'See who’s expiring soon and renew in one click.' },
+    { id: 'ai', t: 'Ask the AI assistant / draft content', kw: 'ai assistant claude draft email newsletter analyze membership attach', href: 'ai-assistant.html', sel: '#chatInput', tip: 'Type your question, or attach a flyer/PDF/image to work from. Save chats to share.' },
+    { id: 'templates', t: 'Save & use an email template', kw: 'email template draft reuse felicia message redraft', href: 'ai-assistant.html?tpl=1', sel: '#tplOpen', tip: 'Save the emails you reuse, then pick one, add the specifics, and it drafts a fresh version.' },
+    { id: 'slider', t: 'Change the homepage banner images', kw: 'hero slider banner homepage image slide rotate', href: 'slides.html', tip: 'Add, reorder, or remove the rotating homepage banner images.' },
+    { id: 'content', t: 'Post news, a deal, or a photo', kw: 'news post content deal offer coupon gallery announcement biz buzz', href: 'content.html', tip: 'Write news posts, member-board posts, offers/deals, and gallery photos.' },
+    { id: 'sponsors', t: 'Manage sponsors & featured placements', kw: 'sponsor sponsorship featured placement logo advertise', href: 'sponsorships.html', tip: 'Manage featured placements and sponsor logos.' },
+    { id: 'users', t: 'Create a login / set staff roles', kw: 'user role staff admin login create account super', href: 'users.html', tip: 'Create logins; Super Admins can set roles and member expirations.' },
+    { id: 'payments', t: 'See payments & receipts', kw: 'payment pay log receipt dues ticket donation revenue order', href: 'payments.html', tip: 'Every payment through the site, with receipts.' },
+    { id: 'inquiries', t: 'Read website inquiries', kw: 'inquiry contact message lead join request', href: 'leads.html', tip: 'Contact-form messages and group-join requests from the website.' },
+    { id: 'support', t: 'Submit a support request to Heed', kw: 'support help ticket problem bug broken screenshot heed contact', href: 'about.html', sel: '#supportForm', tip: 'Send us a message with a screenshot — or use the 🛟 Support button on any page.' },
+  ];
+  function openHelp() {
+    if (document.querySelector('[data-admin-help]')) return;
     const ov = document.createElement('div');
-    ov.className = 'chat-modal';
-    ov.setAttribute('data-admin-tour', '');
+    ov.className = 'chat-modal'; ov.setAttribute('data-admin-help', '');
     ov.innerHTML = `<div class="chat-modal__box" style="max-width:680px">
       <button class="chat-modal__x" data-x aria-label="Close" type="button">×</button>
-      <h2 style="margin:0 0 4px">Welcome to your Chamber admin 👋</h2>
-      <p class="sub" style="margin:0 0 16px">A quick guide to each area. Reopen this anytime with the <strong>❔ Guide</strong> button at the top right.</p>
-      <div style="display:flex;flex-direction:column;gap:10px;max-height:60vh;overflow:auto;padding-right:4px">
-        ${SEC.map(([h, b]) => `<div style="border:1px solid var(--line);border-radius:10px;padding:11px 14px"><div style="font-weight:700;margin-bottom:2px;color:var(--green-deep)">${esc(h)}</div><div class="sub" style="line-height:1.55">${esc(b)}</div></div>`).join('')}
-      </div>
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:16px;flex-wrap:wrap">
-        <a class="btn btn--ghost btn--sm" href="about.html">Need help? Submit a support ticket →</a>
-        <button class="btn btn--forest btn--sm" data-x type="button">Got it</button>
-      </div>
+      <h2 style="margin:0 0 4px">How can we help? 🌿</h2>
+      <p class="sub" style="margin:0 0 12px">Search for what you want to do, then click <strong>“Show me”</strong> to jump right to it. Reopen anytime with the <strong>❔ Guide</strong> button.</p>
+      <input id="helpSearch" placeholder="Search…  e.g. add members to a group" autocomplete="off" style="width:100%;padding:11px 13px;border:1.5px solid var(--line);border-radius:10px;font:inherit;margin-bottom:12px" />
+      <div id="helpList" style="display:flex;flex-direction:column;gap:8px;max-height:56vh;overflow:auto;padding-right:4px"></div>
+      <div style="margin-top:14px;text-align:right"><a class="btn btn--ghost btn--sm" href="about.html">Still stuck? Contact Heed support →</a></div>
     </div>`;
+    const list = ov.querySelector('#helpList');
+    const render = (q) => {
+      q = (q || '').trim().toLowerCase();
+      const items = HELP.filter((h) => !q || (h.t + ' ' + h.kw).toLowerCase().includes(q));
+      list.innerHTML = items.length ? items.map((h) => `<a class="help-row" href="${esc(h.href)}${h.href.indexOf('?') >= 0 ? '&' : '?'}help=${esc(h.id)}">
+        <span class="grow"><span class="help-t">${esc(h.t)}</span><span class="sub" style="line-height:1.5">${esc(h.tip)}</span></span>
+        <span class="help-show">Show me →</span></a>`).join('') : `<p class="sub" style="padding:8px">No match — try other words, or <a href="about.html">contact support</a>.</p>`;
+    };
+    render('');
     const close = () => ov.remove();
     ov.addEventListener('click', (e) => { if (e.target === ov || e.target.closest('[data-x]')) close(); });
     document.addEventListener('keydown', function k(e) { if (e.key === 'Escape') { close(); document.removeEventListener('keydown', k); } });
+    ov.querySelector('#helpSearch').addEventListener('input', (e) => render(e.target.value));
     document.body.appendChild(ov);
+    setTimeout(() => ov.querySelector('#helpSearch').focus(), 60);
+  }
+  // After a "Show me" navigation (?help=<id>): show a tip banner + pulse the target element.
+  function helpHighlight() {
+    const id = new URLSearchParams(location.search).get('help');
+    if (!id) return;
+    const h = HELP.find((x) => x.id === id); if (!h) return;
+    const host = document.querySelector('.admin-content') || document.body;
+    const ban = document.createElement('div');
+    ban.className = 'help-banner';
+    ban.innerHTML = `<span>💡 <strong>${esc(h.t)}</strong> — ${esc(h.tip)}</span><button type="button" aria-label="Dismiss">✕</button>`;
+    ban.querySelector('button').addEventListener('click', () => ban.remove());
+    host.insertBefore(ban, host.firstChild);
+    if (h.sel) {
+      setTimeout(() => {
+        const el = document.querySelector(h.sel);
+        if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.classList.add('help-pulse'); setTimeout(() => el.classList.remove('help-pulse'), 3200); }
+      }, 500);
+    }
   }
 
   function statusPill(s) { s = s || 'approved'; return `<span class="pill pill--${s}">${esc(s)}</span>`; }
@@ -1615,5 +1644,5 @@ window.Admin = (function () {
     });
   }
 
-  return { mountShell, initDashboard, initMembers, initApprovals, initOrders, initLeads, initEvents, initContent, initAssistant, initRenewals, initUsers, initGroups, initSponsorships, initSlides, initAbout, openTour, api, esc };
+  return { mountShell, initDashboard, initMembers, initApprovals, initOrders, initLeads, initEvents, initContent, initAssistant, initRenewals, initUsers, initGroups, initSponsorships, initSlides, initAbout, openHelp, api, esc };
 })();
