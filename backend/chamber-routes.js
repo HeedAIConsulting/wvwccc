@@ -539,6 +539,7 @@ function normalizeGroupMembers(list) {
     name: String(m.name || '').slice(0, 160),
     business: String(m.business || '').slice(0, 160),
     email: String(m.email || '').slice(0, 160),
+    phone: String(m.phone || '').slice(0, 40),
     role: ROLES.includes(m.role) ? m.role : 'Member',
     status: m.status === 'pending' ? 'pending' : 'active',
     source: ['admin', 'manual', 'request'].includes(m.source) ? m.source : 'admin',
@@ -550,7 +551,7 @@ function normalizeGroupMembers(list) {
 // The person who runs a group — receives its join requests & meeting RSVPs.
 function normalizeGroupManager(m) {
   m = m || {};
-  return { name: String(m.name || '').slice(0, 160), email: String(m.email || '').slice(0, 160), memberId: m.memberId ? String(m.memberId).slice(0, 48) : null };
+  return { name: String(m.name || '').slice(0, 160), email: String(m.email || '').slice(0, 160), phone: String(m.phone || '').slice(0, 40), memberId: m.memberId ? String(m.memberId).slice(0, 48) : null };
 }
 // Group photos may carry an optional date + associated event for captions.
 function normalizeGroupPhotos(list) {
@@ -598,9 +599,24 @@ async function loadGroups() {
       if (!(await repo.hasGroups())) {
         for (const g of readSeedGroups()) await repo.upsertGroup(buildGroup(g, g));
       } else {
-        // add-only: seed groups that don't exist yet (new networks shipped in code)
-        const have = new Set((await repo.listGroupsStore()).map((g) => g.id));
-        for (const g of readSeedGroups()) if (!have.has(g.id)) await repo.upsertGroup(buildGroup(g, g));
+        // add-only for new groups; plus a one-time leader/manager BACKFILL for
+        // existing groups that still have no roster/manager (so the imported
+        // Connection Circle leaders land without clobbering any admin edits).
+        const live = new Map((await repo.listGroupsStore()).map((g) => [g.id, g]));
+        for (const g of readSeedGroups()) {
+          const cur = live.get(g.id);
+          if (!cur) { await repo.upsertGroup(buildGroup(g, g)); continue; }
+          const noRoster = !Array.isArray(cur.members) || cur.members.length === 0;
+          const noManager = !cur.manager || !cur.manager.email;
+          const addRoster = noRoster && Array.isArray(g.members) && g.members.length;
+          const addManager = noManager && g.manager && g.manager.email;
+          if (addRoster || addManager) {
+            const merged = { ...cur };
+            if (addRoster) merged.members = g.members;
+            if (addManager) merged.manager = g.manager;
+            await repo.upsertGroup(buildGroup(merged, cur));
+          }
+        }
       }
     } catch (e) { console.error('group seed failed', e); }
   }

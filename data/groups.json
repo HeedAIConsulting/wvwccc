@@ -1,7 +1,7 @@
 {
   "_meta": {
-    "note": "Chamber groups & networks seed. Admins manage these in Admin → Groups; this file seeds the store once (add-only, never overwrites admin edits).",
-    "schema_version": 1
+    "note": "Chamber groups & networks seed. Admins manage these in Admin → Groups. New groups are added; existing groups get a one-time leader/manager backfill only when they still have none (never overwrites admin edits). Leaders imported from Felicia's ConnectionCirclesGroupsLeaders.xlsx (2026-06-18).",
+    "schema_version": 2
   },
   "groups": [
     {
@@ -12,11 +12,15 @@
       "description": "A credible group of home-improvement industry professionals sharing leads, referrals, and insight. From contractors and designers to inspectors and suppliers — if your business touches the home, this network keeps your pipeline warm and your reputation growing.",
       "heroImage": "assets/events/11311.jpg",
       "photos": [],
-      "meetingSchedule": "3rd Tuesday of the month",
+      "meetingSchedule": "3rd Tuesday of the month · 8:30 AM",
       "meetingNotes": "",
       "contactEmail": "felicia@woodlandhillscc.net",
       "eventMatch": "Home Improvement",
-      "status": "approved"
+      "status": "approved",
+      "manager": { "name": "Lisa Alexandrian", "email": "lisa@greenrodentrestoration.com", "phone": "(747)998-2396" },
+      "members": [
+        { "id": "gm-lisa-alexandrian", "name": "Lisa Alexandrian", "email": "lisa@greenrodentrestoration.com", "phone": "(747)998-2396", "role": "Leader", "status": "active", "source": "admin" }
+      ]
     },
     {
       "id": "grp-health-wellness",
@@ -30,7 +34,11 @@
       "meetingNotes": "",
       "contactEmail": "felicia@woodlandhillscc.net",
       "eventMatch": "Health & Wellness",
-      "status": "approved"
+      "status": "approved",
+      "manager": { "name": "Susan Roberts", "email": "susan@seniorcareresources.org", "phone": "(310)986-4533" },
+      "members": [
+        { "id": "gm-susan-roberts", "name": "Susan Roberts", "email": "susan@seniorcareresources.org", "phone": "(310)986-4533", "role": "Leader", "status": "active", "source": "admin" }
+      ]
     },
     {
       "id": "grp-dbn",
@@ -40,11 +48,15 @@
       "description": "DBN brings together motivated business owners and professionals for structured, high-energy networking — introductions, one-to-ones, and referrals that turn into real business.",
       "heroImage": "assets/events/11360.jpg",
       "photos": [],
-      "meetingSchedule": "See upcoming events below",
+      "meetingSchedule": "2nd Monday of the month · 12:30–2:30 PM",
       "meetingNotes": "",
       "contactEmail": "felicia@woodlandhillscc.net",
       "eventMatch": "Dynamic Business Networking",
-      "status": "approved"
+      "status": "approved",
+      "manager": { "name": "Priscilla Purganan", "email": "precypurg@gmail.com", "phone": "(661)430-1520" },
+      "members": [
+        { "id": "gm-priscilla-purganan", "name": "Priscilla Purganan", "email": "precypurg@gmail.com", "phone": "(661)430-1520", "role": "Leader", "status": "active", "source": "admin" }
+      ]
     },
     {
       "id": "grp-lees-luncheon",
@@ -54,11 +66,15 @@
       "description": "A dedicated lunch group focused on really knowing each other's businesses, so every referral is a confident one. Limited seats keep the conversation personal.",
       "heroImage": "assets/events/11293.jpg",
       "photos": [],
-      "meetingSchedule": "See upcoming events below",
+      "meetingSchedule": "2nd Wednesday of the month · Lunch 11:45 AM–1:00 PM",
       "meetingNotes": "",
       "contactEmail": "felicia@woodlandhillscc.net",
       "eventMatch": "Luncheon Connection Circle",
-      "status": "approved"
+      "status": "approved",
+      "manager": { "name": "Lee Levy", "email": "lee@nexgraphics.com", "phone": "(818)888-8235" },
+      "members": [
+        { "id": "gm-lee-levy", "name": "Lee Levy", "email": "lee@nexgraphics.com", "phone": "(818)888-8235", "role": "Leader", "status": "active", "source": "admin" }
+      ]
     },
     {
       "id": "grp-martins-circle",
@@ -68,11 +84,15 @@
       "description": "Start the week connected. A small group dedicated to learning more about each other so we can provide better referrals. Coffee and a small pastry provided at the Chamber offices.",
       "heroImage": "assets/hero/hero2.jpg",
       "photos": [],
-      "meetingSchedule": "Mondays · 8:00–9:00 AM · Chamber offices",
+      "meetingSchedule": "1st Monday of the month · 8:00–9:00 AM · Chamber offices",
       "meetingNotes": "",
       "contactEmail": "felicia@woodlandhillscc.net",
       "eventMatch": "Martin's Connection Circle",
-      "status": "approved"
+      "status": "approved",
+      "manager": { "name": "Martin Carman", "email": "martin.carman@synapticsystems.biz", "phone": "(818)710-0647" },
+      "members": [
+        { "id": "gm-martin-carman", "name": "Martin Carman", "email": "martin.carman@synapticsystems.biz", "phone": "(818)710-0647", "role": "Leader", "status": "active", "source": "admin" }
+      ]
     },
     {
       "id": "grp-ypn",
@@ -82,11 +102,107 @@
       "description": "YPN connects rising professionals across the West Valley for networking, mentorship, and community projects — build your circle early and grow with the Chamber.",
       "heroImage": "assets/hero/hero3.jpg",
       "photos": [],
-      "meetingSchedule": "Watch for upcoming YPN mixers",
+      "meetingSchedule": "3rd Thursday of the month · 5:30 PM",
       "meetingNotes": "",
       "contactEmail": "felicia@woodlandhillscc.net",
       "eventMatch": "YPN",
-      "status": "approved"
+      "status": "approved",
+      "manager": { "name": "Jon Mann", "email": "jon@jointmatters.com", "phone": "(818)518-4697" },
+      "members": [
+        { "id": "gm-jon-mann", "name": "Jon Mann", "email": "jon@jointmatters.com", "phone": "(818)518-4697", "role": "Leader", "status": "active", "source": "admin" }
+      ]
+    },
+    {
+      "id": "grp-event-hospitality",
+      "slug": "event-planning-hospitality-network",
+      "name": "Event Planning & Hospitality Professionals Network",
+      "tagline": "For the people who make memorable events happen.",
+      "description": "Event planners, caterers, venues, rentals, and hospitality professionals across the West Valley meet to share referrals and collaborate on standout events.",
+      "heroImage": "",
+      "photos": [],
+      "meetingSchedule": "Last Friday of the month · 9:00 AM",
+      "meetingNotes": "",
+      "contactEmail": "felicia@woodlandhillscc.net",
+      "eventMatch": "Event Planning",
+      "status": "approved",
+      "manager": { "name": "Erin Coplan", "email": "erincoplan@gmail.com", "phone": "(818)996-2695" },
+      "members": [
+        { "id": "gm-erin-coplan", "name": "Erin Coplan", "email": "erincoplan@gmail.com", "phone": "(818)996-2695", "role": "Leader", "status": "active", "source": "admin" }
+      ]
+    },
+    {
+      "id": "grp-community-cleanup",
+      "slug": "community-clean-up-crew",
+      "name": "Community Clean Up Crew",
+      "tagline": "Chamber members giving back to the neighborhood.",
+      "description": "Members rolling up their sleeves for organized neighborhood clean-ups and beautification projects across the West Valley · Warner Center community.",
+      "heroImage": "",
+      "photos": [],
+      "meetingSchedule": "3rd Saturday of the month",
+      "meetingNotes": "",
+      "contactEmail": "felicia@woodlandhillscc.net",
+      "eventMatch": "Clean Up",
+      "status": "approved",
+      "manager": { "name": "Howie Baron", "email": "baronshuttersandblinds@gmail.com", "phone": "(818)572-2244" },
+      "members": [
+        { "id": "gm-howie-baron", "name": "Howie Baron", "email": "baronshuttersandblinds@gmail.com", "phone": "(818)572-2244", "role": "Leader", "status": "active", "source": "admin" }
+      ]
+    },
+    {
+      "id": "grp-valley-senior",
+      "slug": "valley-senior-resources-network",
+      "name": "Valley Senior Resources Network",
+      "tagline": "Professionals serving older adults and their families.",
+      "description": "Senior care, health, legal, financial, and housing professionals connect to share referrals and better serve West Valley seniors and their families.",
+      "heroImage": "",
+      "photos": [],
+      "meetingSchedule": "3rd Monday of the month · 7:45 AM",
+      "meetingNotes": "",
+      "contactEmail": "felicia@woodlandhillscc.net",
+      "eventMatch": "Senior Resources",
+      "status": "approved",
+      "manager": { "name": "Marcia Israel", "email": "riggscody@aol.com", "phone": "(818)706-1100" },
+      "members": [
+        { "id": "gm-marcia-israel", "name": "Marcia Israel", "email": "riggscody@aol.com", "phone": "(818)706-1100", "role": "Leader", "status": "active", "source": "admin" },
+        { "id": "gm-sandy-rosenholz", "name": "Sandy Rosenholz", "email": "sandyrosenholz@gmail.com", "phone": "(818)359-2125", "role": "Leader", "status": "active", "source": "admin" }
+      ]
+    },
+    {
+      "id": "grp-sustainable",
+      "slug": "sustainable-professionals-network",
+      "name": "Sustainable Professionals Network",
+      "tagline": "Businesses advancing sustainability in the West Valley.",
+      "description": "Solar, restoration, green services, and eco-minded professionals sharing ideas, referrals, and sustainable practices.",
+      "heroImage": "",
+      "photos": [],
+      "meetingSchedule": "Quarterly (4 times a year)",
+      "meetingNotes": "",
+      "contactEmail": "felicia@woodlandhillscc.net",
+      "eventMatch": "Sustainable",
+      "status": "approved",
+      "manager": { "name": "Star Tomlinson", "email": "Star@TheDrainCo.com", "phone": "(818)344-1114" },
+      "members": [
+        { "id": "gm-star-tomlinson", "name": "Star Tomlinson", "email": "Star@TheDrainCo.com", "phone": "(818)344-1114", "role": "Leader", "status": "active", "source": "admin" },
+        { "id": "gm-steve-hochman", "name": "Steve Hochman", "email": "steve@thesolarhawk.com", "phone": "(818)402-4166", "role": "Leader", "status": "active", "source": "admin" }
+      ]
+    },
+    {
+      "id": "grp-toastmasters",
+      "slug": "toastmasters",
+      "name": "Toastmasters",
+      "tagline": "Sharpen your public speaking and leadership.",
+      "description": "Build confidence in public speaking and leadership alongside fellow Chamber members in a supportive, structured Toastmasters setting.",
+      "heroImage": "",
+      "photos": [],
+      "meetingSchedule": "1st & 3rd Friday of the month · 7:30 AM",
+      "meetingNotes": "",
+      "contactEmail": "felicia@woodlandhillscc.net",
+      "eventMatch": "Toastmasters",
+      "status": "approved",
+      "manager": { "name": "Steve Hornstein", "email": "steve@hornsteinLawOffices.com", "phone": "(818)887-9401" },
+      "members": [
+        { "id": "gm-steve-hornstein", "name": "Steve Hornstein", "email": "steve@hornsteinLawOffices.com", "phone": "(818)887-9401", "role": "Leader", "status": "active", "source": "admin" }
+      ]
     }
   ]
 }
