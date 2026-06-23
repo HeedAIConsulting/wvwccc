@@ -62,6 +62,8 @@ window.Admin = (function () {
     { grp: 'Revenue & contact' },
     { href: 'payments.html', icon: '$', label: 'Pay Log', key: 'payments' },
     { href: 'leads.html', icon: '✉', label: 'Inquiries', key: 'leads' },
+    { grp: 'Help' },
+    { href: 'about.html', icon: 'ⓘ', label: 'About / Support', key: 'about' },
   ];
 
   function mountShell(active) {
@@ -89,6 +91,14 @@ window.Admin = (function () {
     // sidebar foot, especially for non-technical staff (Chamber feedback).
     const bar = document.querySelector('.admin-topbar');
     if (bar && !bar.querySelector('[data-admin-logout-top]')) {
+      const guide = document.createElement('button');
+      guide.type = 'button';
+      guide.className = 'admin-logout';
+      guide.setAttribute('data-admin-guide', '');
+      guide.style.cssText = 'background:var(--gold,#C9A227);color:var(--green-ink,#143c20);border-color:var(--gold,#C9A227);font-weight:600';
+      guide.textContent = '❔ Guide';
+      guide.addEventListener('click', () => openTour());
+      bar.appendChild(guide);
       const b = document.createElement('button');
       b.type = 'button';
       b.className = 'admin-logout';
@@ -98,6 +108,49 @@ window.Admin = (function () {
       b.addEventListener('click', logout);
       bar.appendChild(b);
     }
+    // First visit: auto-open the guided tour once (reopen anytime via ❔ Guide).
+    try { if (!localStorage.getItem('wv_admin_tour_seen')) { openTour(); localStorage.setItem('wv_admin_tour_seen', '1'); } } catch (e) {}
+  }
+
+  // ── Guided tour / help (closable + re-openable) ──
+  function openTour() {
+    if (document.querySelector('[data-admin-tour]')) return;
+    const SEC = [
+      ['▦ Dashboard', 'Your home base — key counts (members, pending approvals, renewals, inquiries). Click any card to jump straight to that area.'],
+      ['◉ Members', 'Search and manage every member. Click a member to edit their public listing (description, services, accomplishments, associations, social links, logo & photos), set their membership expiration, or set/reset their password.'],
+      ['✓ Approvals', 'New member sign-ups and member-submitted posts wait here for your approval before they go public.'],
+      ['↻ Renewals', 'See who is expiring soon and renew them in one click.'],
+      ['◆ Events', 'Create & edit events. Upload a flyer and the AI can auto-fill the details; add a thumbnail, tickets, PDFs, and feature an event on the homepage.'],
+      ['◎ Groups & Networks', 'Manage your Connection Circles & Networks: set each group’s manager, add members (from the directory or manually), assign leaders, and approve people who request to join.'],
+      ['✎ Content', 'Write news posts, member-board posts, offers/deals, and gallery photos.'],
+      ['▭ Hero Slider', 'Manage the rotating banner images on the homepage.'],
+      ['★ Sponsorships', 'Manage featured placements and sponsor logos.'],
+      ['✦ AI Assistant', 'Your staff assistant (powered by Claude). Ask it to analyze the membership or draft content, and attach a flyer / PDF / image to work from. Save conversations to share between you.'],
+      ['❏ Email Templates', 'Save the emails you reuse, then pick one, add the few specifics, and the assistant drafts a fresh version in the same voice.'],
+      ['⚷ Users & Roles', 'Create logins and (Super Admins) set staff roles and member expirations.'],
+      ['$ Pay Log', 'Every payment through the site — dues, tickets, donations — with receipts.'],
+      ['✉ Inquiries', 'Contact-form messages and “Join this group” requests from the website.'],
+      ['ⓘ About / Support', 'Site version & technology, plus a form to send a support request (with a screenshot) straight to Heed.'],
+    ];
+    const ov = document.createElement('div');
+    ov.className = 'chat-modal';
+    ov.setAttribute('data-admin-tour', '');
+    ov.innerHTML = `<div class="chat-modal__box" style="max-width:680px">
+      <button class="chat-modal__x" data-x aria-label="Close" type="button">×</button>
+      <h2 style="margin:0 0 4px">Welcome to your Chamber admin 👋</h2>
+      <p class="sub" style="margin:0 0 16px">A quick guide to each area. Reopen this anytime with the <strong>❔ Guide</strong> button at the top right.</p>
+      <div style="display:flex;flex-direction:column;gap:10px;max-height:60vh;overflow:auto;padding-right:4px">
+        ${SEC.map(([h, b]) => `<div style="border:1px solid var(--line);border-radius:10px;padding:11px 14px"><div style="font-weight:700;margin-bottom:2px;color:var(--green-deep)">${esc(h)}</div><div class="sub" style="line-height:1.55">${esc(b)}</div></div>`).join('')}
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:16px;flex-wrap:wrap">
+        <a class="btn btn--ghost btn--sm" href="about.html">Need help? Submit a support ticket →</a>
+        <button class="btn btn--forest btn--sm" data-x type="button">Got it</button>
+      </div>
+    </div>`;
+    const close = () => ov.remove();
+    ov.addEventListener('click', (e) => { if (e.target === ov || e.target.closest('[data-x]')) close(); });
+    document.addEventListener('keydown', function k(e) { if (e.key === 'Escape') { close(); document.removeEventListener('keydown', k); } });
+    document.body.appendChild(ov);
   }
 
   function statusPill(s) { s = s || 'approved'; return `<span class="pill pill--${s}">${esc(s)}</span>`; }
@@ -1538,5 +1591,29 @@ window.Admin = (function () {
     load();
   }
 
-  return { mountShell, initDashboard, initMembers, initApprovals, initOrders, initLeads, initEvents, initContent, initAssistant, initRenewals, initUsers, initGroups, initSponsorships, initSlides, api, esc };
+  // ── About / Support (tech, version, support ticket to Heed via Formspree) ──
+  async function initAbout() {
+    mountShell('about');
+    const form = document.getElementById('supportForm');
+    if (!form) return;
+    const msg = document.getElementById('supportMsg');
+    const endpoint = form.getAttribute('data-endpoint') || '';
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (msg) { msg.hidden = true; }
+      if (!endpoint || /YOUR_FORM_ID/.test(endpoint)) {
+        if (msg) { msg.hidden = false; msg.style.color = 'var(--red)'; msg.textContent = 'Support form isn’t connected yet — add your Formspree form ID (data-endpoint on the form).'; }
+        return;
+      }
+      const btn = form.querySelector('[type="submit"]'); btn.disabled = true; const lbl = btn.textContent; btn.textContent = 'Sending…';
+      try {
+        const r = await fetch(endpoint, { method: 'POST', headers: { Accept: 'application/json' }, body: new FormData(form) });
+        if (r.ok) { form.reset(); if (msg) { msg.hidden = false; msg.style.color = 'var(--green)'; msg.textContent = '✓ Sent — thank you! Heed will follow up by email.'; } }
+        else { const d = await r.json().catch(() => ({})); throw new Error((d.errors && d.errors[0] && d.errors[0].message) || ('error ' + r.status)); }
+      } catch (err) { if (msg) { msg.hidden = false; msg.style.color = 'var(--red)'; msg.textContent = 'Could not send: ' + (err.message || 'error') + '. You can also email mbowers@heedconsulting.ai.'; } }
+      finally { btn.disabled = false; btn.textContent = lbl; }
+    });
+  }
+
+  return { mountShell, initDashboard, initMembers, initApprovals, initOrders, initLeads, initEvents, initContent, initAssistant, initRenewals, initUsers, initGroups, initSponsorships, initSlides, initAbout, openTour, api, esc };
 })();

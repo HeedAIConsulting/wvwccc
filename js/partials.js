@@ -98,6 +98,7 @@ window.ChamberPartials = (function () {
             <a href="/groups/index.html">${L?'Grupos y Redes':'Groups & Networks'}</a>
             <a href="/gallery.html">${L?'Galería de Fotos':'Photo Gallery'}</a>
             <a href="${nv('/community/news.html')}">${t.news}</a>
+            <a href="${nv('/community/podcast.html')}">${L?'Podcast Valley Biz Buzz':'Valley Biz Buzz Podcast'}</a>
             <a href="/community/board.html">${L?'Tablón Comunitario':'Community Board'}</a>
             <a href="/community/our-community.html">${L?'Nuestra Comunidad':'Our Community'}</a>
             <a href="/community/grateful-hearts.html">Grateful Hearts</a>

@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex" />
+  <title>About &amp; Support — WVWCCC Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="../css/chamber.css" />
+  <link rel="stylesheet" href="admin.css?v=20260622f" />
+</head>
+<body class="admin">
+  <div class="admin-shell">
+    <aside class="admin-sidebar" data-admin-nav></aside>
+    <div class="admin-main">
+      <div class="admin-topbar"><h1>About &amp; Support</h1></div>
+      <div class="admin-content">
+        <p class="admin-notice">This site was designed and is maintained by <strong>Heed Business Solutions / Heed AI Solutions</strong>. Use the form below to send a support request — you can attach a screenshot and it goes straight to our team.</p>
+
+        <div style="display:grid;grid-template-columns:1.1fr .9fr;gap:var(--s-6);align-items:start">
+
+          <!-- Support ticket -->
+          <div class="panel">
+            <div class="panel__head"><h3>Submit a support request</h3></div>
+            <form id="supportForm" class="admin-form" style="padding:16px" data-endpoint="https://formspree.io/f/YOUR_FORM_ID">
+              <input type="hidden" name="_subject" value="WVWCCC site support request" />
+              <input type="hidden" name="source" value="WVWCCC Admin · About/Support" />
+              <input type="text" name="_gotcha" style="display:none" tabindex="-1" autocomplete="off" />
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                <div class="field"><label>Your name *</label><input name="name" required maxlength="120" /></div>
+                <div class="field"><label>Your email *</label><input name="email" type="email" required maxlength="160" /></div>
+              </div>
+              <div class="field"><label>Area</label>
+                <select name="area" class="admin-select">
+                  <option>General</option><option>Members</option><option>Events</option><option>Groups &amp; Networks</option>
+                  <option>Payments</option><option>Newsletter / Podcast</option><option>AI Assistant</option>
+                  <option>Login / Access</option><option>Something looks broken</option><option>Other</option>
+                </select>
+              </div>
+              <div class="field"><label>How can we help? *</label><textarea name="message" rows="6" required maxlength="6000" placeholder="Describe what you were doing and what happened…"></textarea></div>
+              <div class="field"><label>Screenshot <span class="sub">(optional — helps us see exactly what you see)</span></label>
+                <input type="file" name="screenshot" accept="image/png,image/jpeg,image/gif,image/webp" /></div>
+              <p id="supportMsg" class="notice" hidden style="margin:4px 0 0"></p>
+              <div style="margin-top:12px"><button class="btn btn--forest" type="submit">Send support request</button></div>
+              <p class="sub" style="margin-top:8px">Prefer email? Write us at <a href="mailto:mbowers@heedconsulting.ai">mbowers@heedconsulting.ai</a>.</p>
+            </form>
+          </div>
+
+          <!-- Tech + version -->
+          <div>
+            <div class="panel">
+              <div class="panel__head"><h3>About this site</h3></div>
+              <div style="padding:16px">
+                <p style="margin:0 0 6px"><strong>West Valley · Warner Center Chamber of Commerce</strong></p>
+                <p class="sub" style="margin:0 0 14px">Member directory, events, groups, payments, AI concierge & staff assistant, multilingual (EN/ES), and accessibility built in.</p>
+                <table class="admin-table">
+                  <tbody>
+                    <tr><td class="sub">Version</td><td><strong>2.6.0</strong> · June 2026</td></tr>
+                    <tr><td class="sub">Status</td><td>Pre-launch (target launch July 1, 2026)</td></tr>
+                    <tr><td class="sub">Maintained by</td><td>Heed Business Solutions</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div class="panel">
+              <div class="panel__head"><h3>Technology</h3></div>
+              <div style="padding:16px">
+                <table class="admin-table">
+                  <tbody>
+                    <tr><td class="sub">Web / API</td><td>Node.js + Express</td></tr>
+                    <tr><td class="sub">Database</td><td>PostgreSQL</td></tr>
+                    <tr><td class="sub">Hosting</td><td>Render (auto-deploy from GitHub)</td></tr>
+                    <tr><td class="sub">AI</td><td>Anthropic Claude + Google Gemini</td></tr>
+                    <tr><td class="sub">Payments</td><td>AGMS / NMI gateway (Collect.js, PCI SAQ-A)</td></tr>
+                    <tr><td class="sub">Email</td><td>Microsoft 365 (Graph / SMTP)</td></tr>
+                    <tr><td class="sub">Security</td><td>bcrypt passwords + JWT sessions; Turnstile bot protection</td></tr>
+                    <tr><td class="sub">Accessibility</td><td>ADA widget · WCAG 2.1 AA-minded</td></tr>
+                    <tr><td class="sub">Languages</td><td>English &amp; Spanish</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="../js/api-base.js"></script>
+  <script src="admin.js?v=20260622f"></script>
+  <script>Admin.initAbout();</script>
+</body>
+</html>
