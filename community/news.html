@@ -15,6 +15,28 @@
     .biz-rule{display:flex;justify-content:space-between;gap:12px;font-family:var(--mono);font-size:.66rem;text-transform:uppercase;letter-spacing:.12em;border-bottom:1px solid var(--green-ink,#1b3326);padding:8px 0 12px;margin-bottom:28px;color:var(--slate-mid,#555)}
     @media(max-width:820px){.biz-cols{column-count:1 !important}.biz-lead{grid-template-columns:1fr !important}.biz-hide-sm{display:none}}
     @media(min-width:821px) and (max-width:1080px){.biz-cols{column-count:2 !important}}
+    /* Valley Biz Buzz hub: podcast + newsletter sections */
+    .vbb-sec{margin-top:56px;border-top:4px double var(--green-ink,#1b3326);padding-top:34px}
+    .vbb-head{text-align:center;max-width:62ch;margin:0 auto 26px}
+    .vbb-kick{font-family:var(--mono);font-size:.66rem;letter-spacing:.2em;text-transform:uppercase;color:var(--gold-deep)}
+    .vbb-head h2{font-family:var(--display);font-size:clamp(2rem,5vw,3.1rem);line-height:1.04;margin:.12em 0 .18em}
+    .vbb-head p{color:var(--slate-mid,#555);line-height:1.7;margin:0}
+    .vbb-listen{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:18px 0 4px}
+    .vbb-embed{display:block;width:100%;max-width:660px;margin:24px auto 8px;border:0;border-radius:14px;overflow:hidden;box-shadow:var(--sh-md)}
+    .vbb-season{margin-top:34px}
+    .vbb-season h3{font-family:var(--display);font-size:1.45rem;margin:0 0 4px;color:var(--green-ink,#1b3326)}
+    .vbb-season .vbb-sline{height:2px;background:linear-gradient(90deg,var(--gold),transparent);margin:0 0 14px}
+    .vbb-eps{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+    .vbb-ep{display:flex;align-items:flex-start;gap:12px;background:var(--paper,#fdfbf6);border:1px solid var(--line,#e4dcc8);border-radius:12px;padding:13px 15px;transition:box-shadow .15s,transform .15s,border-color .15s}
+    .vbb-ep:hover{box-shadow:var(--sh-md);transform:translateY(-1px);border-color:var(--gold-soft,#e6dcbf)}
+    .vbb-ep__pin{flex:none;width:34px;height:34px;border-radius:9px;display:grid;place-items:center;background:var(--leaf-soft,#e4f0e4);font-size:1rem}
+    .vbb-ep__t{font-weight:600;line-height:1.3;color:var(--ink,#16202c);font-size:.95rem}
+    .vbb-ep__l{font-size:.74rem;font-family:var(--mono);letter-spacing:.04em;color:var(--gold-deep);text-transform:uppercase;margin-top:3px;display:inline-block}
+    .vbb-news{display:grid;grid-template-columns:1.1fr .9fr;gap:26px;align-items:center;background:var(--green-ink,#143c20);color:#fff;border-radius:16px;padding:30px 32px}
+    .vbb-news h3{font-family:var(--display);color:#fff;font-size:1.7rem;margin:0 0 8px}
+    .vbb-news p{color:rgba(255,255,255,.85);line-height:1.65;margin:0 0 14px}
+    .vbb-news .kicker{color:var(--gold-bright)}
+    @media(max-width:760px){.vbb-news{grid-template-columns:1fr}}
   </style>
 </head>
 <body>
@@ -28,12 +50,105 @@
       </header>
       <div id="bizDateline" class="biz-rule"></div>
       <div id="bizbuzz"><p class="member-tile__meta">Loading the latest…</p></div>
+
+      <!-- ── The Podcast ── -->
+      <section class="vbb-sec" id="podcast">
+        <div class="vbb-head">
+          <span class="vbb-kick">Listen Anywhere · Community · Connection · Credibility</span>
+          <h2>The Valley Biz Buzz Podcast</h2>
+          <p>Conversations with the people powering West Valley business — member spotlights, expert tips, and community stories, hosted by Danielle Roy.</p>
+          <div class="vbb-listen">
+            <a class="btn btn--forest btn--sm" target="_blank" rel="noopener" href="https://podcasts.apple.com/us/podcast/valley-biz-buzz/id1494638123"> Apple Podcasts</a>
+            <a class="btn btn--gold btn--sm" target="_blank" rel="noopener" href="https://soundcloud.com/valleybizbuzz">▶ SoundCloud</a>
+          </div>
+        </div>
+        <iframe class="vbb-embed" title="Valley Biz Buzz on Apple Podcasts" height="450" allow="autoplay *; encrypted-media *; clipboard-write" sandbox="allow-forms allow-popups allow-same-origin allow-scripts allow-storage-access-by-user-activation allow-top-navigation-by-user-activation" loading="lazy" src="https://embed.podcasts.apple.com/us/podcast/valley-biz-buzz/id1494638123"></iframe>
+        <div id="bizPodcast"></div>
+      </section>
+
+      <!-- ── The Newsletter ── -->
+      <section class="vbb-sec" id="newsletter">
+        <div class="vbb-news">
+          <div>
+            <span class="kicker">In Your Inbox</span>
+            <h3>The Valley Biz Buzz Newsletter</h3>
+            <p>Our monthly newsletter rounds up Chamber happenings, member news, ribbon cuttings, events, and local deals. Past editions are being added here — in the meantime, get it delivered straight to your inbox.</p>
+            <div class="btn-row">
+              <a class="btn btn--gold btn--sm" href="../contact.html?reason=newsletter">Subscribe / get on the list</a>
+            </div>
+          </div>
+          <div id="bizEditions" style="font-family:var(--mono);font-size:.74rem;letter-spacing:.06em;text-transform:uppercase;color:rgba(255,255,255,.7);text-align:center">
+            📰 Past editions<br><span style="font-size:1.4rem;display:block;margin-top:6px">Coming soon</span>
+          </div>
+        </div>
+      </section>
     </div>
   </section>
   <div data-partial="footer"></div>
   <script src="../js/partials.js?v=20260619a"></script>
   <script src="../js/api-base.js?v=20260619a"></script>
   <script src="../js/chamber.js?v=20260622e"></script>
-  <script>ChamberPartials.mount({ active: 'news', depth: 1, lang: 'en' }); Chamber.initBizBuzz();</script>
+  <script>
+    ChamberPartials.mount({ active: 'news', depth: 1, lang: 'en' });
+    Chamber.initBizBuzz();
+    // Valley Biz Buzz podcast archive (extracted from the legacy podcast page)
+    (function () {
+    const VBB = [
+      { s: 'Season 4', items: [
+        { t: 'Regina Queen — Jerk Wing Cafe', u: 'https://podcasts.apple.com/us/podcast/valley-biz-buzz/id1494638123?i=1000715635185', p: 'Apple' },
+        { t: 'Jon Mann — Joint Matters Calibration Services', u: 'https://podcasts.apple.com/us/podcast/valley-biz-buzz/id1494638123?i=1000712169928', p: 'Apple' },
+        { t: 'EP3: Geovanny Ragsdale — Boys & Girls Club West Valley', u: 'https://on.soundcloud.com/QUQk2qPhuVdetzrR6', p: 'SoundCloud' },
+        { t: 'EP1: Aron Celnik — Grandi Italiani', u: 'https://podcasts.apple.com/us/podcast/valley-biz-buzz/id1494638123?i=1000660228632', p: 'Apple' },
+      ]},
+      { s: 'Season 3', items: [
+        { t: 'EP12: Sandy Rosenholz — Senior Resources', u: 'https://podcasts.apple.com/us/podcast/valley-biz-buzz/id1494638123?i=1000655474736', p: 'Apple' },
+        { t: 'EP11: Larry Cohen — Bel Air Exteriors', u: 'https://podcasts.apple.com/us/podcast/valley-biz-buzz/id1494638123?i=1000640483937', p: 'Apple' },
+        { t: 'EP10: Gina Rodriguez — Mind Mastery Society', u: 'https://podcasts.apple.com/us/podcast/valley-biz-buzz/id1494638123?i=1000640473762', p: 'Apple' },
+        { t: 'EP9: Maria Primushko — MVP Law Group', u: 'https://podcasts.apple.com/us/podcast/season-3-ep-9-maria-primushko-mvp-law-group/id1494638123?i=1000633886864', p: 'Apple' },
+        { t: 'EP8: Andrea Volore — Berkshire Hathaway', u: 'https://podcasts.apple.com/us/podcast/season-3-ep-8/id1494638123?i=1000622975491', p: 'Apple' },
+        { t: 'EP7: Bob Epstein — Aussie SoCal', u: 'https://podcasts.apple.com/us/podcast/valley-biz-buzz/id1494638123?i=1000640479227', p: 'Apple' },
+        { t: 'EP5: Brad Koepenick', u: 'https://podcasts.apple.com/us/podcast/valley-biz-buzz/id1494638123?i=1000610480382', p: 'Apple' },
+        { t: 'EP4: Lee Levy — NEX Graphics', u: 'https://soundcloud.com/valleybizbuzz/season-3-ep4-nex-graphics', p: 'SoundCloud' },
+        { t: 'EP3: Matthew Ris — The Commons of Woodland Hills', u: 'https://soundcloud.com/valleybizbuzz/the-commons-woodland-hills', p: 'SoundCloud' },
+        { t: 'EP2: Arti Dutt — Team Logic IT', u: 'https://soundcloud.com/valleybizbuzz/team-logic-it', p: 'SoundCloud' },
+        { t: 'EP1: Phil Christie — School of Rock Woodland Hills', u: 'https://podcasts.apple.com/us/podcast/valley-biz-buzz/id1494638123?i=1000596630865', p: 'Apple' },
+      ]},
+      { s: 'Season 2', items: [
+        { t: 'EP6: Fairwinds West Hills Retirement Community', u: 'https://podcasts.apple.com/us/podcast/valley-biz-buzz/id1494638123?i=1000546531088', p: 'Apple' },
+        { t: 'EP5: Barbara Beaver-Cavaleri & Sahar Masera', u: 'https://podcasts.apple.com/us/podcast/valley-biz-buzz/id1494638123', p: 'Apple' },
+        { t: 'EP4: Craig Pollack — FPA Technology Services', u: 'https://podcasts.apple.com/us/podcast/valley-biz-buzz/id1494638123?i=1000523223739', p: 'Apple' },
+        { t: 'EP3: J Barbush & Luis Ramirez — CastIron LA', u: 'https://soundcloud.com/valleybizbuzz/season-2-ep3-cast-iron-la', p: 'SoundCloud' },
+        { t: 'EP2: Miri Rossitto — Cowe Communications', u: 'https://soundcloud.com/valleybizbuzz/season-2-ep-miri-rossitto-cowe-communications', p: 'SoundCloud' },
+        { t: 'EP1: Rocky Rhodes — Seed to Sip', u: 'https://soundcloud.com/valleybizbuzz/season-2-ep-1-seed-to-sip', p: 'SoundCloud' },
+        { t: 'Special: Donald Weissman (guest host) & Steve Fazio', u: 'https://soundcloud.com/valleybizbuzz/special-episode-donald-weissman-guest-host-with-steve-fazio-of-fazio-cleaners', p: 'SoundCloud' },
+      ]},
+      { s: 'Season 1', items: [
+        { t: 'EP12: Kathleen Sterling — Valley News Group', u: 'https://soundcloud.com/valleybizbuzz/valley-biz-buzz-e12-kathleensterling-valley-news-group', p: 'SoundCloud' },
+        { t: 'EP11: Kandis Landmann — Keller Williams', u: 'https://soundcloud.com/valleybizbuzz/valley-biz-buzz-e11-kandis-marsh-keller-williams', p: 'SoundCloud' },
+        { t: 'EP10: Mark Sterling', u: 'https://soundcloud.com/valleybizbuzz/episode-10-mark-sterling', p: 'SoundCloud' },
+        { t: 'EP9: Lee Levy — NEX Graphics', u: 'https://soundcloud.com/valleybizbuzz/valley-biz-buz-ep-9-lee-levy-nex-graphics', p: 'SoundCloud' },
+        { t: 'EP8: David Gumatay — Mentors and Mentoring', u: 'https://soundcloud.com/valleybizbuzz/episode-8-david-gumatay-mentors-and-mentoring', p: 'SoundCloud' },
+        { t: 'EP7: Sarit Fassazadeh — Healing with Purpose', u: 'https://soundcloud.com/valleybizbuzz/ep-sarit', p: 'SoundCloud' },
+        { t: 'EP6: Leslie Valentino Montero', u: 'https://soundcloud.com/valleybizbuzz/leslie-valentino-launching-and-pivoting-in-business', p: 'SoundCloud' },
+        { t: 'EP5: Beth Hazelton', u: 'https://soundcloud.com/valleybizbuzz/bethhazelton', p: 'SoundCloud' },
+        { t: 'EP3: Michael Hiller', u: 'https://soundcloud.com/valleybizbuzz/guest-michael-hiller', p: 'SoundCloud' },
+        { t: 'EP1: Meet Our Producers & Host', u: 'https://soundcloud.com/user-29286597/episode1', p: 'SoundCloud' },
+        { t: 'Special: Did Your Business Plan for a Pandemic? — Bob Epstein', u: 'https://soundcloud.com/valleybizbuzz/special-episode-did-your-business-plan-for-a-pandemic', p: 'SoundCloud' },
+        { t: 'Special: Business Recovery w/ Councilmember Bob Blumenfield', u: 'https://soundcloud.com/valleybizbuzz/business-recovery-with-councilmember-bob-blumenfield', p: 'SoundCloud' },
+      ]},
+    ];
+    const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    document.getElementById('bizPodcast').innerHTML = VBB.map((season) => `
+      <div class="vbb-season">
+        <h3>${esc(season.s)}</h3><div class="vbb-sline"></div>
+        <div class="vbb-eps">
+          ${season.items.map((e) => `<a class="vbb-ep" target="_blank" rel="noopener" href="${esc(e.u)}">
+            <span class="vbb-ep__pin">🎙️</span>
+            <span><span class="vbb-ep__t">${esc(e.t)}</span><span class="vbb-ep__l">Listen on ${esc(e.p)} ↗</span></span>
+          </a>`).join('')}
+        </div>
+      </div>`).join('');
+    })();
+  </script>
 </body>
 </html>
