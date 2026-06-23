@@ -104,6 +104,10 @@ export async function listPosts({ type, status, memberId } = {}) {
   // Merge committed legacy seed for ids not already present in the live store/DB.
   const have = new Set(arr.map((p) => p.id));
   for (const p of readPostsSeed()) if (!have.has(p.id)) arr.push(p);
+  // Tombstones: deleting a seed-backed post can't remove the committed seed,
+  // so deletePost records a status:'deleted' row under the same id (which lands
+  // in `have` above, suppressing the seed). Drop those markers from every result.
+  arr = arr.filter((p) => p.status !== 'deleted');
   if (type) arr = arr.filter((p) => p.type === type);
   if (status) arr = arr.filter((p) => p.status === status);
   if (memberId) arr = arr.filter((p) => p.memberId === memberId);
@@ -128,8 +132,23 @@ export async function updatePost(id, patch) {
   store.write('posts.json', arr); return true;
 }
 export async function deletePost(id) {
-  if (db.enabled) { await db.query('DELETE FROM posts WHERE id=$1', [id]); return; }
-  store.write('posts.json', store.read('posts.json', []).filter((p) => p.id !== id));
+  // Seed-backed posts (data/posts-seed.json — e.g. the hero slides) have no live
+  // row to delete; without a tombstone listPosts would re-merge them on next read,
+  // so a delete would silently "not stick". Record a deleted-marker under the id.
+  const seed = readPostsSeed().find((p) => p.id === id);
+  if (db.enabled) {
+    await db.query('DELETE FROM posts WHERE id=$1', [id]);
+    if (seed) {
+      await db.query(
+        `INSERT INTO posts (id, type, status, created) VALUES ($1, $2, 'deleted', now())
+         ON CONFLICT (id) DO UPDATE SET status = 'deleted'`,
+        [id, seed.type || 'slide']);
+    }
+    return;
+  }
+  const next = store.read('posts.json', []).filter((p) => p.id !== id);
+  if (seed) next.push({ id, type: seed.type || 'slide', status: 'deleted', created: new Date().toISOString() });
+  store.write('posts.json', next);
 }
 
 // ── Events (jsonb blob in Postgres, or dev file) ────────────
