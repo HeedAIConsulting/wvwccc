@@ -53,22 +53,27 @@ router.post('/auth/logout', (_req, res) => { auth.clearCookie(res); res.json({ o
 // reset link. Always returns a generic success so we never reveal who has an
 // account. NOTE: actual email delivery needs an SMTP/email sender (TODO).
 router.post('/auth/forgot', async (req, res) => {
-  const email = String((req.body && req.body.email) || '').trim().toLowerCase();
-  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return res.status(400).json({ error: 'Enter a valid email address.' });
+  // NB: keep the address in `addr` — `email` is the imported mail module.
+  const addr = String((req.body && req.body.email) || '').trim().toLowerCase();
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(addr)) return res.status(400).json({ error: 'Enter a valid email address.' });
   try {
-    const user = await users.getUserByEmail(email);
+    const user = await users.getUserByEmail(addr);
     if (user) {
-      const token = auth.signResetToken(email);
+      const token = auth.signResetToken(addr);
       const base = process.env.SITE_URL || `${req.protocol}://${req.get('host')}`;
       const link = `${base}/auth/reset.html?token=${encodeURIComponent(token)}`;
-      await email.send({
-        to: email,
+      const result = await email.send({
+        to: addr,
         subject: 'Reset your West Valley · Warner Center Chamber password',
         text: `We received a request to reset your Chamber account password.\n\nReset it here (link expires in 1 hour):\n${link}\n\nIf you didn't request this, you can ignore this email.`,
         html: `<p>We received a request to reset your Chamber account password.</p><p><a href="${link}">Reset your password</a> (link expires in 1 hour).</p><p>If you didn't request this, you can ignore this email.</p>`,
       });
+      // Log server-side (never leaked to the client) so a missing mail provider
+      // or a send failure is visible instead of silently swallowed.
+      if (result && result.skipped) console.warn('[auth/forgot] email provider not configured — reset link NOT sent for', addr);
+      else if (result && result.ok === false) console.error('[auth/forgot] reset email failed:', result.error);
     }
-  } catch (e) { /* swallow — never leak account existence */ }
+  } catch (e) { console.error('[auth/forgot] error:', e.message); }
   res.json({ ok: true, message: 'If an account exists for that email, password-reset instructions are on the way.' });
 });
 
