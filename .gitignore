@@ -16,3 +16,7 @@ SCREENSHOTS/
 
 # Member roster exports — PII, never commit
 *.xlsx
+
+# Source newsletter PDFs (95–410 MB each) — never commit; we ship rendered
+# WebP page images under newsletters/assets/connect/ instead.
+Biz Newsletter/

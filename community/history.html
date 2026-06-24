@@ -54,7 +54,7 @@
     const statusEl = document.getElementById('histStatus');
     const filtersEl = document.getElementById('histFilters');
     const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
-    const KINDS = [['all','All'],['event','Events'],['photo','Photos'],['document','Newsletters & Docs'],['ad','Promotions']];
+    const KINDS = [['all','All'],['event','Events'],['document','Newsletters & Docs']];
     let items = [], filtered = [], shown = 0, kind = 'all';
     const BATCH = 48;
 
@@ -88,7 +88,10 @@
       .observe(document.getElementById('histSentinel'));
 
     fetch('../data/history-index.json').then((r) => r.json()).then((d) => {
-      items = d.items || [];
+      // Curated view: show only Chamber event photos and newsletters/documents.
+      // The raw archive also holds ~13k loose member photos and promo flyers that
+      // aren't a fit for the public history page, so they're filtered out here.
+      items = (d.items || []).filter((it) => it.kind === 'event' || it.kind === 'document');
       const m = d._meta || {};
       KINDS.forEach((kv) => { if (kv[0] !== 'all' && m.by_kind && m.by_kind[kv[0]]) kv[1] += ` (${m.by_kind[kv[0]].toLocaleString()})`; });
       filtersEl.innerHTML = KINDS.map(([k, label]) => `<button class="hist-chip" data-k="${k}" aria-pressed="${k==='all'}">${label}</button>`).join('');

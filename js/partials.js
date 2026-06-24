@@ -99,6 +99,7 @@ window.ChamberPartials = (function () {
             <a href="/gallery.html">${L?'Galería de Fotos':'Photo Gallery'}</a>
             <a href="${nv('/community/news.html')}">${t.news}</a>
             <a href="${nv('/community/podcast.html')}">${L?'Podcast Valley Biz Buzz':'Valley Biz Buzz Podcast'}</a>
+            <a href="/newsletters/valley-biz-connect.html">${L?'Revista Valley Biz Connect':'Valley Biz Connect Magazine'}</a>
             <a href="/community/board.html">${L?'Tablón Comunitario':'Community Board'}</a>
             <a href="/community/our-community.html">${L?'Nuestra Comunidad':'Our Community'}</a>
             <a href="/community/grateful-hearts.html">Grateful Hearts</a>
@@ -122,7 +123,6 @@ window.ChamberPartials = (function () {
           <div class="nav-dd__menu" data-dd="About & Membership">
             <a href="${nv('/about.html')}">${L?'Acerca de':'About Us'}</a>
             <a href="/leadership.html">${L?'Junta y Liderazgo':'Board & Leadership'}</a>
-            <a href="/leadership.html?group=Board%20Member">${L?'Junta Directiva':'Board of Directors'}</a>
             <a href="/leadership.html?group=Ambassador">${L?'Embajadores':'Ambassadors'}</a>
             <a href="/p/benefits-of-membership">${L?'Por qué unirse':'Why Join the Chamber'}</a>
             <a href="${nv('/resources.html')}">${L?'Más sobre la Cámara':'More Chamber pages'} →</a>
@@ -188,6 +188,7 @@ window.ChamberPartials = (function () {
           <li><a href="/groups/index.html">${L?'Grupos y Redes':'Groups & Networks'}</a></li>
           <li><a href="/gallery.html">${L?'Galería de Fotos':'Photo Gallery'}</a></li>
           <li><a href="${nv('/community/news.html')}">${L?'Noticias':'Valley Biz Buzz'}</a></li>
+          <li><a href="/newsletters/valley-biz-connect.html">Valley Biz Connect</a></li>
           <li><a href="${nv('/jobs/index.html')}">${t.jobs}</a></li>
           <li><a href="${nv('/real-estate.html')}">${L?'Bienes Raíces':'Real Estate'}</a></li>
           <li><a href="${nv('/guides/index.html')}">${L?'Guías':'Community Guides'}</a></li>

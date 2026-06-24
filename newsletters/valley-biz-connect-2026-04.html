@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Valley Biz Connect — April 2026 · West Valley · Warner Center Chamber of Commerce</title>
+  <meta name="description" content="Valley Biz Connect, April 2026 edition — the West Valley · Warner Center Chamber of Commerce business magazine. Member news, features, and community happenings." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="../css/chamber.css?v=20260623c" />
+  <style>
+    .vbc-read{background:#ece6d6;background-image:radial-gradient(rgba(0,0,0,.02) 1px,transparent 1px);background-size:5px 5px;padding-bottom:64px}
+    .vbc-bar{position:sticky;top:0;z-index:30;background:var(--green-ink,#143c20);color:#fff;border-bottom:3px solid var(--gold,#c9a24b)}
+    .vbc-bar__in{max-width:980px;margin:0 auto;display:flex;align-items:center;gap:14px;padding:11px 18px;flex-wrap:wrap}
+    .vbc-bar a.vbc-back{color:#fff;text-decoration:none;font-family:var(--mono);font-size:.66rem;letter-spacing:.14em;text-transform:uppercase;display:inline-flex;align-items:center;gap:6px;opacity:.88}
+    .vbc-bar a.vbc-back:hover{opacity:1}
+    .vbc-bar__title{flex:1;min-width:160px;font-family:var(--display);font-size:1.12rem;line-height:1;display:flex;align-items:baseline;gap:10px}
+    .vbc-bar__title small{font-family:var(--mono);font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:var(--gold-bright,#e3c46b);opacity:.95}
+    .vbc-prog{font-family:var(--mono);font-size:.66rem;letter-spacing:.08em;color:rgba(255,255,255,.82);white-space:nowrap}
+    .vbc-mast{text-align:center;padding:38px 18px 8px;max-width:760px;margin:0 auto}
+    .vbc-mast .kick{font-family:var(--mono);font-size:.66rem;letter-spacing:.22em;text-transform:uppercase;color:var(--gold-deep,#9a7b27)}
+    .vbc-mast h1{font-family:var(--display);font-size:clamp(2.4rem,7vw,4.4rem);line-height:.96;margin:.08em 0 .12em;color:var(--green-ink,#143c20)}
+    .vbc-mast .month{font-family:var(--display);font-style:italic;color:var(--slate-mid,#555);font-size:1.05rem}
+    .vbc-pages{max-width:880px;margin:26px auto 0;padding:0 14px;display:flex;flex-direction:column;gap:22px}
+    .vbc-page{display:block;width:100%;border:1px solid rgba(0,0,0,.1);border-radius:8px;box-shadow:0 10px 30px rgba(20,40,25,.16);background:#fff;cursor:zoom-in;transition:box-shadow .18s,transform .18s}
+    .vbc-page:hover{box-shadow:0 16px 44px rgba(20,40,25,.26);transform:translateY(-2px)}
+    .vbc-pnum{text-align:center;font-family:var(--mono);font-size:.6rem;letter-spacing:.16em;text-transform:uppercase;color:var(--slate-mid,#6b6452);margin:-8px 0 -4px}
+    .vbc-foot{max-width:760px;margin:46px auto 0;text-align:center;padding:0 18px}
+    .vbc-foot .vbc-other{display:inline-flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:14px}
+    .vbc-top{position:fixed;right:18px;bottom:20px;z-index:40;background:var(--green-ink,#143c20);color:#fff;border:0;border-radius:50%;width:46px;height:46px;font-size:1.1rem;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.28);opacity:0;pointer-events:none;transition:opacity .2s}
+    .vbc-top.show{opacity:.92;pointer-events:auto}
+  </style>
+</head>
+<body>
+  <div data-partial="header"></div>
+  <div class="vbc-read">
+    <div class="vbc-bar">
+      <div class="vbc-bar__in">
+        <a class="vbc-back" href="valley-biz-connect.html">← All editions</a>
+        <div class="vbc-bar__title">Valley Biz Connect <small>April 2026</small></div>
+        <div class="vbc-prog" id="vbcProg">36 pages</div>
+      </div>
+    </div>
+    <header class="vbc-mast">
+      <div class="kick">West Valley · Warner Center Chamber of Commerce</div>
+      <h1>Valley Biz Connect</h1>
+      <div class="month">April 2026 Edition</div>
+    </header>
+    <div class="vbc-pages" id="vbcPages"></div>
+    <div class="vbc-foot">
+      <a class="btn btn--forest" href="valley-biz-connect.html">← Back to all editions</a>
+      <div class="vbc-other" id="vbcOther"></div>
+    </div>
+  </div>
+  <button class="vbc-top" id="vbcTop" aria-label="Back to top">↑</button>
+  <div data-partial="footer"></div>
+  <script src="../js/partials.js?v=20260619a"></script>
+  <script>
+    ChamberPartials.mount({ active: 'news', depth: 1, lang: 'en' });
+    (function () {
+      var SLUG = '2026-04', PAGES = 36;
+      var wrap = document.getElementById('vbcPages');
+      var html = '';
+      for (var i = 1; i <= PAGES; i++) {
+        var nn = (i < 10 ? '0' : '') + i;
+        var src = 'assets/connect/' + SLUG + '/page-' + nn + '.webp';
+        html += '<div class="vbc-pnum">Page ' + i + ' of ' + PAGES + '</div>';
+        html += '<a href="' + src + '" target="_blank" rel="noopener" aria-label="Open page ' + i + ' full size">' +
+                '<img class="vbc-page" src="' + src + '" alt="Valley Biz Connect April 2026, page ' + i + '" loading="' + (i <= 2 ? 'eager' : 'lazy') + '" decoding="async" /></a>';
+      }
+      wrap.innerHTML = html;
+      // other editions quick-links
+      var EDS = [{"slug": "2026-01", "month": "January 2026"}, {"slug": "2026-03", "month": "March 2026"}, {"slug": "2026-05", "month": "May 2026"}];
+      var oc = document.getElementById('vbcOther');
+      if (oc && EDS.length) oc.innerHTML = EDS.map(function (e) {
+        return '<a class="btn btn--ghost btn--sm" href="valley-biz-connect-' + e.slug + '.html">' + e.month + '</a>';
+      }).join('');
+      // progress + back-to-top
+      var prog = document.getElementById('vbcProg'), topBtn = document.getElementById('vbcTop');
+      var imgs = wrap.querySelectorAll('img');
+      window.addEventListener('scroll', function () {
+        var cur = 1, mid = window.scrollY + window.innerHeight / 2;
+        for (var k = 0; k < imgs.length; k++) { if (imgs[k].offsetTop <= mid) cur = k + 1; }
+        prog.textContent = 'Page ' + cur + ' / ' + PAGES;
+        topBtn.classList.toggle('show', window.scrollY > 600);
+      }, { passive: true });
+      topBtn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    })();
+  </script>
+</body>
+</html>
