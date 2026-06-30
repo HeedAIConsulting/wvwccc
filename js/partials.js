@@ -51,11 +51,11 @@ window.ChamberPartials = (function () {
     const t = L ? {
       login: 'Acceso', staff: 'Personal', contact: 'Contacto',
       home: 'Inicio', dir: 'Directorio', dining: 'Comida', events: 'Eventos', jobs: 'Empleos',
-      deals: 'Ofertas', community: 'Comunidad', news: 'Noticias', resources: 'Recursos', about: 'La Cámara', join: 'Únete'
+      deals: 'Ofertas', community: 'Comunidad', news: 'Noticias', resources: 'Recursos', about: 'La Cámara', help: 'Ayuda', join: 'Únete'
     } : {
       login: 'Sign In', staff: 'Staff', contact: 'Contact',
       home: 'Home', dir: 'Directory', dining: 'Dining', events: 'Events', jobs: 'Jobs',
-      deals: 'Deals', community: 'Community', news: 'Biz Buzz', resources: 'Resources', about: 'The Chamber', join: 'Join'
+      deals: 'Deals', community: 'Community', news: 'Biz Buzz', resources: 'Resources', about: 'The Chamber', help: 'Help', join: 'Join'
     };
     const base = '../'.repeat(depth || 0);
     return `
@@ -128,6 +128,7 @@ window.ChamberPartials = (function () {
             <a href="${nv('/resources.html')}">${L?'Más sobre la Cámara':'More Chamber pages'} →</a>
           </div>
         </div>
+        <a href="${nv('/help.html')}" ${active==='help'?'class="active"':''}>${t.help}</a>
         <a href="${nv('/join.html')}" class="btn btn--gold btn--sm nav-cta">${t.join}</a>
       </nav>
       <button class="menu-toggle" aria-label="Toggle menu" aria-expanded="false">
@@ -144,11 +145,11 @@ window.ChamberPartials = (function () {
     const t = L ? { tag:'Conectando a las empresas y residentes de Tarzana, Woodland Hills, Reseda y Warner Center desde 1930.',
       members:'Miembros', engage:'Participa', about:'Acerca de', join:'Únete', dir:'Directorio',
       login:'Acceso de Miembros', events:'Eventos', jobs:'Bolsa de Empleo', donate:'Donar', sponsor:'Patrocinar',
-      chamber:'La Cámara', contact:'Contacto', access:'Accesibilidad', privacy:'Privacidad' }
+      chamber:'La Cámara', contact:'Contacto', help:'Ayuda y FAQ', access:'Accesibilidad', privacy:'Privacidad' }
       : { tag:'Connecting the businesses and residents of Tarzana, Woodland Hills, Reseda, and the Warner Center since 1930.',
       members:'Members', engage:'Engage', about:'About', join:'Join Now', dir:'Directory',
       login:'Member Login', events:'Events', jobs:'Jobs Board', donate:'Donate', sponsor:'Sponsor',
-      chamber:'The Chamber', contact:'Contact', access:'Accessibility', privacy:'Privacy' };
+      chamber:'The Chamber', contact:'Contact', help:'Help & FAQ', access:'Accessibility', privacy:'Privacy' };
     return `
 <section class="leaders-wall" data-leader-section hidden aria-label="Chamber leaders">
   <div class="container">
@@ -206,6 +207,7 @@ window.ChamberPartials = (function () {
           <li><a href="/community/grateful-hearts.html">Grateful Hearts</a></li>
           <li><a href="/community/history.html">${L?'Historia':'Our History'}</a></li>
           <li><a href="${nv('/contact.html')}">${t.contact}</a></li>
+          <li><a href="${nv('/help.html')}">${t.help}</a></li>
           <li><a href="${nv('/accessibility.html')}">${t.access}</a></li>
           <li><a href="${nv('/privacy.html')}">${t.privacy}</a></li>
         </ul>

@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Help &amp; FAQ — West Valley · Warner Center Chamber of Commerce</title>
+  <meta name="description" content="Answers to common questions for visitors and members of the West Valley · Warner Center Chamber of Commerce — joining, events, signing in, managing your listing, and resetting your password." />
+  <link rel="canonical" href="https://woodlandhillscc.net/help.html" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="css/chamber.css?v=20260619a" />
+  <style>
+    .faq-search { width: 100%; max-width: 520px; padding: 12px 15px; border: 1.5px solid var(--gold-soft, #e6dcbf);
+      border-radius: 11px; font: inherit; background: #fff; margin-top: var(--s-5); }
+    .faq-search:focus { outline: none; border-color: var(--gold, #c9a227); box-shadow: 0 0 0 3px rgba(201,162,39,.18); }
+    .faq-group { margin-top: var(--s-7); }
+    .faq-group > h2 { font-family: var(--display); font-size: 1.5rem; color: var(--green-ink); margin-bottom: var(--s-2); }
+    .faq-group > .faq-sub { color: var(--slate-mid); font-size: .95rem; margin-bottom: var(--s-4); }
+    .faq-item { border: 1px solid var(--line, #e8e3d5); border-radius: var(--r-md, 12px); background: #fff;
+      margin-bottom: 10px; overflow: hidden; transition: box-shadow .2s; }
+    .faq-item[open] { box-shadow: 0 10px 28px rgba(27,51,38,.08); }
+    .faq-item > summary { list-style: none; cursor: pointer; padding: 15px 46px 15px 18px; position: relative;
+      font-weight: 600; color: var(--green-ink); font-size: 1.02rem; }
+    .faq-item > summary::-webkit-details-marker { display: none; }
+    .faq-item > summary::after { content: "+"; position: absolute; right: 18px; top: 50%; transform: translateY(-50%);
+      font-size: 1.4rem; color: var(--gold-deep, #8c6e14); font-weight: 400; line-height: 1; transition: transform .2s; }
+    .faq-item[open] > summary::after { content: "–"; }
+    .faq-item > summary:hover { background: var(--cream, #faf6ea); }
+    .faq-item .faq-a { padding: 0 18px 16px; color: var(--slate-mid); font-size: .96rem; line-height: 1.6; }
+    .faq-item .faq-a a { color: var(--green-deep, #1e5631); font-weight: 600; }
+    .faq-empty { display: none; color: var(--slate-mid); font-style: italic; margin-top: var(--s-5); }
+    .faq-empty.show { display: block; }
+  </style>
+</head>
+<body>
+  <div data-partial="header"></div>
+
+  <section class="section bg-forest">
+    <div class="container">
+      <span class="kicker">We’re here to help</span>
+      <h1 style="margin-top:6px;max-width:18ch">Help &amp; Frequently Asked Questions</h1>
+      <p style="color:rgba(255,255,255,.82);max-width:62ch;margin-top:10px">
+        Quick answers for visitors and members. New to the site? Take a short guided tour,
+        or search the questions below.
+      </p>
+      <div class="btn-row mt-5">
+        <button class="btn btn--gold" type="button" id="takeTour">▶ Take a quick tour</button>
+        <a class="btn btn--ghost" href="contact.html">Contact the Chamber</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <label for="faqSearch" class="kicker" style="color:var(--gold-deep)">Search the FAQ</label><br>
+      <input id="faqSearch" class="faq-search" type="search" placeholder="Search…  e.g. forgot password, join, events" autocomplete="off" aria-label="Search the FAQ" />
+      <p class="faq-empty" id="faqEmpty">No matches — try a different word, or <a href="contact.html">contact us</a>.</p>
+
+      <!-- FOR EVERYONE -->
+      <div class="faq-group" data-group>
+        <h2>For everyone</h2>
+        <p class="faq-sub">Visitors, businesses, and the community.</p>
+
+        <details class="faq-item">
+          <summary>What is the West Valley · Warner Center Chamber of Commerce?</summary>
+          <div class="faq-a">Since 1930, we’ve connected and championed businesses across Tarzana, Woodland Hills,
+            Reseda, Canoga Park, West Hills, and the Warner Center. <a href="about.html">Learn more about the Chamber →</a></div>
+        </details>
+
+        <details class="faq-item">
+          <summary>How do I join the Chamber?</summary>
+          <div class="faq-a">Membership takes just a few minutes online. <a href="join.html">Start your membership →</a>
+            Questions first? Call us at (818) 347-4737 or <a href="contact.html">send a message</a>.</div>
+        </details>
+
+        <details class="faq-item">
+          <summary>What are the benefits of membership?</summary>
+          <div class="faq-a">A directory listing, event access and discounts, community visibility, networking groups,
+            advertising and sponsorship opportunities, and more. <a href="/p/benefits-of-membership">See member benefits →</a></div>
+        </details>
+
+        <details class="faq-item">
+          <summary>How do I find a member business?</summary>
+          <div class="faq-a">Browse the <a href="members/directory.html">member directory</a> and search by name, category, or neighborhood.
+            You can also explore <a href="dining.html">dining</a> and <a href="deals.html">member deals</a>.</div>
+        </details>
+
+        <details class="faq-item">
+          <summary>How do I register for an event or buy tickets?</summary>
+          <div class="faq-a">See what’s coming up on the <a href="events/index.html">Events page</a> and register or purchase tickets
+            right there.</div>
+        </details>
+
+        <details class="faq-item">
+          <summary>How can I advertise or sponsor the Chamber?</summary>
+          <div class="faq-a">We offer sponsorships and featured placements. <a href="inquire.html?type=sponsorship">Tell us what you have in mind →</a></div>
+        </details>
+
+        <details class="faq-item">
+          <summary>Is the site available in Spanish?</summary>
+          <div class="faq-a">Yes — use the <strong>EN / ES</strong> switch at the top right of any page to view the site in Spanish.</div>
+        </details>
+
+        <details class="faq-item">
+          <summary>How do I contact the Chamber?</summary>
+          <div class="faq-a">Call (818) 347-4737 or use our <a href="contact.html">contact form</a>. You can also chat with
+            <strong>Wendy</strong>, our online concierge, from the button on most pages.</div>
+        </details>
+      </div>
+
+      <!-- FOR MEMBERS -->
+      <div class="faq-group" data-group>
+        <h2>For members</h2>
+        <p class="faq-sub">Signing in and managing your listing.</p>
+
+        <details class="faq-item">
+          <summary>I had an account on the old website — can I still sign in?</summary>
+          <div class="faq-a">Yes. Use the <strong>same email and password</strong> you used before at the
+            <a href="/auth/login.html">member sign-in</a>. For your security, you’ll be asked to set a new password on
+            your first sign-in. If your old password doesn’t work, use “Forgot your password?” below.</div>
+        </details>
+
+        <details class="faq-item">
+          <summary>I forgot my password (or it isn’t working).</summary>
+          <div class="faq-a">On the <a href="/auth/login.html">sign-in page</a>, click <strong>“Forgot your password?”</strong>
+            and enter your email. We’ll send a reset link that’s valid for one hour. Don’t see it? Check spam, or
+            <a href="contact.html">contact the office</a> and we’ll help.</div>
+        </details>
+
+        <details class="faq-item">
+          <summary>How do I sign in to manage my listing?</summary>
+          <div class="faq-a">Go to <a href="/auth/login.html">Member Sign-In</a> and enter your email and password.
+            You’ll land on your member dashboard, where the first-time tour shows you around.</div>
+        </details>
+
+        <details class="faq-item">
+          <summary>How do I update my business listing, logo, or photos?</summary>
+          <div class="faq-a">From your member dashboard, choose <strong>Edit my profile</strong> to update your description,
+            categories, hours, contact info, logo, photos, and links. Changes appear on your public directory page.</div>
+        </details>
+
+        <details class="faq-item">
+          <summary>How do I post a deal or community announcement?</summary>
+          <div class="faq-a">From your dashboard, choose <strong>Post an offer / community</strong> to share a member deal or
+            announcement. Approved posts can appear around the site for extra visibility.</div>
+        </details>
+
+        <details class="faq-item">
+          <summary>How do I change my password or manage my account?</summary>
+          <div class="faq-a">Open <strong>Account</strong> from your member dashboard to change your password and manage
+            your account details.</div>
+        </details>
+
+        <details class="faq-item">
+          <summary>How do I renew my membership?</summary>
+          <div class="faq-a">When renewal is due we’ll be in touch. You can always reach the office at (818) 347-4737 or via the
+            <a href="contact.html">contact form</a> with any billing or renewal questions.</div>
+        </details>
+
+        <details class="faq-item">
+          <summary>I’m staff — where do I sign in?</summary>
+          <div class="faq-a">Staff and admins sign in at the same <a href="/auth/login.html">sign-in page</a> with your
+            staff credentials, and are taken to the admin console.</div>
+        </details>
+
+        <details class="faq-item">
+          <summary>I need help with my account — who do I ask?</summary>
+          <div class="faq-a">Once signed in, use the floating <strong>Support</strong> button on any member page to send us a
+            note (you can attach a screenshot). Or call (818) 347-4737.</div>
+        </details>
+      </div>
+
+      <div class="card mt-8" style="background:var(--cream,#faf6ea);border:1px solid var(--gold-soft,#e6dcbf);border-radius:16px;padding:var(--s-6);text-align:center">
+        <h2 style="font-family:var(--display);color:var(--green-ink);margin-bottom:6px">Still need help?</h2>
+        <p style="color:var(--slate-mid);margin-bottom:14px">We’re happy to help — reach the Chamber office directly.</p>
+        <div class="btn-row" style="justify-content:center">
+          <a class="btn btn--forest" href="contact.html">Contact us</a>
+          <a class="btn btn--ghost" href="tel:+18183474737">Call (818) 347-4737</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div data-partial="footer"></div>
+
+  <script src="js/partials.js?v=20260619a"></script>
+  <script src="js/api-base.js?v=20260619a"></script>
+  <script src="js/chamber.js?v=20260630a"></script>
+  <script src="js/tour.js?v=20260630a"></script>
+  <script>
+    ChamberPartials.mount({ active: 'help', depth: 0, lang: 'en' });
+
+    // "Take a quick tour" — replay the site tour from the Help page.
+    document.getElementById('takeTour').addEventListener('click', function () { WVTour.start('home'); });
+
+    // Live FAQ search — hide non-matching items and empty groups.
+    (function () {
+      var input = document.getElementById('faqSearch');
+      var items = Array.prototype.slice.call(document.querySelectorAll('.faq-item'));
+      var groups = Array.prototype.slice.call(document.querySelectorAll('[data-group]'));
+      var empty = document.getElementById('faqEmpty');
+      input.addEventListener('input', function () {
+        var q = input.value.trim().toLowerCase();
+        var any = false;
+        items.forEach(function (it) {
+          var match = !q || it.textContent.toLowerCase().indexOf(q) !== -1;
+          it.style.display = match ? '' : 'none';
+          if (match) any = true;
+          if (q && match) it.open = true; else if (!q) it.open = false;
+        });
+        groups.forEach(function (g) {
+          var visible = g.querySelectorAll('.faq-item:not([style*="display: none"])').length;
+          g.style.display = visible ? '' : 'none';
+        });
+        empty.classList.toggle('show', !any);
+      });
+    })();
+  </script>
+</body>
+</html>
