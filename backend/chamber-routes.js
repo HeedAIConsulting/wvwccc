@@ -16,6 +16,9 @@ import * as email from './email.js';
 import { SOCIAL_KEYS, sanitizePrimaryImage, sanitizeTeam, buildRewritePrompt, parseRewriteResponse } from './profile-helpers.js';
 
 const router = express.Router();
+
+// Per-member cooldown for the AI rewrite endpoint (simple in-memory guard).
+const aiRewriteCooldown = new Map();
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 // Staff/admin gate — real session auth.
@@ -210,6 +213,33 @@ router.patch('/me/profile', auth.requireAuth(), async (req, res) => {
   if (!Object.keys(patch).length) return res.status(400).json({ error: 'No editable fields provided.' });
   try { await repo.setMemberEdit(mid, patch); res.json({ ok: true, applied: patch }); }
   catch (e) { console.error(e); res.status(500).json({ error: 'could not save profile' }); }
+});
+
+// AI draft for tagline/description. Never saves — returns a suggestion the
+// member edits, then saves via PATCH /me/profile. Gemini 2.5 Flash.
+router.post('/me/profile/ai-rewrite', auth.requireAuth(), async (req, res) => {
+  const mid = req.user.mid;
+  if (!mid) return res.status(400).json({ error: 'No member listing is linked to this account.' });
+  const now = Date.now();
+  if (now - (aiRewriteCooldown.get(mid) || 0) < 8000) {
+    return res.status(429).json({ error: 'Please wait a few seconds before trying again.' });
+  }
+  aiRewriteCooldown.set(mid, now);
+  try {
+    const member = (await loadMembersFull()).members.find((x) => x.id === mid);
+    if (!member) return res.status(404).json({ error: 'Listing not found.' });
+    if (!llm.enabled()) {
+      return res.json({ unavailable: true, message: 'AI writing is not configured yet. You can still write your description by hand.' });
+    }
+    const { system, prompt } = buildRewritePrompt(member, req.body || {});
+    const text = await llm.complete({ system, prompt, json: true, maxTokens: 500, model: 'gemini-2.5-flash' });
+    const parsed = parseRewriteResponse(text);
+    if (!parsed) return res.json({ unavailable: true, message: 'Could not draft a suggestion just now. Please try again.' });
+    res.json({ ok: true, ...parsed });
+  } catch (e) {
+    console.error('ai-rewrite', e);
+    res.status(500).json({ error: 'Could not generate a suggestion.' });
+  }
 });
 
 // Member submits an offer/discount, community post, job opening, or
