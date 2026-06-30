@@ -13,6 +13,7 @@ import * as repo from './repo.js';
 import * as llm from './llm.js';
 import * as turnstile from './turnstile.js';
 import * as email from './email.js';
+import { SOCIAL_KEYS, sanitizePrimaryImage, sanitizeTeam, buildRewritePrompt, parseRewriteResponse } from './profile-helpers.js';
 
 const router = express.Router();
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -110,7 +111,7 @@ const PUBLIC_FIELDS = ['id', 'slug', 'name', 'category', 'group', 'tier', 'neigh
   // richer profile (member-managed)
   'hours', 'occupation', 'typeOfBusiness', 'yearEstablished', 'employees',
   'logo', 'photos', 'social', 'reviewLinks', 'ctaLinks', 'video',
-  'services', 'accomplishments', 'associations'];
+  'services', 'accomplishments', 'associations', 'team', 'primaryImage'];
 
 let _kw = null;
 function readKeywords() {
@@ -173,7 +174,7 @@ function sanitizeProfile(b) {
   }
   if (b.social && typeof b.social === 'object') {
     const out = {};
-    for (const k of ['facebook', 'instagram', 'linkedin', 'x', 'youtube', 'tiktok']) if (b.social[k]) out[k] = clampUrl(b.social[k]);
+    for (const k of SOCIAL_KEYS) if (b.social[k]) out[k] = clampUrl(b.social[k]);
     patch.social = out;
   }
   if (b.reviewLinks && typeof b.reviewLinks === 'object') {
@@ -188,6 +189,8 @@ function sanitizeProfile(b) {
   if (Array.isArray(b.contacts)) patch.contacts = b.contacts.slice(0, 3)
     .map((c) => ({ name: String(c.name || '').slice(0, 80), email: String(c.email || '').slice(0, 160) }))
     .filter((c) => c.name || c.email);
+  if (b.primaryImage !== undefined) { const p = sanitizePrimaryImage(b.primaryImage); if (p) patch.primaryImage = p; }
+  if (Array.isArray(b.team)) patch.team = sanitizeTeam(b.team);
   return patch;
 }
 
@@ -813,6 +816,53 @@ router.post('/admin/placements', requireAdmin, async (req, res) => {
   }
   try { await repo.setPlacement(slot, memberId); res.json({ ok: true, slot, memberId }); }
   catch (e) { console.error(e); res.status(500).json({ error: 'save failed' }); }
+});
+
+// ── Home "Featured this week" spotlight ──────────────────────
+// The top-right card on the homepage. Blank until staff pick a member OR upload
+// an image (Chamber feedback). Stored in the placements store under the reserved
+// 'home' slot: a plain member id, or a JSON string {image,caption,href}.
+function parseSpotlight(raw) {
+  if (!raw) return null;
+  if (typeof raw === 'string' && raw[0] === '{') {
+    try { const o = JSON.parse(raw); if (o && o.image) return { type: 'image', image: o.image, caption: o.caption || '', href: o.href || '' }; } catch (e) { /* fall through */ }
+  }
+  return { type: 'member', memberId: String(raw) };
+}
+router.get('/home-spotlight', async (_req, res) => {
+  try {
+    const sp = parseSpotlight((await repo.getPlacements()).home);
+    if (!sp) return res.json({ spotlight: null });
+    if (sp.type === 'image') return res.json({ spotlight: sp });
+    const m = (await loadMembersPublic()).members.find((x) => x.id === sp.memberId);
+    return res.json({ spotlight: m ? { type: 'member', member: m } : null });
+  } catch (e) { console.error('home-spotlight', e); res.status(500).json({ error: 'failed' }); }
+});
+router.get('/admin/home-spotlight', requireAdmin, async (_req, res) => {
+  try {
+    const sp = parseSpotlight((await repo.getPlacements()).home);
+    let memberName = null;
+    if (sp && sp.type === 'member') {
+      const m = (await loadMembersFull()).members.find((x) => x.id === sp.memberId);
+      memberName = m ? m.name : null;
+    }
+    res.json({ spotlight: sp, memberName });
+  } catch (e) { console.error(e); res.status(500).json({ error: 'failed' }); }
+});
+router.post('/admin/home-spotlight', requireAdmin, async (req, res) => {
+  const b = req.body || {};
+  try {
+    let value = null;
+    if (b.memberId) {
+      const exists = (await loadMembersFull()).members.some((m) => m.id === String(b.memberId));
+      if (!exists) return res.status(404).json({ error: 'Member not found.' });
+      value = String(b.memberId);
+    } else if (b.image) {
+      value = JSON.stringify({ image: String(b.image).slice(0, 800), caption: String(b.caption || '').slice(0, 200), href: String(b.href || '').slice(0, 800) });
+    }
+    await repo.setPlacement('home', value);
+    res.json({ ok: true });
+  } catch (e) { console.error(e); res.status(500).json({ error: 'save failed' }); }
 });
 
 // Pricing catalog (memberships, donation presets, ticket convention).
@@ -1502,4 +1552,5 @@ router.post('/admin/template-draft', requireAdmin, async (req, res) => {
   } catch (e) { console.error('template-draft', e); res.status(500).json({ error: 'Could not draft right now.' }); }
 });
 
+export { sanitizeProfile };
 export default router;
