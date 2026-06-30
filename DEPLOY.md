@@ -36,10 +36,19 @@ When Rob sends `woodlandhills_db.sql`:
 ```
 node scripts/import-chamberware.js scripts/woodlandhills_db.sql --discover   # confirm mapping
 node scripts/import-chamberware.js scripts/woodlandhills_db.sql              # → data/_store/*.json
-# then load the store into Postgres (loader step — see scripts/README-import.md)
+node scripts/import-legacy-passwords.js scripts/woodlandhills_db.sql         # bcrypt-hash legacy passwords into the store
+
+# then load the member logins into Postgres. data/_store is gitignored, so this
+# runs from THIS machine with DATABASE_URL pointed at the Render Postgres:
+node scripts/load-users-to-pg.js --dry-run                                   # preview counts, writes nothing
+DATABASE_URL="<render external connection string>" node scripts/load-users-to-pg.js
 ```
 Members + usernames + profiles migrate; most members keep their password (legacy hash is
 verified, then upgraded to bcrypt on first login). Unknown-hash accounts get a reset.
+
+> ⚠️ **Required before go-live.** `npm run migrate` only creates the schema — it does
+> NOT seed users. Until `load-users-to-pg.js` runs, the prod `users` table is empty:
+> no member can sign in and "Forgot password" finds nobody to email.
 
 ## 5. Payments go-live (👤 keys, then 🔧)
 1. Test in **sandbox** first: set `AGMS_SECURITY_KEY` (sandbox) + the Collect.js **tokenization

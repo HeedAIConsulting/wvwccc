@@ -51,7 +51,18 @@ This means **most members keep their existing login**; only accounts with an
 unrecognized hash format need a reset.
 
 ## After import (production hardening)
-- Load `data/_store/*.json` into Postgres (`backend/schema.sql`) — JSON store is the
-  interim; Postgres is the production system of record.
+- **Load the member logins into Postgres** — REQUIRED before go-live. `npm run migrate`
+  only creates the schema; it does not seed users. Because `data/_store/` is gitignored,
+  run the loader from the machine that has the store, with `DATABASE_URL` pointed at the
+  Render Postgres:
+  ```bash
+  node scripts/load-users-to-pg.js --dry-run                 # preview counts (writes nothing)
+  DATABASE_URL="<render external url>" node scripts/load-users-to-pg.js
+  ```
+  Until this runs the prod `users` table is empty — no member can sign in and
+  "Forgot password" has nobody to email.
 - Verify counts against the admin (≈864 members).
 - Spot-check a few profiles against the live site.
+- Confirm reset email actually sends: as an admin, hit `GET /api/admin/email-test?to=you@…`
+  — it reports which provider is live (Resend / Graph / SMTP) or `none`. If `none`, set
+  `RESEND_API_KEY` (or MS Graph / SMTP creds) on Render or reset links never leave the box.
