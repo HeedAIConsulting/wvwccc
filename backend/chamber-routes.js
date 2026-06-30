@@ -42,8 +42,9 @@ router.post('/auth/login', async (req, res) => {
     users.setLastLogin(email).catch(() => {});
     user.role = auth.effectiveRole(user.email, user.role);   // elevate super-admins
     auth.setCookie(res, auth.signSession(user));
-    // mustChange = logged in with a legacy password → force a new one now.
-    res.json({ ok: true, role: user.role, mustChange: !!user.mustChange });
+    // Members keep their existing password — we do NOT force a change on login
+    // (per Chamber preference). Voluntary change is available on the account page.
+    res.json({ ok: true, role: user.role });
   } catch (e) { console.error('login error', e); res.status(500).json({ error: 'login failed' }); }
 });
 

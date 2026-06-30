@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-/* #3 — Keep legacy passwords, force a change on first login.
+/* #3 — Keep legacy passwords; members sign in with their existing password.
    Legacy NC_accounts.password is PLAINTEXT. We bcrypt-hash it at rest (never
-   store plaintext) and set mustChange=true so the member logs in with their
-   known password, then is forced to set a new one. Members with no legacy
-   password get needsReset=true (set-a-password / email link instead).
+   store plaintext) so the member keeps their known password and is NOT forced
+   to change it (Chamber preference). Members with no legacy password get
+   needsReset=true (set-a-password / email link instead).
    Usage: node scripts/import-legacy-passwords.js <current.sql> */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -35,7 +35,7 @@ for (const u of users) {
     u.passwordHash = hashPassword(legacy);              // bcrypt at rest
     u.passwordAlgo = 'bcrypt';
     u.needsReset = false;
-    u.mustChange = true;                                // force change after login
+    u.mustChange = false;                               // keep their password; no forced change (Chamber preference)
     hashed++;
   } else {
     u.needsReset = true;                                // no legacy → set-a-password
