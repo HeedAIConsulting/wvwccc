@@ -144,10 +144,10 @@ export async function chat({ system = '', messages = [], model, maxTokens = 1500
 }
 
 // Ask the model. Returns a string. `json` hints we want strict JSON back.
-export async function complete({ system = '', prompt, json = false, maxTokens = 700 } = {}) {
+export async function complete({ system = '', prompt, json = false, maxTokens = 700, model } = {}) {
   const which = provider();
   try {
-    if (which === 'gemini') return await gemini(system, prompt, json, maxTokens);
+    if (which === 'gemini') return await gemini(system, prompt, json, maxTokens, model);
     if (which === 'anthropic') return await anthropic(system, prompt, json, maxTokens);
   } catch (e) {
     console.error(`[llm:${which}]`, e.message);
@@ -156,9 +156,10 @@ export async function complete({ system = '', prompt, json = false, maxTokens = 
   return mock(prompt);
 }
 
-async function gemini(system, prompt, json, maxTokens) {
-  // gemini-flash-latest ONLY — the -pro models have zero free-tier quota.
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_KEY()}`;
+async function gemini(system, prompt, json, maxTokens, model) {
+  // Default to the known-good alias; callers may pin e.g. 'gemini-2.5-flash'.
+  const id = model || 'gemini-flash-latest';
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${id}:generateContent?key=${GEMINI_KEY()}`;
   const body = {
     systemInstruction: system ? { parts: [{ text: system }] } : undefined,
     contents: [{ role: 'user', parts: [{ text: prompt }] }],
