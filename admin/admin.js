@@ -54,7 +54,7 @@ window.Admin = (function () {
     { href: 'events.html', icon: '◆', label: 'Events', key: 'events' },
     { href: 'groups.html', icon: '◎', label: 'Groups', key: 'groups' },
     { href: 'content.html', icon: '✎', label: 'Content', key: 'content' },
-    { href: 'slides.html', icon: '▭', label: 'Hero Slider', key: 'slides' },
+    { href: 'slides.html', icon: '▭', label: 'Homepage Banner', key: 'slides' },
     { href: 'sponsorships.html', icon: '★', label: 'Sponsorships', key: 'sponsorships' },
     { href: 'ai-assistant.html', icon: '✦', label: 'AI Assistant', key: 'assistant' },
     { href: 'ai-assistant.html?tpl=1', icon: '❏', label: 'Email Templates', key: 'templates' },
@@ -388,6 +388,7 @@ window.Admin = (function () {
     function openProfileEditor(m) {
       if (!m) return;
       let logoUrl = m.logo || '';
+      let photos = Array.isArray(m.photos) ? m.photos.slice(0, 8) : [];
       const F = [
         ['name', 'Business name'], ['category', 'Category'], ['contactName', 'Contact name'],
         ['phone', 'Phone'], ['website', 'Website'], ['address', 'Address'],
@@ -426,8 +427,21 @@ window.Admin = (function () {
               <textarea name="associations" rows="3">${esc(m.associations || '')}</textarea></div>
             <div class="field" style="grid-column:1/-1;margin:0"><label>Social media links</label>
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-                ${['facebook', 'instagram', 'linkedin', 'x', 'youtube', 'tiktok'].map((k) => `<input name="soc_${k}" placeholder="${k === 'x' ? 'X (Twitter)' : k.charAt(0).toUpperCase() + k.slice(1)} URL" value="${esc((m.social && m.social[k]) || '')}" />`).join('')}
+                ${[['facebook', 'Facebook'], ['instagram', 'Instagram'], ['linkedin', 'LinkedIn (business)'], ['linkedinPersonal', 'LinkedIn (personal)'], ['x', 'X (Twitter)'], ['youtube', 'YouTube'], ['tiktok', 'TikTok'], ['nextdoor', 'Nextdoor']].map(([k, lbl]) => `<input name="soc_${k}" placeholder="${lbl} URL" value="${esc((m.social && m.social[k]) || '')}" />`).join('')}
               </div></div>
+            <div class="field" style="margin:0"><label>Primary image</label>
+              <select name="primaryImage">
+                <option value="">Auto</option>
+                <option value="logo" ${m.primaryImage === 'logo' ? 'selected' : ''}>Logo</option>
+                <option value="person" ${m.primaryImage === 'person' ? 'selected' : ''}>Person photo</option>
+              </select></div>
+            <div class="field" style="grid-column:1/-1;margin:0"><label>Team <span class="sub">(JSON: [{"name","title","bio","photo"}])</span></label>
+              <textarea name="team" rows="4">${esc(JSON.stringify(m.team || []))}</textarea></div>
+            <div class="field" style="grid-column:1/-1;margin:0"><label>Photo gallery <span class="sub">(shown on the public profile — up to 8)</span></label>
+              <input type="file" data-photo-file accept="image/png,image/jpeg,image/webp" multiple />
+              <p class="sub" style="margin:4px 0 0">JPG, PNG or WebP, ~2.5&nbsp;MB each. A short video goes in the “Video URL” field above (YouTube/Vimeo).</p>
+              <div data-photo-list style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px"></div>
+            </div>
           </div>
           <p data-msg class="sub" style="margin:10px 0 0" hidden></p>
           <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:var(--s-4)">
@@ -443,9 +457,12 @@ window.Admin = (function () {
         const body = Object.fromEntries([...fd.entries()]);
         // Collect the soc_* inputs into a single social object.
         const social = {};
-        ['facebook', 'instagram', 'linkedin', 'x', 'youtube', 'tiktok'].forEach((k) => { if (body['soc_' + k]) social[k] = body['soc_' + k].trim(); delete body['soc_' + k]; });
+        ['facebook', 'instagram', 'linkedin', 'linkedinPersonal', 'x', 'youtube', 'tiktok', 'nextdoor'].forEach((k) => { if (body['soc_' + k]) social[k] = body['soc_' + k].trim(); delete body['soc_' + k]; });
         body.social = social;
         body.logo = logoUrl;
+        body.photos = photos;
+        try { body.team = body.team ? JSON.parse(body.team) : []; } catch (parseErr) { body.team = m.team || []; }
+        if (!body.primaryImage) delete body.primaryImage;
         const btn = e.target.querySelector('[type="submit"]'); btn.disabled = true; btn.textContent = 'Saving…';
         try {
           await api(`/api/admin/members/${encodeURIComponent(m.id)}/profile`, { method: 'PATCH', body: JSON.stringify(body) });
@@ -478,6 +495,33 @@ window.Admin = (function () {
         } catch (err) { msgEl.textContent = 'Logo upload failed (PNG/JPG/WebP, ≤2.5 MB).'; }
       });
       logoClear?.addEventListener('click', () => { logoUrl = ''; drawLogo(); if (logoFile) logoFile.value = ''; msgEl.hidden = false; msgEl.textContent = 'Logo will be removed on Save.'; });
+      // ── Photo gallery (multi-upload → /api/me/asset → urls, saved with the profile) ──
+      const photoFile = ov.querySelector('[data-photo-file]');
+      const photoList = ov.querySelector('[data-photo-list]');
+      const drawPhotos = () => {
+        photoList.innerHTML = photos.map((u, i) => `
+          <div style="position:relative;width:72px;height:72px;border-radius:10px;overflow:hidden;border:1px solid var(--line,#e4dcc8)">
+            <img src="${esc(u)}" alt="" style="width:100%;height:100%;object-fit:cover" />
+            <button type="button" data-rmphoto="${i}" title="Remove" style="position:absolute;top:2px;right:2px;width:20px;height:20px;border:none;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;font-size:.85rem;line-height:1;cursor:pointer">×</button>
+          </div>`).join('');
+        photoList.querySelectorAll('[data-rmphoto]').forEach((b) => b.addEventListener('click', () => { photos.splice(Number(b.dataset.rmphoto), 1); drawPhotos(); }));
+      };
+      drawPhotos();
+      photoFile?.addEventListener('change', async (e) => {
+        const files = [...e.target.files].slice(0, 8 - photos.length);
+        if (!files.length) { msgEl.hidden = false; msgEl.textContent = 'Gallery is full (8 photos max) — remove one first.'; return; }
+        for (const f of files) {
+          if (f.size > 2.6 * 1024 * 1024) { msgEl.hidden = false; msgEl.textContent = `Skipped ${f.name} — over ~2.5 MB.`; continue; }
+          msgEl.hidden = false; msgEl.textContent = 'Uploading photos…';
+          try {
+            const dataUrl = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(f); });
+            const up = await api('/api/me/asset', { method: 'POST', body: JSON.stringify({ kind: 'photo', dataUrl }) });
+            photos.push(up.url); drawPhotos();
+          } catch (err) { msgEl.textContent = 'A photo failed to upload (JPG/PNG/WebP, ≤2.5 MB).'; }
+        }
+        if (photoFile) photoFile.value = '';
+        msgEl.textContent = 'Photos uploaded — click Save profile to apply.';
+      });
       ov.querySelector('input:not([type=file])')?.focus();
     }
 
@@ -961,6 +1005,62 @@ window.Admin = (function () {
       });
     }
     load();
+    initHomeSpotlight(members);
+  }
+
+  // ── "Featured this week" homepage spotlight: a member OR an uploaded image ──
+  async function initHomeSpotlight(members) {
+    const cur = document.getElementById('spotCurrent');
+    if (!cur) return;
+    const flash = document.getElementById('spotFlash');
+    const msg = document.getElementById('spotMsg');
+    const search = document.getElementById('spotSearch');
+    const sug = document.getElementById('spotSuggest');
+    const imgInput = document.getElementById('spotImage');
+    const capInput = document.getElementById('spotCaption');
+    const hrefInput = document.getElementById('spotHref');
+    const imgSaveBtn = document.getElementById('spotImageSave');
+    const clearBtn = document.getElementById('spotClear');
+    let pendingImageUrl = '';
+    async function refresh() {
+      try {
+        const d = await api('/api/admin/home-spotlight');
+        if (!d.spotlight) cur.innerHTML = '<span class="pill pill--suspended">blank</span> No spotlight set — the homepage card is hidden.';
+        else if (d.spotlight.type === 'image') cur.innerHTML = `<span class="pill pill--approved">image</span> <img src="${esc(d.spotlight.image)}" alt="" style="height:46px;border-radius:6px;vertical-align:middle;margin-left:6px">${d.spotlight.caption ? ' <span class="sub">' + esc(d.spotlight.caption) + '</span>' : ''}`;
+        else cur.innerHTML = `<span class="pill pill--approved">member</span> <span class="name">★ ${esc(d.memberName || d.spotlight.memberId)}</span>`;
+      } catch (e) { cur.textContent = 'Could not load the current spotlight.'; }
+    }
+    const save = async (payload) => {
+      try {
+        await api('/api/admin/home-spotlight', { method: 'POST', body: JSON.stringify(payload) });
+        if (msg) msg.textContent = ''; flash.classList.add('show'); setTimeout(() => flash.classList.remove('show'), 1200); refresh();
+      } catch (e) { if (msg) msg.textContent = 'Save failed.'; }
+    };
+    const findMembers = (q) => { q = q.toLowerCase(); return members.filter((m) => (m.status || 'approved') === 'approved' && [m.name, m.category, m.contactName].filter(Boolean).join(' ').toLowerCase().includes(q)).slice(0, 8); };
+    search?.addEventListener('input', () => {
+      const q = search.value.trim();
+      if (q.length < 2) { sug.hidden = true; return; }
+      const hits = findMembers(q);
+      sug.innerHTML = hits.length
+        ? hits.map((m) => `<button type="button" data-pick="${esc(m.id)}"><b>${esc(m.name)}</b><span>${esc(m.category || '')}</span></button>`).join('')
+        : '<div class="sub" style="padding:8px 10px">No matches</div>';
+      sug.hidden = false;
+      sug.querySelectorAll('[data-pick]').forEach((b) => b.addEventListener('click', () => { search.value = ''; sug.hidden = true; save({ memberId: b.dataset.pick }); }));
+    });
+    search?.addEventListener('blur', () => setTimeout(() => { sug.hidden = true; }, 250));
+    imgInput?.addEventListener('change', async () => {
+      const f = imgInput.files[0]; if (!f) return;
+      if (msg) msg.textContent = 'Uploading…';
+      try {
+        const dataUrl = await downscaleImage(f, 1600, 0.85);
+        const up = await api('/api/me/asset', { method: 'POST', body: JSON.stringify({ kind: 'photo', dataUrl }) });
+        pendingImageUrl = up.url; if (imgSaveBtn) imgSaveBtn.disabled = false;
+        if (msg) msg.textContent = 'Image ready — click “Use this image”.';
+      } catch (e) { if (msg) msg.textContent = 'Image upload failed (JPG/PNG/WebP, ≤2.5 MB).'; }
+    });
+    imgSaveBtn?.addEventListener('click', () => { if (!pendingImageUrl) return; save({ image: pendingImageUrl, caption: capInput.value.trim(), href: hrefInput.value.trim() }); });
+    clearBtn?.addEventListener('click', () => save({}));
+    refresh();
   }
 
   // ── Renewals (manual date override, else join-date + term) ──
@@ -1640,7 +1740,7 @@ window.Admin = (function () {
     }
     function render() {
       if (!slides.length) {
-        tbody.innerHTML = '<tr><td colspan="4" class="sub">No slides yet — the homepage hero stays solid green until you add one above.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="4" class="sub">No slides yet — the homepage banner stays solid green until you add one above.</td></tr>';
         return;
       }
       tbody.innerHTML = slides.map((s, i) => `
@@ -1650,7 +1750,7 @@ window.Admin = (function () {
             <button type="button" class="btn btn--ghost btn--sm" data-down ${i === slides.length - 1 ? 'disabled' : ''}>↓</button>
           </td>
           <td>${s.imageUrl ? `<img src="${esc(heroSrc(s.imageUrl))}" alt="" style="width:120px;height:64px;object-fit:cover;border-radius:6px;border:1px solid var(--line,#ddd)">` : '<span class="sub">no image</span>'}</td>
-          <td><span class="name">${esc(s.title || 'Hero slide')}</span>${s.linkUrl ? `<div class="sub">${esc(s.linkUrl)}</div>` : ''}${s.status !== 'approved' ? ' <span class="pill pill--pending">draft</span>' : ''}</td>
+          <td><span class="name">${esc(s.title || 'Banner slide')}</span>${s.linkUrl ? `<div class="sub">${esc(s.linkUrl)}</div>` : ''}${s.status !== 'approved' ? ' <span class="pill pill--pending">draft</span>' : ''}</td>
           <td style="white-space:nowrap">
             <button type="button" class="btn btn--ghost btn--sm" data-edit>Edit</button>
             <button type="button" class="btn btn--ghost btn--sm" data-del style="color:var(--red)">Delete</button>
