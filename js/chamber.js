@@ -1176,12 +1176,56 @@ window.Chamber = (function () {
       const id = params.get('event'); sku = `ticket:${id}`;
       title.textContent = 'Event tickets';
       let ev = null;
-      try { ev = (await getJSON('data/events.json')).events.find((e) => e.id === id); } catch (e) {}
+      // Admin-managed events (incl. ticket types set in Admin → Events) live in the
+      // API store; the static seed file is only a fallback.
+      try { ev = ((await getJSON(ChamberAPI.url('/api/events'))).events || []).find((e) => e.id === id); } catch (e) {}
+      if (!ev) { try { ev = (await getJSON('data/events.json')).events.find((e) => e.id === id); } catch (e) {} }
       label = ev ? `Tickets — ${ev.title}` : 'Event tickets';
-      summary.innerHTML = ev
-        ? `<strong>${esc(ev.title)}</strong><br><span class="member-tile__meta">${esc(ev.month || '')} ${esc(ev.day || '')} · ${esc(ev.venue || ev.neighborhood || '')}</span><p class="notice mt-3">Ticket pricing is set by the Chamber — enter the amount shown for your ticket type, or confirm with the office.</p>`
+      const evMeta = ev
+        ? `<strong>${esc(ev.title)}</strong><br><span class="member-tile__meta">${esc(ev.month || '')} ${esc(ev.day || '')} · ${esc(ev.venue || ev.neighborhood || '')}</span>`
         : '<strong>Event tickets</strong>';
-      amountLabel.textContent = 'Ticket amount (USD)';
+      const types = (ev && Array.isArray(ev.ticketTypes) ? ev.ticketTypes : [])
+        .filter((t) => t.available !== false && t.name && Number(t.price) > 0);
+      if (types.length) {
+        // Ticket picker: type dropdown + quantity → total auto-fills (amounts are
+        // staff-entered in Admin → Events, so buyers never guess the price).
+        summary.innerHTML = `${evMeta}
+          <div class="field mt-4" style="margin-bottom:var(--s-3)"><label for="tixType">Ticket / item</label>
+            <select id="tixType" style="width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:var(--r-md);font:inherit;background:var(--paper)">
+              ${types.map((t, i) => `<option value="${i}">${esc(t.name)} — $${Number(t.price).toFixed(2)}</option>`).join('')}
+            </select></div>
+          <div class="field" style="margin-bottom:var(--s-2)"><label for="tixQty">Quantity</label>
+            <select id="tixQty" style="width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:var(--r-md);font:inherit;background:var(--paper)"></select></div>
+          <p class="member-tile__meta" id="tixCalc" style="text-align:right"></p>`;
+        amountLabel.textContent = 'Total (USD)';
+        amountInput.readOnly = true;
+        amountInput.style.background = 'var(--cream-deep, #f3ecda)';
+        const typeSel = document.getElementById('tixType');
+        const qtySel = document.getElementById('tixQty');
+        const calc = document.getElementById('tixCalc');
+        const buildQty = () => {
+          const t = types[Number(typeSel.value)] || types[0];
+          const max = Math.max(1, Math.min(10, t.qty || 10));
+          const cur = Math.min(Number(qtySel.value) || 1, max);
+          qtySel.innerHTML = Array.from({ length: max }, (_, i) => `<option${i + 1 === cur ? ' selected' : ''}>${i + 1}</option>`).join('');
+        };
+        const update = () => {
+          buildQty();
+          const t = types[Number(typeSel.value)] || types[0];
+          const qty = Number(qtySel.value) || 1;
+          const total = Number(t.price) * qty;
+          amountInput.value = total.toFixed(2);
+          calc.textContent = `${qty} × ${t.name} @ $${Number(t.price).toFixed(2)} = $${total.toFixed(2)}`;
+          label = `Tickets — ${ev.title} · ${qty} × ${t.name} @ $${Number(t.price).toFixed(2)}`;
+          sku = `ticket:${id}:${t.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40)}`;
+        };
+        typeSel.addEventListener('change', update);
+        qtySel.addEventListener('change', update);
+        update();
+      } else {
+        summary.innerHTML = `${evMeta}<p class="notice mt-3">Ticket pricing is set by the Chamber — enter the amount shown for your ticket type, or confirm with the office.</p>`;
+        amountLabel.textContent = 'Ticket amount (USD)';
+      }
     } else if (kind === 'membership') {
       const item = findSku('memberships', skuParam);
       const tier = item ? item.tier : (params.get('tier') || 'membership');
