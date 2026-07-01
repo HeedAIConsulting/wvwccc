@@ -1185,14 +1185,29 @@ window.Chamber = (function () {
         ? `<strong>${esc(ev.title)}</strong><br><span class="member-tile__meta">${esc(ev.month || '')} ${esc(ev.day || '')} · ${esc(ev.venue || ev.neighborhood || '')}</span>`
         : '<strong>Event tickets</strong>';
       const types = (ev && Array.isArray(ev.ticketTypes) ? ev.ticketTypes : [])
-        .filter((t) => t.available !== false && t.name && Number(t.price) > 0);
+        .filter((t) => t.available !== false && t.name && (Number(t.price) > 0 || Number(t.earlyPrice) > 0));
+      // Effective price: use the early-bird price until its cutoff, then the standard price.
+      const nowT = Date.now();
+      const priceOf = (t) => (t.earlyPrice != null && t.earlyUntil && nowT < Date.parse(t.earlyUntil)) ? Number(t.earlyPrice) : Number(t.price);
+      // Group options into <optgroup>s (Tickets / Sponsorships / Program Ads / …) when a group is set.
+      const optionsHtml = (() => {
+        const groups = [];
+        types.forEach((t, i) => {
+          const g = t.group || '';
+          let bucket = groups.find((x) => x.g === g);
+          if (!bucket) { bucket = { g, items: [] }; groups.push(bucket); }
+          bucket.items.push(`<option value="${i}">${esc(t.name)} — $${priceOf(t).toFixed(2)}</option>`);
+        });
+        if (groups.length === 1 && groups[0].g === '') return groups[0].items.join('');
+        return groups.map((b) => b.g ? `<optgroup label="${esc(b.g)}">${b.items.join('')}</optgroup>` : b.items.join('')).join('');
+      })();
       if (types.length) {
         // Ticket picker: type dropdown + quantity → total auto-fills (amounts are
         // staff-entered in Admin → Events, so buyers never guess the price).
         summary.innerHTML = `${evMeta}
           <div class="field mt-4" style="margin-bottom:var(--s-3)"><label for="tixType">Ticket / item</label>
             <select id="tixType" style="width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:var(--r-md);font:inherit;background:var(--paper)">
-              ${types.map((t, i) => `<option value="${i}">${esc(t.name)} — $${Number(t.price).toFixed(2)}</option>`).join('')}
+              ${optionsHtml}
             </select></div>
           <div class="field" style="margin-bottom:var(--s-2)"><label for="tixQty">Quantity</label>
             <select id="tixQty" style="width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:var(--r-md);font:inherit;background:var(--paper)"></select></div>
@@ -1213,10 +1228,11 @@ window.Chamber = (function () {
           buildQty();
           const t = types[Number(typeSel.value)] || types[0];
           const qty = Number(qtySel.value) || 1;
-          const total = Number(t.price) * qty;
+          const unit = priceOf(t);
+          const total = unit * qty;
           amountInput.value = total.toFixed(2);
-          calc.textContent = `${qty} × ${t.name} @ $${Number(t.price).toFixed(2)} = $${total.toFixed(2)}`;
-          label = `Tickets — ${ev.title} · ${qty} × ${t.name} @ $${Number(t.price).toFixed(2)}`;
+          calc.textContent = `${qty} × ${t.name} @ $${unit.toFixed(2)} = $${total.toFixed(2)}`;
+          label = `Tickets — ${ev.title} · ${qty} × ${t.name} @ $${unit.toFixed(2)}`;
           sku = `ticket:${id}:${t.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40)}`;
         };
         typeSel.addEventListener('change', update);

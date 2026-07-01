@@ -561,9 +561,13 @@ function buildEvent(b, existing = {}) {
       : (existing.documents || []),
     // Ticket types for AGMS checkout: name / price / quantity / available.
     ticketTypes: Array.isArray(b.ticketTypes)
-      ? b.ticketTypes.slice(0, 12).map((t) => ({
+      ? b.ticketTypes.slice(0, 30).map((t) => ({
           name: String(t.name || '').slice(0, 80),
+          group: t.group ? String(t.group).slice(0, 40) : undefined,
           price: Math.max(0, Number(t.price) || 0),
+          // Optional early-bird price used while now < earlyUntil (ISO date).
+          earlyPrice: (t.earlyPrice === null || t.earlyPrice === undefined || t.earlyPrice === '') ? undefined : Math.max(0, Number(t.earlyPrice) || 0),
+          earlyUntil: t.earlyUntil ? String(t.earlyUntil).slice(0, 40) : undefined,
           qty: (t.qty === null || t.qty === undefined || t.qty === '') ? null : Math.max(0, parseInt(t.qty, 10) || 0),
           available: t.available !== false,
         })).filter((t) => t.name)
