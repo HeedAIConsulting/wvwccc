@@ -77,6 +77,12 @@
       // Public Collect.js tokenization key (safe to embed). AGMS account: heedaisolutions (Test).
       tokenizationKey: 'k6pnGD-nY4df2-BbrW24-5MG82Q',
       collectSrc: 'https://agms.transactiongateway.com/token/Collect.js',
+      // PAUSED: on-site card processing is off until the LIVE AGMS gateway is
+      // configured (we will not take cards on the Test account). Buyers still see
+      // the options/prices; purchasing is routed to the office / official links.
+      // To re-enable once live keys are in: set paused = false.
+      paused: true,
+      payNotice: 'Online card payment is being finalized. To purchase or reserve, call the Chamber office at <strong>(818) 347-4737</strong> or email <a href="mailto:info@woodlandhillscc.net">info@woodlandhillscc.net</a> and we will take payment directly.',
     };
   </script>
   <script src="js/partials.js?v=20260701a"></script>
@@ -85,6 +91,18 @@
   <script>
     ChamberPartials.mount({ active: '', depth: 0, lang: 'en' });
     Chamber.initCheckout();
+
+    // Payments paused: hide card entry + Pay button (keep the options/prices
+    // visible) and show how to purchase. Static elements, so apply immediately.
+    if (window.WVWCCC_PAY && window.WVWCCC_PAY.paused) {
+      const form = document.getElementById('payForm');
+      ['payBtn', 'amountField', 'payError'].forEach((id) => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
+      const left = form && form.querySelector('div'); if (left) left.style.display = 'none';
+      const sub = document.getElementById('coSubtitle');
+      if (sub) sub.textContent = 'Review the options below. Online card payment is being finalized — here is how to purchase.';
+      const note = document.getElementById('sandboxNotice');
+      if (note) { note.hidden = false; note.style.borderColor = 'var(--gold)'; note.innerHTML = window.WVWCCC_PAY.payNotice; }
+    }
   </script>
 </body>
 </html>
