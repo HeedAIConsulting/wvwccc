@@ -158,6 +158,99 @@ window.MemberPortal = (function () {
     };
     if (videoInput) { videoInput.addEventListener('input', renderVideo); renderVideo(); }
 
+    // ── Team members (optional) ──
+    let team = Array.isArray(m.team) ? m.team.slice(0, 8) : [];
+    const teamWrap = document.getElementById('teamRows');
+    const teamRowHtml = (t, i) => `
+      <div class="card" data-team-row="${i}" style="padding:var(--s-4);margin-bottom:var(--s-3)">
+        <div class="grid grid-2" style="gap:var(--s-3)">
+          <div class="field"><label>Name</label><input data-team-name value="${esc(t.name || '')}" /></div>
+          <div class="field"><label>Title</label><input data-team-title value="${esc(t.title || '')}" /></div>
+        </div>
+        <div class="field"><label>Short bio</label><textarea data-team-bio rows="2">${esc(t.bio || '')}</textarea></div>
+        <div class="grid grid-2" style="gap:var(--s-4);align-items:center">
+          <div class="field"><label>Photo</label><input type="file" accept="image/*" data-team-photo-file /></div>
+          <div>${t.photo ? `<img src="${esc(t.photo)}" alt="" style="width:64px;height:64px;border-radius:50%;object-fit:cover">` : '<span class="member-tile__meta">No photo</span>'}</div>
+        </div>
+        <input type="hidden" data-team-photo value="${esc(t.photo || '')}" />
+        <div style="text-align:right">
+          ${i === 0 ? '<span class="member-tile__meta" style="margin-right:8px">Primary — shown as “Meet…”</span>' : ''}
+          <button type="button" class="btn btn--ghost btn--sm" data-team-remove>Remove</button>
+        </div>
+      </div>`;
+    const collectRow = (i) => {
+      const row = teamWrap.querySelector(`[data-team-row="${i}"]`);
+      if (!row) return team[i] || {};
+      return {
+        name: row.querySelector('[data-team-name]').value.trim(),
+        title: row.querySelector('[data-team-title]').value.trim(),
+        bio: row.querySelector('[data-team-bio]').value.trim(),
+        photo: row.querySelector('[data-team-photo]').value.trim(),
+      };
+    };
+    const collectTeam = () => team.map((_, i) => collectRow(i)).filter((t) => t.name);
+    function renderTeam() {
+      if (!teamWrap) return;
+      teamWrap.innerHTML = team.length
+        ? team.map(teamRowHtml).join('')
+        : '<p class="member-tile__meta">No team members yet. They appear in a “Meet the team” section on your public page.</p>';
+      teamWrap.querySelectorAll('[data-team-remove]').forEach((b, i) =>
+        b.addEventListener('click', () => { team = collectTeam(); team.splice(i, 1); renderTeam(); }));
+      teamWrap.querySelectorAll('[data-team-photo-file]').forEach((inp, i) =>
+        inp.addEventListener('change', async (e) => {
+          const f = e.target.files[0]; if (!f) return;
+          try { const url = await uploadImage(f, 'headshot'); team = collectTeam(); team[i] = { ...(team[i] || {}), photo: url }; renderTeam(); }
+          catch (err) { msg.hidden = false; msg.style.borderColor = 'var(--red)'; msg.textContent = 'Photo upload failed (PNG/JPG, max ~2.5MB).'; }
+        }));
+    }
+    renderTeam();
+    const addTeamBtn = document.getElementById('addTeam');
+    if (addTeamBtn) addTeamBtn.addEventListener('click', () => {
+      team = collectTeam();
+      if (team.length >= 8) return;
+      team.push({ name: '', title: '', bio: '', photo: '' });
+      renderTeam();
+    });
+
+    // primary image preference (default to whichever image exists)
+    const primaryDefault = m.primaryImage || (m.logo ? 'logo' : ((team[0] && team[0].photo) ? 'person' : 'logo'));
+    form.querySelectorAll('[data-primary]').forEach((r) => { r.checked = (r.value === primaryDefault); });
+
+    // ── AI: draft a tagline + description (does not save) ──
+    const aiBtn = document.getElementById('aiRewrite');
+    const aiPrev = document.getElementById('aiPreview');
+    const descEl = form.querySelector('[data-field="description"]');
+    const tagEl = form.querySelector('[data-field="tagline"]');
+    if (aiBtn) aiBtn.addEventListener('click', async () => {
+      aiBtn.disabled = true; const orig = aiBtn.textContent; aiBtn.textContent = 'Thinking…';
+      try {
+        const r = await api('/api/me/profile/ai-rewrite', {
+          method: 'POST',
+          body: JSON.stringify({ field: 'both', current: { tagline: tagEl.value, description: descEl.value } }),
+        });
+        if (r.unavailable) {
+          aiPrev.hidden = false; aiPrev.className = 'notice'; aiPrev.textContent = r.message || 'AI is unavailable right now.';
+          return;
+        }
+        aiPrev.hidden = false; aiPrev.className = 'card'; aiPrev.style.padding = 'var(--s-4)';
+        aiPrev.innerHTML = `
+          <div class="member-tile__meta">Suggested tagline</div><p>${esc(r.tagline || '(unchanged)')}</p>
+          <div class="member-tile__meta">Suggested description</div><p>${esc(r.description || '(unchanged)')}</p>
+          <div class="btn-row" style="margin-top:var(--s-3)">
+            <button type="button" class="btn btn--forest btn--sm" data-ai-use>Use this</button>
+            <button type="button" class="btn btn--ghost btn--sm" data-ai-cancel>Cancel</button>
+          </div>`;
+        aiPrev.querySelector('[data-ai-use]').addEventListener('click', () => {
+          if (r.tagline) tagEl.value = r.tagline;
+          if (r.description) descEl.value = r.description;
+          aiPrev.hidden = true;
+        });
+        aiPrev.querySelector('[data-ai-cancel]').addEventListener('click', () => { aiPrev.hidden = true; });
+      } catch (e) {
+        aiPrev.hidden = false; aiPrev.className = 'notice'; aiPrev.textContent = 'Could not reach the AI service.';
+      } finally { aiBtn.disabled = false; aiBtn.textContent = orig; }
+    });
+
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const patch = {};
@@ -169,6 +262,9 @@ window.MemberPortal = (function () {
       const labels = [...form.querySelectorAll('[data-cta-label]')]; const urls = [...form.querySelectorAll('[data-cta-url]')];
       labels.forEach((el, i) => { if (el.value && urls[i] && urls[i].value) patch.ctaLinks.push({ label: el.value, url: urls[i].value }); });
       patch.logo = logoUrl; patch.photos = photos;
+      patch.team = collectTeam();
+      const primarySel = form.querySelector('[data-primary]:checked');
+      if (primarySel) patch.primaryImage = primarySel.value;
       const btn = form.querySelector('button[type="submit"]'); btn.disabled = true; btn.textContent = 'Saving…';
       try {
         await api('/api/me/profile', { method: 'PATCH', body: JSON.stringify(patch) });
