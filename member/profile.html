@@ -37,7 +37,11 @@
           <div class="field"><label>ZIP</label><input data-field="zip" /></div>
         </div>
         <div class="field"><label>Tagline <span class="member-tile__meta">(one line on your card)</span></label><input data-field="tagline" maxlength="160" /></div>
-        <div class="field"><label>Description</label><textarea data-field="description" rows="4"></textarea></div>
+        <div class="field"><label>Description
+          <button type="button" id="aiRewrite" class="btn btn--ghost btn--sm" style="float:right">✨ Improve with AI</button></label>
+          <textarea data-field="description" rows="4"></textarea>
+          <div id="aiPreview" hidden style="margin-top:var(--s-3)"></div>
+        </div>
         <div class="field"><label>Services <span class="member-tile__meta">(what your business offers)</span></label><textarea data-field="services" rows="3"></textarea></div>
         <div class="field"><label>Accomplishments <span class="member-tile__meta">(awards, recognition, milestones)</span></label><textarea data-field="accomplishments" rows="3"></textarea></div>
         <div class="field"><label>Associations <span class="member-tile__meta">(affiliations &amp; memberships you belong to)</span></label><textarea data-field="associations" rows="3"></textarea></div>
@@ -65,16 +69,28 @@
         </div>
         <div id="videoPreview" class="mt-3"></div>
 
+        <div class="field mt-4"><label>Which image represents your listing?</label>
+          <div class="radio-group" style="display:flex;gap:var(--s-4)">
+            <label><input type="radio" name="primaryImage" data-primary value="logo" /> Logo</label>
+            <label><input type="radio" name="primaryImage" data-primary value="person" /> My photo (from team)</label>
+          </div>
+          <div class="member-tile__meta">Pick which one shows on your directory card. If you only add one image, that one is used automatically.</div>
+        </div>
+
         <h3 class="mt-5">Links &amp; social</h3>
         <div class="grid grid-2" style="gap:var(--s-3)">
           <div class="field"><label>Facebook</label><input data-social="facebook" type="url" placeholder="https://" /></div>
           <div class="field"><label>Instagram</label><input data-social="instagram" type="url" placeholder="https://" /></div>
-          <div class="field"><label>LinkedIn</label><input data-social="linkedin" type="url" placeholder="https://" /></div>
+          <div class="field"><label>LinkedIn (business)</label><input data-social="linkedin" type="url" placeholder="https://" /></div>
           <div class="field"><label>YouTube</label><input data-social="youtube" type="url" placeholder="https://" /></div>
         </div>
         <div class="grid grid-2" style="gap:var(--s-3)">
           <div class="field"><label>X (Twitter)</label><input data-social="x" type="url" placeholder="https://" /></div>
           <div class="field"><label>TikTok</label><input data-social="tiktok" type="url" placeholder="https://" /></div>
+        </div>
+        <div class="grid grid-2" style="gap:var(--s-3)">
+          <div class="field"><label>LinkedIn (personal)</label><input data-social="linkedinPersonal" type="url" placeholder="https://" /></div>
+          <div class="field"><label>Nextdoor</label><input data-social="nextdoor" type="url" placeholder="https://" /></div>
         </div>
         <div class="grid grid-2" style="gap:var(--s-3)">
           <div class="field"><label>Google reviews link</label><input data-review="google" type="url" placeholder="https://" /></div>
@@ -91,6 +107,11 @@
           <div class="field"><label>Button 2 label</label><input data-cta-label /></div>
           <div class="field"><label>Button 2 link</label><input data-cta-url type="url" placeholder="https://" /></div>
         </div>
+
+        <h3 class="mt-5">Team members <span class="member-tile__meta">(optional)</span></h3>
+        <p class="member-tile__meta">Introduce the people behind your business. The first person appears as "Meet…" on your public page. Skip this entirely if you'd rather not.</p>
+        <div id="teamRows"></div>
+        <button type="button" id="addTeam" class="btn btn--ghost btn--sm mt-3">+ Add team member</button>
 
         <p id="profileMsg" class="notice" hidden></p>
         <button class="btn btn--forest btn--lg" type="submit">Save changes</button>
