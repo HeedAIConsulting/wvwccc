@@ -232,8 +232,10 @@ router.post('/me/profile/ai-rewrite', auth.requireAuth(), async (req, res) => {
       return res.json({ unavailable: true, message: 'AI writing is not configured yet. You can still write your description by hand.' });
     }
     const { system, prompt } = buildRewritePrompt(member, req.body || {});
-    const text = await llm.complete({ system, prompt, json: true, maxTokens: 500, model: 'gemini-2.5-flash' });
-    const parsed = parseRewriteResponse(text);
+    // Prefer 2.5 Flash; fall back to the proven alias if that id isn't enabled for the key.
+    let text = await llm.complete({ system, prompt, json: true, maxTokens: 500, model: 'gemini-2.5-flash' });
+    let parsed = parseRewriteResponse(text);
+    if (!parsed) { text = await llm.complete({ system, prompt, json: true, maxTokens: 500, model: 'gemini-flash-latest' }); parsed = parseRewriteResponse(text); }
     if (!parsed) return res.json({ unavailable: true, message: 'Could not draft a suggestion just now. Please try again.' });
     res.json({ ok: true, ...parsed });
   } catch (e) {
