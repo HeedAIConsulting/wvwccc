@@ -353,6 +353,12 @@ a.member-tile__name:hover { color: var(--green); }
   border-radius: var(--r-xl); padding: var(--s-6); backdrop-filter: blur(4px);
 }
 .hero__feature-label { font-family: var(--mono); font-size: .72rem; letter-spacing: .16em; text-transform: uppercase; color: var(--gold-bright); }
+/* Homepage "Featured this week" box: solid card for readability over the busy
+   hero. Scoped to .hero so the reused .hero__feature on dark sections (e.g.
+   "Support the community") keeps its translucent, light-text treatment. */
+.hero .hero__feature { background: #fff; border-color: var(--gold-soft, #e6dcbf);
+  box-shadow: 0 18px 44px rgba(0,0,0,.34); backdrop-filter: none; }
+.hero .hero__feature .hero__feature-label { color: var(--gold-deep, #b8860b); }
 @media (max-width: 920px) {
   .hero__inner { grid-template-columns: 1fr; padding: var(--s-8) 0; }
   .hero__feature { display: none; }
@@ -497,6 +503,7 @@ a.member-tile__name:hover { color: var(--green); }
   background: linear-gradient(140deg, var(--forest), var(--green-ink)); color: #fff; }
 .evp__media--ph span { font-size: .82rem; text-transform: uppercase; letter-spacing: .14em; opacity: .82; }
 .evp__media--ph strong { font-family: var(--display); font-size: 2.8rem; line-height: 1; }
+.evp__media--ph .evp__ph-logo { width: 74px; height: 74px; object-fit: contain; margin-bottom: 10px; filter: drop-shadow(0 3px 8px rgba(0,0,0,.35)); }
 .evp__body { padding: var(--s-5) var(--s-5) var(--s-5) 0; display: flex; flex-direction: column; gap: 4px; }
 .evp__title { font-family: var(--display); font-size: 1.42rem; line-height: 1.15; margin: 6px 0 2px; color: var(--green-ink); }
 .evp__meta { color: var(--gold-deep, #b8860b); font-weight: 600; font-size: .92rem; }

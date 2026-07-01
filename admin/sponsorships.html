@@ -20,6 +20,35 @@
 
         <div class="panel">
           <div class="panel__head">
+            <h3>“Featured this week” — homepage spotlight</h3>
+            <span class="sub">The top-right card on the homepage. Stays blank until you pick a member or upload an image.</span>
+          </div>
+          <div style="padding:16px;display:grid;gap:14px">
+            <div id="spotCurrent" class="sub">Loading…</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+              <div class="field" style="margin:0;position:relative">
+                <label>Pick a member from the directory</label>
+                <input id="spotSearch" class="admin-select" placeholder="Search members…" autocomplete="off" style="width:100%" />
+                <div class="sp-suggest" id="spotSuggest" hidden></div>
+              </div>
+              <div class="field" style="margin:0">
+                <label>…or upload an image <span class="sub">(recommended 1200 × 900 px)</span></label>
+                <input type="file" id="spotImage" accept="image/png,image/jpeg,image/webp" />
+                <input id="spotCaption" class="admin-select" placeholder="Caption (optional)" style="width:100%;margin-top:6px" />
+                <input id="spotHref" class="admin-select" placeholder="Link when clicked (optional)" style="width:100%;margin-top:6px" />
+                <button type="button" id="spotImageSave" class="btn btn--forest btn--sm" style="margin-top:8px" disabled>Use this image</button>
+              </div>
+            </div>
+            <div style="display:flex;gap:10px;align-items:center">
+              <button type="button" id="spotClear" class="btn btn--ghost btn--sm">Clear spotlight (leave blank)</button>
+              <span class="saved-flash" id="spotFlash">saved ✓</span>
+              <span id="spotMsg" class="sub"></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel__head">
             <h3>Featured placements</h3>
             <span class="sub">One member per page — shown in the ★ Featured Member spot at the top of that page.</span>
           </div>
@@ -38,8 +67,8 @@
     </div>
   </div>
   <script src="../js/api-base.js"></script>
-  <script src="admin.js?v=20260623b"></script>
+  <script src="admin.js?v=20260630a"></script>
   <script>Admin.initSponsorships();</script>
-  <script defer src="/js/support.js?v=20260623a"></script>
+  <script defer src="/js/support.js?v=20260630a"></script>
 </body>
 </html>

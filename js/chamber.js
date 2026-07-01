@@ -383,7 +383,7 @@ window.Chamber = (function () {
     const img = ev.thumbnail || ev.image || (ev.images && ev.images[0]) || '';
     const media = img
       ? `<div class="evp__media" style="background-image:url('${esc(evImgSrc(img, base))}')" role="img" aria-label="${esc(ev.title)} flyer"></div>`
-      : `<div class="evp__media evp__media--ph"><span>${esc(ev.month || 'TBA')}</span><strong>${esc(ev.day || '·')}</strong></div>`;
+      : `<div class="evp__media evp__media--ph"><img src="${base}images/wvwccc-logo.png" alt="" class="evp__ph-logo"><span>${esc(ev.month || 'TBA')}</span><strong>${esc(ev.day || '·')}</strong></div>`;
     const when = (ev.confirmed && ev.day)
       ? `${esc(ev.month)} ${esc(ev.day)}${ev.time ? ' · ' + esc(ev.time) : ''}`
       : 'Date to be announced';
@@ -717,7 +717,7 @@ window.Chamber = (function () {
         if (spotlight && hero) {
           if (spotlight.type === 'image' && spotlight.image) {
             const inner = `<img src="${esc(spotlight.image)}" alt="${esc(spotlight.caption || 'Featured this week')}" style="width:100%;border-radius:var(--r-md);display:block">`
-              + (spotlight.caption ? `<p style="color:#fff;font-weight:600;margin:10px 0 0">${esc(spotlight.caption)}</p>` : '');
+              + (spotlight.caption ? `<p style="color:var(--green-ink,#143C20);font-weight:600;margin:10px 0 0">${esc(spotlight.caption)}</p>` : '');
             hero.innerHTML = spotlight.href ? `<a href="${esc(spotlight.href)}" style="text-decoration:none">${inner}</a>` : inner;
             heroAside.hidden = false;
           } else if (spotlight.member) {
@@ -1286,6 +1286,16 @@ window.Chamber = (function () {
     if (btn) form.insertBefore(div, btn); else form.appendChild(div);
   }
 
+  // Formspree project forms (the office set these to reach Felicia). Lead forms
+  // dual-send: Formspree (emails the office) + /api/contact (durable admin log).
+  const LEAD_FS_PROJECT = '3015387617890926306';
+  const LEAD_FS_KEY = { 'membership-application': 'membership', membership: 'membership', sponsorship: 'sponsorship', events: 'events', press: 'press' };
+  const LEAD_FS_GENERAL = 'mojbggnq';
+  function leadFsEndpoint(kind) {
+    return LEAD_FS_KEY[kind]
+      ? 'https://formspree.io/p/' + LEAD_FS_PROJECT + '/f/' + LEAD_FS_KEY[kind]
+      : 'https://formspree.io/f/' + LEAD_FS_GENERAL;
+  }
   function initLeadForm(formId, msgId, kind) {
     const form = document.getElementById(formId);
     const msg = document.getElementById(msgId);
@@ -1307,17 +1317,25 @@ window.Chamber = (function () {
       const btn = form.querySelector('button[type="submit"]');
       const label = btn.textContent; btn.disabled = true; btn.textContent = 'Sending…';
       try {
-        const r = await fetch(ChamberAPI.url('/api/contact'), {
+        // 1) Formspree → emails the Chamber office (Felicia). 2) /api/contact →
+        //    durable admin Inquiries log. Success if EITHER channel accepts.
+        const subject = 'Website ' + (payload.reason || kind) + (payload.company ? ' — ' + payload.company : '');
+        const fsP = fetch(leadFsEndpoint(kind), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify(Object.assign({ _subject: subject }, payload)),
+        }).then((r) => r.ok).catch(() => false);
+        const apiP = fetch(ChamberAPI.url('/api/contact'), {
           method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
-        });
-        const data = await r.json();
+        }).then(async (r) => { try { return !!(await r.json()).ok; } catch (e) { return r.ok; } }).catch(() => false);
+        const [fsOk, apiOk] = await Promise.all([fsP, apiP]);
         msg.hidden = false;
-        if (data.ok) {
+        if (fsOk || apiOk) {
           form.reset();
           msg.textContent = 'Thank you — your message has been sent. The Chamber will be in touch.';
           msg.style.borderColor = 'var(--green)';
         } else {
-          msg.textContent = data.error || 'Something went wrong. Please call (818) 347-4737.';
+          msg.textContent = 'Something went wrong. Please call (818) 347-4737.';
         }
       } catch (err) {
         msg.hidden = false;

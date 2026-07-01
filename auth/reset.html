@@ -15,19 +15,19 @@
       <main class="card" style="width:min(440px,94vw)">
         <div style="text-align:center">
           <img src="../images/wvwccc-logo.png" alt="WVWCCC" width="72" height="72" style="border-radius:50%;margin:0 auto var(--s-3);box-shadow:0 0 0 2px var(--gold)" />
-          <h1 style="font-size:1.6rem">Choose a new password</h1>
+          <h1 id="rtitle" style="font-size:1.6rem">Choose a new password</h1>
         </div>
         <form id="resetForm" class="mt-5">
           <div class="field"><label>New password</label><input id="pw1" type="password" required minlength="8" autocomplete="new-password" placeholder="At least 8 characters" /></div>
           <div class="field"><label>Confirm new password</label><input id="pw2" type="password" required minlength="8" autocomplete="new-password" /></div>
-          <p id="msg" class="notice" hidden></p>
           <button class="btn btn--forest btn--lg" type="submit" style="width:100%">Save new password</button>
         </form>
+        <p id="msg" class="notice" hidden></p>
       </main>
     </div>
   </section>
   <div data-partial="footer"></div>
-  <script src="../js/partials.js?v=20260619a"></script>
+  <script src="../js/partials.js?v=20260630a"></script>
   <script src="../js/api-base.js?v=20260619a"></script>
   <script>
     ChamberPartials.mount({ active: '', depth: 1, lang: 'en' });
@@ -50,8 +50,10 @@
         });
         const data = await r.json();
         if (r.ok && data.ok) {
-          form.hidden = true; msg.hidden = false; msg.style.borderColor = 'var(--green)';
-          msg.innerHTML = '<strong>Password updated.</strong> You can now <a href="member-login.html">sign in</a>.';
+          form.hidden = true;
+          document.getElementById('rtitle').textContent = 'Password updated';
+          msg.hidden = false; msg.style.borderColor = 'var(--green)';
+          msg.innerHTML = '<strong>Your password has been updated.</strong> You can now <a href="login.html">sign in</a>.';
         } else { fail(data.error || 'Could not reset password.'); btn.disabled = false; btn.textContent = 'Save new password'; }
       } catch (err) { fail('Could not reach the server. Please try again.'); btn.disabled = false; btn.textContent = 'Save new password'; }
     });

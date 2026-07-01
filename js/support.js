@@ -67,8 +67,8 @@
       + '<p class="sub">Send a question or report a problem to the Heed team. You can attach a screenshot of what you’re seeing.</p>'
       + '<div class="wv-sup-row"><div><label>Your name</label><input name="name" maxlength="120"></div>'
       + '<div><label>Your email</label><input name="email" type="email" maxlength="160"></div></div>'
-      + '<label>Area</label><select name="area">'
-      + ['General','Members','Events','Groups & Networks','Payments','Newsletter / Podcast','AI Assistant','Login / Access','Something looks broken','Other']
+      + '<label>What do you need help with?</label><select name="area">'
+      + ['Login / access issue','Feature help or request','Website issue / something looks broken','Members','Events','Groups & Networks','Payments','Newsletter / Podcast','AI Assistant','Other']
           .map(function (o) { return '<option>' + o + '</option>'; }).join('')
       + '</select>'
       + '<label>How can we help? *</label><textarea name="message" rows="4" maxlength="6000" placeholder="Describe what you were doing and what happened…"></textarea>'

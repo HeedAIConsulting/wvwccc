@@ -215,7 +215,7 @@ window.ChamberPartials = (function () {
     </div>
     <div class="site-footer__bottom">
       <div>© 2026 West Valley · Warner Center Chamber of Commerce. All rights reserved.</div>
-      <div>Built, managed, and hosted by <a href="https://heedbusinesssolutions.com" target="_blank" rel="noopener" style="color:var(--gold-bright)">Heed Business Solutions</a></div>
+      <div>Built &amp; maintained by <a href="https://heedbusinesssolutions.com" target="_blank" rel="noopener" style="color:var(--gold-bright)">Heed Business Solutions</a></div>
     </div>
   </div>
 </footer>`;
@@ -445,6 +445,15 @@ window.ChamberPartials = (function () {
     document.body.appendChild(s);
   }
 
+  // Global "Support" widget (login/feature/website-issue reports + screenshot).
+  // Injected on every page that mounts partials; support.js self-guards a double load.
+  function mountSupport() {
+    if (window.__wvSupport || document.querySelector('script[data-wv-support], script[src*="js/support.js"]')) return;
+    const s = document.createElement('script');
+    s.src = '/js/support.js?v=20260630a'; s.defer = true; s.setAttribute('data-wv-support', '');
+    document.head.appendChild(s);
+  }
+
   function mount({ active = '', depth = 0, lang = 'en' } = {}) {
     const h = document.querySelector('[data-partial="header"]');
     const f = document.querySelector('[data-partial="footer"]');
@@ -507,6 +516,7 @@ window.ChamberPartials = (function () {
     mountAccessibility(depth);
     mountPageTransition(depth);
     mountGuidePromo(depth, lang);
+    mountSupport();
 
     // Sticky header lifts off the page once scrolled (soft shadow).
     const hdr = document.querySelector('.site-header');

@@ -33,13 +33,46 @@ window.MemberPortal = (function () {
       bindLogout(); return;
     }
     const status = member.status || 'approved';
-    const logoPrompt = !member.logo ? `
-      <div class="notice" style="display:flex;justify-content:space-between;align-items:center;gap:var(--s-4);flex-wrap:wrap;border-left:4px solid var(--gold,#c8a24a)">
-        <span><strong>Add your logo.</strong> Listings with a logo stand out in the directory — it takes 10 seconds.</span>
-        <a class="btn btn--forest btn--sm" href="profile.html#logo">Upload logo</a>
-      </div>` : '';
+    // Welcome + getting-started guide — a checklist that reflects what's actually
+    // filled in, so new members know exactly how to complete their listing.
+    const steps = [
+      { done: !!member.logo, label: 'Add your business logo', href: 'profile.html#logo' },
+      { done: !!member.tagline, label: 'Write a one-line tagline', href: 'profile.html' },
+      { done: !!(member.services || member.description), label: 'Describe your services', href: 'profile.html' },
+      { done: !!(member.accomplishments || member.associations), label: 'Add accomplishments & associations', href: 'profile.html' },
+      { done: !!(member.social && Object.keys(member.social).length), label: 'Add your social media links', href: 'profile.html' },
+      { done: !!(member.photos && member.photos.length), label: 'Upload photos to your gallery', href: 'profile.html' },
+    ];
+    const doneCount = steps.filter((s) => s.done).length;
+    const allDone = doneCount === steps.length;
+    const firstName = (member.contactName || member.name || '').split(' ')[0] || member.name;
+    const gettingStarted = `
+      <div class="card" style="border-left:4px solid var(--gold,#c8a24a);margin-bottom:var(--s-6)">
+        <span class="kicker">Welcome to the Chamber</span>
+        <h2 style="margin:4px 0 2px">Welcome, ${esc(firstName)}! 🌿</h2>
+        <p class="member-tile__meta">${allDone
+          ? "Your listing is complete — you're all set. You can update it anytime below."
+          : `Let's get your business listing looking its best. You've completed <strong>${doneCount} of ${steps.length}</strong> steps.`}</p>
+        ${allDone ? '' : `
+        <div style="height:8px;background:var(--cream-deep,#f0e9d6);border-radius:99px;overflow:hidden;margin:12px 0 16px" role="progressbar" aria-valuenow="${doneCount}" aria-valuemax="${steps.length}">
+          <div style="height:100%;width:${Math.round((doneCount / steps.length) * 100)}%;background:var(--green,#1E5631)"></div>
+        </div>
+        <ul style="list-style:none;display:grid;gap:9px;margin:0;padding:0">
+          ${steps.map((s) => `<li style="display:flex;align-items:center;gap:10px">
+            <span aria-hidden="true" style="flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:.78rem;${s.done ? 'background:var(--green,#1E5631);color:#fff' : 'background:var(--cream-deep,#f0e9d6);color:var(--slate-mid,#6b7a72)'}">${s.done ? '✓' : '○'}</span>
+            ${s.done
+              ? `<span style="color:var(--slate-mid,#6b7a72);text-decoration:line-through">${esc(s.label)}</span>`
+              : `<a href="${s.href}" style="color:var(--green-ink,#12241a);font-weight:600;text-decoration:none">${esc(s.label)} →</a>`}
+          </li>`).join('')}
+        </ul>`}
+        <div class="btn-row mt-4">
+          <a class="btn btn--forest btn--sm" href="profile.html">${allDone ? 'Edit my profile' : 'Complete my profile'}</a>
+          <button type="button" class="btn btn--ghost btn--sm" onclick="if(window.WVTour)WVTour.start('member')">Take a quick tour</button>
+          <span class="member-tile__meta" style="align-self:center">Need help? Use the <strong>🛟 Support</strong> button (bottom-left).</span>
+        </div>
+      </div>`;
     wrap.innerHTML = `
-      ${logoPrompt}
+      ${gettingStarted}
       <div class="grid" style="grid-template-columns:1.4fr .9fr;gap:var(--s-6);align-items:start">
         <div class="card">
           <div style="display:flex;justify-content:space-between;align-items:start;gap:var(--s-4);flex-wrap:wrap">

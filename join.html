@@ -119,9 +119,9 @@
 
   <div data-partial="footer"></div>
 
-  <script src="js/partials.js?v=20260619a"></script>
+  <script src="js/partials.js?v=20260630a"></script>
   <script src="js/api-base.js?v=20260619a"></script>
-  <script src="js/chamber.js?v=20260623b"></script>
+  <script src="js/chamber.js?v=20260630a"></script>
   <script>
     ChamberPartials.mount({ active: '', depth: 0, lang: 'en' });
     Chamber.initLeadForm('joinForm', 'joinMsg', 'membership-application');
@@ -139,9 +139,9 @@
         <article class="pricing-card${t.popular ? ' pricing-card--pop' : ''}">
           ${t.popular ? '<span class="pricing-card__flag">Most popular</span>' : ''}
           <h3 class="pricing-card__name">${esc(t.label)}</h3>
-          <div class="pricing-card__amt">$${esc(t.amount)}<span>/year</span></div>
+          <div class="pricing-card__amt" style="font-size:1.02rem;font-weight:600;color:var(--green,#1b3326)">Dues scale with your team size</div>
           ${t.blurb ? `<p class="pricing-card__blurb">${esc(t.blurb)}</p>` : ''}
-          <button type="button" class="btn ${t.popular ? 'btn--gold' : 'btn--forest'} btn--lg wv-pick-level" data-level="${esc(t.label)} ($${esc(t.amount)}/yr)">Request this level →</button>
+          <button type="button" class="btn ${t.popular ? 'btn--gold' : 'btn--forest'} btn--lg wv-pick-level" data-level="${esc(t.label)}">Request this level →</button>
         </article>`).join('');
       wrap.removeAttribute('aria-busy');
       // Tier buttons route to the office application form (no online payment).
@@ -151,6 +151,34 @@
         const c = document.querySelector('#joinForm [name="company"]'); if (c) setTimeout(() => c.focus(), 450);
       }));
     })();
+  </script>
+
+  <!-- Exit-intent nudge: when a visitor looks like they're leaving (likely over cost),
+       point them to the office for flexible pricing instead of bouncing. Once/session. -->
+  <div id="exitNudge" hidden style="position:fixed;inset:0;z-index:1000;background:rgba(18,36,26,.55);display:flex;align-items:center;justify-content:center;padding:20px">
+    <div role="dialog" aria-modal="true" aria-labelledby="exitNudgeTitle" style="position:relative;background:#fff;max-width:440px;width:100%;border-radius:var(--r-lg,16px);box-shadow:0 24px 60px rgba(0,0,0,.32);padding:30px 26px 26px;text-align:center;border-top:5px solid var(--gold,#c9a227)">
+      <button type="button" id="exitNudgeClose" aria-label="Close" style="position:absolute;top:8px;right:12px;background:none;border:0;font-size:1.6rem;line-height:1;color:var(--slate-mid,#6b7a72);cursor:pointer">×</button>
+      <div style="font-size:2.1rem" aria-hidden="true">💬</div>
+      <h3 id="exitNudgeTitle" style="margin:8px 0 6px;color:var(--green-ink,#12241a)">Wondering about the cost?</h3>
+      <p style="color:var(--ink,#33413a);margin:0 0 18px;line-height:1.55">Dues are flexible and scale with your business. Call the Chamber of Commerce office for flexible pricing options.</p>
+      <a class="btn btn--gold btn--lg" href="tel:18183474737">📞 Call (818) 347-4737</a>
+      <div style="margin-top:12px"><button type="button" id="exitNudgeDismiss" style="background:none;border:0;color:var(--green,#1b3326);text-decoration:underline;cursor:pointer;font:inherit">Keep browsing</button></div>
+    </div>
+  </div>
+  <script>
+  (function () {
+    var nudge = document.getElementById('exitNudge');
+    if (!nudge) return;
+    var KEY = 'wv_join_exit_shown';
+    var show = function () { if (sessionStorage.getItem(KEY)) return; sessionStorage.setItem(KEY, '1'); nudge.hidden = false; };
+    var hide = function () { nudge.hidden = true; };
+    // Desktop exit-intent: pointer leaves through the top of the window toward the tab/close.
+    document.addEventListener('mouseout', function (e) { if (!e.relatedTarget && e.clientY <= 0) show(); });
+    document.getElementById('exitNudgeClose').addEventListener('click', hide);
+    document.getElementById('exitNudgeDismiss').addEventListener('click', hide);
+    nudge.addEventListener('click', function (e) { if (e.target === nudge) hide(); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !nudge.hidden) hide(); });
+  })();
   </script>
 </body>
 </html>
