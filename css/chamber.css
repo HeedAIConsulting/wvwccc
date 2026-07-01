@@ -707,3 +707,10 @@ html { scrollbar-color: var(--gold) var(--cream-deep); scrollbar-width: thin; }
   align-items: center; gap: 12px; }
 .ev-card__foot .ev-card__cta { margin-left: auto; }
 @media (max-width: 560px) { .ev-card__body { padding: 22px 18px 24px; } .ev-card__title { font-size: 1.4rem; } .ev-card__foot .ev-card__cta { margin-left: 0; width: 100%; } .ev-card__foot .ev-card__cta .btn { width: 100%; } }
+
+/* ── Member profile: Meet the team ── */
+.meet-team h3 { margin-bottom: var(--s-4); }
+.meet-team .member-tile__seal { display: inline-flex; align-items: center; justify-content: center; font-weight: 600; }
+@media (max-width: 640px) {
+  .meet-team .grid-2 { grid-template-columns: 1fr; }
+}
