@@ -61,9 +61,11 @@
 
   // ── Inject styles ────────────────────────────────────────────
   var STYLES = '\
-  /* Floating button */\
+  /* Floating button — sits ABOVE the Support pill (bottom:24) in the\
+     bottom-left utility stack (Support → ADA → guide promo). Keep offsets\
+     in sync with support.js + partials.js mountGuidePromo. */\
   .wv-a11y-btn {\
-    position: fixed; bottom: 24px; left: 24px; z-index: 99996;\
+    position: fixed; bottom: 84px; left: 24px; z-index: 99996;\
     width: 56px; height: 56px; border-radius: 50%;\
     background: #1E5631; color: #C9A227;\
     display: flex; align-items: center; justify-content: center;\
@@ -77,8 +79,8 @@
 \
   /* Panel */\
   .wv-a11y-panel {\
-    position: fixed; bottom: 92px; left: 24px; z-index: 99997;\
-    width: 360px; max-height: calc(100vh - 120px); overflow-y: auto;\
+    position: fixed; bottom: 152px; left: 24px; z-index: 99997;\
+    width: 360px; max-height: calc(100vh - 176px); overflow-y: auto;\
     background: #fff; color: #15202B;\
     border-radius: 14px; padding: 20px;\
     box-shadow: 0 24px 56px rgba(30,86,49,0.30);\

@@ -13,7 +13,9 @@
   var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]; }); };
 
   var css = ''
-    + '.wv-sup-btn{position:fixed;left:18px;bottom:18px;z-index:99000;background:#1E5631;color:#fff;border:2px solid #C9A227;'
+    /* Bottom-left utility stack: Support (here, bottom) → ADA (bottom:84) → guide promo (bottom:152).
+       Keep the three offsets in sync with accessibility.js + partials.js mountGuidePromo. */
+    + '.wv-sup-btn{position:fixed;left:24px;bottom:24px;z-index:99000;background:#1E5631;color:#fff;border:2px solid #C9A227;'
     + 'border-radius:999px;padding:11px 16px;font:600 14px/1 system-ui,sans-serif;cursor:pointer;box-shadow:0 8px 22px rgba(0,0,0,.25);display:flex;gap:7px;align-items:center;transition:transform .15s,box-shadow .15s}'
     + '.wv-sup-btn:hover{transform:translateY(-2px);box-shadow:0 12px 28px rgba(0,0,0,.3)}'
     + '.wv-sup-ov{position:fixed;inset:0;z-index:99001;background:rgba(14,42,22,.55);display:flex;align-items:flex-start;justify-content:center;padding:5vh 14px;overflow-y:auto}'
