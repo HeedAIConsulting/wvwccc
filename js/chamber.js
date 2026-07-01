@@ -353,14 +353,15 @@ window.Chamber = (function () {
   // Compact "quick view" row for the events index — mirrors the legacy
   // event_listings.php: date · title · category · M/D/YY · RSVP/Tickets, with
   // full details on click (opens the inline event modal). No flyer/summary here.
-  function eventQuickRow(ev) {
+  function eventQuickRow(ev, depth = 0) {
     _eventReg[ev.id] = ev;
+    const base = depth ? '../' : '';
     const mo = ev.month || (ev.date ? MONTHS[Number(ev.date.slice(5, 7)) - 1] : 'TBA');
     const day = ev.day || (ev.date ? String(Number(ev.date.slice(8, 10))) : '');
     const dateUS = ev.date ? `${ev.date.slice(5, 7)}/${ev.date.slice(8, 10)}/${ev.date.slice(2, 4)}` : 'Date TBA';
     const cta = ev.ticketed
-      ? `<a class="btn btn--gold btn--sm" href="checkout.html?type=ticket&event=${esc(ev.id)}">Tickets</a>`
-      : `<a class="btn btn--ghost btn--sm" href="contact.html?event=${esc(ev.id)}">RSVP</a>`;
+      ? `<a class="btn btn--gold btn--sm" href="${base}checkout.html?type=ticket&event=${esc(ev.id)}">Tickets</a>`
+      : `<a class="btn btn--ghost btn--sm" href="${base}contact.html?event=${esc(ev.id)}">RSVP</a>`;
     return `
       <div class="ev-quick" data-ev-detail="${esc(ev.id)}" style="display:flex;align-items:center;gap:14px;padding:11px 14px;border-bottom:1px solid var(--gold-soft,#e6dcbf);cursor:pointer">
         <div style="flex:0 0 64px;text-align:center;line-height:1.05">
@@ -1083,7 +1084,7 @@ window.Chamber = (function () {
         listEl.style.gap = view === 'quick' ? '0' : 'var(--s-4)';
         listEl.innerHTML = ordered.length
           ? (view === 'quick'
-              ? ordered.map((e) => eventQuickRow(e)).join('')
+              ? ordered.map((e) => eventQuickRow(e, 1)).join('')
               : ordered.map((e) => eventCard(e, 1, { newTab: true })).join(''))
           : empty;
       }
