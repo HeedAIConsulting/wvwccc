@@ -10,6 +10,7 @@
         sampled from the chamber's circular "Since 1930" seal) ── */
   --green-deep:  #1E5631;   /* primary dark green (logo ring) */
   --green-ink:   #143C20;   /* deepest green — headers / footers */
+  --forest:      #1E5631;   /* forest green — event/flyer placeholders, pricing (was undefined) */
   --green-char:  #0E2A16;   /* near-black green */
   --green:       #3A8A3F;   /* primary green / links */
   --leaf-soft:   #E4F0E4;   /* soft green wash */
@@ -499,7 +500,7 @@ a.member-tile__name:hover { color: var(--green); }
   overflow: hidden; cursor: pointer; transition: box-shadow .22s ease, transform .22s ease; }
 .evp:hover { box-shadow: 0 16px 40px rgba(20, 60, 32, .15); transform: translateY(-3px); }
 .evp__media { background-size: cover; background-position: center; min-height: 184px; background-color: var(--leaf-soft); }
-.evp__media--ph { display: flex; flex-direction: column; align-items: center; justify-content: center;
+.evp__media--ph { display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; overflow: hidden;
   background: linear-gradient(140deg, var(--forest), var(--green-ink)); color: #fff; }
 .evp__media--ph span { font-size: .82rem; text-transform: uppercase; letter-spacing: .14em; opacity: .82; }
 .evp__media--ph strong { font-family: var(--display); font-size: 2.8rem; line-height: 1; }
@@ -721,3 +722,7 @@ html { scrollbar-color: var(--gold) var(--cream-deep); scrollbar-width: thin; }
 @media (max-width: 640px) {
   .meet-team .grid-2 { grid-template-columns: 1fr; }
 }
+
+/* Event image layered over the logo placeholder; removed on error → logo shows. */
+.evp__cover { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.ev-card__flyer--ph { object-fit: contain !important; background: linear-gradient(140deg, var(--forest), var(--green-ink)); padding: 22px; }

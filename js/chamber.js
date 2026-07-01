@@ -245,7 +245,8 @@ window.Chamber = (function () {
     // always feels image-forward (logos/flyers/images — Felicia's request).
     const hero = ev.flyer || ev.thumbnail || (ev.images && ev.images[0]) || '';
     const flyerImg = hero
-      ? `<img class="ev-card__flyer" src="${esc(evImgSrc(hero, base))}" alt="${esc(ev.title)} flyer" onerror="this.style.display='none'">` : '';
+      ? `<img class="ev-card__flyer" src="${esc(evImgSrc(hero, base))}" alt="${esc(ev.title)} flyer" onerror="this.onerror=null;this.src='${base}images/wvwccc-logo.png';this.classList.add('ev-card__flyer--ph')">`
+      : `<img class="ev-card__flyer ev-card__flyer--ph" src="${base}images/wvwccc-logo.png" alt="">`;
     const extra = (ev.images || []).filter((u) => u && u !== hero).slice(0, 3);
     const imgs = flyerImg + (extra.length
       ? `<div class="ev-card__imgs">${extra.map((u) => `<img src="${esc(evImgSrc(u, base))}" alt="" loading="lazy">`).join('')}</div>` : '');
@@ -381,9 +382,10 @@ window.Chamber = (function () {
     _eventReg[ev.id] = ev;
     const base = depth ? '../' : '';
     const img = ev.thumbnail || ev.image || (ev.images && ev.images[0]) || '';
-    const media = img
-      ? `<div class="evp__media" style="background-image:url('${esc(evImgSrc(img, base))}')" role="img" aria-label="${esc(ev.title)} flyer"></div>`
-      : `<div class="evp__media evp__media--ph"><img src="${base}images/wvwccc-logo.png" alt="" class="evp__ph-logo"><span>${esc(ev.month || 'TBA')}</span><strong>${esc(ev.day || '·')}</strong></div>`;
+    // The chamber-logo placeholder is ALWAYS the base; a real image layers on top and
+    // removes itself on error — so a missing/broken/slow image never leaves a white box.
+    const evPh = `<img src="${base}images/wvwccc-logo.png" alt="" class="evp__ph-logo"><span>${esc(ev.month || 'TBA')}</span><strong>${esc(ev.day || '·')}</strong>`;
+    const media = `<div class="evp__media evp__media--ph" role="img" aria-label="${esc(ev.title)} flyer">${img ? `<img class="evp__cover" src="${esc(evImgSrc(img, base))}" alt="" loading="lazy" onerror="this.remove()">` : ''}${evPh}</div>`;
     const when = (ev.confirmed && ev.day)
       ? `${esc(ev.month)} ${esc(ev.day)}${ev.time ? ' · ' + esc(ev.time) : ''}`
       : 'Date to be announced';
