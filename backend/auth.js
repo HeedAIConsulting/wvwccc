@@ -62,6 +62,16 @@ export function verifyResetToken(token) {
   catch { return null; }
 }
 
+// Stateless magic-link login — short-lived signed token, distinct purpose so a
+// reset token can never be used to sign in (and vice versa).
+export function signMagicToken(email) {
+  return jwt.sign({ sub: String(email).toLowerCase(), purpose: 'magic' }, SECRET, { expiresIn: '20m' });
+}
+export function verifyMagicToken(token) {
+  try { const p = jwt.verify(token || '', SECRET); return p.purpose === 'magic' ? p.sub : null; }
+  catch { return null; }
+}
+
 export function readSession(req) {
   try { return jwt.verify((req.cookies && req.cookies[COOKIE]) || '', SECRET); }
   catch { return null; }

@@ -19,6 +19,7 @@ const router = express.Router();
 
 // Per-member cooldown for the AI rewrite endpoint (simple in-memory guard).
 const aiRewriteCooldown = new Map();
+const magicLinkCooldown = new Map();
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 // Staff/admin gate — real session auth.
@@ -90,6 +91,49 @@ router.post('/auth/reset', async (req, res) => {
   if (!email) return res.status(400).json({ error: 'This reset link is invalid or has expired. Request a new one.' });
   try { await users.updatePassword(email, auth.hashPassword(password)); res.json({ ok: true }); }
   catch (e) { console.error('reset failed', e); res.status(500).json({ error: 'Could not reset password.' }); }
+});
+
+// ── Magic-link login (passwordless) ─────────────────────────
+// Request a one-time sign-in link by email. Generic response (never reveal
+// whether an account exists). 60s per-email cooldown to prevent inbox spam.
+router.post('/auth/magic/request', async (req, res) => {
+  const addr = String((req.body && req.body.email) || '').trim().toLowerCase();
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(addr)) return res.status(400).json({ error: 'Enter a valid email address.' });
+  const now = Date.now();
+  if (now - (magicLinkCooldown.get(addr) || 0) < 60000) {
+    return res.json({ ok: true, message: 'If an account exists for that email, a sign-in link is on the way.' });
+  }
+  magicLinkCooldown.set(addr, now);
+  try {
+    const user = await users.getUserByEmail(addr);
+    if (user) {
+      const token = auth.signMagicToken(addr);
+      const base = process.env.SITE_URL || `${req.protocol}://${req.get('host')}`;
+      const link = `${base}/api/auth/magic/verify?token=${encodeURIComponent(token)}`;
+      const result = await email.send({
+        to: addr,
+        subject: 'Your West Valley · Warner Center Chamber sign-in link',
+        text: `Click to sign in to your Chamber account. This link expires in 20 minutes:\n${link}\n\nIf you didn't request this, you can ignore this email.`,
+        html: `<p>Click to sign in to your Chamber account. This link expires in 20 minutes:</p><p><a href="${link}">Sign in to the Chamber</a></p><p>If you didn't request this, you can ignore this email.</p>`,
+      });
+      if (result && result.skipped) console.warn('[auth/magic] email provider not configured — link NOT sent for', addr);
+      else if (result && result.ok === false) console.error('[auth/magic] email failed:', result.error);
+    }
+  } catch (e) { console.error('[auth/magic] error:', e.message); }
+  res.json({ ok: true, message: 'If an account exists for that email, a sign-in link is on the way.' });
+});
+
+// Consume the link → establish a session and redirect to the right home.
+router.get('/auth/magic/verify', async (req, res) => {
+  const addr = auth.verifyMagicToken(req.query.token);
+  if (!addr) return res.redirect('/auth/login.html?magic=expired');
+  try {
+    const user = await users.getUserByEmail(addr);
+    if (!user) return res.redirect('/auth/login.html?magic=expired');
+    auth.setCookie(res, auth.signSession({ email: user.email, role: user.role, memberId: user.memberId }));
+    const admin = ['staff', 'admin', 'super_admin'].includes(user.role);
+    res.redirect(admin ? '/admin/index.html' : '/member/index.html');
+  } catch (e) { console.error('[auth/magic/verify]', e.message); res.redirect('/auth/login.html?magic=error'); }
 });
 
 router.get('/auth/me', (req, res) => {

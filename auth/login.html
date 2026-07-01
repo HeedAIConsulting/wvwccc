@@ -27,6 +27,17 @@
         <p class="member-tile__meta mt-3" style="text-align:center">
           <a href="forgot-password.html">Forgot your password?</a>
         </p>
+        <div class="mt-3" style="display:flex;align-items:center;gap:10px;color:var(--muted)">
+          <span style="flex:1;height:1px;background:var(--line,#e4dcc8)"></span>
+          <span class="member-tile__meta">or</span>
+          <span style="flex:1;height:1px;background:var(--line,#e4dcc8)"></span>
+        </div>
+        <form id="magicForm" class="mt-3">
+          <div class="field"><label>Email me a sign-in link <span class="member-tile__meta">(no password needed)</span></label>
+            <input name="email" type="email" required autocomplete="username" placeholder="you@example.com" /></div>
+          <p id="magicMsg" class="notice" hidden></p>
+          <button class="btn btn--ghost btn--lg" type="submit" style="width:100%">Email me a link</button>
+        </form>
         <p class="member-tile__meta mt-2" style="text-align:center">
           Not a member yet? <a href="../join.html">Join the Chamber →</a>
         </p>
@@ -62,6 +73,27 @@
         location.href = ADMIN_ROLES.includes(data.role) ? '../admin/index.html' : '../member/index.html';
       } catch (err) { msg.textContent = 'Could not sign in right now.'; msg.hidden = false; }
       finally { btn.disabled = false; btn.textContent = 'Sign in'; }
+    });
+
+    // Magic-link (passwordless) sign-in
+    const params = new URLSearchParams(location.search);
+    if (params.get('magic') === 'expired') { msg.textContent = 'That sign-in link expired or was already used — request a new one below.'; msg.style.borderColor = 'var(--red)'; msg.hidden = false; }
+    else if (params.get('magic') === 'error') { msg.textContent = 'Something went wrong with that link. Please try again.'; msg.style.borderColor = 'var(--red)'; msg.hidden = false; }
+    const magicForm = document.getElementById('magicForm');
+    const magicMsg = document.getElementById('magicMsg');
+    if (magicForm) magicForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = new FormData(magicForm).get('email');
+      const b = magicForm.querySelector('button'); b.disabled = true; b.textContent = 'Sending…';
+      try {
+        await fetch(ChamberAPI.url('/api/auth/magic/request'), {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }),
+        });
+        magicMsg.textContent = 'Check your email — if you have an account, a sign-in link is on its way. It expires in 20 minutes.';
+        magicMsg.style.borderColor = 'var(--green)'; magicMsg.hidden = false;
+        magicForm.querySelector('input').disabled = true; b.style.display = 'none';
+      } catch (err) { magicMsg.textContent = 'Could not send the link right now. Please try again.'; magicMsg.style.borderColor = 'var(--red)'; magicMsg.hidden = false; }
+      finally { b.disabled = false; b.textContent = 'Email me a link'; }
     });
   </script>
 </body>
