@@ -72,7 +72,17 @@ window.Chamber = (function () {
     return '';
   }
 
-  function memberTile(m, depth) {
+  // Resolve the image for directory cards + the profile sidebar. The member
+  // picks logo vs. their (team) photo; fall back to whatever image exists.
+  function cardImage(m) {
+    const logo = m.logo || '';
+    const person = (Array.isArray(m.team) && m.team[0] && m.team[0].photo) || '';
+    if (m.primaryImage === 'person' && person) return person;
+    if (m.primaryImage === 'logo' && logo) return logo;
+    return logo || person || (m.photos && m.photos[0]) || '';
+  }
+
+  function memberTile(m, depth, opts = {}) {
     const tier = (m.tier || 'member').toLowerCase();
     const tierLabel = tier.charAt(0).toUpperCase() + tier.slice(1);
     const href = m.slug ? '/members/' + m.slug : `${depth ? '' : 'members/'}profile.html?id=${encodeURIComponent(m.id)}`;
@@ -85,7 +95,7 @@ window.Chamber = (function () {
     const addrLink = addr
       ? `<a class="member-tile__row" href="${esc(mapUrl(m))}" target="_blank" rel="noopener" aria-label="Map ${esc(m.name)}"><span aria-hidden="true">📍</span> ${esc(addr)}</a>` : '';
     const meta = [m.category, m.neighborhood].filter(Boolean).map(esc).join(' · ');
-    const photo = m.logo || (m.photos && m.photos[0]) || '';
+    const photo = cardImage(m);
     const seal = photo
       ? `<div class="member-tile__seal" style="padding:0;overflow:hidden"><img src="${esc(photo)}" alt="${esc(m.name || '')} logo" loading="lazy" style="width:100%;height:100%;object-fit:cover"></div>`
       : `<div class="member-tile__seal">${esc(m.seal || (m.name || '?')[0])}</div>`;
@@ -98,8 +108,8 @@ window.Chamber = (function () {
             <div class="member-tile__meta">${meta}</div>
           </div>
         </div>
-        ${m.tagline ? `<p class="member-tile__tag">${esc(m.tagline)}</p>` : ''}
-        ${(addrLink || phone) ? `<div class="member-tile__facts">${addrLink}${phone}</div>` : ''}
+        ${m.tagline && !opts.compact ? `<p class="member-tile__tag">${esc(m.tagline)}</p>` : ''}
+        ${(addrLink || phone) && !opts.compact ? `<div class="member-tile__facts">${addrLink}${phone}</div>` : ''}
         <div class="member-tile__foot">
           <span class="badge badge--${tier}">${esc(tierLabel)}</span>
           <a class="btn btn--forest btn--sm" href="${href}">${tr('View profile →')}</a>
@@ -336,6 +346,32 @@ window.Chamber = (function () {
           ${shareMenu(ev.title, location.origin + '/events/index.html#' + encodeURIComponent(ev.id))}
         </div>
         <div>${cta}</div>
+      </div>`;
+  }
+
+  // Compact "quick view" row for the events index — mirrors the legacy
+  // event_listings.php: date · title · category · M/D/YY · RSVP/Tickets, with
+  // full details on click (opens the inline event modal). No flyer/summary here.
+  function eventQuickRow(ev) {
+    _eventReg[ev.id] = ev;
+    const mo = ev.month || (ev.date ? MONTHS[Number(ev.date.slice(5, 7)) - 1] : 'TBA');
+    const day = ev.day || (ev.date ? String(Number(ev.date.slice(8, 10))) : '');
+    const dateUS = ev.date ? `${ev.date.slice(5, 7)}/${ev.date.slice(8, 10)}/${ev.date.slice(2, 4)}` : 'Date TBA';
+    const cta = ev.ticketed
+      ? `<a class="btn btn--gold btn--sm" href="checkout.html?type=ticket&event=${esc(ev.id)}">Tickets</a>`
+      : `<a class="btn btn--ghost btn--sm" href="contact.html?event=${esc(ev.id)}">RSVP</a>`;
+    return `
+      <div class="ev-quick" data-ev-detail="${esc(ev.id)}" style="display:flex;align-items:center;gap:14px;padding:11px 14px;border-bottom:1px solid var(--gold-soft,#e6dcbf);cursor:pointer">
+        <div style="flex:0 0 64px;text-align:center;line-height:1.05">
+          <div style="font-weight:700;color:var(--green,#1b3326);text-transform:uppercase;font-size:.72rem;letter-spacing:.04em">${esc(mo)}</div>
+          <div style="font-weight:800;color:var(--green-ink,#12241a);font-size:1.35rem">${esc(day)}</div>
+        </div>
+        <div style="flex:1 1 auto;min-width:0">
+          <span class="ev-quick__title" style="font-weight:700;color:var(--green-ink,#12241a)">${esc(ev.title)}</span>
+          ${ev.featured ? ' <span class="badge badge--gold" style="font-size:.68rem">★ Featured</span>' : ''}
+          <div class="member-tile__meta">${esc(ev.category || 'Event')} · ${esc(dateUS)}</div>
+        </div>
+        <div style="flex:0 0 auto">${cta}</div>
       </div>`;
   }
 
@@ -649,11 +685,12 @@ window.Chamber = (function () {
       const statEl = document.getElementById('statMembers');
       if (statEl) statEl.textContent = members.length ? members.length + '+' : '—';
 
-      // featured members (or first 6)
+      // featured members (or first 6) — compact tiles on the home page so we don't
+      // show too much of a member's profile at first glance (Chamber feedback).
       const featured = members.filter((m) => m.featured);
       const show = (featured.length ? featured : members).slice(0, 6);
       const wrap = document.getElementById('featuredMembers');
-      if (wrap) wrap.innerHTML = show.map((m) => memberTile(m, 0)).join('');
+      if (wrap) wrap.innerHTML = show.map((m) => memberTile(m, 0, { compact: true })).join('');
 
       // recently active members — top up with featured so the row is never sparse
       try {
@@ -664,28 +701,47 @@ window.Chamber = (function () {
           const filler = (featured.length ? featured : members).filter((m) => !seen.has(m.id));
           const show = recent.concat(filler).slice(0, 6); // top 6 only (Chamber feedback)
           if (show.length) {
-            rwrap.innerHTML = show.map((m) => memberTile(m, 0)).join('');
+            rwrap.innerHTML = show.map((m) => memberTile(m, 0, { compact: true })).join('');
             document.getElementById('recentSection').hidden = false;
           }
         }
       } catch (e) { /* no recent logins yet */ }
 
-      // hero spotlight = first featured
+      // "Featured this week" spotlight — BLANK until staff explicitly pick a member
+      // or upload an image in Admin → Sponsorships (Chamber feedback). No auto-fill.
+      const heroAside = document.querySelector('.hero__feature');
       const hero = document.getElementById('heroFeature');
-      if (hero && show[0]) {
-        const m = show[0];
-        hero.innerHTML = `
-          <div class="member-tile">
-            <div class="member-tile__head">
-              <div class="member-tile__seal">${esc(m.seal || m.name[0])}</div>
-              <div>
-                <div class="member-tile__name" style="color:#fff">${esc(m.name)}</div>
-                <div class="member-tile__meta" style="color:rgba(255,255,255,.65)">${esc(m.category)} · ${esc(m.neighborhood || '')}</div>
-              </div>
-            </div>
-            <p style="color:rgba(255,255,255,.82);font-size:.95rem;margin:12px 0 0">${esc(m.tagline || '')}</p>
-          </div>`;
-      }
+      if (heroAside) heroAside.hidden = true;            // stays blank until resolved
+      try {
+        const { spotlight } = await getJSON(ChamberAPI.url('/api/home-spotlight'));
+        if (spotlight && hero) {
+          if (spotlight.type === 'image' && spotlight.image) {
+            const inner = `<img src="${esc(spotlight.image)}" alt="${esc(spotlight.caption || 'Featured this week')}" style="width:100%;border-radius:var(--r-md);display:block">`
+              + (spotlight.caption ? `<p style="color:#fff;font-weight:600;margin:10px 0 0">${esc(spotlight.caption)}</p>` : '');
+            hero.innerHTML = spotlight.href ? `<a href="${esc(spotlight.href)}" style="text-decoration:none">${inner}</a>` : inner;
+            heroAside.hidden = false;
+          } else if (spotlight.member) {
+            const m = spotlight.member;
+            const photo = m.logo || (m.photos && m.photos[0]) || '';
+            const seal = photo
+              ? `<div class="member-tile__seal" style="padding:0;overflow:hidden"><img src="${esc(photo)}" alt="${esc(m.name)} logo" style="width:100%;height:100%;object-fit:cover"></div>`
+              : `<div class="member-tile__seal">${esc(m.seal || m.name[0])}</div>`;
+            const href = m.slug ? '/members/' + m.slug : 'members/profile.html?id=' + encodeURIComponent(m.id);
+            hero.innerHTML = `
+              <div class="member-tile">
+                <div class="member-tile__head">
+                  ${seal}
+                  <div>
+                    <a class="member-tile__name" href="${href}" style="color:#fff">${esc(m.name)}</a>
+                    <div class="member-tile__meta" style="color:rgba(255,255,255,.65)">${esc(m.category || '')}${m.neighborhood ? ' · ' + esc(m.neighborhood) : ''}</div>
+                  </div>
+                </div>
+                <div class="btn-row mt-3"><a class="btn btn--gold btn--sm" href="${href}">View profile →</a></div>
+              </div>`;
+            heroAside.hidden = false;
+          }
+        }
+      } catch (e) { /* no spotlight set → the card stays blank */ }
 
       // events
       // Featured events first; otherwise the next upcoming confirmed events.
@@ -766,6 +822,21 @@ window.Chamber = (function () {
       const clr = document.getElementById('clearAll');
       if (clr) clr.hidden = !(state.category || state.hood);
     }
+    // Quick-pick buttons for the most-populated categories (Chamber feedback:
+    // "both the field for the category AND choose from top categories buttons").
+    const topCats = (() => {
+      const counts = {};
+      members.forEach((m) => { const g = m.group || 'Other'; counts[g] = (counts[g] || 0) + 1; });
+      // Surface the most-populated *named* categories — "Other" isn't a useful pick.
+      return Object.keys(counts).filter((g) => g && g !== 'Other').sort((a, b) => counts[b] - counts[a]).slice(0, 8);
+    })();
+    function buildTopCats() {
+      const el = document.getElementById('dirTopCats');
+      if (!el) return;
+      el.innerHTML = `<button type="button" class="chip${!state.category ? ' active' : ''}" data-cat="">${esc(tr('All'))}</button>`
+        + topCats.map((c) => `<button type="button" class="chip${state.category === c ? ' active' : ''}" data-cat="${esc(c)}">${esc(c)}</button>`).join('');
+      el.querySelectorAll('[data-cat]').forEach((b) => b.addEventListener('click', () => { state.category = b.dataset.cat || ''; render(); }));
+    }
     if (!window.__wvDDClose) { window.__wvDDClose = true; document.addEventListener('click', closeAllDD); }
 
     // Relevance score. -1 = filtered out / no match. Higher = better.
@@ -803,6 +874,7 @@ window.Chamber = (function () {
 
     function render() {
       buildFacets();
+      buildTopCats();
       const place = localStorage.getItem('wvwccc_place');
       let scored = members.map((m) => [m, scoreOf(m)]).filter(([, s]) => s >= 0);
       if (state.q) {
@@ -858,7 +930,7 @@ window.Chamber = (function () {
     const phoneDigits = (m.phone || '').replace(/[^\d]/g, '');
     // Shorten long URLs (e.g. instagram.com/longhandle/) for the narrow card.
     const webLabel = (u) => { const s = String(u).replace(/^https?:\/\//i, '').replace(/\/$/, ''); return s.length > 28 ? s.slice(0, 27) + '…' : s; };
-    const SOCIAL = { facebook: 'Facebook', instagram: 'Instagram', linkedin: 'LinkedIn', x: 'X', youtube: 'YouTube', tiktok: 'TikTok' };
+    const SOCIAL = { facebook: 'Facebook', instagram: 'Instagram', linkedin: 'LinkedIn', linkedinPersonal: 'LinkedIn (personal)', x: 'X', youtube: 'YouTube', tiktok: 'TikTok', nextdoor: 'Nextdoor' };
     const social = m.social && typeof m.social === 'object'
       ? Object.entries(SOCIAL).filter(([k]) => m.social[k]).map(([k, label]) =>
           `<a class="chip" href="${esc(m.social[k])}" target="_blank" rel="noopener">${label}</a>`).join('') : '';
@@ -876,8 +948,9 @@ window.Chamber = (function () {
       m.employees && ['Employees', m.employees],
       m.hours && ['Hours', m.hours],
     ].filter(Boolean).map(([k, v]) => `<li><span class="member-tile__meta">${esc(k)}</span><br>${esc(v)}</li>`).join('');
-    const seal = m.logo
-      ? `<img src="${esc(m.logo)}" alt="${esc(m.name)} logo" style="width:120px;height:120px;border-radius:var(--r-lg);object-fit:cover;margin:0 auto var(--s-4);box-shadow:var(--sh-sm)">`
+    const primaryImg = cardImage(m);
+    const seal = primaryImg
+      ? `<img src="${esc(primaryImg)}" alt="${esc(m.name)}" style="width:120px;height:120px;border-radius:var(--r-lg);object-fit:cover;margin:0 auto var(--s-4);box-shadow:var(--sh-sm)">`
       : `<div class="member-tile__seal" style="width:100px;height:100px;font-size:2.8rem;margin:0 auto var(--s-4)">${esc(m.seal || m.name[0])}</div>`;
     const fullAddr = [m.address, m.city, m.state].filter(Boolean).join(', ');
     const contactRows = [
@@ -887,6 +960,25 @@ window.Chamber = (function () {
     ].filter(Boolean).join('');
     // Member video (YouTube/Vimeo URL → responsive embed; else native <video>).
     const video = m.video ? videoEmbed(m.video) : '';
+
+    const teamArr = Array.isArray(m.team) ? m.team.filter((t) => t && t.name) : [];
+    const personCard = (t, primary) => {
+      const sz = primary ? 96 : 64;
+      const ph = t.photo
+        ? `<img src="${esc(t.photo)}" alt="${esc(t.name)}" loading="lazy" style="width:${sz}px;height:${sz}px;border-radius:50%;object-fit:cover;flex:none">`
+        : `<div class="member-tile__seal" style="width:${sz}px;height:${sz}px;flex:none">${esc((t.name || '?')[0])}</div>`;
+      return `<div style="display:flex;gap:var(--s-4);align-items:flex-start">
+        ${ph}
+        <div><strong>${esc(t.name)}</strong>${t.title ? `<div class="member-tile__meta">${esc(t.title)}</div>` : ''}
+        ${t.bio ? `<p${primary ? '' : ' class="member-tile__meta"'} style="margin:6px 0 0">${esc(t.bio)}</p>` : ''}</div>
+      </div>`;
+    };
+    const teamHtml = teamArr.length ? `
+      <div class="meet-team mt-6">
+        <h3>Meet the team</h3>
+        ${personCard(teamArr[0], true)}
+        ${teamArr.length > 1 ? `<div class="grid grid-2 mt-4">${teamArr.slice(1).map((t) => personCard(t, false)).join('')}</div>` : ''}
+      </div>` : '';
     const richSection = (title, text) => (text && String(text).trim())
       ? `<div class="mt-5"><h3>${esc(title)}</h3><p style="white-space:pre-wrap;line-height:1.7">${esc(text)}</p></div>` : '';
 
@@ -909,6 +1001,7 @@ window.Chamber = (function () {
           ${richSection('Accomplishments', m.accomplishments)}
           ${richSection('Associations', m.associations)}
           ${facts ? `<ul class="grid grid-3 mt-5" style="list-style:none;gap:var(--s-4)">${facts}</ul>` : ''}
+          ${teamHtml}
           ${video}
           ${photos}
           <div id="memberOffers" class="mt-6"></div>
@@ -970,6 +1063,9 @@ window.Chamber = (function () {
       if (days) { const end = new Date(today); end.setDate(end.getDate() + days); return d >= today && d <= end; }
       return true;
     }
+    // Three views: 'quick' (compact legacy list — DEFAULT, per Chamber feedback),
+    // 'details' (the image-rich cards), and 'grid' (the month calendar).
+    let view = 'quick';
     function renderList() {
       const cat = catEl ? catEl.value : '';
       const when = whenEl ? whenEl.value : 'upcoming';
@@ -977,9 +1073,18 @@ window.Chamber = (function () {
       // Featured events float to the top (keeping date order within each group),
       // so the admin "Feature on homepage" toggle visibly affects placement here too.
       const ordered = filtered.filter((e) => e.featured).concat(filtered.filter((e) => !e.featured));
-      listEl.innerHTML = ordered.length
-        ? ordered.map((e) => eventCard(e, 1, { newTab: true })).join('')
-        : '<p class="notice">No events match these filters — try widening the timeframe or choosing “All categories.”</p>';
+      if (view === 'grid') {
+        listEl.hidden = true; gridEl.hidden = false;
+      } else {
+        gridEl.hidden = true; listEl.hidden = false;
+        const empty = '<p class="notice">No events match these filters — try widening the timeframe or choosing “All categories.”</p>';
+        listEl.style.gap = view === 'quick' ? '0' : 'var(--s-4)';
+        listEl.innerHTML = ordered.length
+          ? (view === 'quick'
+              ? ordered.map((e) => eventQuickRow(e)).join('')
+              : ordered.map((e) => eventCard(e, 1, { newTab: true })).join(''))
+          : empty;
+      }
       if (countEl) countEl.textContent = filtered.length + ' event' + (filtered.length !== 1 ? 's' : '');
     }
     renderList();
@@ -1028,13 +1133,12 @@ window.Chamber = (function () {
     const seed = events[0] ? new Date(events[0].date + 'T12:00:00') : new Date(2026, 5, 1);
     buildGrid(seed.getFullYear(), seed.getMonth());
 
-    // view toggle
+    // view toggle (Quick list · Details · Calendar)
     document.querySelectorAll('[data-view]').forEach((btn) => {
       btn.addEventListener('click', () => {
-        const view = btn.dataset.view;
+        view = btn.dataset.view;
         document.querySelectorAll('[data-view]').forEach((b) => b.classList.toggle('active', b === btn));
-        listEl.hidden = view !== 'list';
-        gridEl.hidden = view !== 'grid';
+        renderList();
       });
     });
   }
