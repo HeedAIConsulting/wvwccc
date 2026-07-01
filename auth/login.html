@@ -49,6 +49,20 @@
   <script src="../js/api-base.js?v=20260619a"></script>
   <script>
     ChamberPartials.mount({ active: '', depth: 1, lang: 'en' });
+
+    // Already signed in? Skip the form and go straight to the portal, so an
+    // existing session isn't mistaken for "logged out" and re-entered every time.
+    (async () => {
+      try {
+        const r = await fetch(ChamberAPI.url('/api/auth/me'), { credentials: 'same-origin' });
+        if (!r.ok) return;
+        const me = await r.json();
+        if (me && me.email) {
+          location.replace(['staff', 'admin', 'super_admin'].includes(me.role) ? '../admin/index.html' : '../member/index.html');
+        }
+      } catch (e) { /* not signed in — show the form */ }
+    })();
+
     const form = document.getElementById('loginForm');
     const msg = document.getElementById('msg');
     const ADMIN_ROLES = ['staff', 'admin', 'super_admin'];

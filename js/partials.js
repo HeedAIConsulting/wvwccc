@@ -68,7 +68,7 @@ window.ChamberPartials = (function () {
         <span>&#128336; ${CONTACT.since}</span>
       </div>
       <div class="site-header__top-actions">
-        <a href="/auth/login.html">${t.login}</a>
+        <a href="/auth/login.html" data-auth-link>${t.login}</a>
         <span style="color:rgba(255,255,255,.3)">·</span>
         <a href="${nv('/contact.html')}">${t.contact}</a>
         <span style="color:rgba(255,255,255,.3)">·</span>
@@ -513,6 +513,38 @@ window.ChamberPartials = (function () {
     document.addEventListener('click', () => document.querySelectorAll('.nav-dd.dd-open').forEach((o) => o.classList.remove('dd-open')));
     // (Migrated content pages are no longer auto-listed in the dropdowns — they
     // live on resources.html, which every menu links to. Cleaner UI.)
+
+    // Reflect signed-in state in the header. The session persists across pages
+    // (HttpOnly cookie); the header should SHOW it — otherwise every page looks
+    // signed-out and members think they must re-login. Swaps "Sign In" → "My
+    // Account" (or Admin) and adds a "Sign Out" link. Silent no-op when logged out.
+    (function reflectAuth() {
+      const link = document.querySelector('[data-auth-link]');
+      if (!link) return;
+      const apiUrl = (window.ChamberAPI && ChamberAPI.url) ? ChamberAPI.url : (pp) => pp;
+      fetch(apiUrl('/api/auth/me'), { credentials: 'same-origin' })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((me) => {
+          if (!me || !me.email) return;
+          const L = lang === 'es';
+          const isAdmin = ['staff', 'admin', 'super_admin'].includes(me.role);
+          link.textContent = isAdmin ? (L ? 'Panel Admin' : 'Admin') : (L ? 'Mi Cuenta' : 'My Account');
+          link.setAttribute('href', isAdmin ? '/admin/index.html' : '/member/index.html');
+          if (document.querySelector('[data-auth-out]')) return;
+          const sep = document.createElement('span');
+          sep.style.color = 'rgba(255,255,255,.3)'; sep.textContent = '·';
+          const out = document.createElement('a');
+          out.href = '#'; out.setAttribute('data-auth-out', ''); out.textContent = L ? 'Salir' : 'Sign Out';
+          out.addEventListener('click', (e) => {
+            e.preventDefault();
+            fetch(apiUrl('/api/auth/logout'), { method: 'POST', credentials: 'same-origin' })
+              .catch(() => {}).finally(() => { location.href = '/'; });
+          });
+          link.insertAdjacentElement('afterend', sep);
+          sep.insertAdjacentElement('afterend', out);
+        })
+        .catch(() => {});
+    })();
 
     mountElevenLabs();
     mountAccessibility(depth);
