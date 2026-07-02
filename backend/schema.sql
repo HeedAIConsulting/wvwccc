@@ -81,6 +81,20 @@ CREATE TABLE IF NOT EXISTS orders (
   created         timestamptz DEFAULT now()
 );
 
+-- ── Coupons (checkout promo codes — ours, not the gateway's) ──
+CREATE TABLE IF NOT EXISTS coupons (
+  code        text PRIMARY KEY,             -- stored UPPERCASE
+  description text,
+  kind        text DEFAULT 'percent',       -- percent | fixed
+  amount      numeric(10,2) NOT NULL,       -- percent (0-100) or dollar amount
+  applies_to  text DEFAULT 'all',           -- all | ticket | donation | payment | event:<id>
+  expires_at  timestamptz,                  -- null = never expires
+  max_uses    int,                          -- null = unlimited
+  used        int DEFAULT 0,
+  active      boolean DEFAULT true,
+  created     timestamptz DEFAULT now()
+);
+
 -- ── Leads / inquiries (contact + membership forms) ─────────
 CREATE TABLE IF NOT EXISTS leads (
   id          text PRIMARY KEY,                -- 'lead-...'

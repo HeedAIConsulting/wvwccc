@@ -1071,12 +1071,103 @@ router.get('/members/:id', async (req, res) => {
   } catch (e) { res.status(500).json({ error: 'directory unavailable' }); }
 });
 
+// ── Coupons (checkout promo codes) ──────────────────────────
+// Shared validation: exists, active, unexpired, uses left, applies to this purchase.
+async function validCoupon(code, kind, sku) {
+  const c = await repo.getCoupon(code);
+  if (!c) return { ok: false, error: 'Unknown promo code.' };
+  if (!c.active) return { ok: false, error: 'This promo code is no longer active.' };
+  if (c.expiresAt && Date.now() > Date.parse(c.expiresAt)) return { ok: false, error: 'This promo code has expired.' };
+  if (c.maxUses != null && c.used >= c.maxUses) return { ok: false, error: 'This promo code has reached its limit.' };
+  const scope = c.appliesTo || 'all';
+  const applies = scope === 'all'
+    || scope === kind
+    || (scope.startsWith('event:') && String(sku || '').startsWith('ticket:' + scope.slice(6)));
+  if (!applies) return { ok: false, error: 'This promo code does not apply to this purchase.' };
+  return { ok: true, coupon: c };
+}
+const couponDiscount = (c, amount) => c.kind === 'fixed'
+  ? Math.min(Number(c.amount), amount)
+  : Math.round(amount * Number(c.amount)) / 100;
+
+// Public: pre-check a code at checkout (server recomputes at /pay regardless).
+router.get('/coupons/:code/validate', async (req, res) => {
+  try {
+    const v = await validCoupon(req.params.code, req.query.kind || 'ticket', req.query.sku || '');
+    if (!v.ok) return res.json(v);
+    const amt = Math.max(0, Number(req.query.amount) || 0);
+    res.json({ ok: true, code: v.coupon.code, kind: v.coupon.kind, amount: v.coupon.amount,
+      discount: amt ? couponDiscount(v.coupon, amt) : undefined });
+  } catch (e) { res.status(500).json({ ok: false, error: 'validation failed' }); }
+});
+
+router.get('/admin/coupons', requireAdmin, async (_req, res) => {
+  try { res.json({ coupons: await repo.listCoupons() }); }
+  catch (e) { res.status(500).json({ error: 'coupons failed' }); }
+});
+router.post('/admin/coupons', requireAdmin, async (req, res) => {
+  const b = req.body || {};
+  if (!b.code || !/^[A-Za-z0-9-]{3,24}$/.test(b.code)) return res.status(400).json({ error: 'Code: 3-24 letters/numbers/dashes.' });
+  const amount = Number(b.amount);
+  if (!(amount > 0)) return res.status(400).json({ error: 'Amount must be greater than 0.' });
+  if (b.kind === 'percent' && amount > 100) return res.status(400).json({ error: 'Percent cannot exceed 100.' });
+  try {
+    const coupon = await repo.upsertCoupon({
+      code: b.code, description: String(b.description || '').slice(0, 200),
+      kind: b.kind === 'fixed' ? 'fixed' : 'percent', amount,
+      appliesTo: String(b.appliesTo || 'all').slice(0, 60),
+      expiresAt: b.expiresAt ? new Date(b.expiresAt).toISOString() : null,
+      maxUses: b.maxUses ? Math.max(1, parseInt(b.maxUses, 10)) : null,
+      active: b.active !== false,
+    });
+    res.json({ ok: true, coupon });
+  } catch (e) { console.error('coupon save', e); res.status(500).json({ error: 'could not save' }); }
+});
+router.delete('/admin/coupons/:code', requireAdmin, async (req, res) => {
+  try { await repo.deleteCoupon(req.params.code); res.json({ ok: true }); }
+  catch (e) { res.status(500).json({ error: 'delete failed' }); }
+});
+
 // ── Payments (AGMS) ─────────────────────────────────────────
 router.post('/pay', async (req, res) => {
   try {
     const b = req.body || {};
     if (!b.paymentToken) return res.status(400).json({ ok: false, error: 'missing payment token' });
     if (!b.amount || Number(b.amount) <= 0) return res.status(400).json({ ok: false, error: 'invalid amount' });
+
+    // Server-side price verification: never trust the browser's total for
+    // tickets. sku = ticket:<eventId>:<type-slug>; recompute unit price from
+    // the event's ticketTypes (honoring the early-bird window) × quantity.
+    let amount = Number(b.amount);
+    let subtotal = amount;
+    if (b.kind === 'ticket') {
+      const m = /^ticket:([^:]+):(.+)$/.exec(String(b.sku || ''));
+      if (m) {
+        const ev = (await loadEvents()).find((e) => e.id === m[1]);
+        const t = ev && (ev.ticketTypes || []).find((x) =>
+          x.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40) === m[2]);
+        if (t) {
+          if (t.available === false) return res.status(400).json({ ok: false, error: 'That ticket type is no longer available.' });
+          const qty = Math.max(1, Math.min(10, parseInt(b.quantity, 10) || 1));
+          const unit = (t.earlyPrice != null && t.earlyUntil && Date.now() < Date.parse(t.earlyUntil))
+            ? Number(t.earlyPrice) : Number(t.price);
+          subtotal = Math.round(unit * qty * 100) / 100;
+          amount = subtotal;
+        }
+      }
+    }
+
+    // Promo code: validated + applied server-side; use count bumped after approval.
+    let coupon = null, discount = 0;
+    if (b.couponCode) {
+      const v = await validCoupon(b.couponCode, b.kind, b.sku);
+      if (!v.ok) return res.status(400).json({ ok: false, error: v.error });
+      coupon = v.coupon;
+      discount = couponDiscount(coupon, amount);
+      amount = Math.round((amount - discount) * 100) / 100;
+      if (amount <= 0) return res.status(400).json({ ok: false, error: 'Total after discount must be above $0.' });
+    }
+    b.amount = amount;
 
     const common = {
       paymentToken: b.paymentToken,
@@ -1100,6 +1191,7 @@ router.post('/pay', async (req, res) => {
       status: 'paid',
     };
     await repo.addOrder(order);
+    if (coupon) repo.incrementCouponUse(coupon.code).catch(() => {});
     // Email a receipt to the payer + the Chamber office, styled after the legacy
     // ChamberWare receipts (per Felicia): "Paid Receipt For Tickets <ref>" for
     // event tickets, "Paid Receipt <ref>" for everything else; order table +
@@ -1139,8 +1231,15 @@ router.post('/pay', async (req, res) => {
             ${row('Email', b.email)}
             ${row('Phone', b.phone)}
             ${(Array.isArray(b.attendees) ? b.attendees.slice(0, 10) : [])
-              .map((a, i) => row(`Attendee ${i + 1}`, String(a).slice(0, 80))).join('')}
+              .map((a, i) => row(`Attendee ${i + 1}`,
+                typeof a === 'object' && a
+                  ? [String(a.name || '').slice(0, 80), String(a.contact || '').slice(0, 80)].filter(Boolean).join(' · ')
+                  : String(a).slice(0, 80))).join('')}
           </table>
+          ${coupon ? `<table style="border-collapse:collapse;font-size:14px;margin-top:14px">
+            ${row('Subtotal', '$' + subtotal.toFixed(2))}
+            ${row(`Discount (${coupon.code})`, '-$' + discount.toFixed(2))}
+          </table>` : ''}
           <p style="font-weight:bold;margin:18px 0 0">GRAND TOTAL: ${amt}${b.kind === 'membership' && b.recurring ? ' (annual, recurring)' : ''}</p>
         </div>`;
       const text = `THANK YOU\nOrder #${ref}\n\n`

@@ -61,6 +61,7 @@ window.Admin = (function () {
     { href: 'users.html', icon: '⚷', label: 'Users & Roles', key: 'users' },
     { grp: 'Revenue & contact' },
     { href: 'payments.html', icon: '$', label: 'Pay Log', key: 'payments' },
+    { href: 'coupons.html', icon: '%', label: 'Promo Codes', key: 'coupons' },
     { href: 'leads.html', icon: '✉', label: 'Inquiries', key: 'leads' },
     { grp: 'Help' },
     { href: 'about.html', icon: 'ⓘ', label: 'About / Support', key: 'about' },
@@ -131,7 +132,8 @@ window.Admin = (function () {
     { id: 'content', t: 'Post news, a deal, or a photo', kw: 'news post content deal offer coupon gallery announcement biz buzz', href: 'content.html', tip: 'Write news posts, member-board posts, offers/deals, and gallery photos.' },
     { id: 'sponsors', t: 'Manage sponsors & featured placements', kw: 'sponsor sponsorship featured placement logo advertise', href: 'sponsorships.html', tip: 'Manage featured placements and sponsor logos.' },
     { id: 'users', t: 'Create a login / set staff roles', kw: 'user role staff admin login create account super', href: 'users.html', tip: 'Create logins; Super Admins can set roles and member expirations.' },
-    { id: 'payments', t: 'See payments & receipts', kw: 'payment pay log receipt dues ticket donation revenue order', href: 'payments.html', tip: 'Every payment through the site, with receipts.' },
+    { id: 'payments', t: 'See payments & receipts', kw: 'payment pay log receipt dues ticket donation revenue order refund', href: 'payments.html', tip: 'Every payment through the site, with receipts and a Refund button.' },
+    { id: 'coupons', t: 'Create a promo / discount code', kw: 'promo coupon discount code sale percent off expiration', href: 'coupons.html', tip: 'Percent or dollar-off codes for checkout, with expiration dates and use limits.' },
     { id: 'inquiries', t: 'Read website inquiries', kw: 'inquiry contact message lead join request', href: 'leads.html', tip: 'Contact-form messages and group-join requests from the website.' },
     { id: 'support', t: 'Submit a support request to Heed', kw: 'support help ticket problem bug broken screenshot heed contact', href: 'about.html', sel: '#supportForm', tip: 'Send us a message with a screenshot — or use the 🛟 Support button on any page.' },
   ];
@@ -595,6 +597,60 @@ window.Admin = (function () {
         });
       });
     } catch (e) { showAuthError(e); }
+  }
+
+  // ── Promo Codes ──
+  async function initCoupons() {
+    mountShell('coupons');
+    const rows = document.getElementById('couponRows');
+    const form = document.getElementById('couponForm');
+    async function load() {
+      try {
+        const { coupons } = await api('/api/admin/coupons');
+        rows.innerHTML = coupons.length ? coupons.map((c) => `
+          <tr data-code="${esc(c.code)}">
+            <td><span class="name">${esc(c.code)}</span>${c.description ? `<div class="sub">${esc(c.description)}</div>` : ''}</td>
+            <td>${c.kind === 'fixed' ? '$' + Number(c.amount).toFixed(2) : Number(c.amount) + '%'} off</td>
+            <td class="sub">${esc(c.appliesTo === 'all' ? 'everything' : c.appliesTo)}</td>
+            <td class="sub">${c.expiresAt ? new Date(c.expiresAt).toLocaleString() : 'never'}</td>
+            <td class="sub">${c.used || 0}${c.maxUses ? ' / ' + c.maxUses : ''}</td>
+            <td>${c.active && !(c.expiresAt && Date.now() > Date.parse(c.expiresAt)) ? '<span class="pill pill--approved">live</span>' : '<span class="pill pill--inactive">off</span>'}</td>
+            <td><button class="btn btn--ghost btn--sm" data-toggle>${c.active ? 'Deactivate' : 'Activate'}</button>
+                <button class="btn btn--ghost btn--sm" data-del>Delete</button></td>
+          </tr>`).join('')
+          : '<tr><td colspan="7" class="sub">No promo codes yet — create one above.</td></tr>';
+        rows.querySelectorAll('tr[data-code]').forEach((tr) => {
+          const c = coupons.find((x) => x.code === tr.dataset.code);
+          tr.querySelector('[data-toggle]')?.addEventListener('click', async () => {
+            await api('/api/admin/coupons', { method: 'POST', body: JSON.stringify({ ...c, active: !c.active }) });
+            load();
+          });
+          tr.querySelector('[data-del]')?.addEventListener('click', async () => {
+            if (!confirm(`Delete code ${c.code}? Buyers can no longer use it.`)) return;
+            await api(`/api/admin/coupons/${encodeURIComponent(c.code)}`, { method: 'DELETE' });
+            load();
+          });
+        });
+      } catch (e) { showAuthError(e); }
+    }
+    form?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fd = new FormData(form);
+      const body = {
+        code: String(fd.get('code') || '').toUpperCase(), kind: fd.get('kind'),
+        amount: fd.get('amount'), appliesTo: fd.get('appliesTo'),
+        expiresAt: fd.get('expiresAt') || null, maxUses: fd.get('maxUses') || null,
+        description: fd.get('description') || '',
+      };
+      try {
+        await api('/api/admin/coupons', { method: 'POST', body: JSON.stringify(body) });
+        form.reset();
+        const msg = document.getElementById('couponMsg');
+        if (msg) { msg.classList.add('show'); setTimeout(() => msg.classList.remove('show'), 1800); }
+        load();
+      } catch (err) { alert('Could not save: ' + (err.message || 'error')); }
+    });
+    load();
   }
 
   // ── Inquiries / notifications ──
@@ -1846,5 +1902,5 @@ window.Admin = (function () {
     });
   }
 
-  return { mountShell, initDashboard, initMembers, initApprovals, initOrders, initLeads, initEvents, initContent, initAssistant, initRenewals, initUsers, initGroups, initSponsorships, initSlides, initAbout, openHelp, api, esc };
+  return { mountShell, initDashboard, initMembers, initApprovals, initOrders, initCoupons, initLeads, initEvents, initContent, initAssistant, initRenewals, initUsers, initGroups, initSponsorships, initSlides, initAbout, openHelp, api, esc };
 })();

@@ -80,6 +80,64 @@ export async function setOrderStatus(id, status) {
   o.status = status; store.write('orders.json', orders); return true;
 }
 
+// ── Coupons (checkout promo codes) ──────────────────────────
+const couponRow = (c) => ({
+  code: c.code, description: c.description || '', kind: c.kind || 'percent',
+  amount: Number(c.amount) || 0, appliesTo: c.applies_to ?? c.appliesTo ?? 'all',
+  expiresAt: c.expires_at ?? c.expiresAt ?? null, maxUses: c.max_uses ?? c.maxUses ?? null,
+  used: Number(c.used) || 0, active: c.active !== false, created: c.created,
+});
+export async function listCoupons() {
+  if (db.enabled) {
+    const r = await db.query('SELECT * FROM coupons ORDER BY created DESC');
+    return r.rows.map(couponRow);
+  }
+  return store.read('coupons.json', []).map(couponRow);
+}
+export async function getCoupon(code) {
+  const c = String(code || '').trim().toUpperCase();
+  if (!c) return null;
+  if (db.enabled) {
+    const r = await db.query('SELECT * FROM coupons WHERE code=$1', [c]);
+    return r.rows[0] ? couponRow(r.rows[0]) : null;
+  }
+  const hit = store.read('coupons.json', []).find((x) => x.code === c);
+  return hit ? couponRow(hit) : null;
+}
+export async function upsertCoupon(c) {
+  const row = couponRow({ ...c, code: String(c.code || '').trim().toUpperCase() });
+  if (!row.code) throw new Error('coupon code required');
+  if (db.enabled) {
+    await db.query(
+      `INSERT INTO coupons (code, description, kind, amount, applies_to, expires_at, max_uses, used, active)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+       ON CONFLICT (code) DO UPDATE SET description=$2, kind=$3, amount=$4, applies_to=$5,
+         expires_at=$6, max_uses=$7, active=$9`,
+      [row.code, row.description, row.kind, row.amount, row.appliesTo,
+       row.expiresAt, row.maxUses, row.used, row.active]);
+    return row;
+  }
+  const all = store.read('coupons.json', []);
+  const i = all.findIndex((x) => x.code === row.code);
+  if (i >= 0) all[i] = { ...all[i], ...row, used: all[i].used || 0 };
+  else all.push(row);
+  store.write('coupons.json', all);
+  return row;
+}
+export async function deleteCoupon(code) {
+  const c = String(code || '').trim().toUpperCase();
+  if (db.enabled) { await db.query('DELETE FROM coupons WHERE code=$1', [c]); return true; }
+  store.write('coupons.json', store.read('coupons.json', []).filter((x) => x.code !== c));
+  return true;
+}
+export async function incrementCouponUse(code) {
+  const c = String(code || '').trim().toUpperCase();
+  if (db.enabled) { await db.query('UPDATE coupons SET used = used + 1 WHERE code=$1', [c]); return; }
+  const all = store.read('coupons.json', []);
+  const hit = all.find((x) => x.code === c);
+  if (hit) { hit.used = (hit.used || 0) + 1; store.write('coupons.json', all); }
+}
+
 // ── Content posts (offers, member board, news/announcements) ──
 const POST_COLS = ['id', 'type', 'author_id', 'author_name', 'member_id', 'title', 'body',
   'image_url', 'link_url', 'cta_label', 'cta_url', 'code', 'status', 'featured_home', 'expires_at', 'meta'];

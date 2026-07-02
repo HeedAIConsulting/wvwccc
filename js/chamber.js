@@ -1229,13 +1229,22 @@ window.Chamber = (function () {
           qtySel.innerHTML = Array.from({ length: max }, (_, i) => `<option${i + 1 === cur ? ' selected' : ''}>${i + 1}</option>`).join('');
         };
         const namesDiv = document.getElementById('tixNames');
-        // One name input per ticket so the office knows who is attending
+        // Name + contact per ticket so the office knows who is attending
         // (matches the legacy ChamberWare receipts). Values survive qty changes.
         const buildNames = (qty) => {
-          const prev = Array.from(namesDiv.querySelectorAll('input')).map((i) => i.value);
+          const prev = Array.from(namesDiv.querySelectorAll('[data-att-row]')).map((r) => ({
+            name: r.querySelector('[data-attendee]')?.value || '',
+            contact: r.querySelector('[data-att-contact]')?.value || '',
+          }));
           namesDiv.innerHTML = Array.from({ length: qty }, (_, i) => `
-            <div class="field" style="margin-bottom:var(--s-2)"><label>Attendee ${i + 1} name</label>
-            <input data-attendee value="${esc(prev[i] || '')}" placeholder="${i === 0 ? 'Who is this ticket for?' : 'Guest name'}" /></div>`).join('');
+            <div data-att-row style="margin-bottom:var(--s-2)">
+              <div class="grid grid-2" style="gap:var(--s-2)">
+                <div class="field" style="margin:0"><label>Attendee ${i + 1} name</label>
+                  <input data-attendee value="${esc(prev[i]?.name || '')}" placeholder="${i === 0 ? 'Who is this ticket for?' : 'Guest name'}" /></div>
+                <div class="field" style="margin:0"><label>Their email or phone</label>
+                  <input data-att-contact value="${esc(prev[i]?.contact || '')}" placeholder="Optional" /></div>
+              </div>
+            </div>`).join('');
         };
         const update = () => {
           buildQty();
@@ -1290,6 +1299,27 @@ window.Chamber = (function () {
     }
     if (presetAmount) amountInput.value = presetAmount;
 
+    // Promo code (optional) — validated here for instant feedback; /api/pay
+    // re-validates and applies the discount server-side (its math is authoritative).
+    const promoBtn = document.getElementById('promoApply');
+    if (promoBtn) promoBtn.addEventListener('click', async () => {
+      const codeEl = document.getElementById('promoCode');
+      const msg = document.getElementById('promoMsg');
+      const code = (codeEl.value || '').trim();
+      window.__wvPromo = null; msg.hidden = false; msg.style.color = '';
+      if (!code) { msg.textContent = 'Enter a code first.'; return; }
+      try {
+        const q = new URLSearchParams({ kind, sku, amount: amountInput.value || '0' });
+        const r = await getJSON(ChamberAPI.url(`/api/coupons/${encodeURIComponent(code)}/validate?` + q));
+        if (!r.ok) { msg.style.color = 'var(--red)'; msg.textContent = r.error || 'That code is not valid.'; return; }
+        window.__wvPromo = { code: r.code };
+        const off = r.discount != null ? '$' + Number(r.discount).toFixed(2)
+          : (r.kind === 'percent' ? r.amount + '%' : '$' + Number(r.amount).toFixed(2));
+        msg.style.color = 'var(--green)';
+        msg.textContent = `✓ Code ${r.code} applied — ${off} off, deducted at payment.`;
+      } catch (e) { msg.style.color = 'var(--red)'; msg.textContent = 'Could not check that code — please try again.'; }
+    });
+
     const cfg = window.WVWCCC_PAY || {};
     const form = document.getElementById('payForm');
     const errEl = document.getElementById('payError');
@@ -1337,8 +1367,12 @@ window.Chamber = (function () {
             // shown on the emailed receipt as XXXX-1111; never the full number.
             cardLast4: (resp.card && resp.card.number ? String(resp.card.number).slice(-4) : ''),
             cardType: (resp.card && resp.card.type) || '',
-            attendees: Array.from(document.querySelectorAll('#tixNames [data-attendee]'))
-              .map((i) => i.value.trim()).filter(Boolean),
+            attendees: Array.from(document.querySelectorAll('#tixNames [data-att-row]'))
+              .map((r) => ({
+                name: (r.querySelector('[data-attendee]')?.value || '').trim(),
+                contact: (r.querySelector('[data-att-contact]')?.value || '').trim(),
+              })).filter((a) => a.name || a.contact),
+            couponCode: (window.__wvPromo && window.__wvPromo.code) || undefined,
             description: label,
             ...extra,
           };
