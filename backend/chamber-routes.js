@@ -1081,6 +1081,8 @@ router.post('/pay', async (req, res) => {
     const common = {
       paymentToken: b.paymentToken,
       email: b.email, firstName: b.firstName, lastName: b.lastName,
+      // AVS: gateway requires billing street + ZIP or it declines "AVS REQUIRED"
+      address1: b.address1, city: b.city, zip: b.zip,
       orderId: b.sku || b.kind, description: b.description, productSku: b.sku,
     };
     const result = b.kind === 'membership' && b.recurring

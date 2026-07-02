@@ -1315,6 +1315,8 @@ window.Chamber = (function () {
             paymentToken: resp.token,
             amount: amountInput.value,
             firstName: fd.get('firstName'), lastName: fd.get('lastName'), email: fd.get('email'),
+            // AVS: the gateway requires billing street + ZIP with every charge.
+            address1: fd.get('address1'), city: fd.get('city'), zip: fd.get('zip'),
             description: label,
           };
           if (kind === 'membership') body.recurring = { monthFrequency: 12, dayOfMonth: 1, planPayments: 0 };

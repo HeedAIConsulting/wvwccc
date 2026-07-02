@@ -66,6 +66,10 @@ export function sale(opts) {
     email: opts.email || '',
     first_name: opts.firstName || '',
     last_name: opts.lastName || '',
+    // AVS (account requires it): billing street + ZIP
+    address1: opts.address1 || '',
+    city: opts.city || '',
+    zip: opts.zip || '',
     merchant_defined_field_1: opts.productSku || '', // SKU tracking per the deal
   });
 }
@@ -80,6 +84,10 @@ export function addRecurring(opts) {
   return post({
     recurring: 'add_subscription',
     payment_token: opts.paymentToken,
+    // AVS (account requires it): billing street + ZIP
+    address1: opts.address1 || '',
+    city: opts.city || '',
+    zip: opts.zip || '',
     plan_amount: Number(opts.planAmount).toFixed(2),
     // annual dues: month_frequency 12, day_of_month set; else use day_frequency
     month_frequency: opts.monthFrequency != null ? String(opts.monthFrequency) : '12',
