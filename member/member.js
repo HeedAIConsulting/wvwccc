@@ -67,6 +67,7 @@ window.MemberPortal = (function () {
         </ul>`}
         <div class="btn-row mt-4">
           <a class="btn btn--forest btn--sm" href="profile.html">${allDone ? 'Edit my profile' : 'Complete my profile'}</a>
+          ${['Leader', 'Board Member', 'Ambassador', 'Past President'].includes(member.leaderStatus) ? '<a class="btn btn--gold btn--sm" href="event.html">＋ Add an event to the calendar</a>' : ''}
           <button type="button" class="btn btn--ghost btn--sm" onclick="if(window.WVTour)WVTour.start('member')">Take a quick tour</button>
           <span class="member-tile__meta" style="align-self:center">Need help? Use the <strong>🛟 Support</strong> button (bottom-left).</span>
         </div>
