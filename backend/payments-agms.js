@@ -16,8 +16,10 @@ import { Buffer } from 'node:buffer';
 // LIVE merchant account `woodlandhillscc` on transactiongateway.com (keys from
 // Eduardo @ AGMS, 2026-07-02 — see agms/, gitignored). The security key only
 // authenticates on this gateway. Override with AGMS_API_BASE if the account moves.
-const API_BASE = process.env.AGMS_API_BASE || 'https://agms.transactiongateway.com';
-const SECURITY_KEY = process.env.AGMS_SECURITY_KEY || '';
+// Read at call time, not module load: server.js loads .env.local AFTER imports
+// are evaluated (ES imports hoist), so a load-time read is empty in local dev.
+const apiBase = () => process.env.AGMS_API_BASE || 'https://agms.transactiongateway.com';
+const securityKey = () => process.env.AGMS_SECURITY_KEY || '';
 
 /** Parse NMI's application/x-www-form-urlencoded response body. */
 export function parseNmiResponse(body) {
@@ -38,9 +40,9 @@ export function parseNmiResponse(body) {
 }
 
 async function post(params) {
-  if (!SECURITY_KEY) throw new Error('AGMS_SECURITY_KEY not set');
-  const body = new URLSearchParams({ security_key: SECURITY_KEY, ...params });
-  const res = await fetch(`${API_BASE}/api/transact.php`, {
+  if (!securityKey()) throw new Error('AGMS_SECURITY_KEY not set');
+  const body = new URLSearchParams({ security_key: securityKey(), ...params });
+  const res = await fetch(`${apiBase()}/api/transact.php`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: body.toString(),

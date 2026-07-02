@@ -1253,6 +1253,16 @@ window.Chamber = (function () {
         ? `<strong>${esc(item.label)}</strong><br><span class="member-tile__meta">Annual dues · $${esc(item.amount)}/year</span>${item.blurb ? `<p class="member-tile__meta mt-2">${esc(item.blurb)}</p>` : ''}<p class="notice mt-3">Billed annually. Confirm the amount below, or contact the office with questions.</p>`
         : `<strong>Annual membership</strong><br><span class="member-tile__meta">${esc(tier)}</span><p class="notice mt-3">Dues are based on your tier — enter the amount, or contact the office.</p>`;
       amountLabel.textContent = 'Dues amount (USD)';
+    } else if (kind === 'payment') {
+      // Office-directed payment link: the Chamber emails a URL like
+      //   checkout.html?type=payment&for=2026%20Dues%20Renewal&amount=450
+      // `for` labels the charge on the receipt; `amount` presets (still editable).
+      const what = params.get('for') || 'Chamber payment';
+      sku = 'payment:' + what.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40);
+      title.textContent = 'Make a payment';
+      label = `Payment: ${what}`;
+      summary.innerHTML = `<strong>${esc(what)}</strong><p class="member-tile__meta mt-2">Pay the Chamber securely by card. If the amount was not filled in for you, enter the amount provided by the Chamber office.</p>`;
+      amountLabel.textContent = 'Amount (USD)';
     } else {
       const item = findSku('donations', skuParam);
       const project = params.get('project') || 'General Fund';
