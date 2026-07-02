@@ -1046,6 +1046,14 @@ router.post('/contact', async (req, res) => {
     reason: b.reason || b.kind || '', event: b.event || '', message: b.message || '',
     status: 'new', received: new Date().toISOString(),
   };
+  // If the lead references an event by raw id (older pages / direct API), resolve
+  // it to the event title so the admin panel + office email are self-explanatory.
+  if (lead.event && /^(le|ev)-/.test(lead.event)) {
+    try {
+      const ev = (await loadEvents()).find((x) => x.id === lead.event);
+      if (ev) lead.event = `${ev.title}${ev.date ? ` (${ev.date})` : ''} [${ev.id}]`;
+    } catch (e) { /* keep the raw id */ }
+  }
   // If the inquiry came from a group page (e.g. a meeting RSVP), route the
   // notification to that group's manager instead of the general office.
   let notifyTo = email.notifyTo(), groupName = '';

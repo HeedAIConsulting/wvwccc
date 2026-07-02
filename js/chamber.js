@@ -1369,20 +1369,40 @@ window.Chamber = (function () {
     const reason = form.querySelector('[name="reason"]');
     if (reason && params.get('reason')) {
       [...reason.options].forEach((o) => { if (o.value === params.get('reason')) reason.value = o.value; });
+    } else if (reason && params.get('event')) {
+      // Arrived via an event's RSVP button → pre-select the RSVP reason.
+      [...reason.options].forEach((o) => { if (/rsvp/i.test(o.value)) reason.value = o.value; });
+    }
+    // Resolve ?event=<id> to a human-readable title so the office email says
+    // "RSVP — Health & Wellness Network (Jul 27)" instead of a raw "le-11182".
+    let eventLabel = '';
+    if (params.get('event')) {
+      (async () => {
+        try {
+          const evs = (await getJSON(ChamberAPI.url('/api/events'))).events || [];
+          const ev = evs.find((x) => x.id === params.get('event'));
+          if (ev) eventLabel = `${ev.title}${ev.month && ev.day ? ` (${ev.month} ${ev.day})` : ''}`;
+        } catch (e) { /* raw id still sent as fallback */ }
+      })();
     }
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       if (!form.reportValidity()) return;
       const payload = { kind };
       new FormData(form).forEach((v, k) => { payload[k] = v; });
-      if (params.get('event')) payload.event = params.get('event');
+      if (params.get('event')) payload.event = eventLabel ? `${eventLabel} [${params.get('event')}]` : params.get('event');
       if (params.get('group')) payload.group = params.get('group');
       const btn = form.querySelector('button[type="submit"]');
       const label = btn.textContent; btn.disabled = true; btn.textContent = 'Sending…';
       try {
         // 1) Formspree → emails the Chamber office (Felicia). 2) /api/contact →
         //    durable admin Inquiries log. Success if EITHER channel accepts.
-        const subject = 'Website ' + (payload.reason || kind) + (payload.company ? ' — ' + payload.company : '');
+        const who = [payload.firstName, payload.lastName].filter(Boolean).join(' ') || payload.name || payload.company || '';
+        const subject = (/rsvp/i.test(payload.reason || '') && eventLabel)
+          ? `RSVP — ${eventLabel}${who ? ' — ' + who : ''}`
+          : kind === 'membership-application'
+            ? `Membership application — ${payload.company || who}`
+            : 'Website ' + (payload.reason || kind) + (eventLabel ? ' — ' + eventLabel : '') + (payload.company ? ' — ' + payload.company : who ? ' — ' + who : '');
         const fsP = fetch(leadFsEndpoint(kind), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
