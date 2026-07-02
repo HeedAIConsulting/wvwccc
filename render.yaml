@@ -33,6 +33,15 @@ services:
         sync: false
       - key: ANTHROPIC_API_KEY     # fallback, optional
         sync: false
+      # ── Transactional email (payment receipts, password resets, notifications) ──
+      # Without one of these providers, email silently no-ops (receipts skipped).
+      # Resend is the chosen path: verify woodlandhillscc.net in Resend (DNS via
+      # Cloudflare), then set both vars here. Office copies go to CHAMBER_NOTIFY
+      # (defaults to felicia@woodlandhillscc.net in backend/email.js).
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM            # e.g. West Valley · Warner Center Chamber <wendy@woodlandhillscc.net>
+        sync: false
       # ── Payments: AGMS on the NMI gateway ──
       # LIVE merchant account `woodlandhillscc` (keys from Eduardo @ AGMS 2026-07-02,
       # screenshots in agms/ — gitignored). Set the private API key (Key ID 14789275)
