@@ -17,7 +17,7 @@
 // ---- shared config ----
 const FROM     = () => process.env.EMAIL_FROM || process.env.SMTP_FROM
   || `West Valley · Warner Center Chamber <${process.env.SMTP_USER || process.env.M365_PRIMARY_MAILBOX || 'wendy@woodlandhillscc.net'}>`;
-export const notifyTo = () => process.env.CHAMBER_NOTIFY || process.env.SMTP_USER || process.env.M365_PRIMARY_MAILBOX || 'info@woodlandhillscc.net';
+export const notifyTo = () => process.env.CHAMBER_NOTIFY || process.env.SMTP_USER || process.env.M365_PRIMARY_MAILBOX || 'felicia@woodlandhillscc.net';
 
 // ---- Resend ----
 const RESEND_KEY  = () => process.env.RESEND_API_KEY;

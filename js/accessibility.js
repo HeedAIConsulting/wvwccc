@@ -332,7 +332,7 @@
       '<button class="wv-a11y-reset" data-a11y-reset>↺ Reset all</button>' +
       '<div class="wv-a11y-footer">This site targets WCAG 2.1 AA. Settings persist on your device. ' +
         '<a href="/accessibility.html">Read our accessibility statement</a> · ' +
-        '<a href="mailto:info@woodlandhillscc.net">Report an issue</a>.' +
+        '<a href="mailto:felicia@woodlandhillscc.net">Report an issue</a>.' +
       '</div>';
 
     document.body.appendChild(panelEl);
