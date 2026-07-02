@@ -6,7 +6,7 @@ import express from 'express';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { sale, addRecurring, heedShare } from './payments-agms.js';
+import { sale, addRecurring, refundTransaction, voidTransaction } from './payments-agms.js';
 import * as auth from './auth.js';
 import * as users from './users.js';
 import * as repo from './repo.js';
@@ -1083,7 +1083,7 @@ router.post('/pay', async (req, res) => {
       kind: b.kind, sku: b.sku || '', email: b.email || '',
       name: [b.firstName, b.lastName].filter(Boolean).join(' '),
       amount: Number(b.amount), transactionId: result.transactionId,
-      heedShare: heedShare(b.amount), status: 'paid',
+      status: 'paid',
     };
     await repo.addOrder(order);
     // Email a receipt to the payer + the Chamber office.
@@ -1096,7 +1096,7 @@ router.post('/pay', async (req, res) => {
       if (b.email) email.send({ to: b.email, subject: 'Your Chamber payment receipt', text: body }).catch(() => {});
       email.send({ to: email.notifyTo(), subject: `Payment received: ${b.kind || 'order'} ${amt}`, text: `${order.name || ''} ${b.email || ''}\n\n${body}` }).catch(() => {});
     } catch (e) { console.error('receipt email', e); }
-    return res.json({ ok: true, transactionId: result.transactionId, authCode: result.authCode, heedShare: order.heedShare });
+    return res.json({ ok: true, transactionId: result.transactionId, authCode: result.authCode });
   } catch (err) {
     console.error('pay error', err);
     return res.status(500).json({ ok: false, error: 'payment processing error' });
@@ -1266,7 +1266,6 @@ router.get('/admin/summary', requireAdmin, async (_req, res) => {
       pendingPosts,
       orders: orders.length,
       revenue: orders.reduce((s, o) => s + (Number(o.amount) || 0), 0),
-      heedShare: orders.reduce((s, o) => s + (Number(o.heedShare ?? o.heed_share) || 0), 0),
     });
   } catch (e) { console.error(e); res.status(500).json({ error: 'summary failed' }); }
 });
@@ -1387,6 +1386,41 @@ router.patch('/admin/leads/:id', requireAdmin, async (req, res) => {
 router.get('/admin/orders', requireAdmin, async (_req, res) => {
   try { res.json({ orders: await repo.listOrders() }); }
   catch (e) { res.status(500).json({ error: 'orders failed' }); }
+});
+
+// Refund from Admin → Payments. NMI only refunds SETTLED charges; anything still
+// pending settlement must be VOIDED instead — try refund first, fall back to void.
+router.post('/admin/orders/:id/refund', requireAdmin, async (req, res) => {
+  try {
+    const order = (await repo.listOrders()).find((o) => o.id === req.params.id);
+    if (!order) return res.status(404).json({ ok: false, error: 'order not found' });
+    if (order.status === 'refunded') return res.json({ ok: true, status: 'refunded' });
+    const txn = order.transactionId;
+    if (!txn) return res.status(400).json({ ok: false, error: 'order has no gateway transaction id' });
+
+    let result = await refundTransaction({ transactionId: txn });
+    let how = 'refund';
+    if (!result.approved) {
+      const v = await voidTransaction({ transactionId: txn });
+      if (v.approved) { result = v; how = 'void'; }
+    }
+    if (!result.approved) {
+      return res.status(402).json({ ok: false, error: result.responseText || 'refund declined' });
+    }
+    await repo.setOrderStatus(order.id, 'refunded');
+    // Notify the office so the books stay straight.
+    try {
+      email.send({
+        to: email.notifyTo(),
+        subject: `Refunded: ${order.kind || 'order'} $${Number(order.amount).toFixed(2)}`,
+        text: `Refund issued from the admin panel (${how}).\n\nOrder: ${order.id}\nPayer: ${order.name || ''} ${order.email || ''}\nAmount: $${Number(order.amount).toFixed(2)}\nGateway transaction: ${txn}`,
+      }).catch(() => {});
+    } catch (e) { /* notification only */ }
+    res.json({ ok: true, status: 'refunded', how });
+  } catch (err) {
+    console.error('refund error', err);
+    res.status(500).json({ ok: false, error: 'refund failed' });
+  }
 });
 
 router.get('/admin/options', requireAdmin, (_req, res) => {

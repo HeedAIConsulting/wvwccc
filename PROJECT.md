@@ -67,7 +67,7 @@ Fonts: **Fraunces** (display) × **Hanken Grotesk** (body) × Spline Sans Mono (
 | Monitoring (GA4 / Clarity / Sentry / UptimeRobot) | ⬜ needs IDs |
 | Tuned CSP (currently disabled) | ⬜ hardening |
 | Spanish `/es/` + hreflang | ⬜ next |
-| **AGMS** webhooks + emailed receipts (15% remit) | ⬜ Phase 3 |
+| **AGMS** webhooks + emailed receipts | ⬜ Phase 3 |
 | Auth + login (keep-same-login: verify legacy hash → rehash) + Postgres load | ⬜ hardening |
 
 ## ⚠️ Data integrity (critical)

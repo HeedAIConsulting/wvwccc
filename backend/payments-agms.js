@@ -90,10 +90,16 @@ export function addRecurring(opts) {
   });
 }
 
-/** Capture the Heed 15% remittance figure for a settled charge (logging only). */
-export function heedShare(amount) {
-  const rate = Number(process.env.HEED_REVENUE_SHARE || '0.15');
-  return Math.round(Number(amount) * rate * 100) / 100;
+/** Refund a SETTLED charge (full refund when amount is omitted). */
+export function refundTransaction(opts) {
+  const p = { type: 'refund', transactionid: opts.transactionId };
+  if (opts.amount != null) p.amount = Number(opts.amount).toFixed(2);
+  return post(p);
+}
+
+/** Void a charge still PENDING settlement (NMI rejects refunds on those). */
+export function voidTransaction(opts) {
+  return post({ type: 'void', transactionid: opts.transactionId });
 }
 
 /* ── Front-end note (do NOT implement card fields ourselves) ──

@@ -77,8 +77,7 @@ CREATE TABLE IF NOT EXISTS orders (
   email           text,
   amount          numeric(10,2),
   transaction_id  text,                        -- AGMS/NMI transaction id
-  heed_share      numeric(10,2),               -- 15% remittance
-  status          text DEFAULT 'paid',
+  status          text DEFAULT 'paid',         -- paid|refunded
   created         timestamptz DEFAULT now()
 );
 

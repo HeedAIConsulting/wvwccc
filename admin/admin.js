@@ -568,14 +568,32 @@ window.Admin = (function () {
     mountShell('payments');
     try {
       const { orders } = await api('/api/admin/orders');
-      document.getElementById('orderRows').innerHTML = orders.length ? orders.map((o) => `
-        <tr><td>${esc(new Date(o.created).toLocaleDateString())}</td>
+      const rows = document.getElementById('orderRows');
+      rows.innerHTML = orders.length ? orders.map((o) => `
+        <tr data-id="${esc(o.id)}"><td>${esc(new Date(o.created).toLocaleDateString())}</td>
         <td><span class="name">${esc(o.name || o.email || '—')}</span><div class="sub">${esc(o.email || '')}</div></td>
         <td>${esc(o.kind)}${o.sku ? ' · ' + esc(o.sku) : ''}</td>
         <td>$${Number(o.amount || 0).toFixed(2)}</td>
-        <td class="sub">$${Number(o.heedShare || 0).toFixed(2)}</td>
-        <td><span class="sub">${esc(o.transactionId || '')}</span></td></tr>`).join('')
-        : '<tr><td colspan="6" class="sub">No payments yet. Transactions appear here once AGMS checkout is live.</td></tr>';
+        <td>${statusPill(o.status || 'paid')}</td>
+        <td><span class="sub">${esc(o.transactionId || '')}</span></td>
+        <td>${o.status !== 'refunded' && o.transactionId ? '<button class="btn btn--ghost btn--sm" data-refund>Refund</button>' : ''}</td></tr>`).join('')
+        : '<tr><td colspan="7" class="sub">No payments yet. Transactions appear here once AGMS checkout is live.</td></tr>';
+      rows.querySelectorAll('tr[data-id]').forEach((tr) => {
+        tr.querySelector('[data-refund]')?.addEventListener('click', async (e) => {
+          const amt = tr.children[3].textContent;
+          const who = tr.querySelector('.name')?.textContent || 'this payer';
+          if (!confirm(`Refund ${amt} to ${who}? The money goes back to their card.`)) return;
+          e.target.disabled = true; e.target.textContent = 'Refunding…';
+          try {
+            await api(`/api/admin/orders/${encodeURIComponent(tr.dataset.id)}/refund`, { method: 'POST' });
+            tr.children[4].innerHTML = statusPill('refunded');
+            e.target.remove();
+          } catch (err) {
+            e.target.disabled = false; e.target.textContent = 'Refund';
+            alert('Refund failed: ' + (err.message || 'gateway declined'));
+          }
+        });
+      });
     } catch (e) { showAuthError(e); }
   }
 

@@ -55,13 +55,13 @@ verified, then upgraded to bcrypt on first login). Unknown-hash accounts get a r
 screenshots in `agms/`, values in local `.env`; both gitignored). The live Collect.js
 tokenization key is already embedded in `checkout.html`. Remaining steps:
 1. 👤 In the Render dashboard (production service → Environment) set:
-   - `AGMS_SECURITY_KEY` = the private API key (Key ID 14789275, from local `.env`)
+   - `AGMS_SECURITY_KEY` = the private API key (Key ID 14789275, from local `.env.local`)
    - `AGMS_API_BASE` = `https://agms.transactiongateway.com`
 2. 🔧 Set `WVWCCC_PAY.paused = false` in `checkout.html` and deploy.
 3. 👤+🔧 Run a $1 test ticket/donation with a real card, confirm it appears in the AGMS
    gateway, then refund it there.
-4. Receipts to payer + `felicia@woodlandhillscc.net` and the 15% remittance log wire in with
-   M365 (Phase 3).
+4. Refunds: Admin → Payments has a Refund button (settled charges are refunded,
+   pending ones voided). No revenue share is taken; 100% of each payment is the Chamber's.
 
 ## 6. DNS cutover (👤 — do last, after sign-off)
 - Point apex `woodlandhillscc.net` + `www` at the Render service (CNAME/ALIAS per Render's
@@ -82,7 +82,7 @@ tokenization key is already embedded in `checkout.html`. Remaining steps:
 - [ ] Staff logins created; `/admin/` reachable only when signed in
 - [ ] `woodlandhills_db.sql` imported; member count ≈ matches admin (~864); spot-checked
 - [ ] AGMS sandbox tested → production keys in; real charge + refund verified
-- [ ] Receipts + 15% remittance logging on
+- [ ] Receipts to payer + office verified; admin Refund button tested
 - [ ] Real social handles, Gala venue/ticket tiers, dues table confirmed
 - [ ] Spanish `/es/` reviewed by a native speaker
 - [ ] GA4 / Clarity / Sentry / UptimeRobot wired

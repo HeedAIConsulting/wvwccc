@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="../css/chamber.css" />
-  <link rel="stylesheet" href="admin.css?v=20260622g" />
+  <link rel="stylesheet" href="admin.css?v=20260702a" />
 </head>
 <body class="admin">
   <div class="admin-shell">
@@ -17,16 +17,16 @@
       <div class="admin-topbar"><h1>Pay Log</h1></div>
       <div class="admin-content">
         <p id="adminError" class="admin-notice" hidden></p>
-        <p class="admin-notice">Every membership, ticket, and donation processed through AGMS is logged here — with the Heed 15% share. Per-event lookup and CSV export wire in next.</p>
+        <p class="admin-notice">Every membership, ticket, and donation processed through AGMS is logged here. Use Refund to send a payment back to the card; charges still awaiting settlement are voided automatically.</p>
         <div class="panel">
           <div class="panel__head"><h3>All payments</h3></div>
-          <table class="admin-table"><thead><tr><th>Date</th><th>Payer</th><th>For</th><th>Amount</th><th>Heed 15%</th><th>Txn</th></tr></thead><tbody id="orderRows"></tbody></table>
+          <table class="admin-table"><thead><tr><th>Date</th><th>Payer</th><th>For</th><th>Amount</th><th>Status</th><th>Txn</th><th></th></tr></thead><tbody id="orderRows"></tbody></table>
         </div>
       </div>
     </div>
   </div>
   <script src="../js/api-base.js"></script>
-  <script src="admin.js?v=20260630a"></script>
+  <script src="admin.js?v=20260702a"></script>
   <script>Admin.initOrders();</script>
   <script defer src="/js/support.js?v=20260701a"></script>
 </body>

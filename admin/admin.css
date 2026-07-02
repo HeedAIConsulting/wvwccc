@@ -79,6 +79,8 @@ a.stat-card:hover { box-shadow: var(--sh-md, 0 8px 24px rgba(0,0,0,.10)); transf
 .pill--pending { background: var(--gold-soft); color: var(--gold-deep); }
 .pill--suspended { background: #fbeaea; color: var(--red); }
 .pill--inactive { background: #eceef1; color: var(--slate-mid); }
+.pill--paid { background: var(--green-soft); color: var(--green); }
+.pill--refunded { background: #eceef1; color: var(--slate-mid); }
 .pill--new { background: var(--leaf-soft); color: var(--green-deep); }
 .pill--read { background: #eceef1; color: var(--slate-mid); }
 .pill--done { background: var(--green-soft); color: var(--green); }

@@ -53,10 +53,10 @@ export async function setLeadStatus(id, status) {
 export async function addOrder(order) {
   if (db.enabled) {
     await db.query(
-      `INSERT INTO orders (id, kind, sku, member_id, name, email, amount, transaction_id, heed_share, status, created)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10, now())`,
+      `INSERT INTO orders (id, kind, sku, member_id, name, email, amount, transaction_id, status, created)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9, now())`,
       [order.id, order.kind, order.sku, order.memberId || null, order.name,
-       order.email, order.amount, order.transactionId, order.heedShare, order.status || 'paid']);
+       order.email, order.amount, order.transactionId, order.status || 'paid']);
     return;
   }
   store.append('orders.json', order);
@@ -64,9 +64,20 @@ export async function addOrder(order) {
 export async function listOrders() {
   if (db.enabled) {
     const r = await db.query('SELECT * FROM orders ORDER BY created DESC');
-    return r.rows;
+    // PG rows are snake_case; the admin UI reads camelCase (matches the JSON store).
+    return r.rows.map((o) => ({ ...o, transactionId: o.transaction_id }));
   }
   return store.read('orders.json', []).slice().reverse();
+}
+export async function setOrderStatus(id, status) {
+  if (db.enabled) {
+    const r = await db.query('UPDATE orders SET status=$1 WHERE id=$2', [status, id]);
+    return r.rowCount > 0;
+  }
+  const orders = store.read('orders.json', []);
+  const o = orders.find((x) => x.id === id);
+  if (!o) return false;
+  o.status = status; store.write('orders.json', orders); return true;
 }
 
 // ── Content posts (offers, member board, news/announcements) ──
