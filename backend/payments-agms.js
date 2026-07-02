@@ -69,6 +69,7 @@ export function sale(opts) {
     // AVS (account requires it): billing street + ZIP
     address1: opts.address1 || '',
     city: opts.city || '',
+    state: opts.state || '',
     zip: opts.zip || '',
     merchant_defined_field_1: opts.productSku || '', // SKU tracking per the deal
   });

@@ -1082,7 +1082,7 @@ router.post('/pay', async (req, res) => {
       paymentToken: b.paymentToken,
       email: b.email, firstName: b.firstName, lastName: b.lastName,
       // AVS: gateway requires billing street + ZIP or it declines "AVS REQUIRED"
-      address1: b.address1, city: b.city, zip: b.zip,
+      address1: b.address1, city: b.city, state: b.state, zip: b.zip,
       orderId: b.sku || b.kind, description: b.description, productSku: b.sku,
     };
     const result = b.kind === 'membership' && b.recurring
@@ -1100,15 +1100,52 @@ router.post('/pay', async (req, res) => {
       status: 'paid',
     };
     await repo.addOrder(order);
-    // Email a receipt to the payer + the Chamber office.
+    // Email a receipt to the payer + the Chamber office, styled after the legacy
+    // ChamberWare receipts (per Felicia): "Paid Receipt For Tickets <ref>" for
+    // event tickets, "Paid Receipt <ref>" for everything else; order table +
+    // GUEST INFO + GRAND TOTAL.
     try {
       const amt = '$' + Number(b.amount).toFixed(2);
-      const item = b.description || b.sku || b.kind || 'Payment';
-      const body = `Thank you for your payment to the West Valley · Warner Center Chamber of Commerce.\n\n`
-        + `Item: ${item}\nAmount: ${amt}${b.kind === 'membership' && b.recurring ? ' (annual, recurring)' : ''}\n`
-        + `Transaction ID: ${result.transactionId}\nDate: ${new Date().toLocaleString()}\n\nWe appreciate your support!`;
-      if (b.email) email.send({ to: b.email, subject: 'Your Chamber payment receipt', text: body }).catch(() => {});
-      email.send({ to: email.notifyTo(), subject: `Payment received: ${b.kind || 'order'} ${amt}`, text: `${order.name || ''} ${b.email || ''}\n\n${body}` }).catch(() => {});
+      const ref = result.transactionId || order.id.replace('ord-', '').toUpperCase();
+      const isTicket = b.kind === 'ticket';
+      const subject = isTicket ? `Paid Receipt For Tickets ${ref}` : `Paid Receipt ${ref}`;
+      const h = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+      const row = (k, v) => v ? `<tr><td style="padding:2px 16px 2px 0;font-weight:bold;vertical-align:top;white-space:nowrap">${k}:</td><td style="padding:2px 0">${h(v)}</td></tr>` : '';
+      const cardMethod = b.cardType ? b.cardType.charAt(0).toUpperCase() + b.cardType.slice(1) : 'Card';
+      const eventLine = isTicket
+        ? [b.eventTitle, b.ticketType ? `(${b.ticketType})` : ''].filter(Boolean).join(' ')
+        : '';
+      const html = `
+        <div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#111;max-width:560px;border:1px solid #ccc;padding:20px 24px">
+          <img src="https://woodlandhillscc.net/images/wvwccc-logo.png" alt="WVWC Chamber of Commerce" width="72" style="display:block;margin:0 0 12px">
+          <p style="color:#188038;font-weight:bold;margin:0">THANK YOU</p>
+          <p style="font-weight:bold;margin:2px 0 16px">Order #${h(ref)}</p>
+          <table style="border-collapse:collapse;font-size:14px">
+            ${row('Name', order.name)}
+            ${row('Address', b.address1)}
+            ${row('City', b.city)}
+            ${row('State', b.state)}
+            ${row('Postal Code', b.zip)}
+            ${row('Payment Type', b.kind || 'payment')}
+            ${row('Paid Method', cardMethod)}
+            ${isTicket ? row('Event', eventLine) : row('Description', b.description || b.sku)}
+            ${isTicket ? row('Tickets Qty', b.quantity) : ''}
+            ${row('Card Number', b.cardLast4 ? 'XXXX-' + b.cardLast4 : '')}
+          </table>
+          <p style="font-weight:bold;text-decoration:underline;margin:16px 0 4px">GUEST INFO</p>
+          <table style="border-collapse:collapse;font-size:14px">
+            ${row('Company', b.company)}
+            ${row('Name', order.name)}
+            ${row('Email', b.email)}
+            ${row('Phone', b.phone)}
+          </table>
+          <p style="font-weight:bold;margin:18px 0 0">GRAND TOTAL: ${amt}${b.kind === 'membership' && b.recurring ? ' (annual, recurring)' : ''}</p>
+        </div>`;
+      const text = `THANK YOU\nOrder #${ref}\n\n`
+        + `Name: ${order.name}\n${isTicket ? `Event: ${eventLine}\nTickets Qty: ${b.quantity || 1}\n` : `Description: ${b.description || b.sku || b.kind}\n`}`
+        + `${b.cardLast4 ? `Card Number: XXXX-${b.cardLast4}\n` : ''}GRAND TOTAL: ${amt}\n\nWest Valley · Warner Center Chamber of Commerce`;
+      if (b.email) email.send({ to: b.email, subject, text, html }).catch(() => {});
+      email.send({ to: email.notifyTo(), subject, text, html }).catch(() => {});
     } catch (e) { console.error('receipt email', e); }
     return res.json({ ok: true, transactionId: result.transactionId, authCode: result.authCode });
   } catch (err) {

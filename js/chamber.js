@@ -1164,6 +1164,9 @@ window.Chamber = (function () {
     // Build the order context. A `sku` param (from join.html / donate.html) is
     // resolved against the /api/skus catalog so prices have one source of truth.
     let label = 'Payment', sku = kind, presetAmount = params.get('amount') || '';
+    // Receipt context (event title, ticket type/qty) — sent with /api/pay so the
+    // emailed receipt can match the legacy ChamberWare format.
+    const extra = {};
     const skuParam = params.get('sku') || '';
     let catalog = null;
     if (skuParam || kind === 'membership' || kind === 'donation') {
@@ -1234,6 +1237,7 @@ window.Chamber = (function () {
           calc.textContent = `${qty} × ${t.name} @ $${unit.toFixed(2)} = $${total.toFixed(2)}`;
           label = `Tickets — ${ev.title} · ${qty} × ${t.name} @ $${unit.toFixed(2)}`;
           sku = `ticket:${id}:${t.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40)}`;
+          extra.eventTitle = ev.title; extra.ticketType = t.name; extra.quantity = qty;
         };
         typeSel.addEventListener('change', update);
         qtySel.addEventListener('change', update);
@@ -1315,9 +1319,15 @@ window.Chamber = (function () {
             paymentToken: resp.token,
             amount: amountInput.value,
             firstName: fd.get('firstName'), lastName: fd.get('lastName'), email: fd.get('email'),
+            company: fd.get('company'), phone: fd.get('phone'),
             // AVS: the gateway requires billing street + ZIP with every charge.
-            address1: fd.get('address1'), city: fd.get('city'), zip: fd.get('zip'),
+            address1: fd.get('address1'), city: fd.get('city'), state: fd.get('state'), zip: fd.get('zip'),
+            // Masked card info from Collect.js (e.g. "411111******1111", "visa") —
+            // shown on the emailed receipt as XXXX-1111; never the full number.
+            cardLast4: (resp.card && resp.card.number ? String(resp.card.number).slice(-4) : ''),
+            cardType: (resp.card && resp.card.type) || '',
             description: label,
+            ...extra,
           };
           if (kind === 'membership') body.recurring = { monthFrequency: 12, dayOfMonth: 1, planPayments: 0 };
           const r = await fetch(ChamberAPI.url('/api/pay'), {

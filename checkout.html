@@ -38,12 +38,20 @@
             <div class="field"><label>Last name</label><input name="lastName" required /></div>
           </div>
           <div class="field"><label>Email (receipt)</label><input name="email" type="email" required /></div>
+          <div class="grid grid-2" style="gap:var(--s-3)">
+            <div class="field"><label>Company (optional)</label><input name="company" autocomplete="organization" /></div>
+            <div class="field"><label>Phone (optional)</label><input name="phone" type="tel" autocomplete="tel" /></div>
+          </div>
           <!-- Billing address: the gateway requires AVS, so street + ZIP must
                accompany every charge or it declines with "AVS REQUIRED". -->
           <div class="field"><label>Billing street address</label><input name="address1" required autocomplete="street-address" /></div>
           <div class="grid grid-2" style="gap:var(--s-3)">
             <div class="field"><label>City</label><input name="city" autocomplete="address-level2" /></div>
+            <div class="field"><label>State</label><input name="state" maxlength="2" placeholder="CA" autocomplete="address-level1" /></div>
+          </div>
+          <div class="grid grid-2" style="gap:var(--s-3)">
             <div class="field"><label>Billing ZIP code</label><input name="zip" required inputmode="numeric" autocomplete="postal-code" /></div>
+            <div class="field"></div>
           </div>
 
           <h3 style="margin:var(--s-5) 0 var(--s-4)">Payment</h3>
@@ -93,7 +101,7 @@
   </script>
   <script src="js/partials.js?v=20260701c"></script>
   <script src="js/api-base.js?v=20260619a"></script>
-  <script src="js/chamber.js?v=20260702b"></script>
+  <script src="js/chamber.js?v=20260702c"></script>
   <script>
     ChamberPartials.mount({ active: '', depth: 0, lang: 'en' });
     Chamber.initCheckout();
