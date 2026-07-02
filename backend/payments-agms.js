@@ -13,9 +13,9 @@
    ============================================================ */
 import { Buffer } from 'node:buffer';
 
-// AGMS account (heedaisolutions) lives on transactiongateway.com; in Test mode it
-// accepts charges without settling. The security key only authenticates on this
-// gateway. Override with AGMS_API_BASE if the account ever moves.
+// LIVE merchant account `woodlandhillscc` on transactiongateway.com (keys from
+// Eduardo @ AGMS, 2026-07-02 — see agms/, gitignored). The security key only
+// authenticates on this gateway. Override with AGMS_API_BASE if the account moves.
 const API_BASE = process.env.AGMS_API_BASE || 'https://agms.transactiongateway.com';
 const SECURITY_KEY = process.env.AGMS_SECURITY_KEY || '';
 

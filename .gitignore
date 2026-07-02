@@ -14,6 +14,10 @@ Thumbs.db
 # reference screenshots — do NOT deploy (would be public)
 SCREENSHOTS/
 
+# AGMS merchant credentials from Eduardo (screenshots contain the PRIVATE
+# security key) — never commit; keys go in Render env vars only
+agms/
+
 # Member roster exports — PII, never commit
 *.xlsx
 

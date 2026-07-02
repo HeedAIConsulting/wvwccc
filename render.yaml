@@ -34,9 +34,12 @@ services:
       - key: ANTHROPIC_API_KEY     # fallback, optional
         sync: false
       # ── Payments: AGMS on the NMI gateway ──
-      - key: AGMS_SECURITY_KEY     # gateway → Settings → Security Keys
+      # LIVE merchant account `woodlandhillscc` (keys from Eduardo @ AGMS 2026-07-02,
+      # screenshots in agms/ — gitignored). Set the private API key (Key ID 14789275)
+      # in the Render dashboard; never commit it.
+      - key: AGMS_SECURITY_KEY     # private API key, source API+Cart
         sync: false
-      - key: AGMS_API_BASE         # sandbox: https://sandbox.nmi.com | prod: https://agms.transactiongateway.com
+      - key: AGMS_API_BASE         # prod: https://agms.transactiongateway.com | sandbox: https://sandbox.nmi.com
         sync: false
       - key: AGMS_USERNAME
-        value: heedaisolutions
+        value: woodlandhillscc

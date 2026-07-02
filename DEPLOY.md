@@ -51,11 +51,16 @@ verified, then upgraded to bcrypt on first login). Unknown-hash accounts get a r
 > no member can sign in and "Forgot password" finds nobody to email.
 
 ## 5. Payments go-live (👤 keys, then 🔧)
-1. Test in **sandbox** first: set `AGMS_SECURITY_KEY` (sandbox) + the Collect.js **tokenization
-   key** in `checkout.html` → `WVWCCC_PAY.tokenizationKey`. Run a $1 test ticket/donation.
-2. Flip to **production**: production `AGMS_SECURITY_KEY` + `AGMS_API_BASE` = the live gateway,
-   and the production tokenization key. Confirm a real charge + refund.
-3. Receipts to payer + `felicia@woodlandhillscc.net` and the 15% remittance log wire in with
+**LIVE keys are in hand** (Eduardo @ AGMS, 2026-07-02 — merchant `woodlandhillscc`;
+screenshots in `agms/`, values in local `.env`; both gitignored). The live Collect.js
+tokenization key is already embedded in `checkout.html`. Remaining steps:
+1. 👤 In the Render dashboard (production service → Environment) set:
+   - `AGMS_SECURITY_KEY` = the private API key (Key ID 14789275, from local `.env`)
+   - `AGMS_API_BASE` = `https://agms.transactiongateway.com`
+2. 🔧 Set `WVWCCC_PAY.paused = false` in `checkout.html` and deploy.
+3. 👤+🔧 Run a $1 test ticket/donation with a real card, confirm it appears in the AGMS
+   gateway, then refund it there.
+4. Receipts to payer + `felicia@woodlandhillscc.net` and the 15% remittance log wire in with
    M365 (Phase 3).
 
 ## 6. DNS cutover (👤 — do last, after sign-off)

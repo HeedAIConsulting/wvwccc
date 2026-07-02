@@ -74,13 +74,14 @@
   <!-- AGMS / NMI Collect.js — set the real tokenization key to enable live entry -->
   <script>
     window.WVWCCC_PAY = {
-      // Public Collect.js tokenization key (safe to embed). AGMS account: heedaisolutions (Test).
-      tokenizationKey: 'k6pnGD-nY4df2-BbrW24-5MG82Q',
+      // Public Collect.js tokenization key (safe to embed). LIVE AGMS merchant
+      // account `woodlandhillscc` — keys from Eduardo @ AGMS, 2026-07-02 (Key ID 14789278).
+      tokenizationKey: 't5YGmA-JN6N4V-wBbWh3-6z5HxT',
       collectSrc: 'https://agms.transactiongateway.com/token/Collect.js',
-      // PAUSED: on-site card processing is off until the LIVE AGMS gateway is
-      // configured (we will not take cards on the Test account). Buyers still see
-      // the options/prices; purchasing is routed to the office / official links.
-      // To re-enable once live keys are in: set paused = false.
+      // PAUSED until the private key is on Render (chamber-api → env →
+      // AGMS_SECURITY_KEY + AGMS_API_BASE=https://agms.transactiongateway.com)
+      // and a $1 test charge + refund has been verified. Buyers still see the
+      // options/prices; purchasing is routed to the office. Then set paused = false.
       paused: true,
       payNotice: 'Online card payment is being finalized. To purchase or reserve, call the Chamber office at <strong>(818) 347-4737</strong> or email Felicia at <a href="mailto:felicia@woodlandhillscc.net">felicia@woodlandhillscc.net</a> and we will take payment directly.',
     };
