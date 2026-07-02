@@ -1214,6 +1214,7 @@ window.Chamber = (function () {
             </select></div>
           <div class="field" style="margin-bottom:var(--s-2)"><label for="tixQty">Quantity</label>
             <select id="tixQty" style="width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:var(--r-md);font:inherit;background:var(--paper)"></select></div>
+          <div id="tixNames"></div>
           <p class="member-tile__meta" id="tixCalc" style="text-align:right"></p>`;
         amountLabel.textContent = 'Total (USD)';
         amountInput.readOnly = true;
@@ -1227,10 +1228,20 @@ window.Chamber = (function () {
           const cur = Math.min(Number(qtySel.value) || 1, max);
           qtySel.innerHTML = Array.from({ length: max }, (_, i) => `<option${i + 1 === cur ? ' selected' : ''}>${i + 1}</option>`).join('');
         };
+        const namesDiv = document.getElementById('tixNames');
+        // One name input per ticket so the office knows who is attending
+        // (matches the legacy ChamberWare receipts). Values survive qty changes.
+        const buildNames = (qty) => {
+          const prev = Array.from(namesDiv.querySelectorAll('input')).map((i) => i.value);
+          namesDiv.innerHTML = Array.from({ length: qty }, (_, i) => `
+            <div class="field" style="margin-bottom:var(--s-2)"><label>Attendee ${i + 1} name</label>
+            <input data-attendee value="${esc(prev[i] || '')}" placeholder="${i === 0 ? 'Who is this ticket for?' : 'Guest name'}" /></div>`).join('');
+        };
         const update = () => {
           buildQty();
           const t = types[Number(typeSel.value)] || types[0];
           const qty = Number(qtySel.value) || 1;
+          buildNames(qty);
           const unit = priceOf(t);
           const total = unit * qty;
           amountInput.value = total.toFixed(2);
@@ -1326,6 +1337,8 @@ window.Chamber = (function () {
             // shown on the emailed receipt as XXXX-1111; never the full number.
             cardLast4: (resp.card && resp.card.number ? String(resp.card.number).slice(-4) : ''),
             cardType: (resp.card && resp.card.type) || '',
+            attendees: Array.from(document.querySelectorAll('#tixNames [data-attendee]'))
+              .map((i) => i.value.trim()).filter(Boolean),
             description: label,
             ...extra,
           };

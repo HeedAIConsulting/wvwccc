@@ -1138,6 +1138,8 @@ router.post('/pay', async (req, res) => {
             ${row('Name', order.name)}
             ${row('Email', b.email)}
             ${row('Phone', b.phone)}
+            ${(Array.isArray(b.attendees) ? b.attendees.slice(0, 10) : [])
+              .map((a, i) => row(`Attendee ${i + 1}`, String(a).slice(0, 80))).join('')}
           </table>
           <p style="font-weight:bold;margin:18px 0 0">GRAND TOTAL: ${amt}${b.kind === 'membership' && b.recurring ? ' (annual, recurring)' : ''}</p>
         </div>`;
