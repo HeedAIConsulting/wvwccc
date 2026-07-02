@@ -21,6 +21,15 @@ Examples:
 - 2026 dues renewal, 1 to 5 employees ($450):
   `https://woodlandhillscc.net/checkout.html?type=payment&for=2026%20Dues%20Renewal&amount=450`
 - Invoice balance: `https://woodlandhillscc.net/checkout.html?type=payment&for=Invoice%201234&amount=125`
+- Partial payment, payer types the amount (omit `amount`):
+  `https://woodlandhillscc.net/checkout.html?type=payment&for=Partial%20Payment%20Invoice%201234`
+- Payment on an agreement or sponsorship plan:
+  `https://woodlandhillscc.net/checkout.html?type=payment&for=Sponsorship%20Agreement%20Installment%201%20of%203&amount=500`
+
+Note: a preset `amount` is a convenience, not a lock. The payer can always edit the
+amount box before paying (only event ticket totals are locked). The description in
+`for` appears on the checkout page, the emailed receipts, the admin Pay Log, and in
+the AGMS gateway, so make it specific.
 
 Official dues by employee count (since Jan 1 2025): 1-5 $450 · 6-10 $500 · 11-25 $575 ·
 26-50 $725 · 51-75 $850 · 76-124 $950 · 125-299 $1,250 · 300-749 $1,600 · 750+ $2,550.
