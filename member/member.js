@@ -23,6 +23,8 @@ window.MemberPortal = (function () {
     let data;
     try { data = await api('/api/me'); } catch (e) { return; }
     const { user, member } = data;
+    let isLeader = false;
+    try { isLeader = !!(await api('/api/me/is-leader')).leader; } catch (e) {}
     const bindLogout = () => document.querySelectorAll('[data-logout]').forEach((b) => b.addEventListener('click', (e) => { e.preventDefault(); logout(); }));
 
     document.getElementById('welcome').textContent = member ? member.name : user.email;
@@ -67,7 +69,7 @@ window.MemberPortal = (function () {
         </ul>`}
         <div class="btn-row mt-4">
           <a class="btn btn--forest btn--sm" href="profile.html">${allDone ? 'Edit my profile' : 'Complete my profile'}</a>
-          ${['Leader', 'Board Member', 'Ambassador', 'Past President'].includes(member.leaderStatus) ? '<a class="btn btn--gold btn--sm" href="event.html">＋ Add an event to the calendar</a>' : ''}
+          ${isLeader ? '<a class="btn btn--gold btn--sm" href="event.html">＋ Add an event to the calendar</a>' : ''}
           <button type="button" class="btn btn--ghost btn--sm" onclick="if(window.WVTour)WVTour.start('member')">Take a quick tour</button>
           <span class="member-tile__meta" style="align-self:center">Need help? Use the <strong>🛟 Support</strong> button (bottom-left).</span>
         </div>
@@ -98,7 +100,7 @@ window.MemberPortal = (function () {
           <ul style="list-style:none;display:flex;flex-direction:column;gap:8px;margin-top:var(--s-3)">
             <li><a style="color:var(--gold-bright)" href="profile.html">› Update profile</a></li>
             <li><a style="color:var(--gold-bright)" href="post.html">› Post an offer / community</a></li>
-            ${['Leader', 'Board Member', 'Ambassador', 'Past President'].includes(member.leaderStatus) ? '<li><a style="color:var(--gold-bright)" href="event.html">› Add an event to the calendar</a></li>' : ''}
+            ${isLeader ? '<li><a style="color:var(--gold-bright)" href="event.html">› Add an event to the calendar</a></li>' : ''}
             <li><a style="color:var(--gold-bright)" href="account.html">› Change password</a></li>
             <li><a style="color:var(--gold-bright)" href="../events/index.html">› Upcoming events</a></li>
             <li><a style="color:var(--gold-bright)" href="../donate.html">› Sponsor / donate</a></li>

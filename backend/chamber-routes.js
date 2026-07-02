@@ -354,10 +354,20 @@ function memberIsLeader(m) {
 async function myMember(mid) {
   return mid ? (await loadMembersFull()).members.find((x) => x.id === mid) || null : null;
 }
+// A member who manages a Connection Circle counts as a leader even if their
+// directory record carries no leaderStatus. Matched by the account email.
+async function managedGroups(email) {
+  const e = String(email || '').toLowerCase();
+  if (!e) return [];
+  try { return (await loadGroups()).filter((g) => g && g.manager && String(g.manager.email || '').toLowerCase() === e); }
+  catch { return []; }
+}
 
 router.get('/me/is-leader', auth.requireAuth(), async (req, res) => {
-  try { const m = await myMember(req.user.mid); res.json({ leader: memberIsLeader(m), name: m ? m.name : null }); }
-  catch (e) { res.json({ leader: false }); }
+  try {
+    const m = await myMember(req.user.mid); const g = await managedGroups(req.user.sub);
+    res.json({ leader: memberIsLeader(m) || g.length > 0, name: m ? m.name : null, groups: g.map((x) => x.name) });
+  } catch (e) { res.json({ leader: false }); }
 });
 
 router.get('/me/events', auth.requireAuth(), async (req, res) => {
@@ -365,7 +375,7 @@ router.get('/me/events', auth.requireAuth(), async (req, res) => {
     const mid = req.user.mid;
     const mine = (await loadEvents()).filter((e) => e.submittedBy && e.submittedBy === mid)
       .sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')));
-    res.json({ events: mine, isLeader: memberIsLeader(await myMember(mid)) });
+    res.json({ events: mine, isLeader: memberIsLeader(await myMember(mid)) || (await managedGroups(req.user.sub)).length > 0 });
   } catch (e) { res.status(500).json({ error: 'failed' }); }
 });
 
@@ -373,7 +383,8 @@ router.post('/me/event', auth.requireAuth(), async (req, res) => {
   const mid = req.user.mid;
   if (!mid) return res.status(400).json({ error: 'No member listing is linked to this account.' });
   const member = await myMember(mid);
-  if (!memberIsLeader(member)) {
+  const lead = await managedGroups(req.user.sub);
+  if (!memberIsLeader(member) && !lead.length) {
     return res.status(403).json({ error: 'Adding events is available to Chamber group leaders and board members. Please send your event to the office and we will add it for you.' });
   }
   const b = req.body || {};
@@ -398,7 +409,8 @@ router.post('/me/event', auth.requireAuth(), async (req, res) => {
     const ids = [];
     for (const dt of dates) {
       const ev = buildEvent({ ...base, date: dt }, {});
-      ev.submittedBy = mid; ev.submittedByName = member.name || ''; ev.source = 'member';
+      ev.submittedBy = mid; ev.submittedByName = (member && member.name) || (lead[0] && lead[0].manager && lead[0].manager.name) || ''; ev.source = 'member';
+      if (lead[0]) { ev.groupName = lead[0].name; ev.groupSlug = lead[0].slug; }
       if (seriesId) ev.seriesId = seriesId;
       await repo.upsertEvent(ev); ids.push(ev.id);
     }
