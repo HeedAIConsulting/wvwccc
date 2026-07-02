@@ -97,6 +97,7 @@ window.MemberPortal = (function () {
           <ul style="list-style:none;display:flex;flex-direction:column;gap:8px;margin-top:var(--s-3)">
             <li><a style="color:var(--gold-bright)" href="profile.html">› Update profile</a></li>
             <li><a style="color:var(--gold-bright)" href="post.html">› Post an offer / community</a></li>
+            ${['Leader', 'Board Member', 'Ambassador', 'Past President'].includes(member.leaderStatus) ? '<li><a style="color:var(--gold-bright)" href="event.html">› Add an event to the calendar</a></li>' : ''}
             <li><a style="color:var(--gold-bright)" href="account.html">› Change password</a></li>
             <li><a style="color:var(--gold-bright)" href="../events/index.html">› Upcoming events</a></li>
             <li><a style="color:var(--gold-bright)" href="../donate.html">› Sponsor / donate</a></li>
@@ -388,5 +389,79 @@ window.MemberPortal = (function () {
     });
   }
 
-  return { initDashboard, initProfile, initAccount, initPost, logout, esc };
+  // ── Add an event (group leaders publish straight to the calendar) ──
+  async function initEventForm() {
+    let data; try { data = await api('/api/me/events'); } catch (e) { return; }
+    const form = document.getElementById('eventForm');
+    const gate = document.getElementById('eventGate');
+    const msg = document.getElementById('eventMsg');
+    const listEl = document.getElementById('myEvents');
+
+    function renderMyEvents(events) {
+      if (!listEl) return;
+      if (!events || !events.length) { listEl.innerHTML = ''; return; }
+      const seen = new Set(); const rows = [];
+      for (const ev of events) {
+        const key = ev.seriesId || ev.id;
+        if (seen.has(key)) continue; seen.add(key);
+        const count = ev.seriesId ? events.filter((e) => e.seriesId === ev.seriesId).length : 1;
+        rows.push(`<div class="card" style="padding:var(--s-4);margin-bottom:var(--s-3);display:flex;justify-content:space-between;align-items:center;gap:var(--s-3)">
+          <div><strong>${esc(ev.title)}</strong><div class="member-tile__meta">${esc(ev.date || '')}${ev.time ? ' · ' + esc(ev.time) : ''}${count > 1 ? ' · repeats weekly (' + count + ' dates)' : ''}${ev.venue ? ' · ' + esc(ev.venue) : ''}</div></div>
+          <button class="btn btn--ghost btn--sm" data-del="${esc(ev.id)}">Remove</button></div>`);
+      }
+      listEl.innerHTML = '<h3>Your events on the calendar</h3>' + rows.join('');
+      listEl.querySelectorAll('[data-del]').forEach((b) => b.addEventListener('click', async () => {
+        if (!confirm('Remove this event (and all of its weekly repeat dates) from the calendar?')) return;
+        b.disabled = true;
+        try { await api('/api/me/event/' + encodeURIComponent(b.dataset.del), { method: 'DELETE' }); const d = await api('/api/me/events'); renderMyEvents(d.events || []); }
+        catch (e) { b.disabled = false; alert('Could not remove the event.'); }
+      }));
+    }
+
+    if (!data.isLeader) {
+      if (gate) { gate.hidden = false; gate.innerHTML = 'Adding events directly is available to Chamber group leaders and board members. To add your event, email <a href="mailto:felicia@woodlandhillscc.net">Felicia at the Chamber office</a> or use the <a href="../contact.html">contact form</a> and we will post it for you.'; }
+      renderMyEvents(data.events || []);
+      return;
+    }
+    if (form) form.hidden = false;
+
+    const untilField = document.getElementById('untilField');
+    form.querySelectorAll('input[name="recurrence"]').forEach((r) => r.addEventListener('change', () => {
+      const weekly = (form.querySelector('input[name="recurrence"]:checked') || {}).value === 'weekly';
+      if (untilField) untilField.hidden = !weekly;
+    }));
+
+    let flyerUrl = '';
+    const flyerPrev = document.getElementById('flyerPreview');
+    const flyerInput = document.getElementById('eventFlyer');
+    if (flyerInput) flyerInput.addEventListener('change', async (e) => {
+      const f = e.target.files[0]; if (!f) return;
+      msg.hidden = false; msg.style.borderColor = 'var(--line)'; msg.textContent = 'Uploading flyer…';
+      try { flyerUrl = await uploadImage(f, 'photo'); if (flyerPrev) flyerPrev.innerHTML = `<img src="${esc(flyerUrl)}" alt="" style="width:90px;height:90px;border-radius:10px;object-fit:cover">`; msg.textContent = 'Flyer attached — remember to add the event.'; }
+      catch (err) { msg.textContent = 'Flyer upload failed (PNG/JPG, max ~2.5MB).'; }
+    });
+
+    renderMyEvents(data.events || []);
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const body = {};
+      form.querySelectorAll('[data-ev]').forEach((el) => { body[el.dataset.ev] = el.value.trim(); });
+      body.recurrence = (form.querySelector('input[name="recurrence"]:checked') || {}).value || 'none';
+      if (flyerUrl) body.flyer = flyerUrl;
+      const btn = form.querySelector('button[type="submit"]'); btn.disabled = true; btn.textContent = 'Adding…';
+      try {
+        const r = await api('/api/me/event', { method: 'POST', body: JSON.stringify(body) });
+        msg.hidden = false; msg.style.borderColor = 'var(--green)';
+        msg.textContent = r.count > 1 ? ('Added ' + r.count + ' weekly dates to the calendar.') : 'Added to the calendar.';
+        form.reset(); if (flyerPrev) flyerPrev.innerHTML = ''; flyerUrl = ''; if (untilField) untilField.hidden = true;
+        const d = await api('/api/me/events'); renderMyEvents(d.events || []);
+      } catch (err) {
+        msg.hidden = false; msg.style.borderColor = 'var(--red)';
+        msg.textContent = 'Could not add the event. Check the title and date, then try again.';
+      } finally { btn.disabled = false; btn.textContent = 'Add to calendar'; }
+    });
+  }
+
+  return { initDashboard, initProfile, initAccount, initPost, initEventForm, logout, esc };
 })();

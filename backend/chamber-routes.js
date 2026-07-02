@@ -344,6 +344,80 @@ router.get('/me/posts', auth.requireAuth(), async (req, res) => {
   catch (e) { res.status(500).json({ error: 'failed' }); }
 });
 
+// ── Group-leader event submission → publishes straight to the calendar ──
+// Chamber group/circle leaders and board members may add and manage their own
+// events; regular members are routed to the office.
+const EVENT_LEADER_STATUSES = ['Leader', 'Board Member', 'Ambassador', 'Past President'];
+function memberIsLeader(m) {
+  return !!m && (EVENT_LEADER_STATUSES.includes(m.leaderStatus) || String(m.tier || '').toLowerCase() === 'leader');
+}
+async function myMember(mid) {
+  return mid ? (await loadMembersFull()).members.find((x) => x.id === mid) || null : null;
+}
+
+router.get('/me/is-leader', auth.requireAuth(), async (req, res) => {
+  try { const m = await myMember(req.user.mid); res.json({ leader: memberIsLeader(m), name: m ? m.name : null }); }
+  catch (e) { res.json({ leader: false }); }
+});
+
+router.get('/me/events', auth.requireAuth(), async (req, res) => {
+  try {
+    const mid = req.user.mid;
+    const mine = (await loadEvents()).filter((e) => e.submittedBy && e.submittedBy === mid)
+      .sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')));
+    res.json({ events: mine, isLeader: memberIsLeader(await myMember(mid)) });
+  } catch (e) { res.status(500).json({ error: 'failed' }); }
+});
+
+router.post('/me/event', auth.requireAuth(), async (req, res) => {
+  const mid = req.user.mid;
+  if (!mid) return res.status(400).json({ error: 'No member listing is linked to this account.' });
+  const member = await myMember(mid);
+  if (!memberIsLeader(member)) {
+    return res.status(403).json({ error: 'Adding events is available to Chamber group leaders and board members. Please send your event to the office and we will add it for you.' });
+  }
+  const b = req.body || {};
+  if (!b.title || !/^\d{4}-\d{2}-\d{2}$/.test(String(b.date || ''))) {
+    return res.status(400).json({ error: 'An event title and a valid date are required.' });
+  }
+  const base = {
+    title: b.title, time: b.time, endTime: b.endTime, venue: b.venue, address: b.address,
+    neighborhood: b.neighborhood, category: b.category || 'Community',
+    description: b.description, summary: b.summary, flyer: b.flyer, thumbnail: b.thumbnail,
+    confirmed: true, status: 'approved', showOnCalendar: true,
+  };
+  // Optional weekly recurrence: one event per week through `until` (cap 52).
+  const dates = [];
+  if (b.recurrence === 'weekly' && /^\d{4}-\d{2}-\d{2}$/.test(String(b.until || ''))) {
+    let cur = new Date(b.date + 'T12:00:00'); const until = new Date(b.until + 'T12:00:00'); let guard = 0;
+    while (cur <= until && guard < 52) { dates.push(cur.toISOString().slice(0, 10)); cur.setDate(cur.getDate() + 7); guard++; }
+  }
+  if (!dates.length) dates.push(b.date);
+  const seriesId = dates.length > 1 ? ('ser-' + Date.now().toString(36)) : null;
+  try {
+    const ids = [];
+    for (const dt of dates) {
+      const ev = buildEvent({ ...base, date: dt }, {});
+      ev.submittedBy = mid; ev.submittedByName = member.name || ''; ev.source = 'member';
+      if (seriesId) ev.seriesId = seriesId;
+      await repo.upsertEvent(ev); ids.push(ev.id);
+    }
+    res.json({ ok: true, count: ids.length, seriesId });
+  } catch (e) { console.error('me/event', e); res.status(500).json({ error: 'Could not add the event. Please try again.' }); }
+});
+
+router.delete('/me/event/:id', auth.requireAuth(), async (req, res) => {
+  const mid = req.user.mid;
+  try {
+    const all = await loadEvents();
+    const ev = all.find((e) => e.id === req.params.id);
+    if (!ev || ev.submittedBy !== mid) return res.status(404).json({ error: 'Event not found.' });
+    const toDelete = ev.seriesId ? all.filter((e) => e.seriesId === ev.seriesId && e.submittedBy === mid) : [ev];
+    for (const e of toDelete) await repo.deleteEvent(e.id);
+    res.json({ ok: true, deleted: toDelete.length });
+  } catch (e) { console.error('me/event delete', e); res.status(500).json({ error: 'Could not remove the event.' }); }
+});
+
 // Image upload (data URL) → stored in Postgres, served at /api/assets/:id.
 router.post('/me/asset', auth.requireAuth(), async (req, res) => {
   const b = req.body || {};

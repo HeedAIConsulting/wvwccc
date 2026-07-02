@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex" />
+  <title>Add an Event — WVWCCC Member</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="../css/chamber.css?v=20260701a" />
+</head>
+<body>
+  <div data-partial="header"></div>
+  <section class="section">
+    <div class="container container-narrow">
+      <p class="member-tile__meta"><a href="index.html">&larr; My Chamber</a></p>
+      <span class="kicker">Your events</span>
+      <h1>Add an event to the calendar</h1>
+      <p class="lead">Group leaders and board members can post events straight to the Chamber calendar. Set it to repeat weekly for recurring events like a Saturday cleanup.</p>
+
+      <div id="eventGate" hidden class="notice mt-4"></div>
+
+      <form id="eventForm" class="card mt-5" hidden>
+        <h3>Event details</h3>
+        <div class="field"><label>Event name</label><input data-ev="title" maxlength="200" required /></div>
+        <div class="grid grid-2" style="gap:var(--s-3)">
+          <div class="field"><label>Date</label><input data-ev="date" type="date" required /></div>
+          <div class="field"><label>Category</label>
+            <select data-ev="category">
+              <option>Community</option><option>Networking</option><option>Ribbon Cutting</option>
+              <option>Fundraiser</option><option>Workshop</option><option>Mixer</option><option>Event</option>
+            </select></div>
+        </div>
+        <div class="grid grid-2" style="gap:var(--s-3)">
+          <div class="field"><label>Start time</label><input data-ev="time" placeholder="9:00 AM" maxlength="40" /></div>
+          <div class="field"><label>End time <span class="member-tile__meta">(optional)</span></label><input data-ev="endTime" placeholder="11:00 AM" maxlength="40" /></div>
+        </div>
+        <div class="field"><label>Location / venue</label><input data-ev="venue" maxlength="160" placeholder="e.g. Warner Center Park" /></div>
+        <div class="field"><label>Address <span class="member-tile__meta">(optional)</span></label><input data-ev="address" maxlength="200" /></div>
+        <div class="field"><label>Description</label><textarea data-ev="description" rows="4"></textarea></div>
+
+        <h3 class="mt-5">Repeats?</h3>
+        <div class="field">
+          <label class="chip" style="margin-right:8px"><input type="radio" name="recurrence" value="none" checked style="margin-right:6px">One time</label>
+          <label class="chip"><input type="radio" name="recurrence" value="weekly" style="margin-right:6px">Every week</label>
+        </div>
+        <div class="field" id="untilField" hidden><label>Repeat weekly until</label><input data-ev="until" type="date" />
+          <div class="member-tile__meta">One entry will be added for each week from the date above through this date.</div>
+        </div>
+
+        <h3 class="mt-5">Flyer <span class="member-tile__meta">(optional)</span></h3>
+        <div class="grid grid-2" style="gap:var(--s-4);align-items:center">
+          <div class="field"><input id="eventFlyer" type="file" accept="image/*" /></div>
+          <div id="flyerPreview"></div>
+        </div>
+
+        <p id="eventMsg" class="notice" hidden></p>
+        <button class="btn btn--forest btn--lg" type="submit">Add to calendar</button>
+      </form>
+
+      <div id="myEvents" class="mt-7"></div>
+    </div>
+  </section>
+  <div data-partial="footer"></div>
+  <script src="../js/partials.js?v=20260701c"></script>
+  <script src="../js/api-base.js?v=20260619a"></script>
+  <script src="member.js?v=20260701c"></script>
+  <script>ChamberPartials.mount({ active: '', depth: 1, lang: 'en' }); MemberPortal.initEventForm();</script>
+</body>
+</html>
