@@ -261,6 +261,37 @@
 
   <div data-partial="footer"></div>
 
+  <!-- Gala popup: shows once per session, links to ticket checkout, and
+       retires itself automatically after gala night (Jul 25 2026). -->
+  <div id="galaPop" hidden style="position:fixed;inset:0;z-index:1000;background:rgba(14,16,20,.66);display:flex;align-items:center;justify-content:center;padding:18px">
+    <div role="dialog" aria-modal="true" aria-labelledby="galaPopTitle" style="position:relative;background:#0d0d0f;max-width:400px;width:100%;border-radius:16px;overflow:hidden;box-shadow:0 28px 70px rgba(0,0,0,.55);border:1px solid rgba(201,162,39,.5)">
+      <button type="button" id="galaPopClose" aria-label="Close" style="position:absolute;top:8px;right:10px;z-index:2;background:rgba(0,0,0,.55);border:0;color:#fff;font-size:1.4rem;line-height:1;width:34px;height:34px;border-radius:50%;cursor:pointer">×</button>
+      <a href="checkout.html?type=ticket&event=le-11209" aria-label="Buy Gala tickets">
+        <img src="assets/events/11209.jpg" alt="Black, White and Bold Installation Gala flyer. Saturday, July 25, 2026 at the Woodland Hills Country Club." style="display:block;width:100%;height:auto;max-height:58vh;object-fit:cover;object-position:top" loading="lazy">
+      </a>
+      <div style="padding:14px 16px 16px;text-align:center;background:#0d0d0f">
+        <h3 id="galaPopTitle" style="margin:0 0 4px;color:#fff;font-size:1.05rem">Black, White <span style="color:#c9302c">&amp; Bold</span> Installation Gala</h3>
+        <p style="margin:0 0 12px;color:rgba(255,255,255,.75);font-size:.85rem">Saturday, July 25 · Woodland Hills Country Club · Early bird $150 through July 5</p>
+        <a class="btn btn--gold" href="checkout.html?type=ticket&event=le-11209" style="width:100%;margin-bottom:8px">🎟 Get tickets, sponsorships &amp; program ads</a>
+        <button type="button" id="galaPopLater" style="background:none;border:0;color:rgba(255,255,255,.65);text-decoration:underline;cursor:pointer;font:inherit;font-size:.82rem">Maybe later</button>
+      </div>
+    </div>
+  </div>
+  <script>
+    (function () {
+      var retire = Date.parse('2026-07-26T07:00:00Z'); // morning after the gala, PT
+      if (Date.now() > retire) return;
+      try { if (sessionStorage.getItem('wvGalaPop')) return; } catch (e) {}
+      var pop = document.getElementById('galaPop'); if (!pop) return;
+      var close = function () { pop.hidden = true; try { sessionStorage.setItem('wvGalaPop', '1'); } catch (e) {} };
+      setTimeout(function () { pop.hidden = false; document.getElementById('galaPopClose').focus(); }, 1400);
+      document.getElementById('galaPopClose').addEventListener('click', close);
+      document.getElementById('galaPopLater').addEventListener('click', close);
+      pop.addEventListener('click', function (e) { if (e.target === pop) close(); });
+      document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !pop.hidden) close(); });
+    })();
+  </script>
+
   <script src="js/partials.js?v=20260701c"></script>
   <script src="js/api-base.js?v=20260619a"></script>
   <script src="js/chamber.js?v=20260702e"></script>
