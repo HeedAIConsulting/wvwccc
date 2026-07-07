@@ -1605,6 +1605,104 @@ router.post('/admin/members', requireAdmin, async (req, res) => {
   catch (e) { console.error('add member', e); res.status(500).json({ error: 'could not add member' }); }
 });
 
+// ── Bulk member import (Felicia's CSV upload) ──────────────
+// Accepts rows parsed client-side from a ChamberWare-style export. Matches by
+// company name so re-uploading an overlapping export NEVER duplicates: an
+// existing member gets its blank contact fields filled and (if the row has an
+// email and the member has no login yet) a login attached; new companies are
+// created like the single "Add a member" form. `sendInvites` controls whether
+// welcome/set-password emails go out.
+function normalizeJoinDate(s) {
+  s = String(s || '').trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/); // M/D/YYYY (ChamberWare)
+  return m ? `${m[3]}-${m[1].padStart(2, '0')}-${m[2].padStart(2, '0')}` : '';
+}
+async function attachLoginAndInvite(memberId, emailAddr, displayName, businessName, req, sendInvite) {
+  await users.bulkImportMembers([{ email: emailAddr, memberId, username: displayName || businessName, passwordHash: null, passwordAlgo: 'unknown', needsReset: true }]);
+  if (!sendInvite) return 'login created (no email sent)';
+  const token = auth.signResetToken(emailAddr);
+  const base = process.env.SITE_URL || `${req.protocol}://${req.get('host')}`;
+  const link = `${base}/auth/reset.html?token=${encodeURIComponent(token)}`;
+  const r = await email.send({
+    to: emailAddr,
+    subject: 'Welcome to the West Valley · Warner Center Chamber — set up your account',
+    text: `Welcome${displayName ? ', ' + displayName : ''}!\n\nYour Chamber member listing for ${businessName} is set up. Create your password to manage your listing:\n${link}\n\n(This link expires in 1 hour — if it expires, just use "Forgot password" on the sign-in page.)\n\n— West Valley · Warner Center Chamber of Commerce`,
+    html: `<p>Welcome${displayName ? ', ' + displayName : ''}!</p><p>Your Chamber member listing for <strong>${businessName}</strong> is set up. Create your password to manage your listing:</p><p><a href="${link}">Set up your account</a> (link expires in 1 hour — otherwise use “Forgot password” on the sign-in page).</p><p>— West Valley · Warner Center Chamber of Commerce</p>`,
+  });
+  return r && r.ok ? 'login created · welcome email sent' : 'login created · email pending (' + ((r && r.error) || 'not configured') + ')';
+}
+router.post('/admin/members/import', requireAdmin, async (req, res) => {
+  const rows = Array.isArray(req.body && req.body.members) ? req.body.members.slice(0, 500) : [];
+  const sendInvites = !!(req.body && req.body.sendInvites);
+  if (!rows.length) return res.status(400).json({ error: 'No rows to import.' });
+  try {
+    const { members: existing } = await loadMembersFull();
+    const bySlug = new Map(existing.map((m) => [m.slug || slugify(m.name), m]));
+    const userList = await users.listUsers().catch(() => []);
+    const hasLogin = new Set((userList || []).filter((u) => u.memberId).map((u) => u.memberId));
+    const results = [];
+    for (const raw of rows) {
+      const name = String(raw.name || raw.company || '').trim().slice(0, 160);
+      if (!name) { results.push({ name: '(blank)', action: 'skipped', detail: 'no company name' }); continue; }
+      const contactName = String(raw.contactName || [raw.firstName, raw.lastName].filter(Boolean).join(' ')).trim().slice(0, 120);
+      const emailAddr = String(raw.email || '').trim().toLowerCase().slice(0, 160);
+      const emailOk = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(emailAddr);
+      const slug = slugify(name);
+      const found = bySlug.get(slug);
+      try {
+        if (found) {
+          // Existing member: fill only blank fields, never overwrite live data.
+          const patch = {};
+          for (const [k, v] of Object.entries({
+            contactName, phone: raw.phone, website: raw.website, address: raw.address,
+            city: raw.city, state: raw.state, zip: raw.zip, category: raw.category,
+          })) {
+            const val = String(v || '').trim();
+            if (val && !String(found[k] || '').trim()) patch[k] = val.slice(0, 200);
+          }
+          if (Object.keys(patch).length) await repo.setMemberEdit(found.id, patch);
+          let detail = Object.keys(patch).length ? `filled: ${Object.keys(patch).join(', ')}` : 'already up to date';
+          if (emailOk && !hasLogin.has(found.id)) {
+            detail += ' · ' + await attachLoginAndInvite(found.id, emailAddr, contactName || found.contactName, found.name, req, sendInvites);
+            hasLogin.add(found.id);
+          }
+          results.push({ name, action: 'matched existing', detail });
+        } else {
+          const id = 'm-' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36);
+          const m = {
+            id, slug: slug || id, name,
+            category: String(raw.category || 'Member').slice(0, 60),
+            group: '', tier: 'member',
+            neighborhood: String(raw.city || '').slice(0, 80),
+            contactName, email: emailOk ? emailAddr : '',
+            phone: String(raw.phone || '').slice(0, 40),
+            address: String(raw.address || '').slice(0, 200),
+            city: String(raw.city || '').slice(0, 80),
+            state: String(raw.state || '').slice(0, 20),
+            zip: String(raw.zip || '').slice(0, 20),
+            website: clampUrl(raw.website),
+            tagline: '', description: '',
+            joinDate: normalizeJoinDate(raw.joinDate) || new Date().toISOString().slice(0, 10),
+            tags: [], status: 'approved', seal: (name[0] || '?').toUpperCase(),
+            paymentType: 'offline', addedManually: true, leaderStatus: 'New Member',
+          };
+          await repo.addMember(m);
+          bySlug.set(m.slug, m);
+          let detail = 'created';
+          if (emailOk) { detail += ' · ' + await attachLoginAndInvite(m.id, emailAddr, contactName, name, req, sendInvites); hasLogin.add(m.id); }
+          results.push({ name, action: 'added', detail });
+        }
+      } catch (e) {
+        console.error('import row', name, e);
+        results.push({ name, action: 'error', detail: 'could not save this row' });
+      }
+    }
+    const count = (a) => results.filter((r) => r.action === a).length;
+    res.json({ ok: true, results, summary: { added: count('added'), matched: count('matched existing'), skipped: count('skipped'), errors: count('error') } });
+  } catch (e) { console.error('bulk import', e); res.status(500).json({ error: 'import failed' }); }
+});
+
 router.get('/admin/leads', requireAdmin, async (_req, res) => {
   try { res.json({ leads: await repo.listLeads() }); }
   catch (e) { res.status(500).json({ error: 'leads failed' }); }

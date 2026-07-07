@@ -51,6 +51,7 @@
         <div class="panel">
           <div class="panel__head" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
             <h3 style="margin-right:auto">Member roster</h3>
+            <button id="bulkUploadBtn" class="btn btn--gold btn--sm" type="button" title="Upload a CSV of new members (e.g. the monthly ChamberWare export) — adds them all at once">⬆ Bulk upload (CSV)</button>
             <a id="dirPdfBtn" class="btn btn--ghost btn--sm" href="directory-print.html" target="_blank" title="Print-ready member directory — use your browser's Save as PDF">📄 Directory PDF</a>
             <input id="memberSearch" class="admin-select" type="search" placeholder="Search members…" style="min-width:240px" />
           </div>
@@ -66,7 +67,7 @@
     </div>
   </div>
   <script src="../js/api-base.js"></script>
-  <script src="admin.js?v=20260707a"></script>
+  <script src="admin.js?v=20260707b"></script>
   <script>Admin.initMembers();</script>
   <script defer src="/js/support.js?v=20260701a"></script>
 </body>

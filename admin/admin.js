@@ -196,6 +196,7 @@ window.Admin = (function () {
     { id: 'event-rsvps', t: 'See RSVPs & payments for an event (download list)', kw: 'event rsvp payment attendee list download csv per event', href: 'events.html', tip: 'On any event row, click "RSVPs / $" to see who RSVP\'d and paid — and download the list.' },
     { id: 'event-home', t: 'Pick which events show on the homepage (order 1–4)', kw: 'homepage event order featured pick home 1 2 3 4', href: 'events.html', tip: 'Edit an event → check "Show on homepage" and set Home order 1–4. Only picked events show, in your order.' },
     { id: 'directory-pdf', t: 'Create a PDF of the member directory', kw: 'directory pdf print export download roster book', href: 'members.html', sel: '#dirPdfBtn', tip: 'Click "Directory PDF" for a print-ready directory — use your browser\'s Save as PDF.' },
+    { id: 'bulk-upload', t: 'Upload new members in bulk (CSV)', kw: 'bulk upload csv import new members monthly export chamberware many', href: 'members.html', sel: '#bulkUploadBtn', tip: 'Click "Bulk upload (CSV)", pick the export file, preview, and Import. Existing companies are updated, never duplicated.' },
     { id: 'member-view', t: 'Open a member\'s portal view (assist a member)', kw: 'member view login as impersonate password help assist portal', href: 'members.html', sel: '#memberSearch', tip: 'Find the member → "Member view link" gives a 20-minute sign-in link. Open it in a private/incognito window to see exactly what they see.' },
     { id: 'support', t: 'Submit a support request to Heed', kw: 'support help ticket problem bug broken screenshot heed contact', href: 'about.html', sel: '#supportForm', tip: 'Send us a message with a screenshot — or use the 🛟 Support button on any page.' },
   ];
@@ -685,6 +686,108 @@ window.Admin = (function () {
       });
       ov.querySelector('input:not([type=file])')?.focus();
     }
+
+    // ── Bulk upload (CSV) — for the monthly "new members" export ──
+    // Parses the CSV in the browser, shows a preview, then sends the rows to
+    // /api/admin/members/import. Matching by company name means re-uploading
+    // an overlapping export can't create duplicates.
+    function parseCsv(text) {
+      const rows = []; let row = [], cur = '', inQ = false;
+      for (let i = 0; i < text.length; i++) {
+        const c = text[i];
+        if (inQ) {
+          if (c === '"') { if (text[i + 1] === '"') { cur += '"'; i++; } else inQ = false; }
+          else cur += c;
+        } else if (c === '"') inQ = true;
+        else if (c === ',') { row.push(cur); cur = ''; }
+        else if (c === '\n' || c === '\r') {
+          if (c === '\r' && text[i + 1] === '\n') i++;
+          row.push(cur); cur = '';
+          if (row.some((v) => v.trim() !== '')) rows.push(row);
+          row = [];
+        } else cur += c;
+      }
+      row.push(cur);
+      if (row.some((v) => v.trim() !== '')) rows.push(row);
+      return rows;
+    }
+    const HEADER_MAP = {
+      joindate: 'joinDate', 'join date': 'joinDate', joined: 'joinDate',
+      company: 'name', business: 'name', name: 'name', member: 'name',
+      lastname: 'lastName', 'last name': 'lastName', firstname: 'firstName', 'first name': 'firstName',
+      contact: 'contactName', contactname: 'contactName', 'contact name': 'contactName',
+      address: 'address', address1: 'address', city: 'city', state: 'state', zip: 'zip', zipcode: 'zip',
+      phone: 'phone', telephone: 'phone', website: 'website', url: 'website', web: 'website',
+      email: 'email', 'e-mail': 'email',
+      bc_text: 'category', category: 'category', type: 'category', 'business category': 'category',
+    };
+    function csvToMembers(text) {
+      const rows = parseCsv(text);
+      if (rows.length < 2) return { error: 'That file has no data rows.' };
+      const headers = rows[0].map((h) => HEADER_MAP[h.trim().toLowerCase()] || null);
+      if (!headers.includes('name')) return { error: 'Could not find a COMPANY / name column in the header row.' };
+      const members = rows.slice(1).map((r) => {
+        const m = {};
+        headers.forEach((h, i) => { if (h && r[i] != null && String(r[i]).trim()) m[h] = String(r[i]).trim(); });
+        return m;
+      }).filter((m) => m.name);
+      return { members };
+    }
+    document.getElementById('bulkUploadBtn')?.addEventListener('click', () => {
+      if (document.querySelector('[data-bulk-upload]')) return;
+      const ov = document.createElement('div');
+      ov.className = 'chat-modal'; ov.setAttribute('data-bulk-upload', '');
+      ov.innerHTML = `<div class="chat-modal__box" style="max-width:780px">
+        <button class="chat-modal__x" data-x aria-label="Close" type="button">×</button>
+        <h2 style="margin:0 0 4px">Bulk upload members</h2>
+        <p class="sub" style="margin:0 0 12px">Upload a CSV — like the monthly “new members” export. Expected columns (any order): <strong>COMPANY, FIRSTNAME, LASTNAME, EMAIL, PHONE, ADDRESS, CITY, STATE, ZIP, WEBSITE, JOINDATE, BC_TEXT</strong>. Companies already in the directory are updated (never duplicated).</p>
+        <input type="file" accept=".csv,text/csv" data-bulk-file style="margin-bottom:10px" />
+        <div data-bulk-preview></div>
+        <label style="display:flex;gap:8px;align-items:center;margin:12px 0" title="Each new login gets a set-your-password welcome email"><input type="checkbox" data-bulk-invites> Send welcome / set-password emails to new logins</label>
+        <div style="display:flex;gap:10px;justify-content:flex-end">
+          <button type="button" class="btn btn--ghost btn--sm" data-x>Cancel</button>
+          <button type="button" class="btn btn--forest btn--sm" data-bulk-go disabled>Import</button>
+        </div>
+        <div data-bulk-results style="margin-top:12px;max-height:38vh;overflow:auto"></div>
+      </div>`;
+      const close = () => ov.remove();
+      ov.addEventListener('click', (e) => { if (e.target === ov || e.target.closest('[data-x]')) close(); });
+      document.body.appendChild(ov);
+      const prev = ov.querySelector('[data-bulk-preview]');
+      const goBtn = ov.querySelector('[data-bulk-go]');
+      let parsed = [];
+      ov.querySelector('[data-bulk-file]').addEventListener('change', async (e) => {
+        const f = e.target.files[0]; if (!f) return;
+        const out = csvToMembers(await f.text());
+        if (out.error) { prev.innerHTML = `<p class="sub" style="color:#b00020">${esc(out.error)}</p>`; goBtn.disabled = true; return; }
+        parsed = out.members;
+        prev.innerHTML = `<p class="sub"><strong>${parsed.length}</strong> member${parsed.length === 1 ? '' : 's'} found — preview:</p>
+          <div style="overflow-x:auto;max-height:30vh;overflow-y:auto"><table class="admin-table"><thead><tr><th>Company</th><th>Contact</th><th>Email</th><th>Phone</th><th>Joined</th><th>Category</th></tr></thead><tbody>
+          ${parsed.slice(0, 60).map((m) => `<tr><td><span class="name">${esc(m.name)}</span></td><td>${esc([m.firstName, m.lastName].filter(Boolean).join(' ') || m.contactName || '')}</td><td class="sub">${esc(m.email || '')}</td><td class="sub">${esc(m.phone || '')}</td><td class="sub">${esc(m.joinDate || '')}</td><td class="sub">${esc(m.category || '')}</td></tr>`).join('')}
+          </tbody></table></div>${parsed.length > 60 ? `<p class="sub">…and ${parsed.length - 60} more.</p>` : ''}`;
+        goBtn.disabled = !parsed.length;
+      });
+      goBtn.addEventListener('click', async () => {
+        if (!parsed.length) return;
+        const invites = ov.querySelector('[data-bulk-invites]').checked;
+        if (!confirm(`Import ${parsed.length} member${parsed.length === 1 ? '' : 's'}?${invites ? ' Welcome emails WILL be sent to new logins.' : ' No emails will be sent.'}`)) return;
+        goBtn.disabled = true; goBtn.textContent = 'Importing…';
+        const resBox = ov.querySelector('[data-bulk-results]');
+        try {
+          const r = await api('/api/admin/members/import', { method: 'POST', body: JSON.stringify({ members: parsed, sendInvites: invites }) });
+          const s = r.summary || {};
+          resBox.innerHTML = `<p><strong>Done ✓</strong> — ${s.added || 0} added · ${s.matched || 0} matched existing · ${s.skipped || 0} skipped · ${s.errors || 0} errors</p>
+            <table class="admin-table"><thead><tr><th>Company</th><th>Result</th><th>Detail</th></tr></thead><tbody>
+            ${(r.results || []).map((x) => `<tr><td>${esc(x.name)}</td><td>${esc(x.action)}</td><td class="sub">${esc(x.detail || '')}</td></tr>`).join('')}
+            </tbody></table>`;
+          goBtn.textContent = 'Imported ✓';
+          load(search.value.trim());
+        } catch (err) {
+          resBox.innerHTML = `<p class="sub" style="color:#b00020">Import failed: ${esc(err.message || 'error')}</p>`;
+          goBtn.disabled = false; goBtn.textContent = 'Import';
+        }
+      });
+    });
 
     let t; search.addEventListener('input', () => { clearTimeout(t); t = setTimeout(() => load(search.value.trim()), 250); });
     // Deep links from the dashboard / other admin pages: ?q= prefills search,
