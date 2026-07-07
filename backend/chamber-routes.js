@@ -154,7 +154,7 @@ router.post('/auth/set-password', auth.requireAuth(), async (req, res) => {
 // Admin overrides (status/tier/leader/featured) come from the durable repo.
 const PUBLIC_FIELDS = ['id', 'slug', 'name', 'category', 'group', 'tier', 'neighborhood', 'contactName',
   'address', 'city', 'state', 'zip', 'phone', 'fax', 'website', 'tagline',
-  'description', 'leaderStatus', 'leaderLogo', 'seal', 'featured', 'tags', 'keywords', 'categories',
+  'description', 'leaderStatus', 'boardTitle', 'leaderLogo', 'seal', 'featured', 'tags', 'keywords', 'categories',
   // richer profile (member-managed)
   'hours', 'occupation', 'typeOfBusiness', 'yearEstablished', 'employees',
   'logo', 'pageImage', 'photos', 'social', 'reviewLinks', 'ctaLinks', 'video',

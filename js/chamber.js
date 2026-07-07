@@ -1714,28 +1714,47 @@ window.Chamber = (function () {
   }
 
   // ── Board of Directors / leadership (data-driven from leaderStatus) ──
-  function boardCard(m, depth) {
+  // Design: gold-ringed headshot medallions (Page Image → logo → initial),
+  // person → office/title in gold small caps → business. Officers render larger.
+  function ensureBoardCss() {
+    if (document.getElementById('wv-board-css')) return;
+    const st = document.createElement('style'); st.id = 'wv-board-css';
+    st.textContent = '.board-card{display:block;text-decoration:none;color:inherit;padding:10px 6px;border-radius:16px;transition:transform .25s ease}'
+      + '.board-card:hover{transform:translateY(-4px)}'
+      + '.board-face{transition:transform .3s ease,box-shadow .3s ease}'
+      + '.board-card:hover .board-face{transform:scale(1.045);box-shadow:0 0 0 3px #fff,0 0 0 6px var(--gold,#C9A227),0 16px 34px rgba(18,36,26,.26)!important}'
+      + '.board-rule{display:flex;align-items:center;gap:14px;justify-content:center;margin:0 0 26px}'
+      + '.board-rule::before,.board-rule::after{content:"";height:2px;width:64px;background:linear-gradient(90deg,transparent,var(--gold,#C9A227));display:block}'
+      + '.board-rule::after{background:linear-gradient(90deg,var(--gold,#C9A227),transparent)}';
+    document.head.appendChild(st);
+  }
+  function boardCard(m, depth, opts = {}) {
+    ensureBoardCss();
     const base = depth ? '../' : '';
     const slug = m.slug || m.id;
     const person = m.contactName || m.name;
     // "Page Image" (headshot) leads on leadership pages; the directory logo is
     // only the fallback — members pick each image separately in their portal.
     const face = m.pageImage || m.logo;
+    const size = opts.size || 128;
     const pic = face
-      ? `<img src="${esc(face)}" alt="${esc(person)}" loading="lazy" style="width:128px;height:128px;border-radius:50%;object-fit:cover;box-shadow:0 0 0 3px var(--gold-soft)">`
-      : `<div aria-hidden="true" style="width:128px;height:128px;border-radius:50%;background:var(--green-deep,#1f4d3a);color:var(--gold-bright);display:flex;align-items:center;justify-content:center;font-family:var(--display);font-size:2.6rem;margin:0 auto">${esc((person || '?')[0].toUpperCase())}</div>`;
+      ? `<img class="board-face" src="${esc(face)}" alt="${esc(person)}" loading="lazy" style="width:${size}px;height:${size}px;border-radius:50%;object-fit:cover;box-shadow:0 0 0 3px #fff,0 0 0 5px var(--gold,#C9A227),0 10px 24px rgba(18,36,26,.16)">`
+      : `<div aria-hidden="true" class="board-face" style="width:${size}px;height:${size}px;border-radius:50%;background:linear-gradient(140deg,var(--green-deep,#1E5631),#12301c);color:var(--gold-bright,#e3c55f);display:flex;align-items:center;justify-content:center;font-family:var(--display);font-size:${Math.round(size / 2.5)}px;margin:0 auto;box-shadow:0 0 0 3px #fff,0 0 0 5px var(--gold-soft,#e6dcbf),0 10px 24px rgba(18,36,26,.12)">${esc((person || '?')[0].toUpperCase())}</div>`;
+    const title = m.boardTitle || m.leaderStatus;
     return `
       <article style="text-align:center">
-        <a href="${base}members/${esc(slug)}" style="text-decoration:none;color:inherit;display:block">
+        <a href="${base}members/${esc(slug)}" class="board-card">
           ${pic}
-          <div style="font-family:var(--display);font-size:1.18rem;margin-top:14px;color:var(--green-ink,#1b3326)">${esc(person)}</div>
-          <div class="member-tile__meta" style="color:var(--gold-deep);font-weight:700;letter-spacing:.02em">${esc(m.leaderStatus)}</div>
-          ${m.contactName && m.name !== m.contactName ? `<div class="member-tile__meta">${esc(m.name)}</div>` : ''}
-          <div style="color:var(--gold-deep);font-size:.8rem;margin-top:6px;opacity:.8">View profile →</div>
+          <div style="font-family:var(--display);font-size:${opts.size && opts.size > 128 ? '1.3rem' : '1.16rem'};margin-top:16px;color:var(--green-ink,#1b3326)">${esc(person)}</div>
+          ${title ? `<div style="color:var(--gold-deep,#8a6d1a);font-weight:700;font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;margin-top:5px">${esc(title)}</div>` : ''}
+          ${m.contactName && m.name !== m.contactName ? `<div class="member-tile__meta" style="margin-top:4px">${esc(m.name)}</div>` : ''}
+          <div style="color:var(--gold-deep);font-size:.78rem;margin-top:7px;opacity:.75">View profile →</div>
         </a>
       </article>`;
   }
-  const LEADER_GROUP_LABEL = { 'Leader': 'Officers & Leadership', 'Board Member': 'Board of Directors', 'Past President': 'Past Presidents', 'Ambassador': 'Ambassadors' };
+  const LEADER_GROUP_LABEL = { 'Leader': 'Executive Officers', 'Board Member': 'Board of Directors', 'Past President': 'Past Presidents', 'Ambassador': 'Ambassadors' };
+  // Board pages read like a printed roster: alphabetical by LAST name.
+  const lastNameOf = (m) => { const p = String(m.contactName || m.name).trim().split(/\s+/); return p[p.length - 1]; };
   async function initBoard(depth = 0) {
     const el = document.getElementById('boardGrid'); if (!el) return;
     // Each designation is its own deep-linkable view: leadership.html?group=<status>.
@@ -1752,22 +1771,39 @@ window.Chamber = (function () {
     const subnav = `<nav class="chips" style="justify-content:center;margin-bottom:var(--s-6)" aria-label="Leadership groups">${tabs.map(([g, l]) =>
       `<a class="chip${only === g ? ' chip--gold' : ''}" href="${base}leadership.html${g ? ('?group=' + encodeURIComponent(g)) : ''}">${l}</a>`).join('')}</nav>`;
     const want = only && ORDER.includes(only) ? [only] : ORDER;
-    const heading = (only && LEADER_GROUP_LABEL[only]) ? `<h2 style="text-align:center;margin-bottom:var(--s-5)">${esc(LEADER_GROUP_LABEL[only])}</h2>` : '';
+    // Officers rank by office (President → CFO → Secretary); everyone else
+    // reads like a printed roster, alphabetical by last name.
+    const officerRank = (m) => {
+      const t = String(m.boardTitle || '').toLowerCase();
+      if (t.includes('president of the board')) return 0;
+      if (t.includes('financial')) return 1;
+      if (t.includes('secretary')) return 2;
+      return 3;
+    };
     const board = members.filter((m) => want.includes(m.leaderStatus))
-      .sort((a, b) => (ORDER.indexOf(a.leaderStatus) - ORDER.indexOf(b.leaderStatus)) || String(a.contactName || a.name).localeCompare(b.contactName || b.name));
+      .sort((a, b) => (ORDER.indexOf(a.leaderStatus) - ORDER.indexOf(b.leaderStatus))
+        || (a.leaderStatus === 'Leader' ? officerRank(a) - officerRank(b) : 0)
+        || lastNameOf(a).localeCompare(lastNameOf(b)));
     if (!board.length) { el.innerHTML = subnav + '<p class="notice">This roster is being finalized — check back soon. (Admins: set each member\'s designation under Members.)</p>'; return; }
     // group by designation
     const groups = {};
     board.forEach((m) => { (groups[m.leaderStatus] = groups[m.leaderStatus] || []).push(m); });
-    // Single-group view: one heading, no per-group repeat. Combined view: a section per group.
-    const body = only
-      ? `<div class="grid grid-4" style="gap:var(--s-6)">${board.map((m) => boardCard(m, depth)).join('')}</div>`
-      : ORDER.filter((g) => groups[g]).map((g) => `
-        <div style="margin-bottom:var(--s-7)">
-          <h2 style="text-align:center;margin-bottom:var(--s-5)">${esc(LEADER_GROUP_LABEL[g])}</h2>
-          <div class="grid grid-4" style="gap:var(--s-6)">${groups[g].map((m) => boardCard(m, depth)).join('')}</div>
-        </div>`).join('');
-    el.innerHTML = subnav + heading + body;
+    const section = (g, list) => {
+      const officers = g === 'Leader';
+      // Officers sit up top, larger, on their own centered row; the board is a
+      // classic 4-up gallery. Gold hairline rules frame each section title.
+      const grid = officers
+        ? `<div style="display:flex;flex-wrap:wrap;justify-content:center;gap:var(--s-7)">${list.map((m) => `<div style="flex:0 1 240px">${boardCard(m, depth, { size: 156 })}</div>`).join('')}</div>`
+        : `<div class="grid grid-4" style="gap:var(--s-6)">${list.map((m) => boardCard(m, depth)).join('')}</div>`;
+      return `
+        <div style="margin-bottom:var(--s-8)">
+          <div class="board-rule"><h2 style="margin:0;white-space:nowrap">${esc(LEADER_GROUP_LABEL[g] || g)}</h2></div>
+          ${grid}
+        </div>`;
+    };
+    // Single-group view: one section. Combined view: a section per group.
+    const body = (only ? [only] : ORDER).filter((g) => groups[g]).map((g) => section(g, groups[g])).join('');
+    el.innerHTML = subnav + body;
   }
 
   // ── Chamber Leaders page — members in the leader marketing package ──

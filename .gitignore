@@ -27,3 +27,6 @@ Biz Newsletter/
 
 # local dev launcher (seeds a throwaway test admin) - never commit
 local-dev.cjs
+
+# source board headshots + roster PDF (2MB PNGs / 21MB PDF) - processed copies live in images/board/
+2026_board_members/

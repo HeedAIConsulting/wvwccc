@@ -487,7 +487,8 @@
       "tags": [
         "handyman"
       ],
-      "slug": "al-the-handyman"
+      "slug": "al-the-handyman",
+      "pageImage": "/images/board/al-collins.jpg"
     },
     {
       "id": "m15274",
@@ -587,7 +588,7 @@
       "joinDate": "2022-10-14",
       "seal": "A",
       "employees": "8",
-      "leaderStatus": "New Member",
+      "leaderStatus": "Board Member",
       "group": "Nonprofit & Community",
       "tags": [
         "non",
@@ -843,7 +844,7 @@
       "joinDate": "2024-02-27",
       "seal": "A",
       "employees": "1",
-      "leaderStatus": "New Member",
+      "leaderStatus": "Leader",
       "group": "Nonprofit & Community",
       "tags": [
         "non",
@@ -851,7 +852,9 @@
         "organization"
       ],
       "slug": "american-legion-post",
-      "leaderLogo": "/images/leaders/leaders_130.jpg"
+      "leaderLogo": "/images/leaders/leaders_130.jpg",
+      "pageImage": "/images/board/paul-lawler.jpg",
+      "boardTitle": "Corporate Secretary · Past President"
     },
     {
       "id": "m2203",
@@ -1134,7 +1137,8 @@
         "animal",
         "rescue"
       ],
-      "slug": "aussie-rescue-socal-inc"
+      "slug": "aussie-rescue-socal-inc",
+      "pageImage": "/images/board/bob-epstein.jpg"
     },
     {
       "id": "m15582",
@@ -1285,7 +1289,7 @@
       "category": "Window Covering",
       "tier": "member",
       "neighborhood": "Oak Park",
-      "contactName": "Howie Baron",
+      "contactName": "Howard Baron",
       "address": "Oak Park",
       "city": "Oak Park",
       "state": "CA",
@@ -1300,7 +1304,9 @@
         "window",
         "covering"
       ],
-      "slug": "baron-shutters-and-blinds"
+      "slug": "baron-shutters-and-blinds",
+      "pageImage": "/images/board/howard-baron.jpg",
+      "leaderStatus": "Board Member"
     },
     {
       "id": "m13200",
@@ -1726,7 +1732,9 @@
         "organization"
       ],
       "slug": "boys-girls-club-of-the-west-valley",
-      "leaderLogo": "/images/leaders/leaders_118.jpg"
+      "leaderLogo": "/images/leaders/leaders_118.jpg",
+      "pageImage": "/images/board/geovanny-ragsdale.jpg",
+      "leaderStatus": "Board Member"
     },
     {
       "id": "m16215",
@@ -2627,7 +2635,9 @@
       "tags": [
         "banks"
       ],
-      "slug": "city-national-bank"
+      "slug": "city-national-bank",
+      "pageImage": "/images/board/mahsa-hadjiaghai.jpg",
+      "boardTitle": "Past President"
     },
     {
       "id": "m15803",
@@ -3710,7 +3720,7 @@
       },
       "yearEstablished": "2010",
       "employees": "2",
-      "leaderStatus": "Board Member",
+      "leaderStatus": "",
       "logo": "/images/members/m10483.jpg",
       "group": "Legal",
       "tags": [
@@ -5567,7 +5577,7 @@
       "description": "Sales & Marketing Director",
       "yearEstablished": "7",
       "employees": "1",
-      "leaderStatus": "Ambassador",
+      "leaderStatus": "Board Member",
       "logo": "/images/members/m15652.jpg",
       "group": "Home & Trades",
       "tags": [
@@ -5575,7 +5585,8 @@
         "control"
       ],
       "slug": "green-rodent-restoration",
-      "website": "https://greenrodentrestoration.com/"
+      "website": "https://greenrodentrestoration.com/",
+      "pageImage": "/images/board/lisa-alexandrian.jpg"
     },
     {
       "id": "m15156",
@@ -6215,7 +6226,8 @@
         "honorary",
         "mayor"
       ],
-      "slug": "honorary-mayor-of-woodland-hills"
+      "slug": "honorary-mayor-of-woodland-hills",
+      "boardTitle": "Honorary Mayor · Appointed 2011"
     },
     {
       "id": "m16122",
@@ -6270,7 +6282,7 @@
       },
       "yearEstablished": "2002",
       "employees": "4",
-      "leaderStatus": "Board Member",
+      "leaderStatus": "Leader",
       "logo": "/images/members/m1761.jpg",
       "group": "Legal",
       "tags": [
@@ -6278,7 +6290,9 @@
         "services"
       ],
       "slug": "hornstein-law-offices",
-      "leaderLogo": "/images/leaders/leaders_8.jpg"
+      "leaderLogo": "/images/leaders/leaders_8.jpg",
+      "pageImage": "/images/board/steve-hornstein.jpg",
+      "boardTitle": "Chief Financial Officer · Past President"
     },
     {
       "id": "m13422",
@@ -7039,7 +7053,9 @@
         "diagnostics"
       ],
       "slug": "joint-matters-calibration-services",
-      "leaderLogo": "/images/leaders/leaders_132.jpg"
+      "leaderLogo": "/images/leaders/leaders_132.jpg",
+      "pageImage": "/images/board/jon-mann.jpg",
+      "boardTitle": "Inaugural Term"
     },
     {
       "id": "m12620",
@@ -8253,7 +8269,8 @@
         "franchise"
       ],
       "slug": "los-angeles-rams-llc",
-      "leaderLogo": "/images/leaders/leaders_126.jpg"
+      "leaderLogo": "/images/leaders/leaders_126.jpg",
+      "leaderStatus": "Board Member"
     },
     {
       "id": "m13793",
@@ -8770,7 +8787,9 @@
         "motel"
       ],
       "slug": "marriott-warner-center",
-      "leaderLogo": "/images/leaders/leaders_36.jpg"
+      "leaderLogo": "/images/leaders/leaders_36.jpg",
+      "pageImage": "/images/board/etienne-tardy.jpg",
+      "leaderStatus": "Board Member"
     },
     {
       "id": "m15358",
@@ -9329,7 +9348,10 @@
         "care"
       ],
       "slug": "motion-picture-television-fund",
-      "leaderLogo": "/images/leaders/leaders_2.jpg"
+      "leaderLogo": "/images/leaders/leaders_2.jpg",
+      "pageImage": "/images/board/kathy-davis.jpg",
+      "leaderStatus": "Board Member",
+      "boardTitle": "Past President"
     },
     {
       "id": "m16058",
@@ -9743,7 +9765,7 @@
       "seal": "N",
       "yearEstablished": "2023",
       "employees": "2",
-      "leaderStatus": "Board Member",
+      "leaderStatus": "",
       "group": "Home & Trades",
       "tags": [
         "landscaping"
@@ -10431,7 +10453,7 @@
       "joinDate": "2024-08-01",
       "seal": "P",
       "employees": "1",
-      "leaderStatus": "New Member",
+      "leaderStatus": "Board Member",
       "description": "plastic printing We provide best in business plastic printing to our clients and help them to make a better impression of their business.",
       "tagline": "peacockprintco.com",
       "group": "Professional Services",
@@ -10439,7 +10461,8 @@
         "print",
         "design"
       ],
-      "slug": "peacock-print-co"
+      "slug": "peacock-print-co",
+      "pageImage": "/images/board/mary-johnson.jpg"
     },
     {
       "id": "m15851",
@@ -11135,7 +11158,7 @@
       "joinDate": "1980-01-01",
       "seal": "P",
       "description": "Proudly serving the community since 1973, Providence Cedars-Sinai Tarzana Medical Center has provided excellent and compassionate care to the San Fernando Valley. In addition to heart, vascular, orthopedic, cancer and womenï¿½s services, we house the largest Level III Neonatal Intensive Care Unit (NICU) in the area and our emergency department has been designated by the Los Angeles County Department of Health as a STEMI and stroke receiving center. From a state-of-the-art campus to equitable community services, we work tirelessly to provide for your every physical, emotional, social and spiritual need.",
-      "leaderStatus": "Board Member",
+      "leaderStatus": "",
       "logo": "/images/members/m12553.jpg",
       "group": "Health & Medical",
       "tags": [
@@ -11237,7 +11260,7 @@
       "category": "Corporate Consultant",
       "tier": "member",
       "neighborhood": "Woodland Hills",
-      "contactName": "Susan Tenzer J.D.",
+      "contactName": "R. Susan Tenzer, J.D.",
       "address": "22817 Ventura Blvd. #239",
       "city": "Woodland Hills",
       "state": "CA",
@@ -11247,14 +11270,16 @@
       "seal": "R",
       "tagline": "Corporate Consultant",
       "description": "I serve as Special Events Chair on the West Valley- Warner Center Chamber of Commerce. It is my pleasure to bring my enthusiasm and energy to the Chamber of Commerce as we roll out our annual fundraisers and events. Corporate Consultant - helping businesses form corporations, limited partnerships, limited liability companies and preparation of annual corporate and partnership minutes. Mediation - I was a member of the mediation panel of the Los Angeles Superior Court from 1994 through 2003. I am originally from New York. I obtained my law degree from Glendale University College of Law in Glendale, California.",
-      "leaderStatus": "Board Member",
+      "leaderStatus": "Leader",
       "logo": "/images/members/m12012.jpg",
       "group": "Professional Services",
       "tags": [
         "corporate",
         "consultant"
       ],
-      "slug": "r-susan-tenzer-j-d-tenzer-consulting"
+      "slug": "r-susan-tenzer-j-d-tenzer-consulting",
+      "pageImage": "/images/board/susan-tenzer.jpg",
+      "boardTitle": "President of the Board"
     },
     {
       "id": "m15324",
@@ -11287,7 +11312,8 @@
         "real",
         "estate"
       ],
-      "slug": "rachel-tabak-realtor-with-keller-williams"
+      "slug": "rachel-tabak-realtor-with-keller-williams",
+      "pageImage": "/images/board/rachel-tabak.jpg"
     },
     {
       "id": "m15999",
@@ -13160,13 +13186,14 @@
       "description": "Sunberry Acai Bowls opened its doors on October 30, 2024. Located @ 18100 Chatsworth St, Suite D, CA 91344.",
       "yearEstablished": "2024",
       "employees": "7",
-      "leaderStatus": "New Member",
+      "leaderStatus": "Board Member",
       "logo": "/images/members/m15869.jpg",
       "group": "Restaurants & Food",
       "tags": [
         "restaurant"
       ],
-      "slug": "sunberry-acai-bowls"
+      "slug": "sunberry-acai-bowls",
+      "pageImage": "/images/board/damon-buford.jpg"
     },
     {
       "id": "m15590",
@@ -13836,7 +13863,10 @@
         "government"
       ],
       "slug": "tim-gaspar-for-city-council",
-      "leaderLogo": "/images/leaders/leaders_140.jpg"
+      "leaderLogo": "/images/leaders/leaders_140.jpg",
+      "pageImage": "/images/board/tim-gaspar.jpg",
+      "leaderStatus": "Board Member",
+      "boardTitle": "Economic Development Chair"
     },
     {
       "id": "m15557",
@@ -14143,7 +14173,7 @@
       "seal": "T",
       "tagline": "We take pride in attractive architectural designs that complement and enhance neighborhoods. As long-term property owners, we know our investments are a win-win",
       "description": "Daniel Kashani Director at Large: TriStar is a family-owned and operated company with extensive real estate holdings, including medical and general office buildings, retail and commercial developments with expertise in property management and leasing. Founded in 2008, our full-service real estate firm is involved in a wide array of activities, ranging from acquisition, finance, planning and entitlements to community outreach, construction and property management. With more than 40 years of experience, our team has a proven track record of successful investments and developments. This is due to our experience and expertise in real estate, as well as our core principles centered on integrity and discipline.",
-      "leaderStatus": "Board Member",
+      "leaderStatus": "",
       "logo": "/images/members/m12172.jpg",
       "group": "Real Estate",
       "tags": [
@@ -14256,7 +14286,7 @@
       "joinDate": "2024-03-01",
       "seal": "U",
       "tagline": "UCLA Health",
-      "leaderStatus": "Board Member",
+      "leaderStatus": "",
       "logo": "/images/members/m2153-402.jpg",
       "group": "Health & Medical",
       "tags": [
@@ -14281,7 +14311,7 @@
       "joinDate": "1974-10-01",
       "seal": "U",
       "tagline": "UCLA Health",
-      "leaderStatus": "Board Member",
+      "leaderStatus": "",
       "logo": "/images/members/m2153.jpg",
       "description": "Learn about UCLA West Valley Medical Center, formerly West Hills Hospital & Medical Center, a 260-bed community hospital with ER care, surgery center and more.",
       "group": "Health & Medical",
@@ -15474,7 +15504,7 @@
         "facebook": "https://www.facebook.com/westfieldtopanga/",
         "instagram": "https://www.instagram.com/westfieldtopanga/"
       },
-      "leaderStatus": "Board Member",
+      "leaderStatus": "",
       "logo": "/images/members/m2157.jpg",
       "group": "Retail & Shopping",
       "tags": [
