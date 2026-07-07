@@ -284,7 +284,7 @@ window.Admin = (function () {
         document.body.appendChild(ov);
         try {
           const { orders } = await api('/api/admin/orders');
-          const paid = orders.filter((o) => o.status !== 'refunded');
+          const paid = orders.filter((o) => (o.status || 'paid') === 'paid');
           const byKind = {};
           paid.forEach((o) => { const k = o.kind || 'other'; byKind[k] = (byKind[k] || 0) + Number(o.amount || 0); });
           const total = paid.reduce((t, o) => t + Number(o.amount || 0), 0);
@@ -847,7 +847,7 @@ window.Admin = (function () {
         <td>$${Number(o.amount || 0).toFixed(2)}</td>
         <td>${statusPill(o.status || 'paid')}</td>
         <td><span class="sub">${esc(o.transactionId || '')}</span></td>
-        <td>${o.status !== 'refunded' ? `<button class="btn btn--ghost btn--sm" data-refund>${o.transactionId ? 'Refund' : 'Mark refunded'}</button>` : ''}</td></tr>`).join('')
+        <td>${(o.status || 'paid') === 'paid' ? `<button class="btn btn--ghost btn--sm" data-refund>${o.transactionId ? 'Refund' : 'Mark refunded'}</button>` : (o.status === 'declined' ? '<span class="sub" title="The card was never charged — any bank hold drops off on its own in a few days.">no charge</span>' : '')}</td></tr>`).join('')
         : `<tr><td colspan="7" class="sub">${q ? 'No payments match “' + esc(q) + '” — <a href="payments.html">show all</a>.' : 'No payments yet. Transactions appear here once AGMS checkout is live.'}</td></tr>`;
       rows.querySelectorAll('tr[data-id]').forEach((tr) => {
         tr.querySelector('[data-refund]')?.addEventListener('click', async (e) => {
@@ -1231,7 +1231,7 @@ window.Admin = (function () {
           const le = String(l.event || '').toLowerCase();
           return le && (le === String(ev.id).toLowerCase() || le === title || le.includes(title.slice(0, 40)));
         });
-        const paidTotal = orders.filter((o) => o.status !== 'refunded').reduce((t, o) => t + Number(o.amount || 0), 0);
+        const paidTotal = orders.filter((o) => (o.status || 'paid') === 'paid').reduce((t, o) => t + Number(o.amount || 0), 0);
         ov.querySelector('[data-body]').innerHTML = `
           <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
             <h3 style="margin:0">RSVPs (${rsvps.length})</h3>

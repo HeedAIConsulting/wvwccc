@@ -1250,6 +1250,20 @@ router.post('/pay', async (req, res) => {
       : await sale({ ...common, amount: b.amount });
 
     if (!result.approved) {
+      // Log the DECLINED attempt too (status 'declined', nothing to refund) so
+      // the office can see it in the Pay Log — a declined auth can still leave
+      // a temporary "pending" hold on the buyer's bank that drops off on its
+      // own in a few days, and an invisible attempt caused real confusion
+      // (Felicia, Jul 2026).
+      try {
+        await repo.addOrder({
+          id: 'ord-' + Date.now().toString(36),
+          kind: b.kind, sku: b.sku || '', email: b.email || '',
+          name: [b.firstName, b.lastName].filter(Boolean).join(' '),
+          amount: Number(b.amount), transactionId: result.transactionId || '',
+          status: 'declined',
+        });
+      } catch (e) { console.error('declined-attempt log failed', e); }
       return res.status(402).json({ ok: false, error: result.responseText || 'declined', code: result.raw.response });
     }
     const order = {
@@ -1259,7 +1273,23 @@ router.post('/pay', async (req, res) => {
       amount: Number(b.amount), transactionId: result.transactionId,
       status: 'paid',
     };
-    await repo.addOrder(order);
+    // The card is ALREADY charged past this point — a logging failure must
+    // never bubble up as a payment error (the buyer would retry and get
+    // double-charged) and must never leave the office blind. If the insert
+    // fails, alert the office with the gateway transaction id so the books
+    // can be squared from the NMI report.
+    try {
+      await repo.addOrder(order);
+    } catch (e) {
+      console.error('CRITICAL: approved charge failed to log', order, e);
+      try {
+        email.send({
+          to: email.notifyTo(),
+          subject: `⚠ ALERT: approved charge NOT in Pay Log — $${Number(order.amount).toFixed(2)} (txn ${order.transactionId})`,
+          text: `A payment was APPROVED by the gateway but could not be written to the Pay Log.\n\nAmount: $${Number(order.amount).toFixed(2)}\nPayer: ${order.name} ${order.email}\nFor: ${order.kind} ${order.sku}\nGateway transaction: ${order.transactionId}\n\nFind it in the NMI/AGMS gateway reports (agms.transactiongateway.com) — refund or void from there if needed.`,
+        }).catch(() => {});
+      } catch (e2) { /* alert only */ }
+    }
     if (coupon) repo.incrementCouponUse(coupon.code).catch(() => {});
     // Email a receipt to the payer + the Chamber office, styled after the legacy
     // ChamberWare receipts (per Felicia): "Paid Receipt For Tickets <ref>" for
@@ -1500,8 +1530,9 @@ router.get('/admin/summary', requireAdmin, async (_req, res) => {
       leaders: members.filter((m) => m.leaderStatus).length,
       newLeads: leads.filter((l) => l.status === 'new').length,
       pendingPosts,
-      orders: orders.length,
-      revenue: orders.reduce((s, o) => s + (Number(o.amount) || 0), 0),
+      // Declined attempts are visible in the Pay Log but never count as money.
+      orders: orders.filter((o) => (o.status || 'paid') !== 'declined').length,
+      revenue: orders.filter((o) => (o.status || 'paid') === 'paid').reduce((s, o) => s + (Number(o.amount) || 0), 0),
     });
   } catch (e) { console.error(e); res.status(500).json({ error: 'summary failed' }); }
 });
