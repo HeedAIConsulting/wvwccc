@@ -49,13 +49,15 @@
         </div>
 
         <div class="panel">
-          <div class="panel__head">
-            <h3>Member roster</h3>
+          <div class="panel__head" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <h3 style="margin-right:auto">Member roster</h3>
+            <a id="dirPdfBtn" class="btn btn--ghost btn--sm" href="directory-print.html" target="_blank" title="Print-ready member directory — use your browser's Save as PDF">📄 Directory PDF</a>
             <input id="memberSearch" class="admin-select" type="search" placeholder="Search members…" style="min-width:240px" />
           </div>
+          <p class="sub" style="margin:4px 0 10px">Tier doubles as the <strong>Leader level</strong> (Friend / Supporter / Bronze / Silver / Gold / Platinum) — leader-level members appear on the public <a href="../leaders.html" target="_blank">Chamber Leaders page</a>. Changes to a row apply when you click its <strong>Save</strong> button.</p>
           <div style="overflow-x:auto">
             <table class="admin-table">
-              <thead><tr><th>Member</th><th>Tier</th><th>Status</th><th>Designation</th><th>Featured</th><th></th></tr></thead>
+              <thead><tr><th>Member</th><th>Tier / Leader level</th><th>Status</th><th>Designation</th><th>Featured</th><th></th></tr></thead>
               <tbody id="memberRows"></tbody>
             </table>
           </div>
@@ -64,7 +66,7 @@
     </div>
   </div>
   <script src="../js/api-base.js"></script>
-  <script src="admin.js?v=20260702b"></script>
+  <script src="admin.js?v=20260707a"></script>
   <script>Admin.initMembers();</script>
   <script defer src="/js/support.js?v=20260701a"></script>
 </body>

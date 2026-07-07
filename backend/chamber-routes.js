@@ -157,7 +157,7 @@ const PUBLIC_FIELDS = ['id', 'slug', 'name', 'category', 'group', 'tier', 'neigh
   'description', 'leaderStatus', 'leaderLogo', 'seal', 'featured', 'tags', 'keywords', 'categories',
   // richer profile (member-managed)
   'hours', 'occupation', 'typeOfBusiness', 'yearEstablished', 'employees',
-  'logo', 'photos', 'social', 'reviewLinks', 'ctaLinks', 'video',
+  'logo', 'pageImage', 'photos', 'social', 'reviewLinks', 'ctaLinks', 'video',
   'services', 'accomplishments', 'associations', 'team', 'primaryImage'];
 
 let _kw = null;
@@ -207,7 +207,7 @@ const slugify = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-')
 // Scalar fields a member may edit (admin-only: status/tier/leader/featured).
 const MEMBER_STR_FIELDS = ['name', 'category', 'neighborhood', 'contactName', 'phone', 'fax',
   'website', 'address', 'city', 'state', 'zip', 'tagline', 'description', 'hours',
-  'occupation', 'typeOfBusiness', 'yearEstablished', 'employees', 'logo', 'video',
+  'occupation', 'typeOfBusiness', 'yearEstablished', 'employees', 'logo', 'pageImage', 'video',
   'services', 'accomplishments', 'associations'];
 const clampUrl = (s) => String(s || '').trim().slice(0, 600);
 function sanitizeProfile(b) {
@@ -601,11 +601,67 @@ async function ensureEventsSeeded() {
     } catch (e) { console.error('event image backfill failed', e); }
   }
 }
+// ── Rich event descriptions: server-side HTML allowlist sanitizer ──
+// The admin editor writes formatted HTML (font/size/color/align + hyperlinks +
+// linked images). Only these tags survive, and only href/style attributes with
+// safe values — everything else (scripts, handlers, iframes) is stripped.
+const RICH_TAGS = new Set(['a', 'b', 'strong', 'i', 'em', 'u', 's', 'p', 'div', 'br', 'ul', 'ol', 'li', 'h3', 'h4', 'span', 'blockquote']);
+function sanitizeRichStyle(s) {
+  const out = [];
+  for (const decl of String(s || '').split(';')) {
+    const m = decl.match(/^\s*(color|background-color|font-size|font-family|text-align|font-weight|font-style|text-decoration)\s*:\s*([^;<>"'{}]{1,90}?)\s*$/i);
+    if (m && !/url\s*\(|expression|javascript|@import/i.test(m[2])) out.push(m[1].toLowerCase() + ':' + m[2]);
+  }
+  return out.join(';');
+}
+function sanitizeRichHref(u) {
+  u = String(u || '').trim();
+  if (/^(https?:|mailto:|tel:|\/)/i.test(u)) return u.slice(0, 600);
+  if (/^www\./i.test(u)) return ('https://' + u).slice(0, 600);
+  return '';
+}
+function richAttr(attrs, name) {
+  const m = String(attrs || '').match(new RegExp(name + `\\s*=\\s*(?:"([^"]*)"|'([^']*)')`, 'i'));
+  return m ? (m[1] ?? m[2] ?? '') : '';
+}
+function sanitizeRichHtml(html) {
+  let s = String(html || '').slice(0, 20000);
+  if (!s.trim()) return '';
+  s = s.replace(/<!--[\s\S]*?-->/g, '');
+  s = s.replace(/<(script|style|iframe|object|embed|form|link|meta|svg|math)\b[\s\S]*?<\/\1\s*>/gi, '');
+  s = s.replace(/<\/?([a-zA-Z0-9]+)((?:[^>"']|"[^"]*"|'[^']*')*)\/?>/g, (m0, tag, attrs) => {
+    tag = tag.toLowerCase();
+    if (tag === 'img') { // linked sponsor/inline images keep src (+ optional link handled via <a>)
+      const src = sanitizeRichHref(richAttr(attrs, 'src'));
+      return src ? `<img src="${src}" alt="${richAttr(attrs, 'alt').replace(/[<>"]/g, '')}" style="max-width:100%">` : '';
+    }
+    if (!RICH_TAGS.has(tag)) return '';
+    if (m0.startsWith('</')) return `</${tag}>`;
+    let keep = '';
+    if (tag === 'a') {
+      const href = sanitizeRichHref(richAttr(attrs, 'href'));
+      if (href) keep += ` href="${href}" target="_blank" rel="noopener"`;
+    }
+    const st = sanitizeRichStyle(richAttr(attrs, 'style'));
+    if (st) keep += ` style="${st}"`;
+    return tag === 'br' ? '<br>' : `<${tag}${keep}>`;
+  });
+  return s;
+}
+
 function buildEvent(b, existing = {}) {
   const date = b.date ?? existing.date ?? '';
   const d = date ? new Date(date + 'T12:00:00') : null;
+  // Images may be plain URLs or {src, href, label} (hyperlinked image, e.g. a
+  // sponsor logo that clicks through to the sponsor's site). Up to 6.
   const images = Array.isArray(b.images)
-    ? b.images.slice(0, 3).map(clampUrl).filter(Boolean)
+    ? b.images.slice(0, 6).map((it) => {
+        if (typeof it === 'string') return clampUrl(it);
+        const src = clampUrl(it && (it.src || it.url));
+        if (!src) return '';
+        const href = it && it.href ? sanitizeRichHref(it.href) : '';
+        return href ? { src, href, label: String(it.label || '').slice(0, 80) } : src;
+      }).filter(Boolean)
     : (existing.images || []);
   const links = Array.isArray(b.links)
     ? b.links.slice(0, 8).map((l) => ({
@@ -630,6 +686,9 @@ function buildEvent(b, existing = {}) {
     neighborhood: String(b.neighborhood ?? existing.neighborhood ?? '').slice(0, 80),
     summary: String(b.summary ?? existing.summary ?? '').slice(0, 600),
     description: String(b.description ?? existing.description ?? '').slice(0, 8000),
+    // Rich (formatted) description from the admin editor — sanitized HTML.
+    // When present the public site renders this instead of plain `description`.
+    descriptionHtml: b.descriptionHtml !== undefined ? sanitizeRichHtml(b.descriptionHtml) : (existing.descriptionHtml ?? ''),
     ticketed: b.ticketed !== undefined ? !!b.ticketed : (existing.ticketed ?? false),
     ticketCap: b.ticketCap ?? existing.ticketCap ?? null,
     rsvpCutoff: b.rsvpCutoff ?? existing.rsvpCutoff ?? null,
@@ -638,12 +697,22 @@ function buildEvent(b, existing = {}) {
     homeOrder: b.homeOrder !== undefined ? (b.homeOrder === null || b.homeOrder === '' ? null : Number(b.homeOrder)) : (existing.homeOrder ?? null),
     // Distinct images: a portrait flyer (detail) + a square thumbnail (cards). Fall back to images[].
     flyer: b.flyer !== undefined ? clampUrl(b.flyer) : (existing.flyer ?? ''),
+    // Additional flyers (an event can attach several — all render in the detail view).
+    flyers: Array.isArray(b.flyers) ? b.flyers.slice(0, 5).map(clampUrl).filter(Boolean) : (existing.flyers || []),
     thumbnail: b.thumbnail !== undefined ? clampUrl(b.thumbnail) : (existing.thumbnail ?? ''),
+    // Sponsor logos — each optionally hyperlinked to the sponsor's site.
+    sponsorLogos: Array.isArray(b.sponsorLogos)
+      ? b.sponsorLogos.slice(0, 8).map((s) => {
+          const src = clampUrl(s && (s.src || s.url || (typeof s === 'string' ? s : '')));
+          if (!src) return null;
+          return { src, href: s && s.href ? sanitizeRichHref(s.href) : '', label: String((s && s.label) || '').slice(0, 80) };
+        }).filter(Boolean)
+      : (existing.sponsorLogos || []),
     homeBlurb: String(b.homeBlurb ?? existing.homeBlurb ?? '').slice(0, 400),
     showOnCalendar: b.showOnCalendar !== undefined ? !!b.showOnCalendar : (existing.showOnCalendar ?? true),
-    // Up to 3 attached PDFs (forms: donation, sponsorship levels, …).
+    // Up to 6 attached PDFs (forms: donation, sponsorship levels, menus, …).
     documents: Array.isArray(b.documents)
-      ? b.documents.slice(0, 3).map((dme) => ({ label: String(dme.label || 'Document').slice(0, 80), url: clampUrl(dme.url) })).filter((dme) => dme.url)
+      ? b.documents.slice(0, 6).map((dme) => ({ label: String(dme.label || 'Document').slice(0, 80), url: clampUrl(dme.url) })).filter((dme) => dme.url)
       : (existing.documents || []),
     // Ticket types for AGMS checkout: name / price / quantity / available.
     ticketTypes: Array.isArray(b.ticketTypes)
@@ -1384,6 +1453,21 @@ router.post('/admin/users/:email/set-password', requireAdmin, async (req, res) =
   } catch (e) { console.error('admin set-password', e); res.status(500).json({ error: 'could not set password' }); }
 });
 
+// Admin generates a one-time SIGN-IN link for a member's login — so the office
+// can open the member's portal view to assist them (open it in a private/
+// incognito window to keep your admin session), or text/email it to the member.
+// Uses the existing 20-minute magic-link tokens; no password is exposed.
+router.get('/admin/members/:id/login-link', requireAdmin, async (req, res) => {
+  try {
+    const list = await users.listUsers();
+    const u = (list || []).find((x) => x.memberId === req.params.id) || null;
+    if (!u || !u.email) return res.status(404).json({ error: 'No login is linked to that member.' });
+    const token = auth.signMagicToken(u.email);
+    const base = process.env.SITE_URL || `${req.protocol}://${req.get('host')}`;
+    res.json({ ok: true, email: u.email, link: `${base}/api/auth/magic/verify?token=${encodeURIComponent(token)}`, expiresInMinutes: 20 });
+  } catch (e) { console.error('login-link', e); res.status(500).json({ error: 'could not generate link' }); }
+});
+
 // Admin generates a password-reset LINK for a login — useful while transactional
 // email isn't configured yet: staff can copy the link and send it to the member.
 router.get('/admin/users/:email/reset-link', requireAdmin, async (req, res) => {
@@ -1548,7 +1632,20 @@ router.post('/admin/orders/:id/refund', requireAdmin, async (req, res) => {
     if (!order) return res.status(404).json({ ok: false, error: 'order not found' });
     if (order.status === 'refunded') return res.json({ ok: true, status: 'refunded' });
     const txn = order.transactionId;
-    if (!txn) return res.status(400).json({ ok: false, error: 'order has no gateway transaction id' });
+    // Orders with no gateway transaction (imported / recorded offline) can't be
+    // refunded through NMI — mark them refunded in the log so the books match
+    // whatever the office did outside the system (check, cash back, etc.).
+    if (!txn) {
+      await repo.setOrderStatus(order.id, 'refunded');
+      try {
+        email.send({
+          to: email.notifyTo(),
+          subject: `Marked refunded (no gateway txn): ${order.kind || 'order'} $${Number(order.amount).toFixed(2)}`,
+          text: `An order was marked refunded from the admin panel. It has no gateway transaction, so no money moved through NMI — settle it offline if needed.\n\nOrder: ${order.id}\nPayer: ${order.name || ''} ${order.email || ''}\nAmount: $${Number(order.amount).toFixed(2)}`,
+        }).catch(() => {});
+      } catch (e) { /* notification only */ }
+      return res.json({ ok: true, status: 'refunded', how: 'manual' });
+    }
 
     let result = await refundTransaction({ transactionId: txn });
     let how = 'refund';

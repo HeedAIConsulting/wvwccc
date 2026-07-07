@@ -61,7 +61,6 @@ window.Admin = (function () {
     { href: 'users.html', icon: '⚷', label: 'Users & Roles', key: 'users' },
     { grp: 'Revenue & contact' },
     { href: 'payments.html', icon: '$', label: 'Pay Log', key: 'payments' },
-    { href: 'coupons.html', icon: '%', label: 'Promo Codes', key: 'coupons' },
     { href: 'leads.html', icon: '✉', label: 'Inquiries', key: 'leads' },
     { grp: 'Help' },
     { href: 'about.html', icon: 'ⓘ', label: 'About / Support', key: 'about' },
@@ -91,6 +90,7 @@ window.Admin = (function () {
     // Also surface Sign out in the top bar — far more discoverable than the
     // sidebar foot, especially for non-technical staff (Chamber feedback).
     const bar = document.querySelector('.admin-topbar');
+    if (bar && !bar.querySelector('[data-admin-omni]')) mountOmniSearch(bar);
     if (bar && !bar.querySelector('[data-admin-logout-top]')) {
       const guide = document.createElement('button');
       guide.type = 'button';
@@ -115,6 +115,65 @@ window.Admin = (function () {
     helpHighlight();
   }
 
+  // ── Global quick search (every admin page, per Diana) ──
+  // One box that looks across members, events, payments, and inquiries and
+  // jumps straight to the match. Data loads once on first focus, then filters
+  // as you type — no extra clicks.
+  let _omniData = null;
+  async function omniLoad() {
+    if (_omniData) return _omniData;
+    const [members, events, orders, leads] = await Promise.all([
+      api('/api/admin/members').then((r) => r.members || []).catch(() => []),
+      api('/api/admin/events').then((r) => r.events || []).catch(() => []),
+      api('/api/admin/orders').then((r) => r.orders || []).catch(() => []),
+      api('/api/admin/leads').then((r) => r.leads || []).catch(() => []),
+    ]);
+    _omniData = { members, events, orders, leads };
+    return _omniData;
+  }
+  function mountOmniSearch(bar) {
+    const wrap = document.createElement('div');
+    wrap.setAttribute('data-admin-omni', '');
+    wrap.style.cssText = 'position:relative;flex:1 1 260px;max-width:420px;margin-left:auto';
+    wrap.innerHTML = `
+      <input type="search" placeholder="🔎 Quick search — members, events, payments, inquiries…" autocomplete="off"
+        style="width:100%;padding:9px 12px;border:1.5px solid var(--line,#d8d2bf);border-radius:10px;font:inherit;font-size:.88rem" />
+      <div data-omni-results style="position:absolute;top:calc(100% + 6px);left:0;right:0;background:#fff;border:1px solid var(--line,#d8d2bf);border-radius:12px;box-shadow:0 16px 40px rgba(0,0,0,.16);max-height:60vh;overflow:auto;z-index:400;display:none"></div>`;
+    const input = wrap.querySelector('input');
+    const panel = wrap.querySelector('[data-omni-results]');
+    const rowCss = 'display:flex;gap:8px;align-items:center;padding:9px 12px;text-decoration:none;color:var(--green-ink,#1b3326);border-bottom:1px solid var(--cream-deep,#f3ecda);font-size:.88rem';
+    const grpCss = 'font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:var(--gold-deep,#8a6d1a);padding:9px 12px 3px;font-weight:700';
+    const dateOf = (o) => (o.received || o.created || o.date || '').slice(0, 10);
+    async function search(q) {
+      q = q.trim().toLowerCase();
+      if (q.length < 2) { panel.style.display = 'none'; return; }
+      panel.style.display = 'block';
+      panel.innerHTML = '<div style="padding:12px;color:var(--slate-mid,#6b7a72)">Searching…</div>';
+      const d = await omniLoad();
+      const hit = (s) => String(s || '').toLowerCase().includes(q);
+      const M = d.members.filter((m) => hit(m.name) || hit(m.contactName) || hit(m.email) || hit(m.category) || hit(m.phone)).slice(0, 6);
+      const E = d.events.filter((e) => hit(e.title) || hit(e.venue) || hit(e.category) || hit(e.date)).slice(0, 6);
+      const O = d.orders.filter((o) => hit(o.name) || hit(o.email) || hit(o.sku) || hit(o.transactionId) || hit(String(o.amount))).slice(0, 6);
+      const L = d.leads.filter((l) => hit(l.name) || hit(l.email) || hit(l.kind) || hit(l.reason) || hit(l.message) || hit(l.event)).slice(0, 6);
+      const out = [];
+      if (M.length) out.push(`<div style="${grpCss}">Members</div>` + M.map((m) =>
+        `<a style="${rowCss}" href="members.html?focus=${encodeURIComponent(m.id)}"><span>◉</span><span><b>${esc(m.name)}</b>${m.contactName ? ' — ' + esc(m.contactName) : ''}<br><span style="color:var(--slate-mid)">${esc(m.category || '')}</span></span></a>`).join(''));
+      if (E.length) out.push(`<div style="${grpCss}">Events</div>` + E.map((e) =>
+        `<a style="${rowCss}" href="events.html?focus=${encodeURIComponent(e.id)}"><span>◆</span><span><b>${esc(e.title)}</b><br><span style="color:var(--slate-mid)">${esc(e.date || 'no date')} · ${esc(e.venue || '')}</span></span></a>`).join(''));
+      if (O.length) out.push(`<div style="${grpCss}">Payments</div>` + O.map((o) =>
+        `<a style="${rowCss}" href="payments.html?q=${encodeURIComponent(q)}"><span>$</span><span><b>$${Number(o.amount || 0).toFixed(2)} — ${esc(o.name || o.email || '')}</b><br><span style="color:var(--slate-mid)">${esc(o.kind || '')} · ${esc(dateOf(o))} · ${esc(o.status || '')}</span></span></a>`).join(''));
+      if (L.length) out.push(`<div style="${grpCss}">Inquiries</div>` + L.map((l) =>
+        `<a style="${rowCss}" href="leads.html?q=${encodeURIComponent(q)}"><span>✉</span><span><b>${esc(l.name || l.email || 'Inquiry')}</b><br><span style="color:var(--slate-mid)">${esc(l.reason || l.kind || '')} · ${esc(dateOf(l))}</span></span></a>`).join(''));
+      panel.innerHTML = out.length ? out.join('') : '<div style="padding:12px;color:var(--slate-mid,#6b7a72)">No matches. Try a name, event title, amount, or email.</div>';
+    }
+    let deb;
+    input.addEventListener('input', () => { clearTimeout(deb); deb = setTimeout(() => search(input.value), 200); });
+    input.addEventListener('focus', () => { omniLoad(); if (input.value.trim().length >= 2) search(input.value); });
+    document.addEventListener('click', (e) => { if (!wrap.contains(e.target)) panel.style.display = 'none'; });
+    input.addEventListener('keydown', (e) => { if (e.key === 'Escape') { panel.style.display = 'none'; input.blur(); } });
+    bar.appendChild(wrap);
+  }
+
   // ── Help assistant: searchable how-to with clickable "Show me" links ──
   const HELP = [
     { id: 'group-add-members', t: 'Add members to a group / Connection Circle', kw: 'group network connection circle roster add member leader join', href: 'groups.html', sel: '#grpMemberSearch', tip: 'Open a group, then search your directory here and click a member to add them. You can also “Add someone manually.”' },
@@ -132,9 +191,12 @@ window.Admin = (function () {
     { id: 'content', t: 'Post news, a deal, or a photo', kw: 'news post content deal offer coupon gallery announcement biz buzz', href: 'content.html', tip: 'Write news posts, member-board posts, offers/deals, and gallery photos.' },
     { id: 'sponsors', t: 'Manage sponsors & featured placements', kw: 'sponsor sponsorship featured placement logo advertise', href: 'sponsorships.html', tip: 'Manage featured placements and sponsor logos.' },
     { id: 'users', t: 'Create a login / set staff roles', kw: 'user role staff admin login create account super', href: 'users.html', tip: 'Create logins; Super Admins can set roles and member expirations.' },
-    { id: 'payments', t: 'See payments & receipts', kw: 'payment pay log receipt dues ticket donation revenue order refund', href: 'payments.html', tip: 'Every payment through the site, with receipts and a Refund button.' },
-    { id: 'coupons', t: 'Create a promo / discount code', kw: 'promo coupon discount code sale percent off expiration', href: 'coupons.html', tip: 'Percent or dollar-off codes for checkout, with expiration dates and use limits.' },
-    { id: 'inquiries', t: 'Read website inquiries', kw: 'inquiry contact message lead join request', href: 'leads.html', tip: 'Contact-form messages and group-join requests from the website.' },
+    { id: 'payments', t: 'See payments & receipts (and refund)', kw: 'payment pay log receipt dues ticket donation revenue order refund', href: 'payments.html', tip: 'Every payment through the site, with receipts and a Refund button on each paid order.' },
+    { id: 'inquiries', t: 'Read website inquiries (membership / jobs / general / RSVPs)', kw: 'inquiry contact message lead join request membership application rsvp job', href: 'leads.html', tip: 'Every form submission from the website, in separate sections — membership applications, event RSVPs, job inquiries, and general messages.' },
+    { id: 'event-rsvps', t: 'See RSVPs & payments for an event (download list)', kw: 'event rsvp payment attendee list download csv per event', href: 'events.html', tip: 'On any event row, click "RSVPs / $" to see who RSVP\'d and paid — and download the list.' },
+    { id: 'event-home', t: 'Pick which events show on the homepage (order 1–4)', kw: 'homepage event order featured pick home 1 2 3 4', href: 'events.html', tip: 'Edit an event → check "Show on homepage" and set Home order 1–4. Only picked events show, in your order.' },
+    { id: 'directory-pdf', t: 'Create a PDF of the member directory', kw: 'directory pdf print export download roster book', href: 'members.html', sel: '#dirPdfBtn', tip: 'Click "Directory PDF" for a print-ready directory — use your browser\'s Save as PDF.' },
+    { id: 'member-view', t: 'Open a member\'s portal view (assist a member)', kw: 'member view login as impersonate password help assist portal', href: 'members.html', sel: '#memberSearch', tip: 'Find the member → "Member view link" gives a 20-minute sign-in link. Open it in a private/incognito window to see exactly what they see.' },
     { id: 'support', t: 'Submit a support request to Heed', kw: 'support help ticket problem bug broken screenshot heed contact', href: 'about.html', sel: '#supportForm', tip: 'Send us a message with a screenshot — or use the 🛟 Support button on any page.' },
   ];
   function openHelp() {
@@ -197,12 +259,50 @@ window.Admin = (function () {
         { num: s.leaders, lbl: 'Leaders / Board', href: 'members.html' },
         { num: s.newLeads, lbl: 'New inquiries', accent: s.newLeads > 0, href: 'leads.html' },
         { num: s.pendingPosts, lbl: 'Pending content', accent: s.pendingPosts > 0, href: 'content.html' },
-        { num: s.orders, lbl: 'Payments logged', href: 'payments.html' },
-        { num: '$' + (s.revenue || 0).toLocaleString(), lbl: 'Revenue processed', href: 'payments.html' },
+        { num: s.orders, lbl: 'Payments logged', detail: 'payments' },
+        { num: '$' + (s.revenue || 0).toLocaleString(), lbl: 'Revenue processed', detail: 'payments' },
       ];
-      // Every stat card is a shortcut to its section (Chamber feedback: make the dashboard clickable).
-      document.getElementById('statRow').innerHTML = cards.map((c) =>
-        `<a class="stat-card${c.accent ? ' accent' : ''}" href="${c.href}" style="text-decoration:none;color:inherit;cursor:pointer"><div class="num">${esc(c.num)}</div><div class="lbl">${esc(c.lbl)} →</div></a>`).join('');
+      // Every stat card is clickable (Diana): section cards jump to their page;
+      // the money cards open an on-the-spot breakdown with payment dates.
+      document.getElementById('statRow').innerHTML = cards.map((c, i) => c.detail
+        ? `<button type="button" class="stat-card${c.accent ? ' accent' : ''}" data-stat-detail="${c.detail}" style="text-align:left;border:0;font:inherit;cursor:pointer"><div class="num">${esc(c.num)}</div><div class="lbl">${esc(c.lbl)} — see breakdown →</div></button>`
+        : `<a class="stat-card${c.accent ? ' accent' : ''}" href="${c.href}" style="text-decoration:none;color:inherit;cursor:pointer"><div class="num">${esc(c.num)}</div><div class="lbl">${esc(c.lbl)} →</div></a>`).join('');
+      // Revenue / payments breakdown modal: totals by type + every payment with its date.
+      document.querySelectorAll('[data-stat-detail="payments"]').forEach((btn) => btn.addEventListener('click', async () => {
+        if (document.querySelector('[data-pay-breakdown]')) return;
+        const ov = document.createElement('div');
+        ov.className = 'chat-modal'; ov.setAttribute('data-pay-breakdown', '');
+        ov.innerHTML = `<div class="chat-modal__box" style="max-width:760px">
+          <button class="chat-modal__x" data-x aria-label="Close" type="button">×</button>
+          <h2 style="margin:0 0 4px">Revenue breakdown</h2>
+          <p class="sub" style="margin:0 0 12px">Every payment processed, newest first. <a href="payments.html">Open the full Pay Log →</a></p>
+          <div data-body style="max-height:60vh;overflow:auto"><p class="sub">Loading…</p></div>
+        </div>`;
+        const close = () => ov.remove();
+        ov.addEventListener('click', (e) => { if (e.target === ov || e.target.closest('[data-x]')) close(); });
+        document.body.appendChild(ov);
+        try {
+          const { orders } = await api('/api/admin/orders');
+          const paid = orders.filter((o) => o.status !== 'refunded');
+          const byKind = {};
+          paid.forEach((o) => { const k = o.kind || 'other'; byKind[k] = (byKind[k] || 0) + Number(o.amount || 0); });
+          const total = paid.reduce((t, o) => t + Number(o.amount || 0), 0);
+          const sorted = orders.slice().sort((a, b) => String(b.created).localeCompare(String(a.created)));
+          ov.querySelector('[data-body]').innerHTML = `
+            <div class="stat-row" style="margin-bottom:14px">
+              <div class="stat-card"><div class="num">$${total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div><div class="lbl">total (excl. refunds)</div></div>
+              ${Object.entries(byKind).map(([k, v]) => `<div class="stat-card"><div class="num">$${v.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div><div class="lbl">${esc(k)}</div></div>`).join('')}
+            </div>
+            <table class="admin-table"><thead><tr><th>Date</th><th>Payer</th><th>For</th><th>Amount</th><th>Status</th></tr></thead><tbody>
+              ${sorted.length ? sorted.map((o) => `<tr>
+                <td style="white-space:nowrap">${esc(new Date(o.created).toLocaleDateString())}</td>
+                <td><span class="name">${esc(o.name || o.email || '—')}</span></td>
+                <td class="sub">${esc(o.kind || '')}${o.sku ? ' · ' + esc(o.sku) : ''}</td>
+                <td>$${Number(o.amount || 0).toFixed(2)}</td>
+                <td>${statusPill(o.status || 'paid')}</td></tr>`).join('') : '<tr><td colspan="5" class="sub">No payments yet.</td></tr>'}
+            </tbody></table>`;
+        } catch (e) { ov.querySelector('[data-body]').innerHTML = '<p class="sub">Could not load payments.</p>'; }
+      }));
       // (Roster is the imported live membership; no import-needed notice.)
       const leads = (await api('/api/admin/leads')).leads.slice(0, 5);
       document.getElementById('recentLeads').innerHTML = leads.length
@@ -322,15 +422,17 @@ window.Admin = (function () {
         : '<div class="sub" style="opacity:.7">no login email on file</div>';
       const pwActions = m.email
         ? `<button type="button" data-setpw="${esc(m.email)}" title="Set this member's password now" style="cursor:pointer;background:none;border:1px solid var(--line,#d7d2c6);border-radius:6px;padding:3px 8px;font-size:.8rem">Set password</button>
-           <button type="button" data-resetlink="${esc(m.email)}" title="Copy a reset link to send them" style="cursor:pointer;background:none;border:1px solid var(--line,#d7d2c6);border-radius:6px;padding:3px 8px;font-size:.8rem">Reset link</button>`
+           <button type="button" data-resetlink="${esc(m.email)}" title="Copy a reset link to send them" style="cursor:pointer;background:none;border:1px solid var(--line,#d7d2c6);border-radius:6px;padding:3px 8px;font-size:.8rem">Reset link</button>
+           <button type="button" data-loginlink title="Open this member's portal view to assist them (opens a 20-min sign-in link — use a private window to keep your admin session)" style="cursor:pointer;background:none;border:1px solid var(--line,#d7d2c6);border-radius:6px;padding:3px 8px;font-size:.8rem">Member view</button>`
         : `<button type="button" data-reset title="Force a password reset at next login" style="cursor:pointer;background:none;border:1px solid var(--line,#d7d2c6);border-radius:6px;padding:3px 8px;font-size:.8rem">Reset PW</button>`;
       return `<tr data-id="${id}">
-        <td><button type="button" data-editname title="Edit this member" style="background:none;border:none;padding:0;font:inherit;font-weight:600;color:var(--green-deep,#1E5631);cursor:pointer;text-align:left">${esc(m.name)}</button><div class="sub">${esc(m.category || '')}${m.neighborhood ? ' · ' + esc(m.neighborhood) : ''}</div>${emailLine}</td>
+        <td><button type="button" data-editname title="Edit this member" style="background:none;border:none;padding:0;font:inherit;font-weight:600;color:var(--green-deep,#1E5631);cursor:pointer;text-align:left">${esc(m.name)}</button>${m.contactName ? `<div style="font-weight:600;color:var(--green-ink,#1b3326);font-size:.85rem">👤 ${esc(m.contactName)}</div>` : ''}<div class="sub">${esc(m.category || '')}${m.neighborhood ? ' · ' + esc(m.neighborhood) : ''}</div>${emailLine}</td>
         <td><select class="admin-select" data-field="tier">${tiers.map((t) => `<option ${((m.tier || 'member') === t) ? 'selected' : ''}>${t}</option>`).join('')}</select></td>
         <td><select class="admin-select" data-field="status">${opts.statusOptions.map((s) => `<option ${((m.status || 'approved') === s) ? 'selected' : ''}>${s}</option>`).join('')}</select></td>
         <td><div class="radio-group" data-field="leaderStatus">${radios}</div></td>
         <td><label class="toggle"><input type="checkbox" data-field="featured" ${m.featured ? 'checked' : ''}><span class="track"></span></label></td>
         <td style="white-space:nowrap">
+          <button type="button" data-save title="Save the tier / status / designation / featured changes for this member" style="cursor:pointer;background:var(--gold,#C9A227);color:var(--green-ink,#143c20);border:none;border-radius:6px;padding:4px 12px;font-size:.8rem;font-weight:700;margin-right:6px;opacity:.45" disabled>Save</button>
           <button type="button" data-edit title="Edit this member's public profile" style="cursor:pointer;background:var(--green-deep,#1E5631);color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:.8rem;margin-right:6px">Edit profile</button>
           <a href="../members/profile.html?id=${id}" target="_blank" title="View public profile" style="text-decoration:none;margin-right:6px">View ↗</a>
           ${pwActions}
@@ -342,18 +444,41 @@ window.Admin = (function () {
       tbody.querySelectorAll('tr[data-id]').forEach((tr) => {
         const id = tr.dataset.id;
         const flash = tr.querySelector('[data-flash]');
+        const saveBtn = tr.querySelector('[data-save]');
+        // Changes queue up and apply on the row's SAVE button (per Diana — an
+        // explicit save with visible confirmation, not silent auto-save).
+        const pending = {};
+        const markDirty = () => { if (saveBtn) { saveBtn.disabled = false; saveBtn.style.opacity = '1'; saveBtn.textContent = 'Save'; } };
         const save = async (patch) => {
           try {
             await api(`/api/admin/members/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(patch) });
-            flash.classList.add('show'); setTimeout(() => flash.classList.remove('show'), 1200);
-          } catch (e) { showAuthError(e); }
+            flash.textContent = 'updated ✓ ' + new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+            flash.classList.add('show'); setTimeout(() => flash.classList.remove('show'), 2600);
+          } catch (e) { showAuthError(e); throw e; }
         };
+        saveBtn?.addEventListener('click', async () => {
+          if (!Object.keys(pending).length) return;
+          saveBtn.disabled = true; saveBtn.textContent = 'Saving…';
+          try {
+            await save({ ...pending });
+            Object.keys(pending).forEach((k) => delete pending[k]);
+            saveBtn.textContent = 'Saved ✓'; saveBtn.style.opacity = '.45';
+          } catch (e) { saveBtn.disabled = false; saveBtn.textContent = 'Save'; }
+        });
         tr.querySelectorAll('[data-field="tier"],[data-field="status"]').forEach((el) =>
-          el.addEventListener('change', () => save({ [el.dataset.field]: el.value })));
+          el.addEventListener('change', () => { pending[el.dataset.field] = el.value; markDirty(); }));
         tr.querySelectorAll('[data-field="leaderStatus"] input').forEach((el) =>
-          el.addEventListener('change', () => save({ leaderStatus: el.value })));
+          el.addEventListener('change', () => { pending.leaderStatus = el.value; markDirty(); }));
         tr.querySelector('[data-field="featured"]').addEventListener('change', (e) =>
-          save({ featured: e.target.checked }));
+          { pending.featured = e.target.checked; markDirty(); });
+        // Open the member's portal view (magic sign-in link, 20 minutes).
+        tr.querySelector('[data-loginlink]')?.addEventListener('click', async () => {
+          try {
+            const r = await api(`/api/admin/members/${encodeURIComponent(id)}/login-link`);
+            const copied = navigator.clipboard ? await navigator.clipboard.writeText(r.link).then(() => true).catch(() => false) : false;
+            window.prompt((copied ? 'Sign-in link copied. ' : '') + `Open this in a PRIVATE/incognito window to see ${r.email}'s member view (keeps you signed in as admin here). Expires in 20 minutes. You can also send it to the member:`, r.link);
+          } catch (err) { alert('Could not create a member-view link: ' + (err.message || '')); }
+        });
         tr.querySelector('[data-reset]')?.addEventListener('click', async () => {
           if (!confirm('Force this member to set a new password at next login? Their current password will stop working.')) return;
           try {
@@ -390,6 +515,7 @@ window.Admin = (function () {
     function openProfileEditor(m) {
       if (!m) return;
       let logoUrl = m.logo || '';
+      let pageImageUrl = m.pageImage || '';
       let photos = Array.isArray(m.photos) ? m.photos.slice(0, 8) : [];
       const F = [
         ['name', 'Business name'], ['category', 'Category'], ['contactName', 'Contact name'],
@@ -407,14 +533,25 @@ window.Admin = (function () {
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
             <div class="field" style="grid-column:1/-1;margin:0">
-              <label>Logo <span class="sub">(shown on the directory card &amp; public profile)</span></label>
+              <label>Directory Image <span class="sub">(usually the logo — shown on the directory card &amp; public profile)</span></label>
               <div style="display:flex;align-items:center;gap:14px">
                 <div data-logo-prev style="flex:none;width:72px;height:72px;border-radius:12px;border:1px solid var(--line,#e4dcc8);overflow:hidden;display:grid;place-items:center;background:#f6f3ea"></div>
                 <div style="flex:1">
                   <input type="file" data-logo-file accept="image/png,image/jpeg,image/webp" />
-                  <p class="sub" style="margin:4px 0 0">PNG, JPG or WebP, up to ~2.5&nbsp;MB. Replaces the current logo on Save.</p>
+                  <p class="sub" style="margin:4px 0 0">PNG, JPG or WebP, up to ~2.5&nbsp;MB. Replaces the current image on Save.</p>
                 </div>
                 <button type="button" data-logo-clear class="btn btn--ghost btn--sm" style="flex:none">Remove</button>
+              </div>
+            </div>
+            <div class="field" style="grid-column:1/-1;margin:0">
+              <label>Page Image <span class="sub">(usually a headshot — used on the Board, Ambassador &amp; Leaders pages)</span></label>
+              <div style="display:flex;align-items:center;gap:14px">
+                <div data-pageimg-prev style="flex:none;width:72px;height:72px;border-radius:50%;border:1px solid var(--line,#e4dcc8);overflow:hidden;display:grid;place-items:center;background:#f6f3ea"></div>
+                <div style="flex:1">
+                  <input type="file" data-pageimg-file accept="image/png,image/jpeg,image/webp" />
+                  <p class="sub" style="margin:4px 0 0">Shown as a circle — a square headshot works best.</p>
+                </div>
+                <button type="button" data-pageimg-clear class="btn btn--ghost btn--sm" style="flex:none">Remove</button>
               </div>
             </div>
             ${F.map(([k, lbl]) => `<div class="field" style="margin:0;${k === 'tagline' || k === 'name' ? 'grid-column:1/-1' : ''}">
@@ -462,6 +599,7 @@ window.Admin = (function () {
         ['facebook', 'instagram', 'linkedin', 'linkedinPersonal', 'x', 'youtube', 'tiktok', 'nextdoor'].forEach((k) => { if (body['soc_' + k]) social[k] = body['soc_' + k].trim(); delete body['soc_' + k]; });
         body.social = social;
         body.logo = logoUrl;
+        body.pageImage = pageImageUrl;
         body.photos = photos;
         try { body.team = body.team ? JSON.parse(body.team) : []; } catch (parseErr) { body.team = m.team || []; }
         if (!body.primaryImage) delete body.primaryImage;
@@ -497,6 +635,27 @@ window.Admin = (function () {
         } catch (err) { msgEl.textContent = 'Logo upload failed (PNG/JPG/WebP, ≤2.5 MB).'; }
       });
       logoClear?.addEventListener('click', () => { logoUrl = ''; drawLogo(); if (logoFile) logoFile.value = ''; msgEl.hidden = false; msgEl.textContent = 'Logo will be removed on Save.'; });
+      // ── Page Image (headshot for Board / Ambassador / Leaders pages) ──
+      const piPrev = ov.querySelector('[data-pageimg-prev]');
+      const piFile = ov.querySelector('[data-pageimg-file]');
+      const piClear = ov.querySelector('[data-pageimg-clear]');
+      const drawPageImg = () => {
+        piPrev.innerHTML = pageImageUrl
+          ? `<img src="${esc(pageImageUrl)}" alt="page image" style="width:100%;height:100%;object-fit:cover" />`
+          : '<span class="sub" style="font-size:.62rem;text-align:center;line-height:1.2;padding:4px">No photo</span>';
+      };
+      drawPageImg();
+      piFile?.addEventListener('change', async (e) => {
+        const f = e.target.files[0]; if (!f) return;
+        if (f.size > 2.6 * 1024 * 1024) { msgEl.hidden = false; msgEl.textContent = 'Photo too large — please use an image under ~2.5 MB.'; return; }
+        msgEl.hidden = false; msgEl.textContent = 'Uploading page image…';
+        try {
+          const dataUrl = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(f); });
+          const up = await api('/api/me/asset', { method: 'POST', body: JSON.stringify({ kind: 'headshot', dataUrl }) });
+          pageImageUrl = up.url; drawPageImg(); msgEl.textContent = 'Page image uploaded — click Save profile to apply.';
+        } catch (err) { msgEl.textContent = 'Page image upload failed (PNG/JPG/WebP, ≤2.5 MB).'; }
+      });
+      piClear?.addEventListener('click', () => { pageImageUrl = ''; drawPageImg(); if (piFile) piFile.value = ''; msgEl.hidden = false; msgEl.textContent = 'Page image will be removed on Save.'; });
       // ── Photo gallery (multi-upload → /api/me/asset → urls, saved with the profile) ──
       const photoFile = ov.querySelector('[data-photo-file]');
       const photoList = ov.querySelector('[data-photo-list]');
@@ -571,27 +730,39 @@ window.Admin = (function () {
     try {
       const { orders } = await api('/api/admin/orders');
       const rows = document.getElementById('orderRows');
-      rows.innerHTML = orders.length ? orders.map((o) => `
-        <tr data-id="${esc(o.id)}"><td>${esc(new Date(o.created).toLocaleDateString())}</td>
+      // Quick-search deep link (?q=) from the global search box filters the log.
+      const q = (new URLSearchParams(location.search).get('q') || '').toLowerCase();
+      const shown = q ? orders.filter((o) =>
+        [o.name, o.email, o.sku, o.kind, o.transactionId, String(o.amount)].some((v) => String(v || '').toLowerCase().includes(q))) : orders;
+      // Every non-refunded order gets a button: a gateway refund when we have a
+      // transaction id, otherwise "Mark refunded" (record-only) so the log can
+      // always be squared away — per Felicia, the button must never vanish.
+      rows.innerHTML = shown.length ? shown.map((o) => `
+        <tr data-id="${esc(o.id)}" data-txn="${o.transactionId ? '1' : ''}"><td>${esc(new Date(o.created).toLocaleDateString())}</td>
         <td><span class="name">${esc(o.name || o.email || '—')}</span><div class="sub">${esc(o.email || '')}</div></td>
         <td>${esc(o.kind)}${o.sku ? ' · ' + esc(o.sku) : ''}</td>
         <td>$${Number(o.amount || 0).toFixed(2)}</td>
         <td>${statusPill(o.status || 'paid')}</td>
         <td><span class="sub">${esc(o.transactionId || '')}</span></td>
-        <td>${o.status !== 'refunded' && o.transactionId ? '<button class="btn btn--ghost btn--sm" data-refund>Refund</button>' : ''}</td></tr>`).join('')
-        : '<tr><td colspan="7" class="sub">No payments yet. Transactions appear here once AGMS checkout is live.</td></tr>';
+        <td>${o.status !== 'refunded' ? `<button class="btn btn--ghost btn--sm" data-refund>${o.transactionId ? 'Refund' : 'Mark refunded'}</button>` : ''}</td></tr>`).join('')
+        : `<tr><td colspan="7" class="sub">${q ? 'No payments match “' + esc(q) + '” — <a href="payments.html">show all</a>.' : 'No payments yet. Transactions appear here once AGMS checkout is live.'}</td></tr>`;
       rows.querySelectorAll('tr[data-id]').forEach((tr) => {
         tr.querySelector('[data-refund]')?.addEventListener('click', async (e) => {
           const amt = tr.children[3].textContent;
           const who = tr.querySelector('.name')?.textContent || 'this payer';
-          if (!confirm(`Refund ${amt} to ${who}? The money goes back to their card.`)) return;
-          e.target.disabled = true; e.target.textContent = 'Refunding…';
+          const hasTxn = tr.dataset.txn === '1';
+          const ask = hasTxn
+            ? `Refund ${amt} to ${who}? The money goes back to their card.`
+            : `Mark this ${amt} payment from ${who} as refunded? (No gateway transaction on file — no money moves; this only updates the log.)`;
+          if (!confirm(ask)) return;
+          const label = e.target.textContent;
+          e.target.disabled = true; e.target.textContent = 'Working…';
           try {
             await api(`/api/admin/orders/${encodeURIComponent(tr.dataset.id)}/refund`, { method: 'POST' });
             tr.children[4].innerHTML = statusPill('refunded');
             e.target.remove();
           } catch (err) {
-            e.target.disabled = false; e.target.textContent = 'Refund';
+            e.target.disabled = false; e.target.textContent = label;
             alert('Refund failed: ' + (err.message || 'gateway declined'));
           }
         });
@@ -599,88 +770,81 @@ window.Admin = (function () {
     } catch (e) { showAuthError(e); }
   }
 
-  // ── Promo Codes ──
-  async function initCoupons() {
-    mountShell('coupons');
-    const rows = document.getElementById('couponRows');
-    const form = document.getElementById('couponForm');
-    async function load() {
-      try {
-        const { coupons } = await api('/api/admin/coupons');
-        rows.innerHTML = coupons.length ? coupons.map((c) => `
-          <tr data-code="${esc(c.code)}">
-            <td><span class="name">${esc(c.code)}</span>${c.description ? `<div class="sub">${esc(c.description)}</div>` : ''}</td>
-            <td>${c.kind === 'fixed' ? '$' + Number(c.amount).toFixed(2) : Number(c.amount) + '%'} off</td>
-            <td class="sub">${esc(c.appliesTo === 'all' ? 'everything' : c.appliesTo)}</td>
-            <td class="sub">${c.expiresAt ? new Date(c.expiresAt).toLocaleString() : 'never'}</td>
-            <td class="sub">${c.used || 0}${c.maxUses ? ' / ' + c.maxUses : ''}</td>
-            <td>${c.active && !(c.expiresAt && Date.now() > Date.parse(c.expiresAt)) ? '<span class="pill pill--approved">live</span>' : '<span class="pill pill--inactive">off</span>'}</td>
-            <td><button class="btn btn--ghost btn--sm" data-toggle>${c.active ? 'Deactivate' : 'Activate'}</button>
-                <button class="btn btn--ghost btn--sm" data-del>Delete</button></td>
-          </tr>`).join('')
-          : '<tr><td colspan="7" class="sub">No promo codes yet — create one above.</td></tr>';
-        rows.querySelectorAll('tr[data-code]').forEach((tr) => {
-          const c = coupons.find((x) => x.code === tr.dataset.code);
-          tr.querySelector('[data-toggle]')?.addEventListener('click', async () => {
-            await api('/api/admin/coupons', { method: 'POST', body: JSON.stringify({ ...c, active: !c.active }) });
-            load();
-          });
-          tr.querySelector('[data-del]')?.addEventListener('click', async () => {
-            if (!confirm(`Delete code ${c.code}? Buyers can no longer use it.`)) return;
-            await api(`/api/admin/coupons/${encodeURIComponent(c.code)}`, { method: 'DELETE' });
-            load();
-          });
-        });
-      } catch (e) { showAuthError(e); }
-    }
-    form?.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const fd = new FormData(form);
-      const body = {
-        code: String(fd.get('code') || '').toUpperCase(), kind: fd.get('kind'),
-        amount: fd.get('amount'), appliesTo: fd.get('appliesTo'),
-        expiresAt: fd.get('expiresAt') || null, maxUses: fd.get('maxUses') || null,
-        description: fd.get('description') || '',
-      };
-      try {
-        await api('/api/admin/coupons', { method: 'POST', body: JSON.stringify(body) });
-        form.reset();
-        const msg = document.getElementById('couponMsg');
-        if (msg) { msg.classList.add('show'); setTimeout(() => msg.classList.remove('show'), 1800); }
-        load();
-      } catch (err) { alert('Could not save: ' + (err.message || 'error')); }
-    });
-    load();
-  }
+  // (Promo codes removed Jul 2026 — the Chamber won't use them. The backend
+  //  /api/admin/coupons routes remain but have no UI.)
 
-  // ── Inquiries / notifications ──
+  // ── Inquiries / notifications — separate sections per type (Diana/Felicia) ──
+  // Emails still go out, but everything is ALSO visible here: membership
+  // applications, event RSVPs, job inquiries, group joins, and general messages.
+  function leadSection(l) {
+    const kind = String(l.kind || '').toLowerCase();
+    const reason = String(l.reason || '').toLowerCase();
+    if (kind === 'membership-application' || reason.includes('membership')) return 'membership';
+    if (l.event || reason.includes('rsvp') || kind === 'rsvp') return 'rsvp';
+    if (kind.includes('job') || reason.includes('job')) return 'jobs';
+    if (kind === 'group-join') return 'groups';
+    return 'general';
+  }
   async function initLeads() {
     mountShell('leads');
-    const tbody = document.getElementById('leadRows');
-    async function load() {
-      try {
-        const { leads } = await api('/api/admin/leads');
-        tbody.innerHTML = leads.length ? leads.map((l) => `
+    const host = document.getElementById('leadSections');
+    const searchEl = document.getElementById('leadSearch');
+    // Deep link from the global quick search: leads.html?q=…
+    if (searchEl) searchEl.value = new URLSearchParams(location.search).get('q') || '';
+    const SECTIONS = [
+      ['membership', '◉ Membership applications', 'People who applied to join — the office confirms dues and sets up the membership.'],
+      ['rsvp', '◆ Event RSVPs', 'RSVPs sent from event pages. Per-event lists (with download) live on the Events page.'],
+      ['jobs', '💼 Job inquiries', 'Messages about job postings and the jobs board.'],
+      ['groups', '◎ Group join requests', 'Requests to join a group / Connection Circle (also visible on the Groups page).'],
+      ['general', '✉ General inquiries', 'Everything else from the contact form.'],
+    ];
+    let all = [];
+    function render() {
+      const q = (searchEl?.value || '').trim().toLowerCase();
+      const match = (l) => !q || [l.name, l.email, l.phone, l.company, l.reason, l.kind, l.message, l.event]
+        .some((v) => String(v || '').toLowerCase().includes(q));
+      host.innerHTML = SECTIONS.map(([key, title, sub]) => {
+        const list = all.filter((l) => leadSection(l) === key && match(l));
+        const fresh = list.filter((l) => l.status === 'new').length;
+        const rows = list.length ? list.map((l) => `
           <tr data-id="${esc(l.id)}">
-            <td><span class="name">${esc(l.name || '—')}</span><div class="sub">${esc(l.email)}${l.phone ? ' · ' + esc(l.phone) : ''}</div></td>
-            <td>${esc(l.reason || l.kind)}${l.company ? '<div class="sub">' + esc(l.company) + '</div>' : ''}</td>
-            <td class="sub">${esc((l.message || '').slice(0, 80))}</td>
+            <td class="sub" style="white-space:nowrap">${esc(String(l.received || '').slice(0, 10))}</td>
+            <td><span class="name">${esc(l.name || '—')}</span><div class="sub">${esc(l.email || '')}${l.phone ? ' · ' + esc(l.phone) : ''}</div></td>
+            <td>${esc(l.reason || l.kind || '')}${l.event ? `<div class="sub">Event: ${esc(l.event)}</div>` : ''}${l.company ? '<div class="sub">' + esc(l.company) + '</div>' : ''}</td>
+            <td class="sub">${(l.message || '').length > 90 ? `<details><summary style="cursor:pointer">${esc(l.message.slice(0, 90))}…</summary><div style="white-space:pre-wrap;margin-top:6px">${esc(l.message)}</div></details>` : esc(l.message || '')}</td>
             <td>${statusPill(l.status)}</td>
             <td><select class="admin-select" data-mark><option value="new" ${l.status === 'new' ? 'selected' : ''}>New</option><option value="read" ${l.status === 'read' ? 'selected' : ''}>Read</option><option value="done" ${l.status === 'done' ? 'selected' : ''}>Done</option></select></td>
           </tr>`).join('')
-          : '<tr><td colspan="5" class="sub">No inquiries yet.</td></tr>';
-        tbody.querySelectorAll('tr[data-id]').forEach((tr) => {
-          tr.querySelector('[data-mark]')?.addEventListener('change', async (e) => {
-            await api(`/api/admin/leads/${encodeURIComponent(tr.dataset.id)}`, { method: 'PATCH', body: JSON.stringify({ status: e.target.value }) });
-            load();
-          });
+          : `<tr><td colspan="6" class="sub">${q ? 'No matches in this section.' : 'Nothing here yet.'}</td></tr>`;
+        return `
+          <div class="panel" style="margin-bottom:16px">
+            <div class="panel__head"><h3>${title} ${fresh ? `<span class="pill pill--pending" style="margin-left:6px">${fresh} new</span>` : ''}</h3></div>
+            <p class="sub" style="margin:4px 0 10px">${sub}</p>
+            <div style="overflow-x:auto">
+              <table class="admin-table"><thead><tr><th>Date</th><th>From</th><th>Reason</th><th>Message</th><th>Status</th><th>Mark</th></tr></thead><tbody>${rows}</tbody></table>
+            </div>
+          </div>`;
+      }).join('');
+      host.querySelectorAll('tr[data-id]').forEach((tr) => {
+        tr.querySelector('[data-mark]')?.addEventListener('change', async (e) => {
+          await api(`/api/admin/leads/${encodeURIComponent(tr.dataset.id)}`, { method: 'PATCH', body: JSON.stringify({ status: e.target.value }) });
+          const l = all.find((x) => x.id === tr.dataset.id); if (l) l.status = e.target.value;
+          render();
         });
+      });
+    }
+    async function load() {
+      try {
+        all = (await api('/api/admin/leads')).leads || [];
+        render();
       } catch (e) { showAuthError(e); }
     }
+    let deb;
+    searchEl?.addEventListener('input', () => { clearTimeout(deb); deb = setTimeout(render, 150); });
     load();
   }
 
-  // ── Events (full CRUD: create / edit / delete, up to 3 images, ticket/sponsor links) ──
+  // ── Events (full CRUD: create / edit / delete, rich text, flyers, sponsor logos, per-event RSVPs & payments) ──
   async function initEvents() {
     mountShell('events');
     const form = document.getElementById('eventForm');
@@ -690,13 +854,52 @@ window.Admin = (function () {
     const linkWrap = document.getElementById('evLinks');
     const docWrap = document.getElementById('evDocs');
     const tixWrap = document.getElementById('evTickets');
+    const flyersWrap = document.getElementById('evFlyers');
+    const sponsorWrap = document.getElementById('evSponsors');
+    const rich = document.getElementById('evRich');
     let editingId = null;
-    let images = [];
+    let images = [];       // strings or {src, href, label}
     let links = [];
     let documents = [];
     let ticketTypes = [];
+    let flyers = [];       // extra full-size flyers
+    let sponsorLogos = []; // {src, href, label}
     let flyerUrl = '';
     let thumbnail = '';
+
+    // ── Rich-text toolbar (Full details) — font / size / color / align / links ──
+    const richBar = document.getElementById('evRichBar');
+    if (richBar && rich) {
+      const focusExec = (fn) => { rich.focus(); fn(); };
+      richBar.querySelectorAll('[data-rt]').forEach((b) => b.addEventListener('click', () =>
+        focusExec(() => document.execCommand(b.dataset.rt, false, null))));
+      const styleSelection = (prop, val) => focusExec(() => {
+        // styleWithCSS makes execCommand emit span styles (sanitizer-friendly).
+        document.execCommand('styleWithCSS', false, true);
+        if (prop === 'color') document.execCommand('foreColor', false, val);
+        else {
+          // font-size / font-family: wrap the selection in a styled span.
+          const sel = window.getSelection();
+          if (!sel.rangeCount || sel.isCollapsed) return;
+          const span = document.createElement('span');
+          span.style[prop === 'font-size' ? 'fontSize' : 'fontFamily'] = val;
+          try { sel.getRangeAt(0).surroundContents(span); }
+          catch (e) { /* selection crosses elements — fall back to fontName */ if (prop === 'font-family') document.execCommand('fontName', false, val); }
+        }
+      });
+      richBar.querySelector('[data-rt-font]')?.addEventListener('change', (e) => { if (e.target.value) styleSelection('font-family', e.target.value); e.target.value = ''; });
+      richBar.querySelector('[data-rt-size]')?.addEventListener('change', (e) => { if (e.target.value) styleSelection('font-size', e.target.value); e.target.value = ''; });
+      richBar.querySelector('[data-rt-color]')?.addEventListener('input', (e) => styleSelection('color', e.target.value));
+      richBar.querySelector('[data-rt-link]')?.addEventListener('click', () => {
+        const sel = window.getSelection();
+        if (!sel.rangeCount || sel.isCollapsed || !rich.contains(sel.anchorNode)) { alert('First select the text you want to link (e.g. “Click here to sign up”), then press 🔗 Link.'); return; }
+        let url = prompt('Link this text to which web address?', 'https://');
+        if (!url || url === 'https://') return;
+        if (!/^(https?:|mailto:|tel:|\/)/i.test(url)) url = 'https://' + url;
+        focusExec(() => document.execCommand('createLink', false, url));
+      });
+    }
+    const plainFromRich = () => (rich ? rich.innerText.replace(/ /g, ' ').trim() : '');
 
     // Single-image uploader factory (flyer, thumbnail).
     function bindSingleImage(inputId, prevId, set, get) {
@@ -719,9 +922,9 @@ window.Admin = (function () {
         <a href="${esc(dme.url)}" target="_blank" rel="noopener">📄</a>
         <input data-dlbl="${i}" placeholder="Label (e.g. Sponsorship levels)" value="${esc(dme.label || '')}" style="flex:1;min-width:160px">
         <button type="button" data-rmdoc="${i}" class="btn btn--ghost btn--sm">×</button>
-      </div>`).join('') + (documents.length < 3
+      </div>`).join('') + (documents.length < 6
         ? `<label class="btn btn--ghost btn--sm" style="cursor:pointer">+ PDF<input type="file" accept="application/pdf,.pdf" hidden id="evDocInput"></label>`
-        : '<span class="sub">Max 3 PDFs.</span>');
+        : '<span class="sub">Max 6 PDFs.</span>');
       const inp = document.getElementById('evDocInput');
       if (inp) inp.addEventListener('change', (e) => {
         const f = e.target.files[0]; if (!f) return;
@@ -733,14 +936,27 @@ window.Admin = (function () {
       docWrap.querySelectorAll('[data-rmdoc]').forEach((b) => b.addEventListener('click', () => { documents.splice(+b.dataset.rmdoc, 1); renderDocs(); }));
     }
     function renderTickets() {
+      // Audience → the checkout groups prices, and buyers pick from a dropdown
+      // when an event has several (Member price / Guest price / early bird…).
+      const AUD = [['', 'Anyone'], ['member', 'Members'], ['guest', 'Guests']];
       tixWrap.innerHTML = ticketTypes.map((t, i) => `<div style="display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap;align-items:center">
-        <input data-tk="${i}" data-f="name" placeholder="Ticket name (e.g. General)" value="${esc(t.name || '')}" style="flex:2;min-width:140px">
-        <input data-tk="${i}" data-f="price" type="number" min="0" step="0.01" placeholder="Price" value="${t.price != null ? esc(t.price) : ''}" style="width:90px">
+        <select data-tk="${i}" data-f="group" class="admin-select" title="Who this price is for" style="max-width:110px">
+          ${AUD.map(([v, l]) => `<option value="${v}" ${String(t.group || '') === v ? 'selected' : ''}>${l}</option>`).join('')}
+        </select>
+        <input data-tk="${i}" data-f="name" placeholder="Price name (e.g. Member breakfast)" value="${esc(t.name || '')}" style="flex:2;min-width:140px">
+        <input data-tk="${i}" data-f="price" type="number" min="0" step="0.01" placeholder="Price $" value="${t.price != null ? esc(t.price) : ''}" style="width:90px">
         <input data-tk="${i}" data-f="qty" type="number" min="0" placeholder="Qty" value="${t.qty != null ? esc(t.qty) : ''}" style="width:70px" title="Leave blank for unlimited">
         <label style="display:inline-flex;align-items:center;gap:4px;font-size:.85rem"><input data-tk="${i}" data-f="available" type="checkbox" ${t.available !== false ? 'checked' : ''}> available</label>
         <button type="button" data-rmtk="${i}" class="btn btn--ghost btn--sm">×</button>
-      </div>`).join('') + `<button type="button" id="evAddTix" class="btn btn--ghost btn--sm">+ Ticket type</button>`;
+      </div>`).join('')
+        + `<button type="button" id="evAddTix" class="btn btn--ghost btn--sm">+ Add a price</button>
+           <button type="button" id="evAddMG" class="btn btn--ghost btn--sm" title="Adds a Member price and a Guest price in one click">+ Member &amp; Guest prices</button>`;
       tixWrap.querySelector('#evAddTix').addEventListener('click', () => { ticketTypes.push({ name: '', price: 0, qty: null, available: true }); renderTickets(); });
+      tixWrap.querySelector('#evAddMG').addEventListener('click', () => {
+        ticketTypes.push({ name: 'Member', group: 'member', price: 0, qty: null, available: true });
+        ticketTypes.push({ name: 'Guest', group: 'guest', price: 0, qty: null, available: true });
+        renderTickets();
+      });
       tixWrap.querySelectorAll('[data-tk]').forEach((el) => el.addEventListener('input', () => {
         const t = ticketTypes[+el.dataset.tk]; const f = el.dataset.f;
         t[f] = f === 'available' ? el.checked : (f === 'price' ? el.value : (f === 'qty' ? (el.value === '' ? null : el.value) : el.value));
@@ -748,15 +964,23 @@ window.Admin = (function () {
       tixWrap.querySelectorAll('[data-rmtk]').forEach((b) => b.addEventListener('click', () => { ticketTypes.splice(+b.dataset.rmtk, 1); renderTickets(); }));
     }
 
+    // Images may carry a click-through link (e.g. a sponsor logo → their site).
+    const imgSrcOf = (it) => (typeof it === 'string' ? it : (it && it.src) || '');
+    const imgHrefOf = (it) => (it && typeof it === 'object' && it.href) || '';
     function renderImages() {
-      imgWrap.innerHTML = images.map((u, i) => `<span style="position:relative;display:inline-block;margin:0 8px 8px 0">
-        <img src="${esc(u)}" style="width:88px;height:64px;object-fit:cover;border-radius:8px;border:1px solid var(--line,#ddd)">
-        <button type="button" data-rmimg="${i}" title="Remove" style="position:absolute;top:-7px;right:-7px;border:none;background:#b00020;color:#fff;border-radius:50%;width:20px;height:20px;line-height:18px;cursor:pointer">×</button>
-      </span>`).join('') + (images.length < 3
+      imgWrap.innerHTML = images.map((it, i) => `<div style="display:flex;gap:8px;margin-bottom:8px;align-items:center;flex-wrap:wrap">
+        <img src="${esc(imgSrcOf(it))}" style="width:88px;height:64px;object-fit:cover;border-radius:8px;border:1px solid var(--line,#ddd)">
+        <input data-imghref="${i}" placeholder="Link (optional — makes the image clickable)" value="${esc(imgHrefOf(it))}" style="flex:1;min-width:200px">
+        <button type="button" data-rmimg="${i}" title="Remove" class="btn btn--ghost btn--sm">×</button>
+      </div>`).join('') + (images.length < 6
         ? `<label class="btn btn--ghost btn--sm" style="cursor:pointer">+ Image<input type="file" accept="image/*" hidden id="evImgInput"></label>`
-        : '<span class="sub">Max 3 images.</span>');
+        : '<span class="sub">Max 6 images.</span>');
       const inp = document.getElementById('evImgInput');
       if (inp) inp.addEventListener('change', onImg);
+      imgWrap.querySelectorAll('[data-imghref]').forEach((el) => el.addEventListener('input', () => {
+        const i = +el.dataset.imghref; const src = imgSrcOf(images[i]);
+        images[i] = el.value.trim() ? { src, href: el.value.trim() } : src;
+      }));
       imgWrap.querySelectorAll('[data-rmimg]').forEach((b) => b.addEventListener('click', () => { images.splice(+b.dataset.rmimg, 1); renderImages(); }));
     }
     function onImg(e) {
@@ -767,6 +991,52 @@ window.Admin = (function () {
         catch (err) { msg.hidden = false; msg.textContent = 'Image upload failed (PNG/JPG/GIF/WebP, ≤2.5MB).'; }
       };
       r.readAsDataURL(f);
+    }
+
+    // ── More flyers (full-size, shown under the main flyer on the detail view) ──
+    function renderFlyers() {
+      flyersWrap.innerHTML = flyers.map((u, i) => `<span style="position:relative;display:inline-block;margin:0 8px 8px 0">
+        <img src="${esc(u)}" style="width:88px;height:110px;object-fit:cover;border-radius:8px;border:1px solid var(--line,#ddd)">
+        <button type="button" data-rmfly="${i}" title="Remove" style="position:absolute;top:-7px;right:-7px;border:none;background:#b00020;color:#fff;border-radius:50%;width:20px;height:20px;line-height:18px;cursor:pointer">×</button>
+      </span>`).join('') + (flyers.length < 5
+        ? `<label class="btn btn--ghost btn--sm" style="cursor:pointer">+ Flyer<input type="file" accept="image/*" hidden id="evFlyerAdd"></label>`
+        : '<span class="sub">Max 5 extra flyers.</span>');
+      const inp = document.getElementById('evFlyerAdd');
+      if (inp) inp.addEventListener('change', (e) => {
+        const f = e.target.files[0]; if (!f) return;
+        const r = new FileReader();
+        r.onload = async () => {
+          try { const up = await api('/api/me/asset', { method: 'POST', body: JSON.stringify({ kind: 'photo', dataUrl: r.result }) }); flyers.push(up.url); renderFlyers(); }
+          catch (err) { msg.hidden = false; msg.textContent = 'Flyer upload failed (PNG/JPG, ≤2.5MB).'; }
+        };
+        r.readAsDataURL(f);
+      });
+      flyersWrap.querySelectorAll('[data-rmfly]').forEach((b) => b.addEventListener('click', () => { flyers.splice(+b.dataset.rmfly, 1); renderFlyers(); }));
+    }
+
+    // ── Sponsor logos (upload several; each can link to the sponsor's site) ──
+    function renderSponsors() {
+      sponsorWrap.innerHTML = sponsorLogos.map((s, i) => `<div style="display:flex;gap:8px;margin-bottom:8px;align-items:center;flex-wrap:wrap">
+        <img src="${esc(s.src)}" style="width:88px;height:52px;object-fit:contain;border-radius:8px;border:1px solid var(--line,#ddd);background:#fff">
+        <input data-splbl="${i}" placeholder="Sponsor name" value="${esc(s.label || '')}" style="flex:1;min-width:130px">
+        <input data-sphref="${i}" placeholder="Sponsor website (optional — makes the logo clickable)" value="${esc(s.href || '')}" style="flex:2;min-width:200px">
+        <button type="button" data-rmsp="${i}" class="btn btn--ghost btn--sm">×</button>
+      </div>`).join('') + (sponsorLogos.length < 8
+        ? `<label class="btn btn--ghost btn--sm" style="cursor:pointer">+ Sponsor logo<input type="file" accept="image/*" hidden id="evSpAdd"></label>`
+        : '<span class="sub">Max 8 sponsor logos.</span>');
+      const inp = document.getElementById('evSpAdd');
+      if (inp) inp.addEventListener('change', (e) => {
+        const f = e.target.files[0]; if (!f) return;
+        const r = new FileReader();
+        r.onload = async () => {
+          try { const up = await api('/api/me/asset', { method: 'POST', body: JSON.stringify({ kind: 'photo', dataUrl: r.result }) }); sponsorLogos.push({ src: up.url, href: '', label: '' }); renderSponsors(); }
+          catch (err) { msg.hidden = false; msg.textContent = 'Logo upload failed (PNG/JPG, ≤2.5MB).'; }
+        };
+        r.readAsDataURL(f);
+      });
+      sponsorWrap.querySelectorAll('[data-splbl]').forEach((el) => el.addEventListener('input', () => { sponsorLogos[+el.dataset.splbl].label = el.value; }));
+      sponsorWrap.querySelectorAll('[data-sphref]').forEach((el) => el.addEventListener('input', () => { sponsorLogos[+el.dataset.sphref].href = el.value.trim(); }));
+      sponsorWrap.querySelectorAll('[data-rmsp]').forEach((b) => b.addEventListener('click', () => { sponsorLogos.splice(+b.dataset.rmsp, 1); renderSponsors(); }));
     }
     function renderLinks() {
       linkWrap.innerHTML = links.map((l, i) => `<div style="display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap;align-items:center">
@@ -787,40 +1057,145 @@ window.Admin = (function () {
       form.title.value = v('title'); form.category.value = v('category'); form.date.value = v('date');
       form.time.value = v('time'); form.endDate.value = v('endDate'); form.endTime.value = v('endTime');
       form.venue.value = v('venue'); form.address.value = v('address'); form.neighborhood.value = v('neighborhood');
-      form.summary.value = v('summary'); form.description.value = v('description');
+      form.summary.value = v('summary');
+      // Rich details: prefer the saved HTML; otherwise show the plain text.
+      if (rich) {
+        if (ev && ev.descriptionHtml) rich.innerHTML = ev.descriptionHtml;
+        else rich.textContent = v('description');
+      }
       form.ticketCap.value = ev && ev.ticketCap != null ? ev.ticketCap : '';
       form.rsvpCutoff.value = v('rsvpCutoff'); form.status.value = v('status', 'approved');
-      form.ticketed.checked = !!(ev && ev.ticketed); form.featured.checked = !!(ev && ev.featured);
+      form.ctaKind.value = (ev && ev.ticketed) ? 'buy' : 'rsvp';
+      form.featured.checked = !!(ev && ev.featured);
       form.showOnCalendar.checked = ev ? (ev.showOnCalendar !== false) : true;
       form.homeOrder.value = ev && ev.homeOrder != null ? ev.homeOrder : '';
       form.homeBlurb.value = v('homeBlurb');
       flyerUrl = ev && ev.flyer ? ev.flyer : '';
       thumbnail = ev && ev.thumbnail ? ev.thumbnail : '';
-      images = ev && ev.images ? ev.images.slice() : [];
+      images = ev && ev.images ? ev.images.map((it) => (typeof it === 'string' ? it : { ...it })) : [];
+      flyers = ev && ev.flyers ? ev.flyers.slice() : [];
+      sponsorLogos = ev && ev.sponsorLogos ? ev.sponsorLogos.map((s) => ({ ...s })) : [];
       links = ev && ev.links ? ev.links.map((l) => ({ ...l })) : [];
       documents = ev && ev.documents ? ev.documents.map((d) => ({ ...d })) : [];
       ticketTypes = ev && ev.ticketTypes ? ev.ticketTypes.map((t) => ({ ...t })) : [];
-      renderImages(); renderLinks(); renderDocs(); renderTickets(); drawFlyer(); drawThumb();
+      renderImages(); renderLinks(); renderDocs(); renderTickets(); renderFlyers(); renderSponsors(); drawFlyer(); drawThumb();
       document.getElementById('evFormTitle').textContent = editingId ? 'Edit event' : 'New event';
       document.getElementById('evCancel').hidden = !editingId;
       msg.hidden = true;
     }
+    // ── Events list: Upcoming by default; past events live in their own tab
+    //    (searchable) so the page isn't cluttered with history (per Diana). ──
+    let allEvents = [];
+    let evTab = 'upcoming';
+    const evSearch = document.getElementById('evSearch');
+    const evTabs = document.getElementById('evTabs');
+    const evNote = document.getElementById('evListNote');
+    evTabs?.querySelectorAll('[data-tab]').forEach((b) => b.addEventListener('click', () => {
+      evTab = b.dataset.tab;
+      evTabs.querySelectorAll('[data-tab]').forEach((x) => { x.className = 'btn btn--sm ' + (x.dataset.tab === evTab ? 'btn--forest' : 'btn--ghost'); });
+      renderList();
+    }));
+    let evDeb;
+    evSearch?.addEventListener('input', () => { clearTimeout(evDeb); evDeb = setTimeout(renderList, 180); });
+
+    // ── Per-event RSVPs & payments (with CSV download) ──
+    function dlCsv(name, rows) {
+      const csv = rows.map((r) => r.map((c) => `"${String(c == null ? '' : c).replace(/"/g, '""')}"`).join(',')).join('\r\n');
+      const a = document.createElement('a');
+      a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent('﻿' + csv);
+      a.download = name; a.click();
+    }
+    async function openEventActivity(ev) {
+      if (document.querySelector('[data-ev-activity]')) return;
+      const ov = document.createElement('div');
+      ov.className = 'chat-modal'; ov.setAttribute('data-ev-activity', '');
+      ov.innerHTML = `<div class="chat-modal__box" style="max-width:820px">
+        <button class="chat-modal__x" data-x aria-label="Close" type="button">×</button>
+        <h2 style="margin:0 0 4px">${esc(ev.title)}</h2>
+        <p class="sub" style="margin:0 0 12px">${esc(ev.date || 'no date')} · RSVPs and payments for this event.</p>
+        <div data-body><p class="sub">Loading…</p></div>
+      </div>`;
+      const close = () => ov.remove();
+      ov.addEventListener('click', (e) => { if (e.target === ov || e.target.closest('[data-x]')) close(); });
+      document.body.appendChild(ov);
+      try {
+        const [ordersR, leadsR] = await Promise.all([api('/api/admin/orders'), api('/api/admin/leads')]);
+        // Ticket orders carry the event id inside the sku: ticket:<eventId>:<type>.
+        const orders = (ordersR.orders || []).filter((o) => String(o.sku || '').startsWith('ticket:' + ev.id));
+        // RSVPs land as leads with the event field (raw id or resolved title).
+        const title = String(ev.title || '').toLowerCase();
+        const rsvps = (leadsR.leads || []).filter((l) => {
+          const le = String(l.event || '').toLowerCase();
+          return le && (le === String(ev.id).toLowerCase() || le === title || le.includes(title.slice(0, 40)));
+        });
+        const paidTotal = orders.filter((o) => o.status !== 'refunded').reduce((t, o) => t + Number(o.amount || 0), 0);
+        ov.querySelector('[data-body]').innerHTML = `
+          <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
+            <h3 style="margin:0">RSVPs (${rsvps.length})</h3>
+            <button type="button" class="btn btn--ghost btn--sm" data-dl-rsvp ${rsvps.length ? '' : 'disabled'}>⬇ Download RSVP list</button>
+          </div>
+          <div style="overflow-x:auto;max-height:30vh;overflow-y:auto">
+          <table class="admin-table"><thead><tr><th>Date</th><th>Name</th><th>Email / phone</th><th>Message</th></tr></thead><tbody>
+            ${rsvps.length ? rsvps.map((l) => `<tr><td class="sub" style="white-space:nowrap">${esc(String(l.received || '').slice(0, 10))}</td><td><span class="name">${esc(l.name || '—')}</span></td><td class="sub">${esc(l.email || '')}${l.phone ? ' · ' + esc(l.phone) : ''}</td><td class="sub">${esc((l.message || '').slice(0, 90))}</td></tr>`).join('') : '<tr><td colspan="4" class="sub">No RSVPs yet.</td></tr>'}
+          </tbody></table></div>
+          <div style="display:flex;gap:10px;align-items:center;margin:16px 0 10px;flex-wrap:wrap">
+            <h3 style="margin:0">Payments (${orders.length}) — $${paidTotal.toFixed(2)}</h3>
+            <button type="button" class="btn btn--ghost btn--sm" data-dl-pay ${orders.length ? '' : 'disabled'}>⬇ Download payments</button>
+          </div>
+          <div style="overflow-x:auto;max-height:30vh;overflow-y:auto">
+          <table class="admin-table"><thead><tr><th>Date</th><th>Payer</th><th>Tickets</th><th>Amount</th><th>Status</th></tr></thead><tbody>
+            ${orders.length ? orders.map((o) => `<tr><td class="sub" style="white-space:nowrap">${esc(new Date(o.created).toLocaleDateString())}</td><td><span class="name">${esc(o.name || o.email || '—')}</span><div class="sub">${esc(o.email || '')}</div></td><td class="sub">${esc(String(o.sku || '').split(':').slice(2).join(':') || 'ticket')}</td><td>$${Number(o.amount || 0).toFixed(2)}</td><td>${statusPill(o.status || 'paid')}</td></tr>`).join('') : '<tr><td colspan="5" class="sub">No ticket payments yet.</td></tr>'}
+          </tbody></table></div>`;
+        const slug = String(ev.title || ev.id).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 50);
+        ov.querySelector('[data-dl-rsvp]')?.addEventListener('click', () =>
+          dlCsv(`rsvps-${slug}.csv`, [['Date', 'Name', 'Email', 'Phone', 'Company', 'Message']]
+            .concat(rsvps.map((l) => [String(l.received || '').slice(0, 10), l.name, l.email, l.phone, l.company, l.message]))));
+        ov.querySelector('[data-dl-pay]')?.addEventListener('click', () =>
+          dlCsv(`payments-${slug}.csv`, [['Date', 'Name', 'Email', 'Tickets', 'Amount', 'Status', 'Transaction']]
+            .concat(orders.map((o) => [new Date(o.created).toLocaleDateString(), o.name, o.email, String(o.sku || '').split(':').slice(2).join(':'), Number(o.amount || 0).toFixed(2), o.status || 'paid', o.transactionId]))));
+      } catch (e) { ov.querySelector('[data-body]').innerHTML = '<p class="sub">Could not load activity for this event.</p>'; }
+    }
+
+    function renderList() {
+      const todayISO = new Date().toISOString().slice(0, 10);
+      const q = (evSearch?.value || '').trim().toLowerCase();
+      let events = allEvents.slice().sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+      if (q) {
+        // A search looks across ALL events (upcoming + past) — that's the lookup.
+        events = events.filter((e) => [e.title, e.venue, e.category, e.date].some((v) => String(v || '').toLowerCase().includes(q)));
+        if (evNote) evNote.innerHTML = `Showing all events (upcoming + past) matching “<strong>${esc(q)}</strong>”.`;
+      } else {
+        events = events.filter((e) => (evTab === 'past') === !!(e.date && e.date < todayISO));
+        if (evTab === 'past') events.reverse(); // most recent past first
+        if (evNote) evNote.innerHTML = evTab === 'past'
+          ? 'Past events, most recent first. They stay off the main view but are always here.'
+          : 'Upcoming events only — past events are tucked away under <strong>Past events</strong> (or search for one by name).';
+      }
+      rowsEl.innerHTML = events.length ? events.map((e) => `<tr data-id="${esc(e.id)}">
+        <td><span class="name">${esc(e.title)}</span><div class="sub">${esc(e.category || '')}${e.images && e.images.length ? ' · ' + e.images.length + ' img' : ''}${e.links && e.links.length ? ' · ' + e.links.length + ' link' + (e.links.length > 1 ? 's' : '') : ''}</div></td>
+        <td>${e.date ? esc((e.month || '') + ' ' + (e.day || '') + (e.date.slice(0, 4) !== String(new Date().getFullYear()) ? ' ' + e.date.slice(0, 4) : '')) : '<span class="pill pill--pending">TBA</span>'}<div class="sub">${esc(e.time || '')}</div></td>
+        <td>${esc(e.venue || e.neighborhood || '')}</td>
+        <td>${statusPill(e.status || 'approved')}${e.featured ? ` <span class="pill pill--approved">home${Number.isFinite(Number(e.homeOrder)) && e.homeOrder ? ' #' + e.homeOrder : ''}</span>` : ''}${e.ticketed ? ' 🎟' : ''}</td>
+        <td style="white-space:nowrap"><button class="btn btn--ghost btn--sm" data-activity title="RSVPs and payments for this event">RSVPs / $</button> <button class="btn btn--ghost btn--sm" data-edit>Edit</button> <button class="btn btn--ghost btn--sm" data-del>Delete</button></td>
+      </tr>`).join('') : `<tr><td colspan="5" class="sub">${q ? 'No events match that search.' : (evTab === 'past' ? 'No past events.' : 'No upcoming events. Create one above.')}</td></tr>`;
+      rowsEl.querySelectorAll('tr[data-id]').forEach((tr) => {
+        const id = tr.dataset.id;
+        tr.querySelector('[data-activity]').addEventListener('click', () => openEventActivity(allEvents.find((x) => x.id === id)));
+        tr.querySelector('[data-edit]').addEventListener('click', () => { fillForm(allEvents.find((x) => x.id === id)); window.scrollTo({ top: 0, behavior: 'smooth' }); });
+        tr.querySelector('[data-del]').addEventListener('click', async () => { if (!confirm('Delete this event?')) return; await api('/api/admin/events/' + encodeURIComponent(id), { method: 'DELETE' }); load(); });
+      });
+    }
     async function load() {
       try {
-        const { events } = await api('/api/admin/events');
-        events.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
-        rowsEl.innerHTML = events.length ? events.map((e) => `<tr data-id="${esc(e.id)}">
-          <td><span class="name">${esc(e.title)}</span><div class="sub">${esc(e.category || '')}${e.images && e.images.length ? ' · ' + e.images.length + ' img' : ''}${e.links && e.links.length ? ' · ' + e.links.length + ' link' + (e.links.length > 1 ? 's' : '') : ''}</div></td>
-          <td>${e.date ? esc((e.month || '') + ' ' + (e.day || '')) : '<span class="pill pill--pending">TBA</span>'}<div class="sub">${esc(e.time || '')}</div></td>
-          <td>${esc(e.venue || e.neighborhood || '')}</td>
-          <td>${statusPill(e.status || 'approved')}${e.featured ? ' <span class="pill pill--approved">home</span>' : ''}${e.ticketed ? ' 🎟' : ''}</td>
-          <td style="white-space:nowrap"><button class="btn btn--ghost btn--sm" data-edit>Edit</button> <button class="btn btn--ghost btn--sm" data-del>Delete</button></td>
-        </tr>`).join('') : '<tr><td colspan="5" class="sub">No events yet. Create one above.</td></tr>';
-        rowsEl.querySelectorAll('tr[data-id]').forEach((tr) => {
-          const id = tr.dataset.id;
-          tr.querySelector('[data-edit]').addEventListener('click', () => { fillForm(events.find((x) => x.id === id)); window.scrollTo({ top: 0, behavior: 'smooth' }); });
-          tr.querySelector('[data-del]').addEventListener('click', async () => { if (!confirm('Delete this event?')) return; await api('/api/admin/events/' + encodeURIComponent(id), { method: 'DELETE' }); load(); });
-        });
+        allEvents = (await api('/api/admin/events')).events || [];
+        renderList();
+        // Deep link from the global quick search: events.html?focus=<id>
+        const focusId = new URLSearchParams(location.search).get('focus');
+        if (focusId && !load._focused) {
+          load._focused = true;
+          const ev = allEvents.find((x) => x.id === focusId);
+          if (ev) { fillForm(ev); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+        }
       } catch (e) { showAuthError(e); }
     }
     form.addEventListener('submit', async (e) => {
@@ -829,17 +1204,22 @@ window.Admin = (function () {
         title: form.title.value.trim(), category: form.category.value.trim(), date: form.date.value,
         time: form.time.value.trim(), endDate: form.endDate.value, endTime: form.endTime.value.trim(),
         venue: form.venue.value.trim(), address: form.address.value.trim(), neighborhood: form.neighborhood.value.trim(),
-        summary: form.summary.value.trim(), description: form.description.value.trim(),
-        ticketed: form.ticketed.checked, ticketCap: form.ticketCap.value ? Number(form.ticketCap.value) : null,
+        summary: form.summary.value.trim(),
+        // Plain text (cards/receipts/AI) + formatted HTML (public detail view).
+        description: plainFromRich().slice(0, 8000),
+        descriptionHtml: rich ? rich.innerHTML : '',
+        ticketed: form.ctaKind.value === 'buy', ticketCap: form.ticketCap.value ? Number(form.ticketCap.value) : null,
         rsvpCutoff: form.rsvpCutoff.value || null, featured: form.featured.checked, status: form.status.value,
         showOnCalendar: form.showOnCalendar.checked,
         homeOrder: form.homeOrder.value === '' ? null : Number(form.homeOrder.value),
         homeBlurb: form.homeBlurb.value.trim(),
-        flyer: flyerUrl, thumbnail,
+        flyer: flyerUrl, thumbnail, flyers,
+        sponsorLogos: sponsorLogos.filter((s) => s.src),
         documents: documents.filter((d) => d.url),
         ticketTypes: ticketTypes.filter((t) => (t.name || '').trim()),
         images, links: links.filter((l) => l.url),
       };
+      if (body.ticketed && !body.ticketTypes.length) { msg.hidden = false; msg.textContent = 'The Buy tickets button needs at least one ticket price — add one under “Ticket prices” (or switch the action button to RSVP).'; return; }
       if (!body.title) { msg.hidden = false; msg.textContent = 'Title is required.'; return; }
       const btn = form.querySelector('button[type="submit"]'); btn.disabled = true;
       try {
@@ -1902,5 +2282,5 @@ window.Admin = (function () {
     });
   }
 
-  return { mountShell, initDashboard, initMembers, initApprovals, initOrders, initCoupons, initLeads, initEvents, initContent, initAssistant, initRenewals, initUsers, initGroups, initSponsorships, initSlides, initAbout, openHelp, api, esc };
+  return { mountShell, initDashboard, initMembers, initApprovals, initOrders, initLeads, initEvents, initContent, initAssistant, initRenewals, initUsers, initGroups, initSponsorships, initSlides, initAbout, openHelp, api, esc };
 })();

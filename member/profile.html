@@ -57,10 +57,14 @@
         </div>
         <div class="field"><label>Hours</label><input data-field="hours" placeholder="Mon–Fri 9–5" /></div>
 
-        <h3 class="mt-5">Logo &amp; photos</h3>
+        <h3 class="mt-5">Your images</h3>
         <div class="grid grid-2" style="gap:var(--s-4);align-items:center">
-          <div class="field"><label>Logo <span class="member-tile__meta">(for best results, upload a square image)</span></label><input id="logoFile" type="file" accept="image/*" /></div>
+          <div class="field"><label>Directory Image <span class="member-tile__meta">(usually your logo — shows on your directory card; square works best)</span></label><input id="logoFile" type="file" accept="image/*" /></div>
           <div id="logoPreview"></div>
+        </div>
+        <div class="grid grid-2" style="gap:var(--s-4);align-items:center">
+          <div class="field"><label>Page Image <span class="member-tile__meta">(usually a headshot — shows on the Board, Ambassador &amp; Leaders pages if you serve in one of those roles)</span></label><input id="pageImageFile" type="file" accept="image/*" /></div>
+          <div id="pageImagePreview"></div>
         </div>
         <div class="field"><label>Photos (up to 3)</label><input id="photoFile" type="file" accept="image/*" multiple /></div>
         <div id="photoPreview" style="display:flex;gap:8px;flex-wrap:wrap"></div>
@@ -119,9 +123,9 @@
     </div>
   </section>
   <div data-partial="footer"></div>
-  <script src="../js/partials.js?v=20260701c"></script>
+  <script src="../js/partials.js?v=20260707a"></script>
   <script src="../js/api-base.js?v=20260619a"></script>
-  <script src="member.js?v=20260701e"></script>
+  <script src="member.js?v=20260707a"></script>
   <script>ChamberPartials.mount({ active: '', depth: 1, lang: 'en' }); MemberPortal.initProfile();</script>
   <script defer src="/js/support.js?v=20260701a"></script>
 </body>

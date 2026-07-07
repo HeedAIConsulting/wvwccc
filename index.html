@@ -54,6 +54,7 @@
           <div class="btn-row hero__cta reveal d4">
             <a href="members/directory.html" class="btn btn--ghost-light btn--lg">Browse the Directory</a>
             <a href="join.html" class="btn btn--gold btn--lg">Become a Member</a>
+            <a href="pay.html" class="btn btn--ghost-light btn--lg">💳 Make a Payment</a>
           </div>
 
           <div class="hero__stats reveal d5">
@@ -94,6 +95,24 @@
     </div>
   </section>
 
+
+  <!-- ════════════════ PAYMENT PORTAL STRIP (per Diana & Felicia — obvious way to pay) ════════════════ -->
+  <section class="section-sm" style="background:var(--sand);border-bottom:1px solid var(--gold-soft)">
+    <div class="container">
+      <div class="card" style="display:flex;gap:var(--s-4);align-items:center;flex-wrap:wrap;justify-content:space-between;border:1px solid var(--gold-soft);border-left:4px solid var(--gold);background-image:radial-gradient(ellipse at 90% 0%, rgba(201,162,39,.16), transparent 60%);margin:0">
+        <div style="max-width:56ch">
+          <span class="kicker" style="color:var(--gold-deep)">💳 Payment Center</span>
+          <h3 style="color:var(--green-ink);margin:4px 0 6px">Need to pay the Chamber?</h3>
+          <p style="color:var(--ink);margin:0">Membership dues, renewals, event tickets, name badges, sponsorships — or enter any amount the office quoted you.</p>
+        </div>
+        <div style="display:flex;gap:var(--s-3);flex-wrap:wrap">
+          <a class="btn btn--gold" href="pay.html">Make a payment →</a>
+          <a class="btn btn--ghost" href="checkout.html?type=payment&amp;for=Membership%20renewal">Pay my renewal</a>
+          <a class="btn btn--ghost" href="join.html">Join</a>
+        </div>
+      </div>
+    </div>
+  </section>
 
   <!-- ════════════════ EVENTS (toward the top, per Chamber feedback) ════════════════ -->
   <section class="section bg-cream-deep">
@@ -292,9 +311,9 @@
     })();
   </script>
 
-  <script src="js/partials.js?v=20260701c"></script>
+  <script src="js/partials.js?v=20260707a"></script>
   <script src="js/api-base.js?v=20260619a"></script>
-  <script src="js/chamber.js?v=20260702e"></script>
+  <script src="js/chamber.js?v=20260707a"></script>
   <script src="js/tour.js?v=20260630a"></script>
   <script>
     ChamberPartials.mount({ active: 'home', depth: 0, lang: 'en' });

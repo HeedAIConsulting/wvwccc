@@ -105,6 +105,7 @@ window.Chamber = (function () {
           ${seal}
           <div class="member-tile__id">
             <a class="member-tile__name" href="${href}">${esc(m.name)}</a>
+            ${m.contactName ? `<div class="member-tile__meta" style="color:var(--green-ink);font-weight:600">👤 ${esc(m.contactName)}</div>` : ''}
             <div class="member-tile__meta">${meta}</div>
           </div>
         </div>
@@ -229,6 +230,23 @@ window.Chamber = (function () {
   // relative paths (e.g. "assets/events/11311.jpg") with the page base so they
   // resolve from subdirectory pages like /events/ instead of 404ing.
   function evImgSrc(u, base) { u = String(u || ''); return /^(https?:|\/|data:)/i.test(u) ? u : (base || '') + u; }
+  // Event images may be plain URL strings or {src, href, label} objects (admin
+  // can hyperlink an image, e.g. a sponsor logo → sponsor's site).
+  function evImgOf(it) { return typeof it === 'string' ? it : String((it && it.src) || ''); }
+  function evImgHref(it) { return (it && typeof it === 'object' && it.href) ? String(it.href) : ''; }
+  // Escape text, then turn URLs and "Click here"-style bare links into real
+  // anchors so links pasted into event descriptions are clickable.
+  function linkify(text) {
+    let s = esc(text);
+    s = s.replace(/\bhttps?:\/\/[^\s<>"')]+/gi, (u) => `<a href="${u}" target="_blank" rel="noopener">${u}</a>`);
+    s = s.replace(/(^|[\s(])(www\.[^\s<>"')]+)/gi, (m0, pre, u) => `${pre}<a href="https://${u}" target="_blank" rel="noopener">${u}</a>`);
+    return s;
+  }
+  // Google Maps link for an event's venue/address (clickable directions).
+  function evMapUrl(ev) {
+    const q = [ev.venue, ev.address, ev.neighborhood].filter(Boolean).join(' ');
+    return q ? 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(q) : '';
+  }
   // Friendly date for a group photo's optional date (YYYY-MM-DD → "Jun 8, 2026").
   function fmtPhotoDate(d) {
     if (!d) return '';
@@ -243,13 +261,30 @@ window.Chamber = (function () {
     // Full flyer leads the modal (portrait-friendly); the image strip follows.
     // Hero: the portrait flyer leads; fall back to the first photo so the modal
     // always feels image-forward (logos/flyers/images — Felicia's request).
-    const hero = ev.flyer || ev.thumbnail || (ev.images && ev.images[0]) || '';
+    // Flyers: main flyer plus any additional flyers (admin can attach several).
+    const flyers = [ev.flyer].concat(Array.isArray(ev.flyers) ? ev.flyers : []).map(evImgOf).filter(Boolean);
+    const hero = flyers[0] || ev.thumbnail || evImgOf(ev.images && ev.images[0]) || '';
     const flyerImg = hero
       ? `<img class="ev-card__flyer" src="${esc(evImgSrc(hero, base))}" alt="${esc(ev.title)} flyer" onerror="this.onerror=null;this.src='${base}images/wvwccc-logo.png';this.classList.add('ev-card__flyer--ph')">`
       : `<img class="ev-card__flyer ev-card__flyer--ph" src="${base}images/wvwccc-logo.png" alt="">`;
-    const extra = (ev.images || []).filter((u) => u && u !== hero).slice(0, 3);
-    const imgs = flyerImg + (extra.length
-      ? `<div class="ev-card__imgs">${extra.map((u) => `<img src="${esc(evImgSrc(u, base))}" alt="" loading="lazy">`).join('')}</div>` : '');
+    const moreFlyers = flyers.slice(1).map((u) => `<img class="ev-card__flyer" src="${esc(evImgSrc(u, base))}" alt="${esc(ev.title)} flyer" loading="lazy">`).join('');
+    // Photo strip: each image may carry a link (e.g. sponsor logo → sponsor site).
+    const extra = (ev.images || []).filter((it) => evImgOf(it) && evImgOf(it) !== hero).slice(0, 6);
+    const imgTag = (it) => {
+      const im = `<img src="${esc(evImgSrc(evImgOf(it), base))}" alt="${esc((it && it.label) || '')}" loading="lazy">`;
+      const href = evImgHref(it);
+      return href ? `<a href="${esc(href)}" target="_blank" rel="noopener">${im}</a>` : im;
+    };
+    const imgs = flyerImg + moreFlyers + (extra.length ? `<div class="ev-card__imgs">${extra.map(imgTag).join('')}</div>` : '');
+    // Sponsor logos (each optionally linked to the sponsor's site).
+    const sponsors = (Array.isArray(ev.sponsorLogos) ? ev.sponsorLogos : []).filter((s) => evImgOf(s));
+    const sponsorRow = sponsors.length
+      ? `<div class="ev-card__sponsors" style="display:flex;flex-wrap:wrap;gap:14px;align-items:center;margin:0 0 16px">${sponsors.map((s) => {
+          const im = `<img src="${esc(evImgSrc(evImgOf(s), base))}" alt="${esc(s.label || 'Sponsor logo')}" loading="lazy" style="max-height:64px;max-width:160px;object-fit:contain">`;
+          const href = evImgHref(s);
+          return href ? `<a href="${esc(href)}" target="_blank" rel="noopener" title="${esc(s.label || '')}">${im}</a>` : im;
+        }).join('')}</div>`
+      : '';
     const links = (ev.links && ev.links.length)
       ? `<div class="ev-card__row">${ev.links.map((l) => `<a class="btn btn--gold btn--sm" target="_blank" rel="noopener" href="${esc(l.url)}">${esc(l.label || l.type || 'Details')}</a>`).join('')}</div>` : '';
     // Attached PDFs (donation form, sponsorship levels, …).
@@ -260,6 +295,10 @@ window.Chamber = (function () {
       ? `<a class="btn btn--gold" href="${base}checkout.html?type=ticket&event=${esc(ev.id)}">Get tickets</a>`
       : `<a class="btn btn--forest" href="${base}contact.html?event=${esc(ev.id)}${grpQ}">RSVP / Notify me</a>`;
     const desc = ev.description || ev.summary || '';
+    // Rich description (admin editor) renders as sanitized HTML; plain text is
+    // escaped + auto-linked so pasted URLs and "click here" links actually work.
+    const descHtml = ev.descriptionHtml ? ev.descriptionHtml : (desc ? linkify(desc) : '');
+    const mapU = evMapUrl(ev);
     const overlay = document.createElement('div');
     overlay.className = 'ev-modal';
     overlay.style.cssText = 'position:fixed;inset:0;background:rgba(14,42,22,.62);display:flex;align-items:flex-start;justify-content:center;padding:5vh 16px;z-index:9999;overflow-y:auto';
@@ -277,10 +316,11 @@ window.Chamber = (function () {
           </div>
           <div class="ev-card__meta">
             <div class="ev-card__when">📅 ${esc(fullDate(ev))}</div>
-            ${loc ? `<div>📍 ${esc(loc)}</div>` : ''}
+            ${loc ? `<div>📍 ${mapU ? `<a href="${esc(mapU)}" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline" title="Open in Google Maps for directions">${esc(loc)}</a> <span style="font-size:.78rem;color:var(--gold-deep)">(map ↗)</span>` : esc(loc)}</div>` : ''}
           </div>
           ${imgs}
-          ${desc ? `<div class="ev-card__desc">${esc(desc)}</div>` : ''}
+          ${descHtml ? `<div class="ev-card__desc"${ev.descriptionHtml ? ' style="white-space:normal"' : ''}>${descHtml}</div>` : ''}
+          ${sponsorRow}
           ${links}
           ${docs}
           <div class="ev-card__foot">
@@ -328,7 +368,7 @@ window.Chamber = (function () {
           : `<a class="btn btn--ghost btn--sm" href="${base}contact.html?event=${esc(ev.id)}">Notify me</a>`)
       : `<a class="btn btn--ghost btn--sm" href="${base}contact.html?event=${esc(ev.id)}">RSVP</a>`;
     const imgs = (ev.images && ev.images.length)
-      ? `<div class="event-imgs" style="display:flex;gap:6px;margin:8px 0 0;flex-wrap:wrap">${ev.images.slice(0, 3).map((u) => `<img src="${esc(evImgSrc(u, base))}" alt="" loading="lazy" style="width:88px;height:64px;object-fit:cover;border-radius:8px">`).join('')}</div>`
+      ? `<div class="event-imgs" style="display:flex;gap:6px;margin:8px 0 0;flex-wrap:wrap">${ev.images.slice(0, 3).map((u) => `<img src="${esc(evImgSrc(evImgOf(u), base))}" alt="" loading="lazy" style="width:88px;height:64px;object-fit:cover;border-radius:8px">`).join('')}</div>`
       : '';
     const links = (ev.links && ev.links.length)
       ? `<div class="event-links" style="display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 0">${ev.links.map((l) => `<a class="chip chip--gold" target="_blank" rel="noopener" href="${esc(l.url)}">${esc(l.label || l.type || 'Details')}</a>`).join('')}</div>`
@@ -382,7 +422,7 @@ window.Chamber = (function () {
   function eventPreviewCard(ev, depth = 0) {
     _eventReg[ev.id] = ev;
     const base = depth ? '../' : '';
-    const img = ev.thumbnail || ev.image || (ev.images && ev.images[0]) || '';
+    const img = ev.thumbnail || ev.image || evImgOf(ev.images && ev.images[0]) || '';
     // The chamber-logo placeholder is ALWAYS the base; a real image layers on top and
     // removes itself on error — so a missing/broken/slow image never leaves a white box.
     const evPh = `<img src="${base}images/wvwccc-logo.png" alt="" class="evp__ph-logo"><span>${esc(ev.month || 'TBA')}</span><strong>${esc(ev.day || '·')}</strong>`;
@@ -747,17 +787,17 @@ window.Chamber = (function () {
       } catch (e) { /* no spotlight set → the card stays blank */ }
 
       // events
-      // Featured events first; otherwise the next upcoming confirmed events.
+      // The admin PICKS which events show on the homepage (Events → "Show on
+      // homepage" + Home order 1–4). If any upcoming event is picked, ONLY the
+      // picked events render, in the admin's order. With nothing picked, fall
+      // back to the next four upcoming events so the section never goes empty.
       const todayISO = new Date().toISOString().slice(0, 10);
       const allEv = (evd.events || []).filter((e) => e.confirmed && e.date).sort((a, b) => a.date.localeCompare(b.date));
       const upcoming = allEv.filter((e) => e.date >= todayISO);
-      // Upcoming first (featured upcoming float to the top); fall back to most recent.
       const pool = upcoming.length ? upcoming : allEv.slice(-4);
-      // Featured events lead, in the admin-set Home order (lower number = higher);
-      // unordered featured and the rest keep date order.
-      const homeOrd = (e) => { const n = Number(e.homeOrder); return Number.isFinite(n) ? n : 1e9; };
-      const featuredEv = pool.filter((e) => e.featured).sort((a, b) => homeOrd(a) - homeOrd(b));
-      const events = featuredEv.concat(pool.filter((e) => !e.featured)).slice(0, 4);
+      const homeOrd = (e) => { const n = Number(e.homeOrder); return Number.isFinite(n) && n > 0 ? n : 1e9; };
+      const picked = pool.filter((e) => e.featured).sort((a, b) => homeOrd(a) - homeOrd(b) || a.date.localeCompare(b.date));
+      const events = (picked.length ? picked : pool).slice(0, 4);
       const elist = document.getElementById('eventList');
       if (elist) elist.innerHTML = events.length
         ? events.map((e) => eventPreviewCard(e, 0)).join('')
@@ -1299,26 +1339,7 @@ window.Chamber = (function () {
     }
     if (presetAmount) amountInput.value = presetAmount;
 
-    // Promo code (optional) — validated here for instant feedback; /api/pay
-    // re-validates and applies the discount server-side (its math is authoritative).
-    const promoBtn = document.getElementById('promoApply');
-    if (promoBtn) promoBtn.addEventListener('click', async () => {
-      const codeEl = document.getElementById('promoCode');
-      const msg = document.getElementById('promoMsg');
-      const code = (codeEl.value || '').trim();
-      window.__wvPromo = null; msg.hidden = false; msg.style.color = '';
-      if (!code) { msg.textContent = 'Enter a code first.'; return; }
-      try {
-        const q = new URLSearchParams({ kind, sku, amount: amountInput.value || '0' });
-        const r = await getJSON(ChamberAPI.url(`/api/coupons/${encodeURIComponent(code)}/validate?` + q));
-        if (!r.ok) { msg.style.color = 'var(--red)'; msg.textContent = r.error || 'That code is not valid.'; return; }
-        window.__wvPromo = { code: r.code };
-        const off = r.discount != null ? '$' + Number(r.discount).toFixed(2)
-          : (r.kind === 'percent' ? r.amount + '%' : '$' + Number(r.amount).toFixed(2));
-        msg.style.color = 'var(--green)';
-        msg.textContent = `✓ Code ${r.code} applied — ${off} off, deducted at payment.`;
-      } catch (e) { msg.style.color = 'var(--red)'; msg.textContent = 'Could not check that code — please try again.'; }
-    });
+    // (Promo-code UI removed Jul 2026 — the Chamber decided against promo codes.)
 
     const cfg = window.WVWCCC_PAY || {};
     const form = document.getElementById('payForm');
@@ -1372,7 +1393,6 @@ window.Chamber = (function () {
                 name: (r.querySelector('[data-attendee]')?.value || '').trim(),
                 contact: (r.querySelector('[data-att-contact]')?.value || '').trim(),
               })).filter((a) => a.name || a.contact),
-            couponCode: (window.__wvPromo && window.__wvPromo.code) || undefined,
             description: label,
             ...extra,
           };
@@ -1698,8 +1718,11 @@ window.Chamber = (function () {
     const base = depth ? '../' : '';
     const slug = m.slug || m.id;
     const person = m.contactName || m.name;
-    const pic = m.logo
-      ? `<img src="${esc(m.logo)}" alt="${esc(person)}" loading="lazy" style="width:128px;height:128px;border-radius:50%;object-fit:cover;box-shadow:0 0 0 3px var(--gold-soft)">`
+    // "Page Image" (headshot) leads on leadership pages; the directory logo is
+    // only the fallback — members pick each image separately in their portal.
+    const face = m.pageImage || m.logo;
+    const pic = face
+      ? `<img src="${esc(face)}" alt="${esc(person)}" loading="lazy" style="width:128px;height:128px;border-radius:50%;object-fit:cover;box-shadow:0 0 0 3px var(--gold-soft)">`
       : `<div aria-hidden="true" style="width:128px;height:128px;border-radius:50%;background:var(--green-deep,#1f4d3a);color:var(--gold-bright);display:flex;align-items:center;justify-content:center;font-family:var(--display);font-size:2.6rem;margin:0 auto">${esc((person || '?')[0].toUpperCase())}</div>`;
     return `
       <article style="text-align:center">
@@ -1720,10 +1743,12 @@ window.Chamber = (function () {
     let members = [];
     try { members = (await getJSON(ChamberAPI.url('/api/members'))).members || []; }
     catch (e) { el.innerHTML = '<p class="notice">Could not load the roster right now.</p>'; return; }
-    const ORDER = ['Leader', 'Board Member', 'Past President', 'Ambassador'];
+    // Ambassadors are cleared from this page for now (per the Chamber office,
+    // Jul 2026). Re-add 'Ambassador' to ORDER + tabs to bring the section back.
+    const ORDER = ['Leader', 'Board Member', 'Past President'];
     const base = depth ? '../' : '';
-    // Sub-nav so visitors can jump to the Board, Ambassadors, or officers page.
-    const tabs = [['', 'Everyone'], ['Leader', 'Officers'], ['Board Member', 'Board of Directors'], ['Ambassador', 'Ambassadors']];
+    // Sub-nav so visitors can jump to the Board or officers view.
+    const tabs = [['', 'Everyone'], ['Leader', 'Officers'], ['Board Member', 'Board of Directors']];
     const subnav = `<nav class="chips" style="justify-content:center;margin-bottom:var(--s-6)" aria-label="Leadership groups">${tabs.map(([g, l]) =>
       `<a class="chip${only === g ? ' chip--gold' : ''}" href="${base}leadership.html${g ? ('?group=' + encodeURIComponent(g)) : ''}">${l}</a>`).join('')}</nav>`;
     const want = only && ORDER.includes(only) ? [only] : ORDER;
@@ -1743,6 +1768,33 @@ window.Chamber = (function () {
           <div class="grid grid-4" style="gap:var(--s-6)">${groups[g].map((m) => boardCard(m, depth)).join('')}</div>
         </div>`).join('');
     el.innerHTML = subnav + heading + body;
+  }
+
+  // ── Chamber Leaders page — members in the leader marketing package ──
+  // Grouped by level (Platinum → Friend), designated via the member's tier in
+  // the admin console. Cards match the Board/Ambassador page: headshot
+  // (pageImage) or logo, person + company, linked to the member profile.
+  async function initLeaders(depth = 0) {
+    const el = document.getElementById('leadersGrid'); if (!el) return;
+    let members = [];
+    try { members = (await getJSON(ChamberAPI.url('/api/members'))).members || []; }
+    catch (e) { el.innerHTML = '<p class="notice">Could not load the roster right now.</p>'; return; }
+    const LEVELS = ['platinum', 'gold', 'silver', 'bronze', 'supporter', 'friend'];
+    const LABEL = { platinum: 'Platinum', gold: 'Gold', silver: 'Silver', bronze: 'Bronze', supporter: 'Supporter', friend: 'Friend' };
+    const leaders = members.filter((m) => LEVELS.includes(String(m.tier || '').toLowerCase()));
+    if (!leaders.length) {
+      el.innerHTML = '<p class="notice">Our Chamber Leaders roster is being finalized — check back soon. (Admins: set a member\'s leader level under Members → Tier.)</p>';
+      return;
+    }
+    const groups = {};
+    leaders.forEach((m) => { const t = String(m.tier).toLowerCase(); (groups[t] = groups[t] || []).push(m); });
+    el.innerHTML = LEVELS.filter((t) => groups[t]).map((t) => `
+      <div style="margin-bottom:var(--s-7)">
+        <h2 style="text-align:center;margin-bottom:var(--s-5)">${LABEL[t]} Leaders</h2>
+        <div class="grid grid-4" style="gap:var(--s-6)">${groups[t]
+          .sort((a, b) => String(a.name).localeCompare(String(b.name)))
+          .map((m) => boardCard({ ...m, leaderStatus: LABEL[t] + ' Leader' }, depth)).join('')}</div>
+      </div>`).join('');
   }
 
   // ── Dining Guide — Chamber member restaurants only ──
@@ -1984,5 +2036,5 @@ window.Chamber = (function () {
     render();
   }
 
-  return { initHome, initDirectory, initProfile, initEvents, initCheckout, initLeadForm, initJobs, initDeals, initCommunity, initNews, initBizBuzz, initBoard, initDining, offerCard, postCard, newsCard, memberTile, eventCard, eventPreviewCard, initLeaderBanner, initGroups, initGroupView, initGallery, initFeaturedSlot, joinCtaHtml, mountJoinCta, initGuides, initGuideView, initRealEstate, getJSON, esc };
+  return { initHome, initDirectory, initProfile, initEvents, initCheckout, initLeadForm, initJobs, initDeals, initCommunity, initNews, initBizBuzz, initBoard, initLeaders, initDining, offerCard, postCard, newsCard, memberTile, eventCard, eventPreviewCard, initLeaderBanner, initGroups, initGroupView, initGallery, initFeaturedSlot, joinCtaHtml, mountJoinCta, initGuides, initGuideView, initRealEstate, getJSON, esc };
 })();

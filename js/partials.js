@@ -51,11 +51,11 @@ window.ChamberPartials = (function () {
     const t = L ? {
       login: 'Acceso', staff: 'Personal', contact: 'Contacto',
       home: 'Inicio', dir: 'Directorio', dining: 'Comida', events: 'Eventos', jobs: 'Empleos',
-      deals: 'Ofertas', community: 'Comunidad', news: 'Noticias', resources: 'Recursos', about: 'La Cámara', help: 'Ayuda', join: 'Únete'
+      deals: 'Ofertas', community: 'Comunidad', news: 'Noticias', resources: 'Recursos', about: 'La Cámara', help: 'Ayuda', join: 'Únete', pay: 'Pagar'
     } : {
       login: 'Sign In', staff: 'Staff', contact: 'Contact',
       home: 'Home', dir: 'Directory', dining: 'Dining', events: 'Events', jobs: 'Jobs',
-      deals: 'Deals', community: 'Community', news: 'Biz Buzz', resources: 'Resources', about: 'The Chamber', help: 'Help', join: 'Join'
+      deals: 'Deals', community: 'Community', news: 'Biz Buzz', resources: 'Resources', about: 'The Chamber', help: 'Help', join: 'Join', pay: 'Pay'
     };
     const base = '../'.repeat(depth || 0);
     return `
@@ -123,12 +123,13 @@ window.ChamberPartials = (function () {
           <div class="nav-dd__menu" data-dd="About & Membership">
             <a href="${nv('/about.html')}">${L?'Acerca de':'About Us'}</a>
             <a href="/leadership.html">${L?'Junta y Liderazgo':'Board & Leadership'}</a>
-            <a href="/leadership.html?group=Ambassador">${L?'Embajadores':'Ambassadors'}</a>
+            <a href="/leaders.html">${L?'Líderes de la Cámara':'Chamber Leaders'}</a>
             <a href="/p/benefits-of-membership">${L?'Por qué unirse':'Why Join the Chamber'}</a>
             <a href="${nv('/resources.html')}">${L?'Más sobre la Cámara':'More Chamber pages'} →</a>
           </div>
         </div>
         <a href="${nv('/help.html')}" ${active==='help'?'class="active"':''}>${t.help}</a>
+        <a href="/pay.html" class="btn btn--ghost-light btn--sm nav-cta" ${active==='pay'?'style="outline:2px solid var(--gold)"':''}>💳 ${t.pay}</a>
         <a href="${nv('/join.html')}" class="btn btn--gold btn--sm nav-cta">${t.join}</a>
       </nav>
       <button class="menu-toggle" aria-label="Toggle menu" aria-expanded="false">

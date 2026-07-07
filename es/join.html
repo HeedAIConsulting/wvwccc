@@ -28,7 +28,51 @@
 
   <section class="section">
     <div class="container">
-      <div class="grid grid-3 mt-2">
+
+      <!-- Membresía Anual — la solicitud primero, según la oficina de la Cámara -->
+      <div class="grid" style="grid-template-columns:1.1fr .9fr;gap:var(--s-7);align-items:start">
+        <div class="card" id="apply">
+          <span class="kicker">Membresía Anual</span>
+          <h2>Solicitar membresía</h2>
+          <p class="member-tile__meta">Envíe abajo y la oficina de la Cámara confirmará personalmente su nivel y cuota y establecerá su membresía — sin pago en línea.</p>
+          <form id="joinForm" class="mt-5">
+            <div class="grid grid-2" style="gap:var(--s-3)">
+              <div class="field"><label>Empresa</label><input name="company" required /></div>
+              <div class="field"><label>N.º de empleados</label><input name="employees" type="number" min="1" /></div>
+            </div>
+            <div class="grid grid-2" style="gap:var(--s-3)">
+              <div class="field"><label>Nombre</label><input name="firstName" required /></div>
+              <div class="field"><label>Apellido</label><input name="lastName" required /></div>
+            </div>
+            <div class="grid grid-2" style="gap:var(--s-3)">
+              <div class="field"><label>Correo electrónico</label><input name="email" type="email" required /></div>
+              <div class="field"><label>Teléfono</label><input name="phone" type="tel" /></div>
+            </div>
+            <div class="grid grid-2" style="gap:var(--s-3)">
+              <div class="field"><label>Tipo de negocio</label><input name="businessType" /></div>
+              <div class="field"><label>Nivel de membresía de interés</label><input id="joinLevel" name="level" placeholder="Opcional — la oficina le ayuda a decidir" /></div>
+            </div>
+            <p id="joinMsg" class="notice" hidden></p>
+            <div class="btn-row mt-3">
+              <button class="btn btn--forest btn--lg" type="submit">Enviar solicitud</button>
+            </div>
+          </form>
+        </div>
+        <aside class="card bg-forest" style="color:#fff">
+          <h3 style="color:#fff">Lo que reciben los miembros</h3>
+          <ul style="list-style:none;display:flex;flex-direction:column;gap:10px;margin-top:var(--s-3)">
+            <li>✓ Perfil en el directorio con búsqueda</li>
+            <li>✓ Referencias entre miembros</li>
+            <li>✓ Acceso a eventos y cortes de listón</li>
+            <li>✓ Defensa y visibilidad comunitaria</li>
+            <li>✓ Opciones de patrocinio y marketing</li>
+          </ul>
+          <p style="color:rgba(255,255,255,.8);margin-top:var(--s-4)">¿Preguntas? Llame a la oficina al <strong>(818) 347-4737</strong>.</p>
+        </aside>
+      </div>
+      <p class="member-tile__meta mt-4">Las cuotas se ajustan al tamaño de su negocio — la oficina confirma su nivel y cuota cuando usted solicita. ¿Renovando o pagando cuotas? <a href="../pay.html" style="text-decoration:underline">Haga un pago</a>.</p>
+
+      <div class="grid grid-3" style="margin-top:var(--s-8)">
         <article class="card"><div class="card__icon">◎</div><h3>Que lo encuentren</h3><p>Una ficha en el directorio lo pone frente a vecinos que buscan justo lo que usted hace.</p></article>
         <article class="card"><div class="card__icon">⤴</div><h3>Conecte</h3><p>Desayunos mensuales, mixers, cortes de listón y grupos de referencias por todo el Valle.</p></article>
         <article class="card"><div class="card__icon">◆</div><h3>Pertenezca</h3><p>Patrocinios, comités y una comunidad que lo respalda.</p></article>
@@ -64,92 +108,17 @@
         <a class="card card--hover" style="text-decoration:none;color:inherit;display:flex;align-items:center;gap:12px;padding:14px 18px" href="landing/nonprofit.html"><span style="font-size:1.5rem">🤝</span><strong>Sin Fines de Lucro y Comunidad</strong></a>
       </div>
 
-      <div class="section-head mt-7" style="margin-top:var(--s-9);margin-bottom:var(--s-5)">
-        <span class="kicker">Elija su nivel</span>
-        <h2>Membresía anual</h2>
-        <p class="lead">Elija el nivel que se ajuste a su negocio y luego solicite abajo — la oficina de la Cámara establece personalmente cada membresía y confirma su cuota.</p>
-      </div>
-      <div class="pricing-grid" id="memberTiers" aria-busy="true">
-        <p class="member-tile__meta">Cargando niveles de membresía…</p>
-      </div>
-      <p class="member-tile__meta text-center mt-4">¿No está seguro de qué nivel? Las cuotas pueden ajustarse al tamaño del negocio — <a href="contact.html" style="text-decoration:underline">pregunte a la oficina</a> o solicite abajo y lo confirmamos.</p>
-
-      <div class="grid" style="grid-template-columns:1.1fr .9fr;gap:var(--s-7);margin-top:var(--s-8);align-items:start">
-        <div class="card" id="apply">
-          <h2>Solicitar membresía</h2>
-          <p class="member-tile__meta">Envíe abajo y la oficina de la Cámara confirmará personalmente su nivel y cuota y establecerá su membresía — sin pago en línea.</p>
-          <form id="joinForm" class="mt-5">
-            <div class="grid grid-2" style="gap:var(--s-3)">
-              <div class="field"><label>Empresa</label><input name="company" required /></div>
-              <div class="field"><label>N.º de empleados</label><input name="employees" type="number" min="1" /></div>
-            </div>
-            <div class="grid grid-2" style="gap:var(--s-3)">
-              <div class="field"><label>Nombre</label><input name="firstName" required /></div>
-              <div class="field"><label>Apellido</label><input name="lastName" required /></div>
-            </div>
-            <div class="grid grid-2" style="gap:var(--s-3)">
-              <div class="field"><label>Correo electrónico</label><input name="email" type="email" required /></div>
-              <div class="field"><label>Teléfono</label><input name="phone" type="tel" /></div>
-            </div>
-            <div class="grid grid-2" style="gap:var(--s-3)">
-              <div class="field"><label>Tipo de negocio</label><input name="businessType" /></div>
-              <div class="field"><label>Nivel de membresía de interés</label><input id="joinLevel" name="level" placeholder="Elija un nivel arriba — o le ayudamos a decidir" /></div>
-            </div>
-            <p id="joinMsg" class="notice" hidden></p>
-            <div class="btn-row mt-3">
-              <button class="btn btn--forest btn--lg" type="submit">Enviar solicitud</button>
-              <a class="btn btn--gold btn--lg" href="#memberTiers">Elegir un nivel ↑</a>
-            </div>
-          </form>
-        </div>
-        <aside class="card bg-forest" style="color:#fff">
-          <h3 style="color:#fff">Lo que reciben los miembros</h3>
-          <ul style="list-style:none;display:flex;flex-direction:column;gap:10px;margin-top:var(--s-3)">
-            <li>✓ Perfil en el directorio con búsqueda</li>
-            <li>✓ Referencias entre miembros</li>
-            <li>✓ Acceso a eventos y cortes de listón</li>
-            <li>✓ Defensa y visibilidad comunitaria</li>
-            <li>✓ Opciones de patrocinio y marketing</li>
-          </ul>
-          <p style="color:rgba(255,255,255,.8);margin-top:var(--s-4)">¿Preguntas? Llame a la oficina al <strong>(818) 347-4737</strong>.</p>
-        </aside>
-      </div>
     </div>
   </section>
 
   <div data-partial="footer"></div>
 
-  <script src="../js/partials.js?v=20260701c"></script>
+  <script src="../js/partials.js?v=20260707a"></script>
   <script src="../js/api-base.js?v=20260619a"></script>
-  <script src="../js/chamber.js?v=20260702e"></script>
+  <script src="../js/chamber.js?v=20260707a"></script>
   <script>
     ChamberPartials.mount({ active: '', depth: 1, lang: 'es' });
     Chamber.initLeadForm('joinForm', 'joinMsg', 'membership-application');
-
-    (async () => {
-      const wrap = document.getElementById('memberTiers');
-      let cat = null;
-      try { cat = await Chamber.getJSON(ChamberAPI.url('/api/skus')); }
-      catch (e) { try { cat = await Chamber.getJSON('../data/skus.json'); } catch (e2) {} }
-      const tiers = (cat && cat.memberships) || [];
-      if (!tiers.length) { wrap.innerHTML = '<p class="notice">Los niveles de membresía se están finalizando — use el formulario de solicitud o llame a la oficina.</p>'; wrap.removeAttribute('aria-busy'); return; }
-      const esc = Chamber.esc;
-      wrap.innerHTML = tiers.map((t) => `
-        <article class="pricing-card${t.popular ? ' pricing-card--pop' : ''}">
-          ${t.popular ? '<span class="pricing-card__flag">Más popular</span>' : ''}
-          <h3 class="pricing-card__name">${esc(t.label)}</h3>
-          <div class="pricing-card__amt" style="font-size:1.02rem;font-weight:600;color:var(--green,#1b3326)">Las cuotas se ajustan al tamaño de su equipo</div>
-          ${t.blurb ? `<p class="pricing-card__blurb">${esc(t.blurb)}</p>` : ''}
-          <button type="button" class="btn ${t.popular ? 'btn--gold' : 'btn--forest'} btn--lg wv-pick-level" data-level="${esc(t.label)}">Solicitar este nivel →</button>
-        </article>`).join('');
-      wrap.removeAttribute('aria-busy');
-      // Los botones de nivel dirigen al formulario de la oficina (sin pago en línea).
-      wrap.querySelectorAll('.wv-pick-level').forEach((b) => b.addEventListener('click', () => {
-        const lvl = document.getElementById('joinLevel'); if (lvl) lvl.value = b.dataset.level;
-        document.getElementById('apply').scrollIntoView({ behavior: 'smooth', block: 'start' });
-        const c = document.querySelector('#joinForm [name="company"]'); if (c) setTimeout(() => c.focus(), 450);
-      }));
-    })();
   </script>
 </body>
 </html>

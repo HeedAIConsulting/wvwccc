@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Make a Payment — West Valley · Warner Center Chamber of Commerce</title>
+  <meta name="description" content="Pay the West Valley · Warner Center Chamber of Commerce online — membership dues, renewals, event tickets, name badges, or any amount the office quoted you." />
+  <link rel="canonical" href="https://woodlandhillscc.net/pay.html" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="css/chamber.css?v=20260701a" />
+</head>
+<body>
+  <div data-partial="header"></div>
+
+  <section class="section-sm bg-forest">
+    <div class="container">
+      <span class="kicker">Payments</span>
+      <h1 style="color:#fff">Make a payment</h1>
+      <p class="lead" style="color:rgba(255,255,255,.85);max-width:62ch">
+        Pay your dues, renew your membership, buy event tickets, or pay any amount the
+        Chamber office quoted you — name badges, plaques, sponsorships, or a bundle of items.
+      </p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+
+      <div class="grid grid-3" style="gap:var(--s-4)">
+        <a class="card card--hover" href="checkout.html?type=payment&amp;for=Membership%20renewal" style="text-decoration:none;color:inherit">
+          <div class="card__icon">↻</div>
+          <h3>Renew your membership</h3>
+          <p>Enter your renewal amount and pay in about a minute. Your receipt goes to you and the office.</p>
+          <span class="btn btn--forest btn--sm mt-3">Pay renewal →</span>
+        </a>
+        <a class="card card--hover" href="events/index.html" style="text-decoration:none;color:inherit">
+          <div class="card__icon">◆</div>
+          <h3>Event tickets</h3>
+          <p>Breakfasts, mixers, and the Gala — pick your event and buy tickets at member or guest pricing.</p>
+          <span class="btn btn--forest btn--sm mt-3">Browse events →</span>
+        </a>
+        <a class="card card--hover" href="join.html" style="text-decoration:none;color:inherit">
+          <div class="card__icon">◎</div>
+          <h3>Join the Chamber</h3>
+          <p>New to the Chamber? Apply for annual membership and the office will confirm your dues.</p>
+          <span class="btn btn--gold btn--sm mt-3">Apply for membership →</span>
+        </a>
+      </div>
+
+      <!-- Enter-amount portal: pay anything — one item or a bundle that adds up -->
+      <div class="grid" style="grid-template-columns:1.15fr .85fr;gap:var(--s-7);margin-top:var(--s-8);align-items:start">
+        <div class="card" id="customPay" style="border-left:4px solid var(--gold)">
+          <span class="kicker" style="color:var(--gold-deep)">Enter an amount</span>
+          <h2>Pay the Chamber any amount</h2>
+          <p class="member-tile__meta">For anything the office quoted you — a name badge, a plaque, program ads, or a bundle of items. Add each item and we’ll total it up.</p>
+
+          <div id="payItems" class="mt-5" style="display:flex;flex-direction:column;gap:10px"></div>
+          <button type="button" class="btn btn--ghost btn--sm mt-3" id="addItem">+ Add another item</button>
+
+          <div class="mt-5" style="display:flex;align-items:center;justify-content:space-between;border-top:2px solid var(--gold-soft);padding-top:14px">
+            <strong style="font-size:1.05rem">Total</strong>
+            <strong id="payTotal" style="font-size:1.5rem;color:var(--green-ink)">$0.00</strong>
+          </div>
+          <p id="payMsg" class="notice mt-3" hidden></p>
+          <div class="btn-row mt-4">
+            <button type="button" class="btn btn--gold btn--lg" id="payGo">Continue to secure checkout →</button>
+          </div>
+          <p class="member-tile__meta mt-3" style="font-size:.8rem">Payments are processed securely — card details are entered on the next screen and never touch our servers.</p>
+        </div>
+
+        <aside class="card bg-forest" style="color:#fff">
+          <h3 style="color:#fff">Common payments</h3>
+          <ul style="list-style:none;display:flex;flex-direction:column;gap:10px;margin-top:var(--s-3)">
+            <li>✓ Annual membership dues &amp; renewals</li>
+            <li>✓ Breakfast &amp; mixer tickets</li>
+            <li>✓ Name badges &amp; plaques</li>
+            <li>✓ Sponsorships &amp; program ads</li>
+            <li>✓ Leader marketing packages</li>
+          </ul>
+          <p style="color:rgba(255,255,255,.8);margin-top:var(--s-4)">
+            Not sure of the amount? Call the office at <strong>(818) 347-4737</strong> and we’ll confirm it,
+            or <a href="donate.html" style="color:var(--gold-bright)">make a donation instead</a>.
+          </p>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <div data-partial="footer"></div>
+
+  <script src="js/partials.js?v=20260707a"></script>
+  <script src="js/api-base.js?v=20260619a"></script>
+  <script src="js/chamber.js?v=20260707a"></script>
+  <script>
+    ChamberPartials.mount({ active: 'pay', depth: 0, lang: 'en' });
+
+    // ── Enter-amount portal: one item or a bundle; total flows to checkout ──
+    (function () {
+      const wrap = document.getElementById('payItems');
+      const totalEl = document.getElementById('payTotal');
+      const msg = document.getElementById('payMsg');
+
+      function row(desc, amt) {
+        const div = document.createElement('div');
+        div.className = 'pay-item';
+        div.style.cssText = 'display:grid;grid-template-columns:1fr 130px 34px;gap:8px;align-items:center';
+        div.innerHTML = `
+          <input type="text" class="pi-desc" placeholder="What is this for? (e.g., Name badge)" value="${desc || ''}" style="padding:10px 12px;border:1px solid var(--gold-soft);border-radius:8px;font:inherit" />
+          <input type="number" class="pi-amt" placeholder="0.00" min="0" step="0.01" inputmode="decimal" value="${amt || ''}" style="padding:10px 12px;border:1px solid var(--gold-soft);border-radius:8px;font:inherit" />
+          <button type="button" class="pi-x" aria-label="Remove item" style="background:none;border:1px solid var(--gold-soft);border-radius:8px;height:38px;cursor:pointer;color:var(--slate-mid)">×</button>`;
+        div.querySelector('.pi-x').addEventListener('click', () => { div.remove(); if (!wrap.children.length) row(); total(); });
+        div.querySelector('.pi-amt').addEventListener('input', total);
+        div.querySelector('.pi-desc').addEventListener('input', () => { msg.hidden = true; });
+        wrap.appendChild(div);
+        return div;
+      }
+
+      function items() {
+        return Array.from(wrap.querySelectorAll('.pay-item')).map((d) => ({
+          desc: d.querySelector('.pi-desc').value.trim(),
+          amt: parseFloat(d.querySelector('.pi-amt').value) || 0,
+        })).filter((i) => i.desc || i.amt > 0);
+      }
+
+      function total() {
+        const t = items().reduce((s, i) => s + i.amt, 0);
+        totalEl.textContent = '$' + t.toFixed(2);
+        msg.hidden = true;
+        return t;
+      }
+
+      document.getElementById('addItem').addEventListener('click', () => { row().querySelector('.pi-desc').focus(); });
+      document.getElementById('payGo').addEventListener('click', () => {
+        const list = items();
+        const t = total();
+        if (!t || t < 1) { msg.textContent = 'Please enter what you’re paying for and an amount of at least $1.'; msg.hidden = false; return; }
+        if (list.some((i) => !i.desc)) { msg.textContent = 'Please describe each item so it appears on your receipt.'; msg.hidden = false; return; }
+        const label = list.map((i) => `${i.desc} ($${i.amt.toFixed(2)})`).join(' + ');
+        location.href = 'checkout.html?type=payment&for=' + encodeURIComponent(label) + '&amount=' + encodeURIComponent(t.toFixed(2));
+      });
+
+      // Deep-link support: pay.html?for=Name%20badge&amount=25
+      const q = new URLSearchParams(location.search);
+      row(q.get('for') || '', q.get('amount') || '');
+      total();
+    })();
+  </script>
+</body>
+</html>

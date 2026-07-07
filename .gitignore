@@ -24,3 +24,6 @@ agms/
 # Source newsletter PDFs (95–410 MB each) — never commit; we ship rendered
 # WebP page images under newsletters/assets/connect/ instead.
 Biz Newsletter/
+
+# local dev launcher (seeds a throwaway test admin) - never commit
+local-dev.cjs

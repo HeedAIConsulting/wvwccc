@@ -163,9 +163,21 @@ window.MemberPortal = (function () {
     const logoInput = document.getElementById('logoFile');
     if (logoInput) logoInput.addEventListener('change', async (e) => {
       const f = e.target.files[0]; if (!f) return;
-      msg.hidden = false; msg.style.borderColor = 'var(--line)'; msg.textContent = 'Uploading logo…';
-      try { logoUrl = await uploadImage(f, 'logo'); renderLogo(); msg.textContent = 'Logo uploaded — remember to Save.'; }
-      catch (err) { msg.textContent = 'Logo upload failed (PNG/JPG, max ~2.5MB).'; }
+      msg.hidden = false; msg.style.borderColor = 'var(--line)'; msg.textContent = 'Uploading directory image…';
+      try { logoUrl = await uploadImage(f, 'logo'); renderLogo(); msg.textContent = 'Directory image uploaded — remember to Save.'; }
+      catch (err) { msg.textContent = 'Upload failed (PNG/JPG, max ~2.5MB).'; }
+    });
+    // Page Image — headshot used on the Board / Ambassador / Leaders pages.
+    let pageImageUrl = m.pageImage || '';
+    const piPrev = document.getElementById('pageImagePreview');
+    const renderPageImage = () => { if (piPrev) piPrev.innerHTML = pageImageUrl ? `<img src="${esc(pageImageUrl)}" alt="page image" style="width:90px;height:90px;border-radius:50%;object-fit:cover">` : '<span class="member-tile__meta">No page image yet</span>'; };
+    renderPageImage();
+    const piInput = document.getElementById('pageImageFile');
+    if (piInput) piInput.addEventListener('change', async (e) => {
+      const f = e.target.files[0]; if (!f) return;
+      msg.hidden = false; msg.style.borderColor = 'var(--line)'; msg.textContent = 'Uploading page image…';
+      try { pageImageUrl = await uploadImage(f, 'headshot'); renderPageImage(); msg.textContent = 'Page image uploaded — remember to Save.'; }
+      catch (err) { msg.textContent = 'Upload failed (PNG/JPG, max ~2.5MB).'; }
     });
     // photos (up to 3 slots)
     let photos = Array.isArray(m.photos) ? m.photos.slice(0, 3) : [];
@@ -298,7 +310,7 @@ window.MemberPortal = (function () {
       patch.ctaLinks = [];
       const labels = [...form.querySelectorAll('[data-cta-label]')]; const urls = [...form.querySelectorAll('[data-cta-url]')];
       labels.forEach((el, i) => { if (el.value && urls[i] && urls[i].value) patch.ctaLinks.push({ label: el.value, url: urls[i].value }); });
-      patch.logo = logoUrl; patch.photos = photos;
+      patch.logo = logoUrl; patch.pageImage = pageImageUrl; patch.photos = photos;
       patch.team = collectTeam();
       const primarySel = form.querySelector('[data-primary]:checked');
       if (primarySel) patch.primaryImage = primarySel.value;

@@ -40,16 +40,43 @@
               <div class="field"><label>Neighborhood</label><input name="neighborhood" maxlength="80" placeholder="Woodland Hills" /></div>
               <div class="field" style="grid-column:1 / -1"><label>Address <span class="sub">(for the calendar location)</span></label><input name="address" maxlength="200" placeholder="21810 Ventura Blvd, Woodland Hills, CA 91364" /></div>
               <div class="field" style="grid-column:1 / -1"><label>Summary <span class="sub">(shown on cards)</span></label><textarea name="summary" rows="2" maxlength="600"></textarea></div>
-              <div class="field" style="grid-column:1 / -1"><label>Full details <span class="sub">(optional, longer description)</span></label><textarea name="description" rows="4" maxlength="8000"></textarea></div>
+              <div class="field" style="grid-column:1 / -1">
+                <label>Full details <span class="sub">(formatting, links &amp; colors carry to the public event page)</span></label>
+                <div id="evRichBar" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;border:1px solid var(--line,#ddd);border-bottom:none;border-radius:8px 8px 0 0;padding:6px 8px;background:#faf8f3">
+                  <button type="button" data-rt="bold" title="Bold" style="font-weight:800;min-width:30px">B</button>
+                  <button type="button" data-rt="italic" title="Italic" style="font-style:italic;min-width:30px">I</button>
+                  <button type="button" data-rt="underline" title="Underline" style="text-decoration:underline;min-width:30px">U</button>
+                  <select data-rt-font class="admin-select" title="Font" style="max-width:130px">
+                    <option value="">Font…</option><option value="Georgia, serif">Georgia</option><option value="'Times New Roman', serif">Times</option><option value="Arial, sans-serif">Arial</option><option value="'Hanken Grotesk', sans-serif">Hanken (site)</option><option value="'Courier New', monospace">Courier</option>
+                  </select>
+                  <select data-rt-size class="admin-select" title="Text size" style="max-width:100px">
+                    <option value="">Size…</option><option value="0.85rem">Small</option><option value="1rem">Normal</option><option value="1.2rem">Large</option><option value="1.5rem">X-Large</option>
+                  </select>
+                  <input type="color" data-rt-color title="Text color" value="#1b3326" style="width:34px;height:30px;padding:2px;border:1px solid var(--line,#ddd);border-radius:6px;cursor:pointer">
+                  <button type="button" data-rt="justifyLeft" title="Align left">⯇</button>
+                  <button type="button" data-rt="justifyCenter" title="Center">≡</button>
+                  <button type="button" data-rt="justifyRight" title="Align right">⯈</button>
+                  <button type="button" data-rt-link title="Turn the selected text into a link">🔗 Link</button>
+                  <button type="button" data-rt="removeFormat" title="Clear formatting">⌫ Clear</button>
+                </div>
+                <div id="evRich" contenteditable="true" style="border:1px solid var(--line,#ddd);border-radius:0 0 8px 8px;min-height:130px;max-height:340px;overflow:auto;padding:10px 12px;background:#fff;font-size:.95rem;line-height:1.6"></div>
+                <p class="sub" style="margin:4px 0 0">Select text, then use the buttons — e.g. select “Click here to sign up” and press 🔗 Link.</p>
+              </div>
               <div class="field"><label>Ticket cap <span class="sub">(optional)</span></label><input name="ticketCap" type="number" min="0" /></div>
               <div class="field"><label>RSVP / ticket cutoff <span class="sub">(optional)</span></label><input name="rsvpCutoff" type="date" /></div>
             </div>
 
             <div style="display:flex;gap:24px;margin:10px 0;flex-wrap:wrap;align-items:center">
-              <label style="display:inline-flex;align-items:center;gap:10px;cursor:pointer"><span class="toggle"><input type="checkbox" name="ticketed"><span class="track"></span></span> Ticketed event</label>
-              <label style="display:inline-flex;align-items:center;gap:10px;cursor:pointer"><span class="toggle"><input type="checkbox" name="featured"><span class="track"></span></span> Feature on homepage</label>
+              <span style="display:inline-flex;align-items:center;gap:6px">
+                <label style="margin:0"><strong>Action button</strong></label>
+                <select name="ctaKind" class="admin-select" title="Which button visitors see on this event">
+                  <option value="rsvp">RSVP (free — collects RSVPs)</option>
+                  <option value="buy">Buy tickets (paid — uses the ticket prices below)</option>
+                </select>
+              </span>
+              <label style="display:inline-flex;align-items:center;gap:10px;cursor:pointer"><span class="toggle"><input type="checkbox" name="featured"><span class="track"></span></span> Show on homepage</label>
               <label style="display:inline-flex;align-items:center;gap:10px;cursor:pointer"><span class="toggle"><input type="checkbox" name="showOnCalendar" checked><span class="track"></span></span> Show on calendar</label>
-              <span style="display:inline-flex;align-items:center;gap:6px"><label style="margin:0">Home order</label><input name="homeOrder" type="number" min="0" style="width:80px" title="Lower shows first among featured events" /></span>
+              <span style="display:inline-flex;align-items:center;gap:6px"><label style="margin:0">Home order</label><input name="homeOrder" type="number" min="1" max="4" style="width:80px" title="1–4: position on the homepage (1 is first). Only events with 'Show on homepage' appear." /></span>
             </div>
 
             <div class="field"><label>Home-page blurb <span class="sub">(optional — short text shown with this event on the home page)</span></label><textarea name="homeBlurb" rows="2" maxlength="400"></textarea></div>
@@ -59,9 +86,11 @@
               <div class="field"><label>Thumbnail <span class="sub">(square; shown on cards)</span></label><input type="file" id="evThumb" accept="image/*" /><div id="evThumbPrev" style="margin-top:6px"></div></div>
             </div>
 
-            <div class="field"><label>Images <span class="sub">(up to 3 extra photos — square works best)</span></label><div id="evImages" style="margin-top:6px"></div></div>
-            <div class="field"><label>Attached PDFs <span class="sub">(up to 3 — e.g. donation form, sponsorship levels)</span></label><div id="evDocs" style="margin-top:6px"></div></div>
-            <div class="field"><label>Ticket types <span class="sub">(name, price, quantity — for the Buy Tickets checkout)</span></label><div id="evTickets" style="margin-top:6px"></div></div>
+            <div class="field"><label>More flyers <span class="sub">(optional — additional full-size flyers shown under the main one)</span></label><div id="evFlyers" style="margin-top:6px"></div></div>
+            <div class="field"><label>Sponsor logos <span class="sub">(each can link to the sponsor's website)</span></label><div id="evSponsors" style="margin-top:6px"></div></div>
+            <div class="field"><label>Images <span class="sub">(up to 6 extra photos — add a link to make one clickable)</span></label><div id="evImages" style="margin-top:6px"></div></div>
+            <div class="field"><label>Attached PDFs <span class="sub">(up to 6 — e.g. donation form, sponsorship levels, menu)</span></label><div id="evDocs" style="margin-top:6px"></div></div>
+            <div class="field"><label>Ticket prices <span class="sub">(add Member and Guest prices — multiple prices become a dropdown at checkout)</span></label><div id="evTickets" style="margin-top:6px"></div></div>
             <div class="field"><label>Links <span class="sub">(tickets, sponsors, registration, details)</span></label><div id="evLinks" style="margin-top:6px"></div></div>
 
             <p id="eventMsg" class="notice" hidden style="margin-top:10px"></p>
@@ -73,7 +102,15 @@
         </div>
 
         <div class="panel">
-          <div class="panel__head"><h3>All events</h3></div>
+          <div class="panel__head" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <h3 style="margin-right:auto">Events</h3>
+            <div id="evTabs" style="display:flex;gap:6px">
+              <button type="button" class="btn btn--forest btn--sm" data-tab="upcoming">Upcoming</button>
+              <button type="button" class="btn btn--ghost btn--sm" data-tab="past">Past events</button>
+            </div>
+            <input id="evSearch" class="admin-select" type="search" placeholder="Search events…" style="min-width:220px" />
+          </div>
+          <p class="sub" id="evListNote" style="margin:4px 0 10px">Upcoming events only — past events are tucked away under <strong>Past events</strong> (or search for one by name).</p>
           <table class="admin-table"><thead><tr><th>Event</th><th>Date</th><th>Venue</th><th>Status</th><th></th></tr></thead><tbody id="eventRows"></tbody></table>
         </div>
 
@@ -81,7 +118,7 @@
     </div>
   </div>
   <script src="../js/api-base.js"></script>
-  <script src="admin.js?v=20260702b"></script>
+  <script src="admin.js?v=20260707a"></script>
   <script>Admin.initEvents();</script>
   <script defer src="/js/support.js?v=20260701a"></script>
 </body>
