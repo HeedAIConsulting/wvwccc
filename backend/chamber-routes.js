@@ -1534,6 +1534,24 @@ router.post('/admin/users/:email/set-password', requireAdmin, async (req, res) =
   } catch (e) { console.error('admin set-password', e); res.status(500).json({ error: 'could not set password' }); }
 });
 
+// Admin creates a LOGIN for an existing directory member who doesn't have one
+// yet (e.g. imported roster rows without emails). Creates the account against
+// the given email and sends the set-your-password invitation.
+router.post('/admin/members/:id/create-login', requireAdmin, async (req, res) => {
+  const emailAddr = String((req.body && req.body.email) || '').trim().toLowerCase();
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(emailAddr)) return res.status(400).json({ error: 'A valid email address is required.' });
+  try {
+    const m = (await loadMembersFull()).members.find((x) => x.id === req.params.id);
+    if (!m) return res.status(404).json({ error: 'member not found' });
+    const existing = await users.getUserByEmail(emailAddr);
+    if (existing && existing.memberId && existing.memberId !== m.id) {
+      return res.status(409).json({ error: 'That email already belongs to another member\'s login.' });
+    }
+    const detail = await attachLoginAndInvite(m.id, emailAddr, m.contactName, m.name, req, req.body.sendInvite !== false);
+    res.json({ ok: true, email: emailAddr, detail });
+  } catch (e) { console.error('create-login', e); res.status(500).json({ error: 'could not create the login' }); }
+});
+
 // Admin generates a one-time SIGN-IN link for a member's login — so the office
 // can open the member's portal view to assist them (open it in a private/
 // incognito window to keep your admin session), or text/email it to the member.

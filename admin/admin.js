@@ -437,7 +437,7 @@ window.Admin = (function () {
         ? `<button type="button" data-setpw="${esc(m.email)}" title="Set this member's password now" style="cursor:pointer;background:none;border:1px solid var(--line,#d7d2c6);border-radius:6px;padding:3px 8px;font-size:.8rem">Set password</button>
            <button type="button" data-resetlink="${esc(m.email)}" title="Copy a reset link to send them" style="cursor:pointer;background:none;border:1px solid var(--line,#d7d2c6);border-radius:6px;padding:3px 8px;font-size:.8rem">Reset link</button>
            <button type="button" data-loginlink title="Open this member's portal view to assist them (opens a 20-min sign-in link — use a private window to keep your admin session)" style="cursor:pointer;background:none;border:1px solid var(--line,#d7d2c6);border-radius:6px;padding:3px 8px;font-size:.8rem">Member view</button>`
-        : `<button type="button" data-reset title="Force a password reset at next login" style="cursor:pointer;background:none;border:1px solid var(--line,#d7d2c6);border-radius:6px;padding:3px 8px;font-size:.8rem">Reset PW</button>`;
+        : `<button type="button" data-createlogin title="This member has no website login yet — create one and email them a set-your-password link" style="cursor:pointer;background:var(--gold,#C9A227);color:var(--green-ink,#143c20);border:none;border-radius:6px;padding:4px 10px;font-size:.8rem;font-weight:700">➕ Create login</button>`;
       return `<tr data-id="${id}">
         <td><button type="button" data-editname title="Edit this member" style="background:none;border:none;padding:0;font:inherit;font-weight:600;color:var(--green-deep,#1E5631);cursor:pointer;text-align:left">${esc(m.name)}</button>${m.contactName ? `<div style="font-weight:600;color:var(--green-ink,#1b3326);font-size:.85rem">👤 ${esc(m.contactName)}</div>` : ''}<div class="sub">${esc(m.category || '')}${m.neighborhood ? ' · ' + esc(m.neighborhood) : ''}</div>${emailLine}</td>
         <td><select class="admin-select" data-field="tier">${tiers.map((t) => `<option ${((m.tier || 'member') === t) ? 'selected' : ''}>${t}</option>`).join('')}</select></td>
@@ -499,6 +499,22 @@ window.Admin = (function () {
             flash.classList.add('show'); setTimeout(() => flash.classList.remove('show'), 1500);
             alert(r.message || 'Password reset queued.');
           } catch (e) { showAuthError(e); }
+        });
+        // Create a website login for a member who doesn't have one yet.
+        tr.querySelector('[data-createlogin]')?.addEventListener('click', async (e) => {
+          const m = memberById[id];
+          const addr = prompt(`Create a website login for ${m ? m.name : 'this member'}.\n\nTheir email address (this becomes their sign-in):`);
+          if (addr === null) return;
+          if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(addr.trim())) { alert('Please enter a valid email address.'); return; }
+          e.target.disabled = true; e.target.textContent = 'Creating…';
+          try {
+            const r = await api(`/api/admin/members/${encodeURIComponent(id)}/create-login`, { method: 'POST', body: JSON.stringify({ email: addr.trim() }) });
+            alert(`✓ Login created for ${r.email}.\n${r.detail}\n\nThey'll set their own password from the emailed link (or use "Reset link" here to copy one).`);
+            load(search.value.trim());
+          } catch (err) {
+            e.target.disabled = false; e.target.textContent = '➕ Create login';
+            alert('Could not create the login: ' + (err.message || 'error'));
+          }
         });
         tr.querySelector('[data-edit]')?.addEventListener('click', () => openProfileEditor(memberById[id]));
         // Clicking the business name opens the same admin editor.
