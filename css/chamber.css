@@ -337,15 +337,17 @@ a.member-tile__name:hover { color: var(--green); }
 .hero__dots button { width: 9px; height: 9px; border-radius: 50%; background: rgba(255,255,255,.45); border: none; cursor: pointer; padding: 0; transition: background var(--tr); }
 .hero__dots button.is-active { background: var(--gold-bright); }
 
-.hero__inner { position: relative; z-index: 2; padding: var(--s-10) 0 var(--s-9); display: grid; grid-template-columns: 1.15fr .85fr; gap: var(--s-8); align-items: center; }
-.hero h1 { color: #fff; }
+/* Compact hero (Jul 2026, per the Chamber office — the banner ran too tall
+   and pushed everything below the fold). */
+.hero__inner { position: relative; z-index: 2; padding: var(--s-7) 0 var(--s-6); display: grid; grid-template-columns: 1.15fr .85fr; gap: var(--s-7); align-items: center; }
+.hero h1 { color: #fff; font-size: clamp(1.7rem, 3.4vw, 2.6rem); }
 .hero h1 em { font-style: italic; color: var(--gold-bright); font-weight: 500; }
-.hero__lead { color: rgba(255,255,255,.86); font-size: 1.25rem; max-width: 46ch; margin-top: var(--s-5); }
-.hero__cta { margin-top: var(--s-6); }
-.hero__concierge { margin-top: var(--s-6); max-width: 480px; }
+.hero__lead { color: rgba(255,255,255,.86); font-size: 1.08rem; max-width: 52ch; margin-top: var(--s-4); }
+.hero__cta { margin-top: var(--s-5); }
+.hero__concierge { margin-top: var(--s-5); max-width: 480px; }
 .hero__concierge .pill-input { background: rgba(255,255,255,.97); }
-.hero__stats { display: flex; gap: var(--s-7); margin-top: var(--s-8); }
-.hero__stat-num { font-family: var(--display); font-size: 2.4rem; font-weight: 600; color: var(--gold-bright); line-height: 1; }
+.hero__stats { display: flex; gap: var(--s-7); margin-top: var(--s-5); }
+.hero__stat-num { font-family: var(--display); font-size: 1.9rem; font-weight: 600; color: var(--gold-bright); line-height: 1; }
 .hero__stat-lbl { font-size: .82rem; color: rgba(255,255,255,.7); margin-top: 4px; }
 
 /* Hero feature card (right column) */
@@ -495,11 +497,11 @@ a.member-tile__name:hover { color: var(--green); }
 .d1{animation-delay:.05s}.d2{animation-delay:.13s}.d3{animation-delay:.21s}.d4{animation-delay:.29s}.d5{animation-delay:.37s}
 
 /* ── Event preview cards — image-forward "upcoming events" (homepage) ── */
-.evp { display: grid; grid-template-columns: 248px 1fr; gap: var(--s-5); align-items: stretch;
+.evp { display: grid; grid-template-columns: 168px 1fr; gap: var(--s-4); align-items: stretch;
   background: var(--paper); border: 1px solid var(--line); border-radius: var(--r-lg);
   overflow: hidden; cursor: pointer; transition: box-shadow .22s ease, transform .22s ease; }
 .evp:hover { box-shadow: 0 16px 40px rgba(20, 60, 32, .15); transform: translateY(-3px); }
-.evp__media { background-size: cover; background-position: center; min-height: 184px; background-color: var(--leaf-soft); }
+.evp__media { background-size: cover; background-position: center; min-height: 132px; background-color: var(--leaf-soft); }
 .evp__media--ph { display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; overflow: hidden;
   background: linear-gradient(140deg, var(--forest), var(--green-ink)); color: #fff; }
 .evp__media--ph span { font-size: .82rem; text-transform: uppercase; letter-spacing: .14em; opacity: .82; }

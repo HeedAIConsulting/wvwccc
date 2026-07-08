@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="../css/chamber.css" />
-  <link rel="stylesheet" href="admin.css?v=20260622g" />
+  <link rel="stylesheet" href="admin.css?v=20260708a" />
 </head>
 <body class="admin">
   <div class="admin-shell">
@@ -57,6 +57,7 @@
                   <button type="button" data-rt="justifyCenter" title="Center">≡</button>
                   <button type="button" data-rt="justifyRight" title="Align right">⯈</button>
                   <button type="button" data-rt-link title="Turn the selected text into a link">🔗 Link</button>
+                  <label title="Insert an image right here in the text (breaks up long descriptions)" style="cursor:pointer;display:inline-flex;align-items:center;padding:2px 8px;border:1px solid var(--line,#ddd);border-radius:6px;background:#fff">🖼 Image<input type="file" data-rt-img accept="image/*" hidden></label>
                   <button type="button" data-rt="removeFormat" title="Clear formatting">⌫ Clear</button>
                 </div>
                 <div id="evRich" contenteditable="true" style="border:1px solid var(--line,#ddd);border-radius:0 0 8px 8px;min-height:130px;max-height:340px;overflow:auto;padding:10px 12px;background:#fff;font-size:.95rem;line-height:1.6"></div>
@@ -72,6 +73,7 @@
                 <select name="ctaKind" class="admin-select" title="Which button visitors see on this event">
                   <option value="rsvp">RSVP (free — collects RSVPs)</option>
                   <option value="buy">Buy tickets (paid — uses the ticket prices below)</option>
+                  <option value="both">Both — RSVP and Buy tickets (e.g. members RSVP, guests pay)</option>
                 </select>
               </span>
               <label style="display:inline-flex;align-items:center;gap:10px;cursor:pointer"><span class="toggle"><input type="checkbox" name="featured"><span class="track"></span></span> Show on homepage</label>
@@ -118,7 +120,7 @@
     </div>
   </div>
   <script src="../js/api-base.js"></script>
-  <script src="admin.js?v=20260707c"></script>
+  <script src="admin.js?v=20260708a"></script>
   <script>Admin.initEvents();</script>
   <script defer src="/js/support.js?v=20260701a"></script>
 </body>

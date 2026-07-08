@@ -6,7 +6,7 @@
   <title>Sign In — West Valley · Warner Center Chamber of Commerce</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="stylesheet" href="../css/chamber.css?v=20260701a" />
+  <link rel="stylesheet" href="../css/chamber.css?v=20260708a" />
 </head>
 <body>
   <div data-partial="header"></div>
@@ -20,7 +20,15 @@
         </div>
         <form id="loginForm" class="mt-5">
           <div class="field"><label>Email</label><input name="email" type="email" required autocomplete="username" /></div>
-          <div class="field"><label>Password</label><input name="password" type="password" required autocomplete="current-password" /></div>
+          <div class="field"><label>Password</label>
+            <div style="position:relative">
+              <input name="password" type="password" required autocomplete="current-password" style="width:100%;padding-right:44px" />
+              <button type="button" data-pw-eye aria-label="Show password" title="Show / hide the password" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:1.1rem;padding:6px">👁</button>
+            </div>
+          </div>
+          <label style="display:flex;align-items:center;gap:8px;margin:2px 0 12px;cursor:pointer;font-size:.9rem">
+            <input type="checkbox" name="remember" value="1" checked /> Keep me signed in on this computer (30 days)
+          </label>
           <p id="msg" class="notice" hidden></p>
           <button class="btn btn--forest btn--lg" type="submit" style="width:100%">Sign in</button>
         </form>
@@ -45,7 +53,7 @@
     </div>
   </section>
   <div data-partial="footer"></div>
-  <script src="../js/partials.js?v=20260707a"></script>
+  <script src="../js/partials.js?v=20260708a"></script>
   <script src="../js/api-base.js?v=20260619a"></script>
   <script>
     ChamberPartials.mount({ active: '', depth: 1, lang: 'en' });
@@ -66,10 +74,18 @@
     const form = document.getElementById('loginForm');
     const msg = document.getElementById('msg');
     const ADMIN_ROLES = ['staff', 'admin', 'super_admin'];
+    // 👁 show/hide the password while typing (per the Chamber office).
+    const eye = form.querySelector('[data-pw-eye]');
+    if (eye) eye.addEventListener('click', () => {
+      const pw = form.querySelector('[name="password"]');
+      pw.type = pw.type === 'password' ? 'text' : 'password';
+      eye.textContent = pw.type === 'password' ? '👁' : '🙈';
+    });
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       msg.hidden = true;
       const body = Object.fromEntries(new FormData(form));
+      body.remember = !!body.remember;
       const btn = form.querySelector('button'); btn.disabled = true; btn.textContent = 'Signing in…';
       try {
         const r = await fetch(ChamberAPI.url('/api/auth/login'), {

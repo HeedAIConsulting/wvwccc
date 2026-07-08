@@ -291,9 +291,11 @@ window.Chamber = (function () {
     const docs = (ev.documents && ev.documents.length)
       ? `<div class="ev-card__row">${ev.documents.map((dme) => `<a class="btn btn--ghost btn--sm" target="_blank" rel="noopener" href="${esc(evImgSrc(dme.url, base))}">📄 ${esc(dme.label || 'Document')}</a>`).join('')}</div>` : '';
     const grpQ = _groupCtx ? `&group=${encodeURIComponent(_groupCtx.slug)}` : '';
-    const cta = ev.ticketed
-      ? `<a class="btn btn--gold" href="${base}checkout.html?type=ticket&event=${esc(ev.id)}">Get tickets</a>`
-      : `<a class="btn btn--forest" href="${base}contact.html?event=${esc(ev.id)}${grpQ}">RSVP / Notify me</a>`;
+    // ticketed → Buy; ticketed + alsoRsvp → BOTH buttons (e.g. members RSVP
+    // free, guests buy); otherwise RSVP only.
+    const rsvpBtn = `<a class="btn btn--forest" href="${base}contact.html?event=${esc(ev.id)}${grpQ}">RSVP</a>`;
+    const buyBtn = `<a class="btn btn--gold" href="${base}checkout.html?type=ticket&event=${esc(ev.id)}">Get tickets</a>`;
+    const cta = ev.ticketed ? (ev.alsoRsvp ? rsvpBtn + ' ' + buyBtn : buyBtn) : rsvpBtn.replace('>RSVP<', '>RSVP / Notify me<');
     const desc = ev.description || ev.summary || '';
     // Rich description (admin editor) renders as sanitized HTML; plain text is
     // escaped + auto-linked so pasted URLs and "click here" links actually work.
@@ -364,7 +366,7 @@ window.Chamber = (function () {
     const when = confirmed ? `${esc(ev.month)} ${esc(ev.day)} · ${esc(ev.time || '')}` : 'Date to be announced';
     const cta = ev.ticketed
       ? (confirmed
-          ? `<a class="btn btn--gold btn--sm" href="${base}checkout.html?type=ticket&event=${esc(ev.id)}">Get tickets</a>`
+          ? `${ev.alsoRsvp ? `<a class="btn btn--ghost btn--sm" href="${base}contact.html?event=${esc(ev.id)}">RSVP</a> ` : ''}<a class="btn btn--gold btn--sm" href="${base}checkout.html?type=ticket&event=${esc(ev.id)}">Get tickets</a>`
           : `<a class="btn btn--ghost btn--sm" href="${base}contact.html?event=${esc(ev.id)}">Notify me</a>`)
       : `<a class="btn btn--ghost btn--sm" href="${base}contact.html?event=${esc(ev.id)}">RSVP</a>`;
     const imgs = (ev.images && ev.images.length)
@@ -400,7 +402,7 @@ window.Chamber = (function () {
     const day = ev.day || (ev.date ? String(Number(ev.date.slice(8, 10))) : '');
     const dateUS = ev.date ? `${ev.date.slice(5, 7)}/${ev.date.slice(8, 10)}/${ev.date.slice(2, 4)}` : 'Date TBA';
     const cta = ev.ticketed
-      ? `<a class="btn btn--gold btn--sm" href="${base}checkout.html?type=ticket&event=${esc(ev.id)}">Tickets</a>`
+      ? `${ev.alsoRsvp ? `<a class="btn btn--ghost btn--sm" href="${base}contact.html?event=${esc(ev.id)}">RSVP</a> ` : ''}<a class="btn btn--gold btn--sm" href="${base}checkout.html?type=ticket&event=${esc(ev.id)}">Tickets</a>`
       : `<a class="btn btn--ghost btn--sm" href="${base}contact.html?event=${esc(ev.id)}">RSVP</a>`;
     return `
       <div class="ev-quick" data-ev-detail="${esc(ev.id)}" style="display:flex;align-items:center;gap:14px;padding:11px 14px;border-bottom:1px solid var(--gold-soft,#e6dcbf);cursor:pointer">
@@ -436,7 +438,7 @@ window.Chamber = (function () {
     const sum = (sumRaw && sumRaw.toLowerCase() !== String(ev.venue || '').trim().toLowerCase()
       && sumRaw.toLowerCase() !== String(ev.neighborhood || '').trim().toLowerCase()) ? sumRaw : '';
     const cta = ev.ticketed
-      ? `<a class="btn btn--gold btn--sm" href="${base}checkout.html?type=ticket&event=${esc(ev.id)}">Buy tickets</a>`
+      ? `${ev.alsoRsvp ? `<a class="btn btn--forest btn--sm" href="${base}contact.html?event=${esc(ev.id)}">RSVP</a> ` : ''}<a class="btn btn--gold btn--sm" href="${base}checkout.html?type=ticket&event=${esc(ev.id)}">Buy tickets</a>`
       : `<a class="btn btn--forest btn--sm" href="${base}contact.html?event=${esc(ev.id)}">RSVP</a>`;
     return `
       <article class="evp card--hover" id="${esc(ev.id)}" data-ev-detail="${esc(ev.id)}">

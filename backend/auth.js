@@ -43,13 +43,16 @@ export function verifyPassword(pw, hash, algo) {
   return { ok: false }; // unknown algorithm → force a password reset
 }
 
-export function signSession(user) {
+// Sessions last 8 hours by default; "Keep me signed in" (remember) extends to
+// 30 days so the office doesn't have to log in every time.
+const REMEMBER_MS = 30 * 24 * 3600 * 1000;
+export function signSession(user, remember = false) {
   return jwt.sign(
     { sub: user.email, role: user.role || 'member', mid: user.memberId || user.member_id || null },
-    SECRET, { expiresIn: '8h' });
+    SECRET, { expiresIn: remember ? '30d' : '8h' });
 }
-export function setCookie(res, token) {
-  res.cookie(COOKIE, token, { httpOnly: true, secure: PROD, sameSite: 'lax', maxAge: 8 * 3600 * 1000, path: '/' });
+export function setCookie(res, token, remember = false) {
+  res.cookie(COOKIE, token, { httpOnly: true, secure: PROD, sameSite: 'lax', maxAge: remember ? REMEMBER_MS : 8 * 3600 * 1000, path: '/' });
 }
 export function clearCookie(res) { res.clearCookie(COOKIE, { path: '/' }); }
 

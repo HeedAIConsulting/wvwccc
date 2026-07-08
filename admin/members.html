@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="../css/chamber.css" />
-  <link rel="stylesheet" href="admin.css?v=20260622g" />
+  <link rel="stylesheet" href="admin.css?v=20260708a" />
 </head>
 <body class="admin">
   <div class="admin-shell">
@@ -53,6 +53,24 @@
             <h3 style="margin-right:auto">Member roster</h3>
             <button id="bulkUploadBtn" class="btn btn--gold btn--sm" type="button" title="Upload a CSV of new members (e.g. the monthly ChamberWare export) — adds them all at once">⬆ Bulk upload (CSV)</button>
             <a id="dirPdfBtn" class="btn btn--ghost btn--sm" href="directory-print.html" target="_blank" title="Print-ready member directory — use your browser's Save as PDF">📄 Directory PDF</a>
+            <select id="memberFilter" class="admin-select" title="Show only one designation or leader level — e.g. everyone marked Ambassador, so you can clean the list up">
+              <option value="">All members</option>
+              <optgroup label="Designation">
+                <option value="ls:Leader">Officers (Leader)</option>
+                <option value="ls:Board Member">Board Members</option>
+                <option value="ls:Ambassador">Ambassadors</option>
+                <option value="ls:Past President">Past Presidents</option>
+                <option value="ls:New Member">New Members</option>
+              </optgroup>
+              <optgroup label="Leader level (tier)">
+                <option value="tier:platinum">Platinum</option>
+                <option value="tier:gold">Gold</option>
+                <option value="tier:silver">Silver</option>
+                <option value="tier:bronze">Bronze</option>
+                <option value="tier:supporter">Supporter</option>
+                <option value="tier:friend">Friend</option>
+              </optgroup>
+            </select>
             <input id="memberSearch" class="admin-select" type="search" placeholder="Search members…" style="min-width:240px" />
           </div>
           <p class="sub" style="margin:4px 0 10px">Tier doubles as the <strong>Leader level</strong> (Friend / Supporter / Bronze / Silver / Gold / Platinum) — leader-level members appear on the public <a href="../leaders.html" target="_blank">Chamber Leaders page</a>. Changes to a row apply when you click its <strong>Save</strong> button.</p>
@@ -67,7 +85,7 @@
     </div>
   </div>
   <script src="../js/api-base.js"></script>
-  <script src="admin.js?v=20260707c"></script>
+  <script src="admin.js?v=20260708a"></script>
   <script>Admin.initMembers();</script>
   <script defer src="/js/support.js?v=20260701a"></script>
 </body>

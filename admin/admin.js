@@ -62,6 +62,10 @@ window.Admin = (function () {
     { grp: 'Revenue & contact' },
     { href: 'payments.html', icon: '$', label: 'Pay Log', key: 'payments' },
     { href: 'leads.html', icon: '✉', label: 'Inquiries', key: 'leads' },
+    { grp: 'Live pages' },
+    { href: '../leadership.html', icon: '↗', label: 'Board & Leadership', ext: true },
+    { href: '../leaders.html', icon: '↗', label: 'Chamber Leaders', ext: true },
+    { href: '../members/directory.html', icon: '↗', label: 'Directory', ext: true },
     { grp: 'Help' },
     { href: 'about.html', icon: 'ⓘ', label: 'About / Support', key: 'about' },
   ];
@@ -78,7 +82,7 @@ window.Admin = (function () {
         <nav class="admin-nav">
           ${NAV.map((n) => n.grp
             ? `<div class="grp">${esc(n.grp)}</div>`
-            : `<a href="${n.href}" class="${n.key === active ? 'active' : ''}"><span class="ico">${n.icon}</span>${esc(n.label)}</a>`).join('')}
+            : `<a href="${n.href}" ${n.ext ? 'target="_blank" rel="noopener" title="Opens the live website page in a new tab"' : ''} class="${n.key === active ? 'active' : ''}"><span class="ico">${n.icon}</span>${esc(n.label)}</a>`).join('')}
         </nav>
         <div class="admin-sidebar__foot">
           <a href="../index.html">↗ View live site</a>
@@ -307,8 +311,8 @@ window.Admin = (function () {
       // (Roster is the imported live membership; no import-needed notice.)
       const leads = (await api('/api/admin/leads')).leads.slice(0, 5);
       document.getElementById('recentLeads').innerHTML = leads.length
-        ? leads.map((l) => `<tr><td><a class="name" href="leads.html" title="Open inquiries">${esc(l.name || '—')}</a><div class="sub">${esc(l.email)}</div></td><td>${esc(l.reason || l.kind)}</td><td>${statusPill(l.status)}</td></tr>`).join('')
-        : '<tr><td colspan="3" class="sub">No inquiries yet.</td></tr>';
+        ? leads.map((l) => `<tr><td class="sub" style="white-space:nowrap">${esc(String(l.received || '').slice(0, 10))}</td><td><a class="name" href="leads.html" title="Open inquiries">${esc(l.name || '—')}</a><div class="sub">${esc(l.email)}</div></td><td>${esc(l.reason || l.kind)}</td><td>${statusPill(l.status)}</td></tr>`).join('')
+        : '<tr><td colspan="4" class="sub">No inquiries yet.</td></tr>';
     } catch (e) { showAuthError(e); }
 
     // ── Renewals at a glance + newest members + quick-renew ──
@@ -395,8 +399,13 @@ window.Admin = (function () {
 
     async function load(q) {
       try {
-        const { members } = await api('/api/admin/members' + (q ? `?q=${encodeURIComponent(q)}` : ''));
-        document.getElementById('memberCount').textContent = `${members.length} members`;
+        let { members } = await api('/api/admin/members' + (q ? `?q=${encodeURIComponent(q)}` : ''));
+        // Designation / leader-level filter (e.g. show just the Ambassadors to
+        // clean the list, or just the Gold leaders).
+        const fv = document.getElementById('memberFilter')?.value || '';
+        if (fv.startsWith('ls:')) members = members.filter((m) => (m.leaderStatus || '') === fv.slice(3));
+        if (fv.startsWith('tier:')) members = members.filter((m) => String(m.tier || '').toLowerCase() === fv.slice(5));
+        document.getElementById('memberCount').textContent = `${members.length} members${fv ? ' (filtered)' : ''}`;
         // Chunked render — the full roster is ~25k DOM nodes; paint the first 80
         // instantly and expand on demand. Search still queries the whole roster.
         const CHUNK = 80;
@@ -789,6 +798,7 @@ window.Admin = (function () {
       });
     });
 
+    document.getElementById('memberFilter')?.addEventListener('change', () => load(search.value.trim()));
     let t; search.addEventListener('input', () => { clearTimeout(t); t = setTimeout(() => load(search.value.trim()), 250); });
     // Deep links from the dashboard / other admin pages: ?q= prefills search,
     // ?focus=<memberId> opens that member's editor straight away.
@@ -916,7 +926,7 @@ window.Admin = (function () {
             <td>${esc(l.reason || l.kind || '')}${l.event ? `<div class="sub">Event: ${esc(l.event)}</div>` : ''}${l.company ? '<div class="sub">' + esc(l.company) + '</div>' : ''}</td>
             <td class="sub">${(l.message || '').length > 90 ? `<details><summary style="cursor:pointer">${esc(l.message.slice(0, 90))}…</summary><div style="white-space:pre-wrap;margin-top:6px">${esc(l.message)}</div></details>` : esc(l.message || '')}</td>
             <td>${statusPill(l.status)}</td>
-            <td><select class="admin-select" data-mark><option value="new" ${l.status === 'new' ? 'selected' : ''}>New</option><option value="read" ${l.status === 'read' ? 'selected' : ''}>Read</option><option value="done" ${l.status === 'done' ? 'selected' : ''}>Done</option></select></td>
+            <td style="white-space:nowrap">${key === 'membership' && l.status !== 'done' ? `<button class="btn btn--forest btn--sm" data-approve-member title="Creates their directory listing and emails them a set-your-password link — no manual re-entry">✓ Approve &amp; add</button> ` : ''}<select class="admin-select" data-mark><option value="new" ${l.status === 'new' ? 'selected' : ''}>New</option><option value="read" ${l.status === 'read' ? 'selected' : ''}>Read</option><option value="done" ${l.status === 'done' ? 'selected' : ''}>Done</option></select></td>
           </tr>`).join('')
           : `<tr><td colspan="6" class="sub">${q ? 'No matches in this section.' : 'Nothing here yet.'}</td></tr>`;
         return `
@@ -933,6 +943,21 @@ window.Admin = (function () {
           await api(`/api/admin/leads/${encodeURIComponent(tr.dataset.id)}`, { method: 'PATCH', body: JSON.stringify({ status: e.target.value }) });
           const l = all.find((x) => x.id === tr.dataset.id); if (l) l.status = e.target.value;
           render();
+        });
+        // Membership application → live directory member in one click.
+        tr.querySelector('[data-approve-member]')?.addEventListener('click', async (e) => {
+          const l = all.find((x) => x.id === tr.dataset.id); if (!l) return;
+          const who = l.company || l.name || 'this applicant';
+          if (!confirm(`Approve ${who} and add them to the directory?\n\n• Their listing goes live as a New Member.\n${l.email ? `• A login is created for ${l.email} and they get a set-your-password email.` : '• No email on the application — add one later in Members to create their login.'}`)) return;
+          e.target.disabled = true; e.target.textContent = 'Adding…';
+          try {
+            const r = await api(`/api/admin/leads/${encodeURIComponent(l.id)}/approve-member`, { method: 'POST' });
+            alert(`✓ ${who} is in the directory.\n${r.login || ''}\n\nOpening their row in Members so you can add category, address, and photos.`);
+            location.href = 'members.html?focus=' + encodeURIComponent(r.member.id);
+          } catch (err) {
+            e.target.disabled = false; e.target.textContent = '✓ Approve & add';
+            alert('Could not approve: ' + (err.message || 'error'));
+          }
         });
       });
     }
@@ -1000,6 +1025,20 @@ window.Admin = (function () {
         if (!url || url === 'https://') return;
         if (!/^(https?:|mailto:|tel:|\/)/i.test(url)) url = 'https://' + url;
         focusExec(() => document.execCommand('createLink', false, url));
+      });
+      // 🖼 Insert an image inline where the cursor is — breaks up long text.
+      richBar.querySelector('[data-rt-img]')?.addEventListener('change', (e) => {
+        const f = e.target.files[0]; if (!f) return;
+        const r = new FileReader();
+        r.onload = async () => {
+          try {
+            const up = await api('/api/me/asset', { method: 'POST', body: JSON.stringify({ kind: 'photo', dataUrl: r.result }) });
+            rich.focus();
+            document.execCommand('insertHTML', false, `<img src="${esc(up.url)}" alt="" style="max-width:100%"><br>`);
+          } catch (err) { alert('Image upload failed (PNG/JPG, ≤2.5 MB).'); }
+          e.target.value = '';
+        };
+        r.readAsDataURL(f);
       });
     }
     const plainFromRich = () => (rich ? rich.innerText.replace(/ /g, ' ').trim() : '');
@@ -1168,7 +1207,7 @@ window.Admin = (function () {
       }
       form.ticketCap.value = ev && ev.ticketCap != null ? ev.ticketCap : '';
       form.rsvpCutoff.value = v('rsvpCutoff'); form.status.value = v('status', 'approved');
-      form.ctaKind.value = (ev && ev.ticketed) ? 'buy' : 'rsvp';
+      form.ctaKind.value = (ev && ev.ticketed) ? (ev.alsoRsvp ? 'both' : 'buy') : 'rsvp';
       form.featured.checked = !!(ev && ev.featured);
       form.showOnCalendar.checked = ev ? (ev.showOnCalendar !== false) : true;
       form.homeOrder.value = ev && ev.homeOrder != null ? ev.homeOrder : '';
@@ -1279,10 +1318,17 @@ window.Admin = (function () {
         <td>${e.date ? esc((e.month || '') + ' ' + (e.day || '') + (e.date.slice(0, 4) !== String(new Date().getFullYear()) ? ' ' + e.date.slice(0, 4) : '')) : '<span class="pill pill--pending">TBA</span>'}<div class="sub">${esc(e.time || '')}</div></td>
         <td>${esc(e.venue || e.neighborhood || '')}</td>
         <td>${statusPill(e.status || 'approved')}${e.featured ? ` <span class="pill pill--approved">home${Number.isFinite(Number(e.homeOrder)) && e.homeOrder ? ' #' + e.homeOrder : ''}</span>` : ''}${e.ticketed ? ' 🎟' : ''}</td>
-        <td style="white-space:nowrap"><button class="btn btn--ghost btn--sm" data-activity title="RSVPs and payments for this event">RSVPs / $</button> <button class="btn btn--ghost btn--sm" data-edit>Edit</button> <button class="btn btn--ghost btn--sm" data-del>Delete</button></td>
+        <td style="white-space:nowrap">${(e.status || 'approved') !== 'approved' ? '<button class="btn btn--forest btn--sm" data-publish title="Make this event live on the website right now">✓ Publish</button> ' : ''}<button class="btn btn--ghost btn--sm" data-activity title="RSVPs and payments for this event">RSVPs / $</button> <button class="btn btn--ghost btn--sm" data-edit>Edit</button> <button class="btn btn--ghost btn--sm" data-del>Delete</button></td>
       </tr>`).join('') : `<tr><td colspan="5" class="sub">${q ? 'No events match that search.' : (evTab === 'past' ? 'No past events.' : 'No upcoming events. Create one above.')}</td></tr>`;
       rowsEl.querySelectorAll('tr[data-id]').forEach((tr) => {
         const id = tr.dataset.id;
+        // One-click approve for pending/draft events (per Felicia — her ribbon
+        // cutting sat in pending with no obvious way to approve it).
+        tr.querySelector('[data-publish]')?.addEventListener('click', async (e2) => {
+          e2.target.disabled = true; e2.target.textContent = 'Publishing…';
+          try { await api('/api/admin/events/' + encodeURIComponent(id), { method: 'PATCH', body: JSON.stringify({ status: 'approved' }) }); load(); }
+          catch (err) { e2.target.disabled = false; e2.target.textContent = '✓ Publish'; alert('Could not publish: ' + (err.message || 'error')); }
+        });
         tr.querySelector('[data-activity]').addEventListener('click', () => openEventActivity(allEvents.find((x) => x.id === id)));
         tr.querySelector('[data-edit]').addEventListener('click', () => { fillForm(allEvents.find((x) => x.id === id)); window.scrollTo({ top: 0, behavior: 'smooth' }); });
         tr.querySelector('[data-del]').addEventListener('click', async () => { if (!confirm('Delete this event?')) return; await api('/api/admin/events/' + encodeURIComponent(id), { method: 'DELETE' }); load(); });
@@ -1311,7 +1357,8 @@ window.Admin = (function () {
         // Plain text (cards/receipts/AI) + formatted HTML (public detail view).
         description: plainFromRich().slice(0, 8000),
         descriptionHtml: rich ? rich.innerHTML : '',
-        ticketed: form.ctaKind.value === 'buy', ticketCap: form.ticketCap.value ? Number(form.ticketCap.value) : null,
+        ticketed: form.ctaKind.value !== 'rsvp', alsoRsvp: form.ctaKind.value === 'both',
+        ticketCap: form.ticketCap.value ? Number(form.ticketCap.value) : null,
         rsvpCutoff: form.rsvpCutoff.value || null, featured: form.featured.checked, status: form.status.value,
         showOnCalendar: form.showOnCalendar.checked,
         homeOrder: form.homeOrder.value === '' ? null : Number(form.homeOrder.value),

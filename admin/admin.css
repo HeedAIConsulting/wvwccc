@@ -28,7 +28,7 @@ body.admin { background: var(--cream-deep); }
 
 /* ── Main ── */
 .admin-main { padding: 0 0 var(--s-8); }
-.admin-topbar { background: var(--paper); border-bottom: 1px solid var(--line); padding: var(--s-4) var(--s-6); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 10; }
+.admin-topbar { background: var(--paper); border-bottom: 1px solid var(--line); padding: var(--s-4) var(--s-6); display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; position: sticky; top: 0; z-index: 10; }
 .admin-topbar h1 { font-size: 1.5rem; margin: 0; }
 .admin-content { padding: var(--s-6); }
 .admin-notice { background: var(--gold-soft); color: var(--gold-deep); border-left: 3px solid var(--gold); padding: 10px 14px; border-radius: 0 8px 8px 0; font-size: .88rem; margin-bottom: var(--s-5); }

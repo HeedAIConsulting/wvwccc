@@ -31,7 +31,7 @@ const STATUS_OPTS = ['approved', 'pending', 'suspended', 'inactive'];
 
 // ── Auth ────────────────────────────────────────────────────
 router.post('/auth/login', async (req, res) => {
-  const { email, password } = req.body || {};
+  const { email, password, remember } = req.body || {};
   if (!email || !password) return res.status(400).json({ error: 'email and password required' });
   try {
     const user = await users.getUserByEmail(email);
@@ -46,7 +46,8 @@ router.post('/auth/login', async (req, res) => {
     if (rehash) { try { await users.updatePassword(email, rehash); } catch (e) { console.error('rehash failed', e.message); } }
     users.setLastLogin(email).catch(() => {});
     user.role = auth.effectiveRole(user.email, user.role);   // elevate super-admins
-    auth.setCookie(res, auth.signSession(user));
+    // "Keep me signed in" → 30-day session instead of 8 hours.
+    auth.setCookie(res, auth.signSession(user, !!remember), !!remember);
     // Members keep their existing password — we do NOT force a change on login
     // (per Chamber preference). Voluntary change is available on the account page.
     res.json({ ok: true, role: user.role });
@@ -690,6 +691,9 @@ function buildEvent(b, existing = {}) {
     // When present the public site renders this instead of plain `description`.
     descriptionHtml: b.descriptionHtml !== undefined ? sanitizeRichHtml(b.descriptionHtml) : (existing.descriptionHtml ?? ''),
     ticketed: b.ticketed !== undefined ? !!b.ticketed : (existing.ticketed ?? false),
+    // Show BOTH buttons (RSVP + Buy tickets) — e.g. members RSVP free while
+    // guests buy a ticket. Only meaningful when ticketed is true.
+    alsoRsvp: b.alsoRsvp !== undefined ? !!b.alsoRsvp : (existing.alsoRsvp ?? false),
     ticketCap: b.ticketCap ?? existing.ticketCap ?? null,
     rsvpCutoff: b.rsvpCutoff ?? existing.rsvpCutoff ?? null,
     featured: b.featured !== undefined ? !!b.featured : (existing.featured ?? false),
@@ -1371,6 +1375,16 @@ router.post('/contact', async (req, res) => {
     reason: b.reason || b.kind || '', event: b.event || '', message: b.message || '',
     status: 'new', received: new Date().toISOString(),
   };
+  // Membership applications carry extra fields (business type, employee count,
+  // level of interest) — keep them in the message so the office sees the full
+  // application and one-click approval loses nothing.
+  if (lead.kind === 'membership-application' && !lead.message) {
+    lead.message = [
+      b.businessType ? `Business type: ${String(b.businessType).slice(0, 120)}` : '',
+      b.employees ? `Employees: ${String(b.employees).slice(0, 20)}` : '',
+      b.level ? `Level of interest: ${String(b.level).slice(0, 80)}` : '',
+    ].filter(Boolean).join('\n');
+  }
   // If the lead references an event by raw id (older pages / direct API), resolve
   // it to the event title so the admin panel + office email are self-explanatory.
   if (lead.event && /^(le|ev)-/.test(lead.event)) {
@@ -1391,16 +1405,23 @@ router.post('/contact', async (req, res) => {
   try {
     await repo.addLead(lead);
     res.json({ ok: true });
-    // Notify the manager (group) or the Chamber office — best-effort, after responding.
-    const body = `New ${lead.reason || lead.kind} from the website\n\n`
-      + `Name: ${lead.name || '—'}\nEmail: ${lead.email}\nPhone: ${lead.phone || '—'}\n`
-      + `Company: ${lead.company || '—'}\nEvent: ${lead.event || '—'}${groupName ? `\nGroup: ${groupName}` : ''}\n\nMessage:\n${lead.message || '—'}\n`;
-    email.send({
-      to: notifyTo,
-      replyTo: lead.email,
-      subject: `${groupName ? `[${groupName}] ` : ''}Website inquiry: ${lead.reason || lead.kind}${lead.company ? ' — ' + lead.company : ''}`,
-      text: body,
-    }).catch((e) => console.error('notify email failed', e));
+    // Inquiry notification emails to the OFFICE are off by default (per Felicia,
+    // Jul 2026 — she only wants payment receipts by email; every inquiry is
+    // visible under Admin → Inquiries). Re-enable with INQUIRY_EMAILS=on.
+    // Group inquiries still notify that group's own manager either way.
+    const officeWantsEmail = String(process.env.INQUIRY_EMAILS || '').toLowerCase() === 'on';
+    const isGroupManager = notifyTo !== email.notifyTo();
+    if (officeWantsEmail || isGroupManager) {
+      const body = `New ${lead.reason || lead.kind} from the website\n\n`
+        + `Name: ${lead.name || '—'}\nEmail: ${lead.email}\nPhone: ${lead.phone || '—'}\n`
+        + `Company: ${lead.company || '—'}\nEvent: ${lead.event || '—'}${groupName ? `\nGroup: ${groupName}` : ''}\n\nMessage:\n${lead.message || '—'}\n`;
+      email.send({
+        to: notifyTo,
+        replyTo: lead.email,
+        subject: `${groupName ? `[${groupName}] ` : ''}Website inquiry: ${lead.reason || lead.kind}${lead.company ? ' — ' + lead.company : ''}`,
+        text: body,
+      }).catch((e) => console.error('notify email failed', e));
+    }
   } catch (e) { console.error('lead save failed', e); res.status(500).json({ ok: false, error: 'could not send' }); }
 });
 
@@ -1655,13 +1676,15 @@ async function attachLoginAndInvite(memberId, emailAddr, displayName, businessNa
   const token = auth.signResetToken(emailAddr);
   const base = process.env.SITE_URL || `${req.protocol}://${req.get('host')}`;
   const link = `${base}/auth/reset.html?token=${encodeURIComponent(token)}`;
+  // Login-focused copy (not a "welcome" — the office sends its own welcome
+  // letter when members join; this email is purely their website login).
   const r = await email.send({
     to: emailAddr,
-    subject: 'Welcome to the West Valley · Warner Center Chamber — set up your account',
-    text: `Welcome${displayName ? ', ' + displayName : ''}!\n\nYour Chamber member listing for ${businessName} is set up. Create your password to manage your listing:\n${link}\n\n(This link expires in 1 hour — if it expires, just use "Forgot password" on the sign-in page.)\n\n— West Valley · Warner Center Chamber of Commerce`,
-    html: `<p>Welcome${displayName ? ', ' + displayName : ''}!</p><p>Your Chamber member listing for <strong>${businessName}</strong> is set up. Create your password to manage your listing:</p><p><a href="${link}">Set up your account</a> (link expires in 1 hour — otherwise use “Forgot password” on the sign-in page).</p><p>— West Valley · Warner Center Chamber of Commerce</p>`,
+    subject: 'Your member login for the Chamber website — set your password',
+    text: `Hello${displayName ? ' ' + displayName : ''},\n\nYour member listing for ${businessName} is live on the West Valley · Warner Center Chamber website, and a member login has been created for this email address.\n\nSet your password here to manage your listing (photos, description, offers, and more):\n${link}\n\n(The link expires in 1 hour — if it expires, just use "Forgot password" on the sign-in page at ${base}/auth/login.html.)\n\n— West Valley · Warner Center Chamber of Commerce\n(818) 347-4737`,
+    html: `<p>Hello${displayName ? ' ' + displayName : ''},</p><p>Your member listing for <strong>${businessName}</strong> is live on the West Valley · Warner Center Chamber website, and a member login has been created for this email address.</p><p><a href="${link}">Set your password</a> to manage your listing — photos, description, offers, and more.</p><p>(The link expires in 1 hour — if it expires, just use “Forgot password” on the <a href="${base}/auth/login.html">sign-in page</a>.)</p><p>— West Valley · Warner Center Chamber of Commerce<br>(818) 347-4737</p>`,
   });
-  return r && r.ok ? 'login created · welcome email sent' : 'login created · email pending (' + ((r && r.error) || 'not configured') + ')';
+  return r && r.ok ? 'login created · set-password email sent' : 'login created · email pending (' + ((r && r.error) || 'not configured') + ')';
 }
 router.post('/admin/members/import', requireAdmin, async (req, res) => {
   const rows = Array.isArray(req.body && req.body.members) ? req.body.members.slice(0, 500) : [];
@@ -1669,7 +1692,17 @@ router.post('/admin/members/import', requireAdmin, async (req, res) => {
   if (!rows.length) return res.status(400).json({ error: 'No rows to import.' });
   try {
     const { members: existing } = await loadMembersFull();
-    const bySlug = new Map(existing.map((m) => [m.slug || slugify(m.name), m]));
+    // Several members can share one company name (e.g. multiple New York Life
+    // agents). Group by slug and only treat a row as "the same member" when the
+    // CONTACT agrees too — same last name, or the same login email. A same-name
+    // company with a different rep becomes a NEW record; nothing gets overridden.
+    const bySlug = new Map();
+    for (const m of existing) {
+      const s = m.slug || slugify(m.name);
+      if (!bySlug.has(s)) bySlug.set(s, []);
+      bySlug.get(s).push(m);
+    }
+    const lastWord = (s) => { const p = String(s || '').trim().toLowerCase().split(/\s+/); return p[p.length - 1] || ''; };
     const userList = await users.listUsers().catch(() => []);
     const hasLogin = new Set((userList || []).filter((u) => u.memberId).map((u) => u.memberId));
     const results = [];
@@ -1680,7 +1713,12 @@ router.post('/admin/members/import', requireAdmin, async (req, res) => {
       const emailAddr = String(raw.email || '').trim().toLowerCase().slice(0, 160);
       const emailOk = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(emailAddr);
       const slug = slugify(name);
-      const found = bySlug.get(slug);
+      const candidates = bySlug.get(slug) || [];
+      const found = candidates.find((m) =>
+        (emailOk && String(m.email || '').toLowerCase() === emailAddr) ||
+        (contactName && lastWord(m.contactName) && lastWord(m.contactName) === lastWord(contactName)) ||
+        (!contactName && !emailOk) ||
+        (candidates.length === 1 && !String(m.contactName || '').trim()));
       try {
         if (found) {
           // Existing member: fill only blank fields, never overwrite live data.
@@ -1702,7 +1740,8 @@ router.post('/admin/members/import', requireAdmin, async (req, res) => {
         } else {
           const id = 'm-' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36);
           const m = {
-            id, slug: slug || id, name,
+            // Same company name already in the roster (different rep) → unique slug, separate record.
+            id, slug: candidates.length ? `${slug}-${id.slice(-4)}` : (slug || id), name,
             category: String(raw.category || 'Member').slice(0, 60),
             group: '', tier: 'member',
             neighborhood: String(raw.city || '').slice(0, 80),
@@ -1719,8 +1758,9 @@ router.post('/admin/members/import', requireAdmin, async (req, res) => {
             paymentType: 'offline', addedManually: true, leaderStatus: 'New Member',
           };
           await repo.addMember(m);
-          bySlug.set(m.slug, m);
-          let detail = 'created';
+          if (!bySlug.has(slug)) bySlug.set(slug, []);
+          bySlug.get(slug).push(m);
+          let detail = candidates.length ? 'created as a separate record (same company name, different contact)' : 'created';
           if (emailOk) { detail += ' · ' + await attachLoginAndInvite(m.id, emailAddr, contactName, name, req, sendInvites); hasLogin.add(m.id); }
           results.push({ name, action: 'added', detail });
         }
@@ -1732,6 +1772,60 @@ router.post('/admin/members/import', requireAdmin, async (req, res) => {
     const count = (a) => results.filter((r) => r.action === a).length;
     res.json({ ok: true, results, summary: { added: count('added'), matched: count('matched existing'), skipped: count('skipped'), errors: count('error') } });
   } catch (e) { console.error('bulk import', e); res.status(500).json({ error: 'import failed' }); }
+});
+
+// One-click membership approval: turn a membership-application inquiry into a
+// live directory member (+ login & set-password invite), no manual re-entry.
+router.post('/admin/leads/:id/approve-member', requireAdmin, async (req, res) => {
+  try {
+    const lead = (await repo.listLeads()).find((l) => l.id === req.params.id);
+    if (!lead) return res.status(404).json({ error: 'inquiry not found' });
+    const name = String(lead.company || lead.name || '').trim().slice(0, 160);
+    if (!name) return res.status(400).json({ error: 'This inquiry has no company or name to create a member from.' });
+    // Same-name guard: if this exact company already exists, don't double-add.
+    const { members } = await loadMembersFull();
+    const slug = slugify(name);
+    const dupe = members.find((m) => (m.slug || slugify(m.name)) === slug && String(m.contactName || '').toLowerCase() === String(lead.name || '').toLowerCase());
+    if (dupe) return res.status(409).json({ error: `"${name}" with contact ${lead.name} is already in the directory.` });
+    const id = 'm-' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36);
+    const emailOk = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(lead.email || ''));
+    const m = {
+      id, slug: members.some((x) => (x.slug || slugify(x.name)) === slug) ? `${slug}-${id.slice(-4)}` : (slug || id),
+      name, category: 'Member', group: '', tier: 'member',
+      neighborhood: '', contactName: String(lead.name || '').slice(0, 120),
+      email: emailOk ? String(lead.email).toLowerCase() : '', phone: String(lead.phone || '').slice(0, 40),
+      address: '', city: '', state: '', zip: '', website: '', tagline: '',
+      description: '', joinDate: new Date().toISOString().slice(0, 10),
+      tags: [], status: 'approved', seal: (name[0] || '?').toUpperCase(),
+      paymentType: 'offline', addedManually: true, leaderStatus: 'New Member',
+    };
+    await repo.addMember(m);
+    let login = 'no email on the application — add one in Members to create their login';
+    if (emailOk) {
+      try { login = await attachLoginAndInvite(m.id, m.email, m.contactName, m.name, req, true); }
+      catch (e) { console.error('approve-member login', e); login = 'member added; login step failed'; }
+    }
+    try { await repo.setLeadStatus(lead.id, 'done'); } catch (e) { /* non-fatal */ }
+    res.json({ ok: true, member: m, login });
+  } catch (e) { console.error('approve-member', e); res.status(500).json({ error: 'could not approve' }); }
+});
+
+// Add-only merge of the committed event seed into the live store — brings
+// newly imported LEGACY events (pre-June-2026 history w/ sponsor text) into
+// production WITHOUT touching events the office has created or edited.
+// (Unlike /admin/events/reseed, which wipes everything.)
+router.post('/admin/events/seed-merge', requireAdmin, async (_req, res) => {
+  try {
+    await ensureEventsSeeded();
+    const existing = new Set((await repo.listEventsStore()).map((e) => e.id));
+    let added = 0;
+    for (const e of readSeedEvents()) {
+      if (existing.has(e.id)) continue;
+      await repo.upsertEvent(buildEvent(e, e));
+      added++;
+    }
+    res.json({ ok: true, added, skippedExisting: existing.size });
+  } catch (e) { console.error('seed-merge', e); res.status(500).json({ error: 'merge failed' }); }
 });
 
 router.get('/admin/leads', requireAdmin, async (_req, res) => {
