@@ -1737,11 +1737,17 @@ window.Chamber = (function () {
     const person = m.contactName || m.name;
     // "Page Image" (headshot) leads on leadership pages; the directory logo is
     // only the fallback — members pick each image separately in their portal.
-    const face = m.pageImage || m.logo;
+    // opts.noLogo (Leaders page) skips the logo fallback so a company mark is
+    // never squashed into the round face slot.
+    const face = m.pageImage || (opts.noLogo ? '' : m.logo);
     const size = opts.size || 128;
-    const pic = face
-      ? `<img class="board-face" src="${esc(face)}" alt="${esc(person)}" loading="lazy" style="width:${size}px;height:${size}px;border-radius:50%;object-fit:cover;box-shadow:0 0 0 3px #fff,0 0 0 5px var(--gold,#C9A227),0 10px 24px rgba(18,36,26,.16)">`
-      : `<div aria-hidden="true" class="board-face" style="width:${size}px;height:${size}px;border-radius:50%;background:linear-gradient(140deg,var(--green-deep,#1E5631),#12301c);color:var(--gold-bright,#e3c55f);display:flex;align-items:center;justify-content:center;font-family:var(--display);font-size:${Math.round(size / 2.5)}px;margin:0 auto;box-shadow:0 0 0 3px #fff,0 0 0 5px var(--gold-soft,#e6dcbf),0 10px 24px rgba(18,36,26,.12)">${esc((person || '?')[0].toUpperCase())}</div>`;
+    // The gold initial medallion sits UNDERNEATH the photo — if the photo ever
+    // fails to load it removes itself and the medallion shows instead of a
+    // broken white circle (seen once mid-deploy, Jul 2026).
+    const medallion = `<div aria-hidden="true" class="board-face" style="position:absolute;inset:0;border-radius:50%;background:linear-gradient(140deg,var(--green-deep,#1E5631),#12301c);color:var(--gold-bright,#e3c55f);display:flex;align-items:center;justify-content:center;font-family:var(--display);font-size:${Math.round(size / 2.5)}px;box-shadow:0 0 0 3px #fff,0 0 0 5px var(--gold-soft,#e6dcbf),0 10px 24px rgba(18,36,26,.12)">${esc((person || '?')[0].toUpperCase())}</div>`;
+    const pic = `<div style="position:relative;width:${size}px;height:${size}px;margin:0 auto">${medallion}${face
+      ? `<img class="board-face" src="${esc(face)}" alt="${esc(person)}" loading="lazy" onerror="this.remove()" style="position:absolute;inset:0;width:${size}px;height:${size}px;border-radius:50%;object-fit:cover;box-shadow:0 0 0 3px #fff,0 0 0 5px var(--gold,#C9A227),0 10px 24px rgba(18,36,26,.16)">`
+      : ''}</div>`;
     const title = m.boardTitle || m.leaderStatus;
     return `
       <article style="text-align:center">
@@ -1814,6 +1820,7 @@ window.Chamber = (function () {
   // (pageImage) or logo, person + company, linked to the member profile.
   async function initLeaders(depth = 0) {
     const el = document.getElementById('leadersGrid'); if (!el) return;
+    ensureBoardCss();
     let members = [];
     try { members = (await getJSON(ChamberAPI.url('/api/members'))).members || []; }
     catch (e) { el.innerHTML = '<p class="notice">Could not load the roster right now.</p>'; return; }
@@ -1824,14 +1831,35 @@ window.Chamber = (function () {
       el.innerHTML = '<p class="notice">Our Chamber Leaders roster is being finalized — check back soon. (Admins: set a member\'s leader level under Members → Tier.)</p>';
       return;
     }
+    // Leaders are BUSINESSES: show a headshot circle only when the member set a
+    // Page Image; otherwise their logo in a clean contained tile (never crammed
+    // into a circle), else the initial medallion.
+    const base = depth ? '../' : '';
+    const leaderCell = (m, levelLabel) => {
+      const slug = m.slug || m.id;
+      const media = m.pageImage
+        ? `<div style="position:relative;width:112px;height:112px;margin:0 auto"><img class="board-face" src="${esc(m.pageImage)}" alt="${esc(m.contactName || m.name)}" loading="lazy" onerror="this.remove()" style="width:112px;height:112px;border-radius:50%;object-fit:cover;box-shadow:0 0 0 3px #fff,0 0 0 5px var(--gold,#C9A227),0 8px 20px rgba(18,36,26,.14)"></div>`
+        : (m.leaderLogo || m.logo)
+          ? `<div class="board-face" style="width:132px;height:96px;margin:0 auto;background:#fff;border:1px solid var(--gold-soft,#e6dcbf);border-radius:12px;display:flex;align-items:center;justify-content:center;padding:8px;box-shadow:0 8px 20px rgba(18,36,26,.08)"><img src="${esc(m.leaderLogo || m.logo)}" alt="${esc(m.name)} logo" loading="lazy" onerror="this.parentNode.textContent='${esc((m.name || '?')[0].toUpperCase())}'" style="max-width:100%;max-height:100%;object-fit:contain"></div>`
+          : `<div aria-hidden="true" class="board-face" style="width:112px;height:112px;border-radius:50%;background:linear-gradient(140deg,var(--green-deep,#1E5631),#12301c);color:var(--gold-bright,#e3c55f);display:flex;align-items:center;justify-content:center;font-family:var(--display);font-size:44px;margin:0 auto;box-shadow:0 0 0 3px #fff,0 0 0 5px var(--gold-soft,#e6dcbf)">${esc((m.name || '?')[0].toUpperCase())}</div>`;
+      return `
+        <article style="text-align:center">
+          <a href="${base}members/${esc(slug)}" class="board-card">
+            ${media}
+            <div style="font-family:var(--display);font-size:1.08rem;margin-top:14px;color:var(--green-ink,#1b3326)">${esc(m.name)}</div>
+            <div style="color:var(--gold-deep,#8a6d1a);font-weight:700;font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;margin-top:4px">${esc(levelLabel)} Leader</div>
+            ${m.contactName ? `<div class="member-tile__meta" style="margin-top:3px">${esc(m.contactName)}</div>` : ''}
+          </a>
+        </article>`;
+    };
     const groups = {};
     leaders.forEach((m) => { const t = String(m.tier).toLowerCase(); (groups[t] = groups[t] || []).push(m); });
     el.innerHTML = LEVELS.filter((t) => groups[t]).map((t) => `
       <div style="margin-bottom:var(--s-7)">
-        <h2 style="text-align:center;margin-bottom:var(--s-5)">${LABEL[t]} Leaders</h2>
+        <div class="board-rule"><h2 style="margin:0;white-space:nowrap">${LABEL[t]} Leaders</h2></div>
         <div class="grid grid-4" style="gap:var(--s-6)">${groups[t]
           .sort((a, b) => String(a.name).localeCompare(String(b.name)))
-          .map((m) => boardCard({ ...m, leaderStatus: LABEL[t] + ' Leader' }, depth)).join('')}</div>
+          .map((m) => leaderCell(m, LABEL[t])).join('')}</div>
       </div>`).join('');
   }
 

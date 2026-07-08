@@ -930,6 +930,36 @@ router.delete('/admin/groups/:id', requireAdmin, async (req, res) => {
   catch (e) { res.status(500).json({ error: 'delete failed' }); }
 });
 
+// 📣 Email every active member of a group (meeting reminders, agendas,
+// announcements). Roster entries added from the directory carry only a
+// memberId — their email resolves from the member roster/login at send time.
+router.post('/admin/groups/:id/announce', requireAdmin, async (req, res) => {
+  const subject = String((req.body && req.body.subject) || '').trim().slice(0, 160);
+  const message = String((req.body && req.body.message) || '').trim().slice(0, 5000);
+  if (!subject || !message) return res.status(400).json({ error: 'Subject and message are required.' });
+  try {
+    const g = (await loadGroups()).find((x) => x.id === req.params.id || x.slug === req.params.id);
+    if (!g) return res.status(404).json({ error: 'group not found' });
+    const { members: dir } = await loadMembersFull();
+    const emailById = new Map(dir.filter((m) => m.email).map((m) => [m.id, m.email]));
+    const roster = (g.members || []).filter((m) => m.status !== 'pending');
+    const targets = new Map(); // email → name (dedup)
+    for (const m of roster) {
+      const addr = String(m.email || emailById.get(m.memberId) || '').toLowerCase();
+      if (/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(addr) && !targets.has(addr)) targets.set(addr, m.name || '');
+    }
+    const groupUrl = `${process.env.SITE_URL || `${req.protocol}://${req.get('host')}`}/groups/${g.slug}`;
+    const text = `${message}\n\n—\n${g.name} · West Valley · Warner Center Chamber of Commerce\n${g.meetingSchedule ? `Meets: ${g.meetingSchedule}\n` : ''}${groupUrl}`;
+    let sent = 0;
+    for (const [addr] of targets) {
+      // Individually addressed (never expose the roster in To/CC); best-effort per recipient.
+      const r = await email.send({ to: addr, subject: `[${g.name}] ${subject}`, text, replyTo: (g.manager && g.manager.email) || undefined }).catch(() => null);
+      if (r && r.ok) sent++;
+    }
+    res.json({ ok: true, sent, skipped: roster.length - targets.size, total: roster.length });
+  } catch (e) { console.error('group announce', e); res.status(500).json({ error: 'could not send' }); }
+});
+
 // ── Static content pages (migrated legacy IA) ──
 let _pages = null;
 function readPages() {
@@ -1597,6 +1627,9 @@ router.patch('/admin/members/:id/profile', requireAdmin, async (req, res) => {
     const exists = (await loadMembersFull()).members.some((m) => m.id === id);
     if (!exists) return res.status(404).json({ error: 'not found' });
     const patch = sanitizeProfile(req.body || {});
+    // boardTitle is ADMIN-ONLY (members must not grant themselves an office) —
+    // accepted here, never in the member self-edit sanitizer.
+    if (req.body && req.body.boardTitle !== undefined) patch.boardTitle = String(req.body.boardTitle || '').slice(0, 80);
     await repo.setMemberEdit(id, patch);
     res.json({ ok: true, id, applied: patch });
   } catch (e) { console.error(e); res.status(500).json({ error: 'update failed' }); }

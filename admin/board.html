@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex" />
+  <title>Board &amp; Officers — WVWCCC Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="../css/chamber.css" />
+  <link rel="stylesheet" href="admin.css?v=20260708a" />
+</head>
+<body class="admin">
+  <div class="admin-shell">
+    <aside class="admin-sidebar" data-admin-nav></aside>
+    <div class="admin-main">
+      <div class="admin-topbar"><h1>Board &amp; Officers</h1><a class="btn btn--gold btn--sm" href="../leadership.html" target="_blank">View live page ↗</a></div>
+      <div class="admin-content">
+        <p id="adminError" class="admin-notice" hidden></p>
+        <p class="admin-notice">Everything on the public <strong>Board &amp; Leadership</strong> page is managed here — who's on it, their office/title, and their photo. Changes apply when you click a row's <strong>Save</strong>.</p>
+
+        <div class="panel">
+          <div class="panel__head"><h3>Add someone to the board</h3></div>
+          <div style="padding:0 16px 16px">
+            <div class="field" style="position:relative;max-width:520px">
+              <label>Search the directory <span class="sub">(click a result to add them as a Board Member)</span></label>
+              <input id="bmSearch" autocomplete="off" placeholder="Business or person name…" />
+              <div id="bmSuggest" class="sp-suggest" hidden></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="bmSections"><p class="sub" style="padding:8px 4px">Loading the board…</p></div>
+      </div>
+    </div>
+  </div>
+  <script src="../js/api-base.js"></script>
+  <script src="admin.js?v=20260708b"></script>
+  <script>Admin.initBoardManager();</script>
+  <script defer src="/js/support.js?v=20260701a"></script>
+</body>
+</html>

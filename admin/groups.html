@@ -17,9 +17,21 @@
       <div class="admin-topbar"><h1>Groups &amp; Networks</h1></div>
       <div class="admin-content">
 
-        <div class="admin-notice">Groups appear at <strong>/groups/</strong> on the site. Each group page shows its banner photo, description, meeting schedule &amp; notes, photos, the member roster, matching upcoming events, and a "Join this group" form. Join requests appear as <strong>pending members</strong> on the group below for you to approve.</div>
+        <div class="admin-notice">Groups appear at <strong>/groups/</strong> on the site. Click <strong>Manage</strong> on any group to approve join requests, add members, email the roster, and edit the page.</div>
 
+        <!-- Groups list FIRST (per the office — the groups were buried under the form) -->
         <div class="panel">
+          <div class="panel__head" style="display:flex;justify-content:space-between;align-items:center">
+            <h3>All groups</h3>
+            <button type="button" class="btn btn--gold btn--sm" id="grpNewBtn">+ New group</button>
+          </div>
+          <table class="admin-table">
+            <thead><tr><th>Group</th><th>Members</th><th>Meets</th><th>Status</th><th></th></tr></thead>
+            <tbody id="groupRows"></tbody>
+          </table>
+        </div>
+
+        <div class="panel" id="grpEditorPanel">
           <div class="panel__head"><h3 id="grpFormTitle">New group</h3></div>
           <form id="groupForm" class="admin-form" style="padding:16px">
             <input type="hidden" name="id" />
@@ -55,7 +67,10 @@
             <div id="grpPhotoList" style="margin-top:10px;display:flex;flex-direction:column;gap:8px"></div>
 
             <div style="margin-top:18px;border-top:1px solid var(--line,#eee);padding-top:14px">
-              <h4 style="margin:0 0 8px">Members <span class="sub" id="grpMemberCount"></span></h4>
+              <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px">
+                <h4 style="margin:0">Members <span class="sub" id="grpMemberCount"></span></h4>
+                <button type="button" class="btn btn--gold btn--sm" id="grpAnnounce" title="Email everyone in this group — meeting reminders, agendas, announcements">📣 Email group members</button>
+              </div>
               <div id="grpPending"></div>
               <div id="grpRoster"></div>
               <div class="field" style="position:relative;margin:12px 0 0">
@@ -83,19 +98,11 @@
           </form>
         </div>
 
-        <div class="panel">
-          <div class="panel__head"><h3>All groups</h3></div>
-          <table class="admin-table">
-            <thead><tr><th>Group</th><th>Meets</th><th>Status</th><th></th></tr></thead>
-            <tbody id="groupRows"></tbody>
-          </table>
-        </div>
-
       </div>
     </div>
   </div>
   <script src="../js/api-base.js"></script>
-  <script src="admin.js?v=20260708a"></script>
+  <script src="admin.js?v=20260708b"></script>
   <script>Admin.initGroups();</script>
   <script defer src="/js/support.js?v=20260701a"></script>
 </body>

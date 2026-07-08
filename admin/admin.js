@@ -49,6 +49,7 @@ window.Admin = (function () {
     { grp: 'Manage' },
     { href: 'index.html', icon: '▦', label: 'Dashboard', key: 'dashboard' },
     { href: 'members.html', icon: '◉', label: 'Members', key: 'members' },
+    { href: 'board.html', icon: '★', label: 'Board & Officers', key: 'board' },
     { href: 'renewals.html', icon: '↻', label: 'Renewals', key: 'renewals' },
     { href: 'approvals.html', icon: '✓', label: 'Approvals', key: 'approvals' },
     { href: 'events.html', icon: '◆', label: 'Events', key: 'events' },
@@ -202,6 +203,8 @@ window.Admin = (function () {
     { id: 'directory-pdf', t: 'Create a PDF of the member directory', kw: 'directory pdf print export download roster book', href: 'members.html', sel: '#dirPdfBtn', tip: 'Click "Directory PDF" for a print-ready directory — use your browser\'s Save as PDF.' },
     { id: 'bulk-upload', t: 'Upload new members in bulk (CSV)', kw: 'bulk upload csv import new members monthly export chamberware many', href: 'members.html', sel: '#bulkUploadBtn', tip: 'Click "Bulk upload (CSV)", pick the export file, preview, and Import. Existing companies are updated, never duplicated.' },
     { id: 'member-view', t: 'Open a member\'s portal view (assist a member)', kw: 'member view login as impersonate password help assist portal', href: 'members.html', sel: '#memberSearch', tip: 'Find the member → "Member view link" gives a 20-minute sign-in link. Open it in a private/incognito window to see exactly what they see.' },
+    { id: 'board-manager', t: 'Manage the Board & Leadership page (people, titles, photos)', kw: 'board officers leadership page manage title headshot photo add remove president', href: 'board.html', tip: 'One place to add or remove board members, set officer titles, and upload headshots.' },
+    { id: 'group-announce', t: 'Email everyone in a group', kw: 'group email announce members notify meeting reminder agenda blast', href: 'groups.html', tip: 'Manage a group → "📣 Email group members" sends your message to the whole roster.' },
     { id: 'support', t: 'Submit a support request to Heed', kw: 'support help ticket problem bug broken screenshot heed contact', href: 'about.html', sel: '#supportForm', tip: 'Send us a message with a screenshot — or use the 🛟 Support button on any page.' },
   ];
   function openHelp() {
@@ -1412,6 +1415,110 @@ window.Admin = (function () {
     load();
   }
 
+  // ── Board & Officers manager — one place to run the public leadership page ──
+  async function initBoardManager() {
+    mountShell('board');
+    const host = document.getElementById('bmSections');
+    const TITLE_PRESETS = ['', 'President of the Board', 'Chief Financial Officer · Past President', 'Corporate Secretary · Past President', 'Past President', 'Economic Development Chair', 'Inaugural Term', 'Honorary Mayor · Appointed 2011'];
+    let all = [];
+    function row(m) {
+      const face = m.pageImage || m.logo;
+      const thumb = face
+        ? `<img src="${esc(face)}" alt="" style="width:56px;height:56px;border-radius:50%;object-fit:cover;box-shadow:0 0 0 2px var(--gold,#C9A227);flex:none" onerror="this.style.visibility='hidden'">`
+        : `<div style="width:56px;height:56px;border-radius:50%;background:var(--green-deep,#1E5631);color:var(--gold-bright,#e3c55f);display:flex;align-items:center;justify-content:center;font-weight:700;flex:none">${esc((m.contactName || m.name || '?')[0].toUpperCase())}</div>`;
+      return `<div data-id="${esc(m.id)}" style="display:flex;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line,#eee);flex-wrap:wrap">
+        ${thumb}
+        <div style="flex:1;min-width:180px">
+          <div class="name">${esc(m.contactName || m.name)}</div>
+          <div class="sub">${esc(m.name)}${m.pageImage ? '' : ' · <span title="Using the company logo — upload a headshot for a nicer card">no headshot yet</span>'}</div>
+        </div>
+        <select class="admin-select" data-desig title="Officer = top 'Executive Officers' row; Board Member = the main grid">
+          ${['Leader', 'Board Member'].map((o) => `<option value="${o}" ${m.leaderStatus === o ? 'selected' : ''}>${o === 'Leader' ? 'Officer' : o}</option>`).join('')}
+        </select>
+        <input data-title list="bmTitles" placeholder="Office / title (e.g. Past President)" value="${esc(m.boardTitle || '')}" style="flex:1;min-width:200px" title="Shown in gold under their name on the public page" />
+        <label class="btn btn--ghost btn--sm" style="cursor:pointer" title="Upload their headshot (Page Image)">📷 Photo<input type="file" accept="image/*" hidden data-photo></label>
+        <button type="button" class="btn btn--gold btn--sm" data-save disabled style="opacity:.5">Save</button>
+        <button type="button" class="btn btn--ghost btn--sm" data-off style="color:var(--red)" title="Take them off the board page (they stay in the directory)">Remove</button>
+        <span class="saved-flash" data-flash>saved ✓</span>
+      </div>`;
+    }
+    function render() {
+      const officers = all.filter((m) => m.leaderStatus === 'Leader');
+      const board = all.filter((m) => m.leaderStatus === 'Board Member');
+      const lastName = (m) => { const p = String(m.contactName || m.name).trim().split(/\s+/); return p[p.length - 1]; };
+      board.sort((a, b) => lastName(a).localeCompare(lastName(b)));
+      host.innerHTML = `
+        <datalist id="bmTitles">${TITLE_PRESETS.filter(Boolean).map((t) => `<option value="${esc(t)}">`).join('')}</datalist>
+        <div class="panel"><div class="panel__head"><h3>Executive Officers <span class="sub">(${officers.length})</span></h3></div><div style="padding:0 16px 10px" data-sec="officers">${officers.map(row).join('') || '<p class="sub">No officers designated.</p>'}</div></div>
+        <div class="panel"><div class="panel__head"><h3>Board of Directors <span class="sub">(${board.length})</span></h3></div><div style="padding:0 16px 10px" data-sec="board">${board.map(row).join('') || '<p class="sub">No board members designated.</p>'}</div></div>`;
+      host.querySelectorAll('[data-id]').forEach((div) => {
+        const m = all.find((x) => x.id === div.dataset.id);
+        const saveBtn = div.querySelector('[data-save]');
+        const flash = div.querySelector('[data-flash]');
+        const pending = {};
+        const dirty = () => { saveBtn.disabled = false; saveBtn.style.opacity = '1'; saveBtn.textContent = 'Save'; };
+        div.querySelector('[data-desig]').addEventListener('change', (e) => { pending.leaderStatus = e.target.value; dirty(); });
+        div.querySelector('[data-title]').addEventListener('input', (e) => { pending.boardTitle = e.target.value; dirty(); });
+        div.querySelector('[data-photo]').addEventListener('change', (e) => {
+          const f = e.target.files[0]; if (!f) return;
+          const r = new FileReader();
+          r.onload = async () => {
+            try {
+              const up = await api('/api/me/asset', { method: 'POST', body: JSON.stringify({ kind: 'headshot', dataUrl: r.result }) });
+              pending.pageImage = up.url; dirty();
+              const img = div.querySelector('img, div');
+              flash.textContent = 'photo ready — click Save'; flash.classList.add('show');
+            } catch (err) { alert('Photo upload failed (PNG/JPG, ≤2.5 MB).'); }
+          };
+          r.readAsDataURL(f);
+        });
+        saveBtn.addEventListener('click', async () => {
+          saveBtn.disabled = true; saveBtn.textContent = 'Saving…';
+          try {
+            if (pending.leaderStatus !== undefined) await api(`/api/admin/members/${encodeURIComponent(m.id)}`, { method: 'PATCH', body: JSON.stringify({ leaderStatus: pending.leaderStatus }) });
+            const prof = {};
+            if (pending.boardTitle !== undefined) prof.boardTitle = pending.boardTitle;
+            if (pending.pageImage !== undefined) prof.pageImage = pending.pageImage;
+            if (Object.keys(prof).length) await api(`/api/admin/members/${encodeURIComponent(m.id)}/profile`, { method: 'PATCH', body: JSON.stringify(prof) });
+            load();
+          } catch (err) { saveBtn.disabled = false; saveBtn.textContent = 'Save'; alert('Could not save: ' + (err.message || 'error')); }
+        });
+        div.querySelector('[data-off]').addEventListener('click', async () => {
+          if (!confirm(`Take ${m.contactName || m.name} off the board page? They stay in the directory — only the designation is cleared.`)) return;
+          try { await api(`/api/admin/members/${encodeURIComponent(m.id)}`, { method: 'PATCH', body: JSON.stringify({ leaderStatus: '' }) }); load(); }
+          catch (err) { alert('Could not remove: ' + (err.message || 'error')); }
+        });
+      });
+    }
+    async function load() {
+      try {
+        const { members } = await api('/api/admin/members');
+        all = members.filter((m) => ['Leader', 'Board Member'].includes(m.leaderStatus));
+        render();
+      } catch (e) { showAuthError(e); }
+    }
+    // Add-to-board search
+    const s = document.getElementById('bmSearch');
+    const sg = document.getElementById('bmSuggest');
+    let dirCache = null;
+    s?.addEventListener('input', async () => {
+      const q = s.value.trim().toLowerCase();
+      if (q.length < 2) { sg.hidden = true; return; }
+      if (!dirCache) { try { dirCache = (await api('/api/admin/members')).members || []; } catch (e) { dirCache = []; } }
+      const list = dirCache.filter((m) => ![ 'Leader', 'Board Member' ].includes(m.leaderStatus) && [m.name, m.contactName, m.category].filter(Boolean).join(' ').toLowerCase().includes(q)).slice(0, 8);
+      sg.innerHTML = list.length ? list.map((m) => `<button type="button" data-add="${esc(m.id)}"><b>${esc(m.contactName || m.name)}</b><span>${esc(m.name)}</span></button>`).join('') : '<button type="button" disabled><span>No matches</span></button>';
+      sg.hidden = false;
+      sg.querySelectorAll('[data-add]').forEach((b) => b.addEventListener('click', async () => {
+        try {
+          await api(`/api/admin/members/${encodeURIComponent(b.dataset.add)}`, { method: 'PATCH', body: JSON.stringify({ leaderStatus: 'Board Member' }) });
+          s.value = ''; sg.hidden = true; dirCache = null; load();
+        } catch (err) { alert('Could not add: ' + (err.message || 'error')); }
+      }));
+    });
+    document.addEventListener('click', (e) => { if (!e.target.closest('#bmSearch,#bmSuggest')) sg.hidden = true; });
+    load();
+  }
+
   // ── Content & approvals (posts) ──
   async function initContent() {
     mountShell('content');
@@ -2229,24 +2336,49 @@ window.Admin = (function () {
       renderRoster();
       renderPhotos();
       document.getElementById('grpHeroPrev').textContent = heroUrl ? '✓ hero set' : '';
-      window.scrollTo({ top: 0 });
+      // The list sits ABOVE the editor now — jump to the editor when managing.
+      document.getElementById('grpEditorPanel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     };
     document.getElementById('grpReset').addEventListener('click', () => fill(null));
+    document.getElementById('grpNewBtn')?.addEventListener('click', () => fill(null));
+
+    // 📣 Email everyone in the current group (announcements, reminders, agendas).
+    document.getElementById('grpAnnounce')?.addEventListener('click', async () => {
+      const gid = form.querySelector('[name="id"]').value;
+      if (!gid) { note('Save the group first, then you can email its members.'); return; }
+      const activeCount = members.filter((m) => m.status !== 'pending').length;
+      if (!activeCount) { note('This group has no members to email yet.'); return; }
+      const subject = prompt(`Email all ${activeCount} members of this group.\n\nSubject:`, '');
+      if (!subject || !subject.trim()) return;
+      const message = prompt('Message (plain text — meeting time, agenda, announcement):', '');
+      if (!message || !message.trim()) return;
+      if (!confirm(`Send "${subject.trim()}" to the members of this group now?\n(Members without an email on file are skipped — the result tells you how many.)`)) return;
+      try {
+        const r = await api(`/api/admin/groups/${encodeURIComponent(gid)}/announce`, { method: 'POST', body: JSON.stringify({ subject: subject.trim(), message: message.trim() }) });
+        note(`✓ Sent to ${r.sent} member${r.sent === 1 ? '' : 's'}${r.skipped ? ` — ${r.skipped} had no email on file` : ''}.`, true);
+      } catch (err) { note('Could not send: ' + (err.message || 'error')); }
+    });
 
     async function loadList() {
       try {
         const { groups } = await api('/api/admin/groups');
-        tbody.innerHTML = groups.length ? groups.map((g) => `
+        tbody.innerHTML = groups.length ? groups.map((g) => {
+          const roster = Array.isArray(g.members) ? g.members : [];
+          const active = roster.filter((m) => m.status !== 'pending').length;
+          const pending = roster.filter((m) => m.status === 'pending').length;
+          return `
           <tr data-id="${esc(g.id)}">
             <td><a class="name" href="#" data-open>${esc(g.name)}</a><div class="sub">/groups/${esc(g.slug)}</div></td>
+            <td><strong>${active}</strong>${pending ? ` <span class="pill pill--pending" title="Join requests waiting for approval — click Manage">${pending} pending</span>` : ''}</td>
             <td class="sub">${esc(g.meetingSchedule || '—')}</td>
             <td>${g.status === 'approved' ? '<span class="pill pill--approved">live</span>' : '<span class="pill pill--pending">draft</span>'}</td>
             <td style="white-space:nowrap">
-              <button type="button" data-edit class="btn btn--ghost btn--sm">Edit</button>
+              <button type="button" data-edit class="btn btn--forest btn--sm">Manage</button>
               <a class="btn btn--ghost btn--sm" href="../groups/${esc(g.slug)}" target="_blank">View ↗</a>
               <button type="button" data-del class="btn btn--ghost btn--sm" style="color:var(--red)">Delete</button>
             </td>
-          </tr>`).join('') : '<tr><td colspan="4" class="sub">No groups yet — create the first one above.</td></tr>';
+          </tr>`;
+        }).join('') : '<tr><td colspan="5" class="sub">No groups yet — click “+ New group”.</td></tr>';
         tbody.querySelectorAll('tr[data-id]').forEach((tr) => {
           const g = groups.find((x) => x.id === tr.dataset.id);
           tr.querySelector('[data-open]')?.addEventListener('click', (e) => { e.preventDefault(); fill(g); });
@@ -2432,5 +2564,5 @@ window.Admin = (function () {
     });
   }
 
-  return { mountShell, initDashboard, initMembers, initApprovals, initOrders, initLeads, initEvents, initContent, initAssistant, initRenewals, initUsers, initGroups, initSponsorships, initSlides, initAbout, openHelp, api, esc };
+  return { mountShell, initDashboard, initMembers, initBoardManager, initApprovals, initOrders, initLeads, initEvents, initContent, initAssistant, initRenewals, initUsers, initGroups, initSponsorships, initSlides, initAbout, openHelp, api, esc };
 })();
