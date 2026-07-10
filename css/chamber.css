@@ -341,18 +341,18 @@ a.member-tile__name:hover { color: var(--green); }
 .hero__dots button { width: 9px; height: 9px; border-radius: 50%; background: rgba(255,255,255,.45); border: none; cursor: pointer; padding: 0; transition: background var(--tr); }
 .hero__dots button.is-active { background: var(--gold-bright); }
 
-/* Compact hero (Jul 2026, per the Chamber office — the banner ran too tall
-   and pushed everything below the fold). */
-.hero__inner { position: relative; z-index: 2; padding: var(--s-7) 0 var(--s-6); display: grid; grid-template-columns: 1.15fr .85fr; gap: var(--s-7); align-items: center; }
-.hero h1 { color: #fff; font-size: clamp(1.7rem, 3.4vw, 2.6rem); }
+/* Compact hero, second pass (Jul 2026 — the office flagged the banner as
+   still too tall after the first trim; tighter type and rhythm throughout). */
+.hero__inner { position: relative; z-index: 2; padding: var(--s-6) 0 var(--s-5); display: grid; grid-template-columns: 1.15fr .85fr; gap: var(--s-6); align-items: center; }
+.hero h1 { color: #fff; font-size: clamp(1.5rem, 2.8vw, 2.15rem); }
 .hero h1 em { font-style: italic; color: var(--gold-bright); font-weight: 500; }
-.hero__lead { color: rgba(255,255,255,.86); font-size: 1.08rem; max-width: 52ch; margin-top: var(--s-4); }
-.hero__cta { margin-top: var(--s-5); }
-.hero__concierge { margin-top: var(--s-5); max-width: 480px; }
+.hero__lead { color: rgba(255,255,255,.86); font-size: 1rem; max-width: 50ch; margin-top: var(--s-3); }
+.hero__cta { margin-top: var(--s-4); }
+.hero__concierge { margin-top: var(--s-4); max-width: 480px; }
 .hero__concierge .pill-input { background: rgba(255,255,255,.97); }
-.hero__stats { display: flex; gap: var(--s-7); margin-top: var(--s-5); }
-.hero__stat-num { font-family: var(--display); font-size: 1.9rem; font-weight: 600; color: var(--gold-bright); line-height: 1; }
-.hero__stat-lbl { font-size: .82rem; color: rgba(255,255,255,.7); margin-top: 4px; }
+.hero__stats { display: flex; gap: var(--s-6); margin-top: var(--s-4); }
+.hero__stat-num { font-family: var(--display); font-size: 1.55rem; font-weight: 600; color: var(--gold-bright); line-height: 1; }
+.hero__stat-lbl { font-size: .78rem; color: rgba(255,255,255,.7); margin-top: 4px; }
 
 /* Hero feature card (right column) */
 .hero__feature {
@@ -367,8 +367,14 @@ a.member-tile__name:hover { color: var(--green); }
   box-shadow: 0 18px 44px rgba(0,0,0,.34); backdrop-filter: none; }
 .hero .hero__feature .hero__feature-label { color: var(--gold-deep, #b8860b); }
 @media (max-width: 920px) {
-  .hero__inner { grid-template-columns: 1fr; padding: var(--s-8) 0; }
+  .hero__inner { grid-template-columns: 1fr; padding: var(--s-6) 0 var(--s-5); }
   .hero__feature { display: none; }
+}
+/* Phones: the stats row is the tallest non-essential block in the banner —
+   drop it so events surface within the first swipe. */
+@media (max-width: 640px) {
+  .hero__stats { display: none; }
+  .hero__lead { font-size: .95rem; }
 }
 
 /* ── geo banner ── */
@@ -396,6 +402,12 @@ a.member-tile__name:hover { color: var(--green); }
   padding: var(--s-5); transition: box-shadow var(--tr), border-color var(--tr);
 }
 .event-row:hover { box-shadow: var(--sh-md); border-color: var(--gold-soft); }
+/* Phones: three columns leave no room for the title — date + text share the
+   top line, the RSVP/tickets column drops underneath. */
+@media (max-width: 640px) {
+  .event-row { grid-template-columns: 64px 1fr; gap: var(--s-4); }
+  .event-row > div:last-child { grid-column: 1 / -1; justify-self: start; }
+}
 .event-date { text-align: center; border-radius: var(--r-md); background: var(--cream-deep); padding: var(--s-3) var(--s-2); }
 .event-date__mo { font-family: var(--mono); font-size: .7rem; letter-spacing: .12em; text-transform: uppercase; color: var(--red); }
 .event-date__day { font-family: var(--display); font-size: 1.7rem; font-weight: 600; color: var(--green-deep); line-height: 1; }

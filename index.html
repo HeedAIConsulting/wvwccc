@@ -42,10 +42,8 @@
             Serving Woodland Hills, Warner Center, Tarzana, Reseda, Canoga Park &amp; West Hills.
           </p>
           <p class="hero__lead reveal d3">
-            Through our trusted connections, we help residents, businesses, nonprofits, and visitors
-            experience the very best of community living — from hidden gems and local events to business
-            resources and neighborhood initiatives. If it&rsquo;s happening in the West Valley, chances are,
-            your Chamber of Commerce can connect you to it.
+            From hidden gems and local events to business resources and neighborhood initiatives —
+            if it&rsquo;s happening in the West Valley, your Chamber can connect you to it.
           </p>
 
           <!-- AI Concierge bar — "Wendy" -->
@@ -130,10 +128,10 @@
         <p class="lead">Breakfasts, mixers, ribbon cuttings, and our signature Gala. RSVP and buy tickets right here.</p>
       </div>
 
-      <!-- Compact 2-up event grid (per the Chamber office — full-width cards
-           made the homepage scroll forever). -->
-      <div id="eventList" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(420px,100%),1fr));gap:var(--s-4)">
-        <!-- rendered from data/events.json (image-forward preview cards) -->
+      <!-- Dated list, top-to-bottom (per the Chamber office, Jul 2026 — they
+           want the four main events in chronological order, not squares). -->
+      <div id="eventList" style="display:flex;flex-direction:column;gap:var(--s-3);max-width:920px;margin:0 auto">
+        <!-- rendered from data/events.json (event-row list) -->
       </div>
 
       <div class="text-center mt-7">
@@ -322,7 +320,7 @@
 
   <script src="js/partials.js?v=20260708a"></script>
   <script src="js/api-base.js?v=20260619a"></script>
-  <script src="js/chamber.js?v=20260708b"></script>
+  <script src="js/chamber.js?v=20260709a"></script>
   <script src="js/tour.js?v=20260630a"></script>
   <script>
     ChamberPartials.mount({ active: 'home', depth: 0, lang: 'en' });

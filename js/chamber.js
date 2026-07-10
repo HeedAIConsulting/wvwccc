@@ -332,7 +332,15 @@ window.Chamber = (function () {
           </div>
         </div>
       </div>`;
-    const close = () => overlay.remove();
+    // While the detail is open, the event id rides in the address bar so
+    // copying the browser URL shares THIS event (per the Chamber office —
+    // copied links used to point at the whole list). The events page already
+    // reopens the event from the hash on load.
+    try { history.replaceState(null, '', '#' + encodeURIComponent(ev.id)); } catch (e) { /* sandboxed iframe */ }
+    const close = () => {
+      overlay.remove();
+      try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { /* sandboxed iframe */ }
+    };
     overlay.addEventListener('click', (e) => { if (e.target === overlay || e.target.closest('[data-ev-close]')) close(); });
     document.addEventListener('keydown', function esc2(e) { if (e.key === 'Escape') { close(); document.removeEventListener('keydown', esc2); } });
     document.body.appendChild(overlay);
@@ -799,10 +807,14 @@ window.Chamber = (function () {
       const pool = upcoming.length ? upcoming : allEv.slice(-4);
       const homeOrd = (e) => { const n = Number(e.homeOrder); return Number.isFinite(n) && n > 0 ? n : 1e9; };
       const picked = pool.filter((e) => e.featured).sort((a, b) => homeOrd(a) - homeOrd(b) || a.date.localeCompare(b.date));
-      const events = (picked.length ? picked : pool).slice(0, 4);
+      // Admin picks WHICH events appear; on the page they always read top-to-
+      // bottom by date (per the Chamber office, Jul 2026 — a dated list, not a
+      // grid of squares).
+      const events = (picked.length ? picked : pool).slice(0, 4)
+        .sort((a, b) => String(a.date).localeCompare(String(b.date)));
       const elist = document.getElementById('eventList');
       if (elist) elist.innerHTML = events.length
-        ? events.map((e) => eventPreviewCard(e, 0)).join('')
+        ? events.map((e) => eventCard(e, 0)).join('')
         : '<p class="notice">The events calendar is coming online. Check back soon or contact the Chamber office.</p>';
     } catch (err) {
       console.error('Home render failed', err);
