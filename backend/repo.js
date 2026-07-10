@@ -443,6 +443,24 @@ export async function setOverride(id, patch) {
   store.write('member-admin.json', overrides);
 }
 
+// ── Settings: tiny key/value store (one-time migration markers, flags) ──
+export async function getSetting(key) {
+  if (db.enabled) {
+    const r = await db.query('SELECT value FROM settings WHERE key=$1', [key]);
+    return r.rows.length ? r.rows[0].value : null;
+  }
+  return store.read('settings.json', {})[key] ?? null;
+}
+export async function setSetting(key, value) {
+  if (db.enabled) {
+    await db.query('INSERT INTO settings (key, value) VALUES ($1,$2) ON CONFLICT (key) DO UPDATE SET value=$2', [key, String(value)]);
+    return;
+  }
+  const s = store.read('settings.json', {});
+  s[key] = String(value);
+  store.write('settings.json', s);
+}
+
 // ── Featured placements (one member per page/guide slot) ───
 export async function getPlacements() {
   if (db.enabled) {

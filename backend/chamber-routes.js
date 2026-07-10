@@ -580,11 +580,34 @@ async function loadEvents() {
   return stored.length ? stored : readSeedEvents().map((e) => buildEvent(e, e));
 }
 let _eventImgBackfillDone = false;
+let _legacyMergeChecked = false;
 async function ensureEventsSeeded() {
   if (!(await repo.hasEvents())) {
     for (const e of readSeedEvents()) await repo.upsertEvent(buildEvent(e, e));
     _eventImgBackfillDone = true;
+    try { await repo.setSetting('legacyEventsMerge-20260710', 'seeded ' + new Date().toISOString()); } catch (e) {}
     return;
+  }
+  // One-time add-only merge of the Jul 2026 archive recovery (166 legacy
+  // events) so production gets them without an admin click. The settings
+  // marker means it runs exactly once — events the office deletes afterwards
+  // are never resurrected by a redeploy.
+  if (!_legacyMergeChecked) {
+    _legacyMergeChecked = true;
+    try {
+      const KEY = 'legacyEventsMerge-20260710';
+      if (!(await repo.getSetting(KEY))) {
+        const existing = new Set((await repo.listEventsStore()).map((e) => e.id));
+        let added = 0;
+        for (const e of readSeedEvents()) {
+          if (existing.has(e.id)) continue;
+          await repo.upsertEvent(buildEvent(e, e));
+          added++;
+        }
+        await repo.setSetting(KEY, `merged ${added} @ ${new Date().toISOString()}`);
+        console.log(`[events] one-time legacy merge: added ${added} restored events`);
+      }
+    } catch (e) { _legacyMergeChecked = false; console.error('legacy event merge failed (will retry next boot)', e); }
   }
   // Store already populated (e.g. seeded before flyers existed). Once per boot,
   // backfill flyer images from the committed seed onto stored events that lack

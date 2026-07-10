@@ -113,6 +113,12 @@ CREATE TABLE IF NOT EXISTS leads (
 -- Used by approve-member so the login is active the moment they're approved.
 ALTER TABLE leads ADD COLUMN IF NOT EXISTS password_hash text;
 
+-- ── Small key/value store for one-time migration markers & flags ──
+CREATE TABLE IF NOT EXISTS settings (
+  key    text PRIMARY KEY,
+  value  text
+);
+
 -- ── Content posts: member offers/discounts, member-to-member board,
 --    and staff-created news/announcements/messaging. Approval-gated. ──
 CREATE TABLE IF NOT EXISTS posts (

@@ -410,6 +410,18 @@ window.Admin = (function () {
       });
     }
 
+    // Next renewal = manual expire date if set, else the joinDate anniversary
+    // (same math as the Renewals page) — used by the "Renewal date" sort.
+    const nextRenewalOf = (m) => {
+      if (m.expireDate) { const e = new Date(m.expireDate + 'T12:00:00'); if (!isNaN(e)) return e; }
+      if (!m.joinDate) return null;
+      const jd = new Date(m.joinDate + 'T12:00:00'); if (isNaN(jd)) return null;
+      const term = Number(m.termMonths) || 12;
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      let r = new Date(jd), g = 0;
+      while (r < today && g++ < 300) r.setMonth(r.getMonth() + term);
+      return r;
+    };
     async function load(q) {
       try {
         let { members } = await api('/api/admin/members' + (q ? `?q=${encodeURIComponent(q)}` : ''));
@@ -418,6 +430,24 @@ window.Admin = (function () {
         const fv = document.getElementById('memberFilter')?.value || '';
         if (fv.startsWith('ls:')) members = members.filter((m) => (m.leaderStatus || '') === fv.slice(3));
         if (fv.startsWith('tier:')) members = members.filter((m) => String(m.tier || '').toLowerCase() === fv.slice(5));
+        // Roster ordering (per the office, Jul 2026): alphabetical, renewal
+        // date, join date, category, or pending-first.
+        const sv = document.getElementById('memberSort')?.value || 'az';
+        const byName = (a, b) => String(a.name || '').localeCompare(String(b.name || ''), undefined, { sensitivity: 'base' });
+        const FAR = 8640000000000000; // undated members sink to the bottom
+        const SORTS = {
+          az: byName,
+          za: (a, b) => byName(b, a),
+          renewal: (a, b) => ((nextRenewalOf(a) || FAR) - (nextRenewalOf(b) || FAR)) || byName(a, b),
+          joinNew: (a, b) => String(b.joinDate || '').localeCompare(String(a.joinDate || '')) || byName(a, b),
+          joinOld: (a, b) => String(a.joinDate || '0000') === '0000' ? 1 : String(a.joinDate || 'zzzz').localeCompare(String(b.joinDate || 'zzzz')) || byName(a, b),
+          category: (a, b) => String(a.category || 'zzz').localeCompare(String(b.category || 'zzz'), undefined, { sensitivity: 'base' }) || byName(a, b),
+          status: (a, b) => {
+            const rank = { pending: 0, suspended: 1, inactive: 2, approved: 3 };
+            return (rank[a.status || 'approved'] - rank[b.status || 'approved']) || byName(a, b);
+          },
+        };
+        members = members.slice().sort(SORTS[sv] || byName);
         document.getElementById('memberCount').textContent = `${members.length} members${fv ? ' (filtered)' : ''}`;
         // Chunked render — the full roster is ~25k DOM nodes; paint the first 80
         // instantly and expand on demand. Search still queries the whole roster.
@@ -844,6 +874,7 @@ window.Admin = (function () {
     });
 
     document.getElementById('memberFilter')?.addEventListener('change', () => load(search.value.trim()));
+    document.getElementById('memberSort')?.addEventListener('change', () => load(search.value.trim()));
     let t; search.addEventListener('input', () => { clearTimeout(t); t = setTimeout(() => load(search.value.trim()), 250); });
     // Deep links from the dashboard / other admin pages: ?q= prefills search,
     // ?focus=<memberId> opens that member's editor straight away.

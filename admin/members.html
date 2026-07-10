@@ -71,6 +71,15 @@
                 <option value="tier:friend">Friend</option>
               </optgroup>
             </select>
+            <select id="memberSort" class="admin-select" title="Order the roster — alphabetical, renewal date, newest members, and more">
+              <option value="az">Sort: A → Z</option>
+              <option value="za">Sort: Z → A</option>
+              <option value="renewal">Renewal date (soonest first)</option>
+              <option value="joinNew">Newest members first</option>
+              <option value="joinOld">Longest-standing first</option>
+              <option value="category">Category A → Z</option>
+              <option value="status">Status (pending first)</option>
+            </select>
             <input id="memberSearch" class="admin-select" type="search" placeholder="Search members…" style="min-width:240px" />
           </div>
           <p class="sub" style="margin:4px 0 10px">Tier doubles as the <strong>Leader level</strong> (Friend / Supporter / Bronze / Silver / Gold / Platinum) — leader-level members appear on the public <a href="../leaders.html" target="_blank">Chamber Leaders page</a>. Changes to a row apply when you click its <strong>Save</strong> button.</p>
@@ -85,7 +94,7 @@
     </div>
   </div>
   <script src="../js/api-base.js"></script>
-  <script src="admin.js?v=20260710a"></script>
+  <script src="admin.js?v=20260710b"></script>
   <script>Admin.initMembers();</script>
   <script defer src="/js/support.js?v=20260701a"></script>
 </body>
