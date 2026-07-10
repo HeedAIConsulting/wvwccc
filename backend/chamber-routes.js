@@ -585,7 +585,7 @@ async function ensureEventsSeeded() {
   if (!(await repo.hasEvents())) {
     for (const e of readSeedEvents()) await repo.upsertEvent(buildEvent(e, e));
     _eventImgBackfillDone = true;
-    try { await repo.setSetting('legacyEventsMerge-20260710', 'seeded ' + new Date().toISOString()); } catch (e) {}
+    try { await repo.setSetting('legacyEventsMerge-20260711', 'seeded ' + new Date().toISOString()); } catch (e) {}
     return;
   }
   // One-time add-only merge of the Jul 2026 archive recovery (166 legacy
@@ -595,7 +595,7 @@ async function ensureEventsSeeded() {
   if (!_legacyMergeChecked) {
     _legacyMergeChecked = true;
     try {
-      const KEY = 'legacyEventsMerge-20260710';
+      const KEY = 'legacyEventsMerge-20260711';
       if (!(await repo.getSetting(KEY))) {
         const existing = new Set((await repo.listEventsStore()).map((e) => e.id));
         let added = 0;
@@ -1586,6 +1586,15 @@ router.post('/admin/members/:id/send-welcome', requireAdmin, async (req, res) =>
     if (!m) return res.status(404).json({ error: 'member not found' });
     const addr = String((req.body && req.body.email) || m.email || '').trim().toLowerCase();
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(addr)) return res.status(400).json({ error: 'This member has no email on file — add one first.' });
+    // Preview mode: return the exact copy without creating a login or sending
+    // (per the office, Jul 2026 — "we want to see a copy of the welcome
+    // letter that is being sent"). The sign-in link shows as a placeholder.
+    if (req.body && req.body.preview) {
+      const hi = m.contactName ? `, ${m.contactName}` : '';
+      return res.json({ ok: true, preview: true, to: addr,
+        subject: 'Welcome to the West Valley · Warner Center Chamber of Commerce!',
+        text: `Welcome${hi}!\n\nLog in to your very own website profile on the Chamber of Commerce website — have your logo, headshot, and headline ready, and update often.\n\nSet your password and sign in here (link expires in 1 hour; after that use "Forgot password" on the sign-in page):\n[ their personal sign-in link goes here ]\n\nBe sure the Chamber office has all of your preferred contact information for publishing. You will be announced in our newsletter — if you would like a social media campaign to accompany that, it is only $50. Let us know!\n\nAnd join our WVWC Group on Facebook.\n\nBe Connected,\nWest Valley · Warner Center Chamber of Commerce\n(818) 347-4737 · www.woodlandhillscc.net` });
+    }
     const existingUser = await users.getUserByEmail(addr);
     if (!existingUser) {
       await users.bulkImportMembers([{ email: addr, memberId: m.id, username: m.contactName || m.name, passwordHash: null, passwordAlgo: 'unknown', needsReset: true }]);

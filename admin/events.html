@@ -18,6 +18,22 @@
       <div class="admin-content">
 
         <div class="panel">
+          <div class="panel__head" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <h3 style="margin-right:auto">Events</h3>
+            <button type="button" class="btn btn--gold btn--sm" id="evAddBtn" title="Open the new-event form (with the flyer auto-fill)">＋ Add Event</button>
+            <div id="evTabs" style="display:flex;gap:6px">
+              <button type="button" class="btn btn--forest btn--sm" data-tab="upcoming">Upcoming</button>
+              <button type="button" class="btn btn--ghost btn--sm" data-tab="pending" title="Pending and draft events waiting for your ✓ Publish">Needs publish</button>
+              <button type="button" class="btn btn--ghost btn--sm" data-tab="past">Past events</button>
+            </div>
+            <input id="evSearch" class="admin-select" type="search" placeholder="Search events…" style="min-width:220px" />
+            <button type="button" class="btn btn--ghost btn--sm" id="evSeedMerge" title="Bring in any old-website events (with their sponsor acknowledgments) that aren't on the calendar yet — never touches events you created or edited">⇪ Import old-site events</button>
+          </div>
+          <p class="sub" id="evListNote" style="margin:4px 0 10px">Upcoming events only — past events are tucked away under <strong>Past events</strong> (or search for one by name).</p>
+          <table class="admin-table"><thead><tr><th>Event</th><th>Date</th><th>Venue</th><th>Status</th><th></th></tr></thead><tbody id="eventRows"></tbody></table>
+        </div>
+
+        <div class="panel" id="evFormPanel" style="display:none">
           <div class="panel__head"><h3 id="evFormTitle">New event</h3></div>
           <div style="padding:14px 16px;border-bottom:1px solid var(--line,#eee);background:#faf8f3">
             <strong>✦ Auto-fill from a flyer</strong>
@@ -103,25 +119,13 @@
           </form>
         </div>
 
-        <div class="panel">
-          <div class="panel__head" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-            <h3 style="margin-right:auto">Events</h3>
-            <div id="evTabs" style="display:flex;gap:6px">
-              <button type="button" class="btn btn--forest btn--sm" data-tab="upcoming">Upcoming</button>
-              <button type="button" class="btn btn--ghost btn--sm" data-tab="past">Past events</button>
-            </div>
-            <input id="evSearch" class="admin-select" type="search" placeholder="Search events…" style="min-width:220px" />
-            <button type="button" class="btn btn--ghost btn--sm" id="evSeedMerge" title="Bring in any old-website events (with their sponsor acknowledgments) that aren't on the calendar yet — never touches events you created or edited">⇪ Import old-site events</button>
-          </div>
-          <p class="sub" id="evListNote" style="margin:4px 0 10px">Upcoming events only — past events are tucked away under <strong>Past events</strong> (or search for one by name).</p>
-          <table class="admin-table"><thead><tr><th>Event</th><th>Date</th><th>Venue</th><th>Status</th><th></th></tr></thead><tbody id="eventRows"></tbody></table>
-        </div>
+        
 
       </div>
     </div>
   </div>
   <script src="../js/api-base.js"></script>
-  <script src="admin.js?v=20260710c"></script>
+  <script src="admin.js?v=20260711a"></script>
   <script>Admin.initEvents();</script>
   <script defer src="/js/support.js?v=20260701a"></script>
 </body>

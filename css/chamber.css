@@ -321,6 +321,12 @@ a.member-tile__name:hover { color: var(--green); }
    HERO  (distinctive parity hero)
    ============================================================ */
 .hero { position: relative; overflow: hidden; background: var(--green-deep); color: #fff; }
+/* Framed banner (per the office, Jul 2026 — smaller and narrower, not the
+   full width of the screen, with a beige border). The page's cream shows
+   around it on wide screens; phones keep the full-bleed banner. */
+@media (min-width: 981px) {
+  .hero { max-width: 1240px; margin: 0 auto; border: 6px solid var(--gold-soft, #e6dcbf); border-top: none; border-radius: 0 0 18px 18px; }
+}
 .hero::after {
   /* heritage gold "century" arc */
   content: ""; position: absolute; right: -180px; top: -180px; width: 620px; height: 620px;

@@ -3187,6 +3187,32 @@
       "status": "approved",
       "showOnCalendar": true,
       "description": "(Restored from the previous Chamber website — full details can be added in Admin → Events.)"
+    },
+    {
+      "id": "le-office-20260826-mixer",
+      "title": "August 26th ~ Networking Mixer",
+      "category": "Mixer",
+      "date": "2026-08-26",
+      "time": "5:30 PM",
+      "venue": "",
+      "summary": "Monthly Chamber networking mixer.",
+      "confirmed": true,
+      "status": "pending",
+      "showOnCalendar": true,
+      "description": "(Restored per the office, Jul 2026 — confirm venue and details, then Publish.)"
+    },
+    {
+      "id": "le-office-20261216-mixer",
+      "title": "December 16th ~ Networking Mixer",
+      "category": "Mixer",
+      "date": "2026-12-16",
+      "time": "5:30 PM",
+      "venue": "",
+      "summary": "Monthly Chamber networking mixer.",
+      "confirmed": true,
+      "status": "pending",
+      "showOnCalendar": true,
+      "description": "(Restored per the office, Jul 2026 — confirm venue and details, then Publish.)"
     }
   ]
 }

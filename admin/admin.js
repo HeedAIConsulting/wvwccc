@@ -525,19 +525,43 @@ window.Admin = (function () {
           el.addEventListener('change', () => { pending.leaderStatus = el.value; markDirty(); }));
         tr.querySelector('[data-field="featured"]').addEventListener('change', (e) =>
           { pending.featured = e.target.checked; markDirty(); });
-        // ✉ Welcome email — the office welcome letter + their login link.
+        // ✉ Welcome email — shows the EXACT letter first (per the office,
+        // Jul 2026: "we want to see a copy of the welcome letter"), then
+        // sends on confirmation.
         tr.querySelector('[data-welcome]')?.addEventListener('click', async (e) => {
-          const m2 = memberById[id] || {};
-          if (!confirm(`Send the Chamber welcome email to ${m2.email}?\n\nIt includes their website login (set-password) link, the newsletter announcement note, and the Facebook group invite.`)) return;
-          e.target.disabled = true; e.target.textContent = 'Sending…';
+          const btn = e.target;
+          btn.disabled = true;
           try {
-            const r = await api(`/api/admin/members/${encodeURIComponent(id)}/send-welcome`, { method: 'POST' });
-            e.target.textContent = '✓ Sent';
-            setTimeout(() => { e.target.textContent = '✉ Welcome email'; e.target.disabled = false; }, 2500);
-            if (r.loginCreated) alert('Welcome email sent — a website login was also created for ' + r.email + '.');
+            const p = await api(`/api/admin/members/${encodeURIComponent(id)}/send-welcome`, { method: 'POST', body: JSON.stringify({ preview: true }) });
+            const ov = document.createElement('div');
+            ov.style.cssText = 'position:fixed;inset:0;background:rgba(14,42,22,.55);display:flex;align-items:flex-start;justify-content:center;padding:6vh 16px;z-index:9999;overflow-y:auto';
+            ov.innerHTML = `<div role="dialog" aria-modal="true" style="max-width:640px;width:100%;background:#fff;border-radius:12px;padding:22px 26px">
+                <h3 style="margin:0 0 4px">Welcome email preview</h3>
+                <p class="sub" style="margin:0 0 12px">To: <strong>${esc(p.to)}</strong> · Subject: ${esc(p.subject)}</p>
+                <pre style="white-space:pre-wrap;font:inherit;background:var(--cream,#faf6ea);border:1px solid var(--line,#e4dcc8);border-radius:10px;padding:14px 16px;max-height:50vh;overflow:auto">${esc(p.text)}</pre>
+                <div class="btn-row" style="margin-top:14px;display:flex;gap:10px">
+                  <button class="btn btn--forest btn--sm" data-send>✉ Send it</button>
+                  <button class="btn btn--ghost btn--sm" data-x>Cancel</button>
+                </div>
+              </div>`;
+            ov.addEventListener('click', (ev) => { if (ev.target === ov || ev.target.closest('[data-x]')) { ov.remove(); btn.disabled = false; } });
+            ov.querySelector('[data-send]').addEventListener('click', async (ev) => {
+              ev.target.disabled = true; ev.target.textContent = 'Sending…';
+              try {
+                const r = await api(`/api/admin/members/${encodeURIComponent(id)}/send-welcome`, { method: 'POST' });
+                ov.remove();
+                btn.textContent = '✓ Sent';
+                setTimeout(() => { btn.textContent = '✉ Welcome email'; btn.disabled = false; }, 2500);
+                if (r.loginCreated) alert('Welcome email sent — a website login was also created for ' + r.email + '.');
+              } catch (err) {
+                ev.target.disabled = false; ev.target.textContent = '✉ Send it';
+                alert('Could not send: ' + (err.message || 'error'));
+              }
+            });
+            document.body.appendChild(ov);
           } catch (err) {
-            e.target.disabled = false; e.target.textContent = '✉ Welcome email';
-            alert('Could not send: ' + (err.message || 'error'));
+            btn.disabled = false;
+            alert('Could not load the preview: ' + (err.message || 'error'));
           }
         });
         // Open the member's portal view (magic sign-in link, 20 minutes).
@@ -1039,7 +1063,7 @@ window.Admin = (function () {
             <td>${esc(l.reason || l.kind || '')}${l.event ? `<div class="sub">Event: ${esc(l.event)}</div>` : ''}${l.company ? '<div class="sub">' + esc(l.company) + '</div>' : ''}</td>
             <td class="sub">${(l.message || '').length > 90 ? `<details><summary style="cursor:pointer">${esc(l.message.slice(0, 90))}…</summary><div style="white-space:pre-wrap;margin-top:6px">${esc(l.message)}</div></details>` : esc(l.message || '')}</td>
             <td>${statusPill(l.status)}</td>
-            <td style="white-space:nowrap">${key === 'membership' && l.status !== 'done' ? `<button class="btn btn--forest btn--sm" data-approve-member title="Creates their directory listing and emails them a set-your-password link — no manual re-entry">✓ Approve &amp; add</button> ` : ''}${key === 'ribbon' && l.status !== 'done' ? `<button class="btn btn--forest btn--sm" data-approve-event title="Creates the calendar event — dated requests go live immediately">✓ Approve → calendar</button> ` : ''}<select class="admin-select" data-mark><option value="new" ${l.status === 'new' ? 'selected' : ''}>New</option><option value="read" ${l.status === 'read' ? 'selected' : ''}>Read</option><option value="done" ${l.status === 'done' ? 'selected' : ''}>Done</option></select></td>
+            <td style="white-space:nowrap">${key === 'membership' && l.status !== 'done' ? `<button class="btn btn--forest btn--sm" data-approve-member title="Creates their directory listing and emails them a set-your-password link — no manual re-entry">✓ Approve &amp; add</button> ` : ''}${key === 'ribbon' && l.status !== 'done' ? `<button class="btn btn--forest btn--sm" data-approve-event title="Creates the calendar event — dated requests go live immediately">📅 Schedule on calendar</button> ` : ''}<select class="admin-select" data-mark><option value="new" ${l.status === 'new' ? 'selected' : ''}>New</option><option value="read" ${l.status === 'read' ? 'selected' : ''}>Read</option><option value="done" ${l.status === 'done' ? 'selected' : ''}>Done</option></select></td>
           </tr>`).join('')
           : `<tr><td colspan="6" class="sub">${q ? 'No matches in this section.' : 'Nothing here yet.'}</td></tr>`;
         return `
@@ -1061,14 +1085,14 @@ window.Admin = (function () {
         tr.querySelector('[data-approve-event]')?.addEventListener('click', async (e) => {
           const l = all.find((x) => x.id === tr.dataset.id); if (!l) return;
           const who = l.company || l.name || 'this request';
-          if (!confirm(`Approve the ribbon cutting for ${who}?\n\n• A calendar event is created from the request.\n• With a date on the request it goes live immediately; without one it waits as Pending on the Events page.`)) return;
+          if (!confirm(`Schedule the ribbon cutting for ${who}?\n\n• A calendar event is created from the request.\n• With a date on the request it goes live immediately; without one it waits as Pending on the Events page.`)) return;
           e.target.disabled = true; e.target.textContent = 'Adding…';
           try {
             const r = await api(`/api/admin/leads/${encodeURIComponent(l.id)}/approve-event`, { method: 'POST' });
             alert(`✓ On the calendar: ${r.event.title}\n${r.event.status === 'approved' ? 'It is live on the website now.' : 'It is Pending — confirm the date on the Events page, then hit ✓ Publish.'}`);
             location.href = 'events.html';
           } catch (err) {
-            e.target.disabled = false; e.target.textContent = '✓ Approve → calendar';
+            e.target.disabled = false; e.target.textContent = '📅 Schedule on calendar';
             alert('Could not approve: ' + (err.message || 'error'));
           }
         });
@@ -1384,6 +1408,15 @@ window.Admin = (function () {
       document.getElementById('evCancel').hidden = !editingId;
       msg.hidden = true;
     }
+    // The form panel starts collapsed (per Felicia, Jul 2026 — the list comes
+    // first; "Add Event" opens the form). Editing a row opens it too.
+    const formPanel = document.getElementById('evFormPanel');
+    const showEvForm = () => {
+      if (!formPanel) return;
+      formPanel.style.display = '';
+      formPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+    document.getElementById('evAddBtn')?.addEventListener('click', () => { fillForm(null); showEvForm(); form.title.focus(); });
     // ── Events list: Upcoming by default; past events live in their own tab
     //    (searchable) so the page isn't cluttered with history (per Diana). ──
     let allEvents = [];
@@ -1474,10 +1507,18 @@ window.Admin = (function () {
       const todayISO = new Date().toISOString().slice(0, 10);
       const q = (evSearch?.value || '').trim().toLowerCase();
       let events = allEvents.slice().sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+      // Pending/draft events get their own tab (per Felicia, Jul 2026 — no
+      // more scrolling the whole list to find what needs attention).
+      const pendingCount = allEvents.filter((e) => (e.status || 'approved') !== 'approved').length;
+      const pendTabBtn = evTabs?.querySelector('[data-tab="pending"]');
+      if (pendTabBtn) pendTabBtn.textContent = `Needs publish${pendingCount ? ` (${pendingCount})` : ''}`;
       if (q) {
         // A search looks across ALL events (upcoming + past) — that's the lookup.
         events = events.filter((e) => [e.title, e.venue, e.category, e.date].some((v) => String(v || '').toLowerCase().includes(q)));
         if (evNote) evNote.innerHTML = `Showing all events (upcoming + past) matching “<strong>${esc(q)}</strong>”.`;
+      } else if (evTab === 'pending') {
+        events = events.filter((e) => (e.status || 'approved') !== 'approved');
+        if (evNote) evNote.innerHTML = 'Pending and draft events only — hit <strong>✓ Publish</strong> on a row to put it live on the website.';
       } else {
         events = events.filter((e) => (evTab === 'past') === !!(e.date && e.date < todayISO));
         if (evTab === 'past') events.reverse(); // most recent past first
@@ -1502,7 +1543,7 @@ window.Admin = (function () {
           catch (err) { e2.target.disabled = false; e2.target.textContent = '✓ Publish'; alert('Could not publish: ' + (err.message || 'error')); }
         });
         tr.querySelector('[data-activity]').addEventListener('click', () => openEventActivity(allEvents.find((x) => x.id === id)));
-        tr.querySelector('[data-edit]').addEventListener('click', () => { fillForm(allEvents.find((x) => x.id === id)); window.scrollTo({ top: 0, behavior: 'smooth' }); });
+        tr.querySelector('[data-edit]').addEventListener('click', () => { fillForm(allEvents.find((x) => x.id === id)); showEvForm(); });
         tr.querySelector('[data-del]').addEventListener('click', async () => { if (!confirm('Delete this event?')) return; await api('/api/admin/events/' + encodeURIComponent(id), { method: 'DELETE' }); load(); });
       });
     }
@@ -1515,7 +1556,7 @@ window.Admin = (function () {
         if (focusId && !load._focused) {
           load._focused = true;
           const ev = allEvents.find((x) => x.id === focusId);
-          if (ev) { fillForm(ev); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+          if (ev) { fillForm(ev); showEvForm(); }
         }
       } catch (e) { showAuthError(e); }
     }
