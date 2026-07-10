@@ -43,8 +43,12 @@
               <div class="field"><label>Last name</label><input name="lastName" required /></div>
             </div>
             <div class="grid grid-2" style="gap:var(--s-3)">
-              <div class="field"><label>Email</label><input name="email" type="email" required /></div>
+              <div class="field"><label>Email <span class="member-tile__meta">(this becomes your website login)</span></label><input name="email" type="email" required /></div>
               <div class="field"><label>Phone</label><input name="phone" type="tel" /></div>
+            </div>
+            <div class="field">
+              <label>Create your website password <span class="member-tile__meta">(optional — 8+ characters; active once your membership is approved)</span></label>
+              <input name="password" type="password" minlength="8" maxlength="100" autocomplete="new-password" placeholder="Leave blank to get a set-password link by email instead" />
             </div>
             <div class="grid grid-2" style="gap:var(--s-3)">
               <div class="field"><label>Type of business</label><input name="businessType" /></div>
@@ -127,7 +131,7 @@
 
   <script src="js/partials.js?v=20260708a"></script>
   <script src="js/api-base.js?v=20260619a"></script>
-  <script src="js/chamber.js?v=20260709a"></script>
+  <script src="js/chamber.js?v=20260709b"></script>
   <script>
     ChamberPartials.mount({ active: '', depth: 0, lang: 'en' });
     Chamber.initLeadForm('joinForm', 'joinMsg', 'membership-application');

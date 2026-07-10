@@ -91,6 +91,7 @@ window.MemberPortal = (function () {
           <div class="btn-row mt-5">
             <a class="btn btn--forest" href="profile.html">Edit my profile</a>
             <a class="btn btn--ghost" href="../members/profile.html?id=${encodeURIComponent(member.id)}" target="_blank">View public page ↗</a>
+            ${isLeader ? '<a class="btn btn--gold" href="event.html">＋ Add an event</a>' : ''}
           </div>
         </div>
         <aside class="card bg-forest" style="color:#fff">

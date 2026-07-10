@@ -26,10 +26,10 @@ function readPostsSeed() {
 export async function addLead(lead) {
   if (db.enabled) {
     await db.query(
-      `INSERT INTO leads (id, kind, name, email, phone, company, reason, event, message, status, received)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10, now())`,
+      `INSERT INTO leads (id, kind, name, email, phone, company, reason, event, message, status, received, password_hash)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10, now(), $11)`,
       [lead.id, lead.kind, lead.name, lead.email, lead.phone, lead.company,
-       lead.reason, lead.event, lead.message, lead.status || 'new']);
+       lead.reason, lead.event, lead.message, lead.status || 'new', lead.passwordHash || null]);
     return;
   }
   store.append('leads.json', lead);
@@ -37,7 +37,7 @@ export async function addLead(lead) {
 export async function listLeads() {
   if (db.enabled) {
     const r = await db.query('SELECT * FROM leads ORDER BY received DESC');
-    return r.rows.map((x) => ({ ...x, received: x.received }));
+    return r.rows.map(({ password_hash, ...x }) => ({ ...x, received: x.received, ...(password_hash ? { passwordHash: password_hash } : {}) }));
   }
   return store.read('leads.json', []).slice().reverse();
 }

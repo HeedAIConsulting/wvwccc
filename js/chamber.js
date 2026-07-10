@@ -1214,6 +1214,16 @@ window.Chamber = (function () {
     const title = document.getElementById('coTitle');
     const amountInput = document.getElementById('amount');
     const amountLabel = document.getElementById('amountLabel');
+    // The Pay button always names the exact charge (per the office, Jul 2026 —
+    // a "$1 test" on a ticket checkout charged the real $200 ticket price and
+    // nothing on screen said so before the tap).
+    const payBtnEl = document.getElementById('payBtn');
+    const syncPayBtn = () => {
+      if (!payBtnEl) return;
+      const a = Number(amountInput && amountInput.value);
+      payBtnEl.textContent = a > 0 ? `Pay $${a.toFixed(2)} securely` : 'Pay securely';
+    };
+    if (amountInput) amountInput.addEventListener('input', syncPayBtn);
 
     // Build the order context. A `sku` param (from join.html / donate.html) is
     // resolved against the /api/skus catalog so prices have one source of truth.
@@ -1312,6 +1322,7 @@ window.Chamber = (function () {
           label = `Tickets — ${ev.title} · ${qty} × ${t.name} @ $${unit.toFixed(2)}`;
           sku = `ticket:${id}:${t.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40)}`;
           extra.eventTitle = ev.title; extra.ticketType = t.name; extra.quantity = qty;
+          syncPayBtn();
         };
         typeSel.addEventListener('change', update);
         qtySel.addEventListener('change', update);
@@ -1352,6 +1363,7 @@ window.Chamber = (function () {
       amountLabel.textContent = 'Donation amount (USD)';
     }
     if (presetAmount) amountInput.value = presetAmount;
+    syncPayBtn();
 
     // (Promo-code UI removed Jul 2026 — the Chamber decided against promo codes.)
 
@@ -1506,10 +1518,14 @@ window.Chamber = (function () {
           : kind === 'membership-application'
             ? `Membership application — ${payload.company || who}`
             : 'Website ' + (payload.reason || kind) + (eventLabel ? ' — ' + eventLabel : '') + (payload.company ? ' — ' + payload.company : who ? ' — ' + who : '');
+        // The applicant's chosen password goes ONLY to our server (hashed on
+        // arrival); the office's email copy just notes that one was chosen.
+        const fsPayload = Object.assign({ _subject: subject }, payload);
+        if (fsPayload.password) { fsPayload.password = undefined; fsPayload.chosePassword = 'yes — stored securely, active on approval'; }
         const fsP = fetch(leadFsEndpoint(kind), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-          body: JSON.stringify(Object.assign({ _subject: subject }, payload)),
+          body: JSON.stringify(fsPayload),
         }).then((r) => r.ok).catch(() => false);
         const apiP = fetch(ChamberAPI.url('/api/contact'), {
           method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),

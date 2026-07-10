@@ -1255,6 +1255,13 @@ router.post('/pay', async (req, res) => {
           const unit = (t.earlyPrice != null && t.earlyUntil && Date.now() < Date.parse(t.earlyUntil))
             ? Number(t.earlyPrice) : Number(t.price);
           subtotal = Math.round(unit * qty * 100) / 100;
+          // Never silently charge a different amount than the buyer saw
+          // (Jul 2026: a "$1 test" became a $200 Gala charge). A mismatched
+          // browser total is refused, not overridden.
+          if (Math.abs(Number(b.amount) - subtotal) > 0.005) {
+            return res.status(400).json({ ok: false,
+              error: `The total for ${qty} × ${t.name} is $${subtotal.toFixed(2)} — the page showed a different amount, so no charge was made. Refresh the page and try again.` });
+          }
           amount = subtotal;
         }
       }
@@ -1414,7 +1421,15 @@ router.post('/contact', async (req, res) => {
       b.employees ? `Employees: ${String(b.employees).slice(0, 20)}` : '',
       b.level ? `Level of interest: ${String(b.level).slice(0, 80)}` : '',
       b.ribbonCutting ? `Ribbon cutting requested: yes${b.ribbonDate ? ` (preferred ${String(b.ribbonDate).slice(0, 20)})` : ''}` : '',
+      b.password ? 'Chose their own website password: yes (active when approved)' : '',
     ].filter(Boolean).join('\n');
+  }
+  // Applicant-chosen website password (New Member application, like the old
+  // site). Hashed IMMEDIATELY — only the bcrypt hash rides on the lead, the
+  // plaintext is discarded and never logged or emailed.
+  if (b.password && lead.kind === 'membership-application') {
+    const pw = String(b.password);
+    if (pw.length >= 8 && pw.length <= 100) lead.passwordHash = auth.hashPassword(pw);
   }
   // If the lead references an event by raw id (older pages / direct API), resolve
   // it to the event title so the admin panel + office email are self-explanatory.
@@ -1532,6 +1547,46 @@ router.post('/concierge', async (req, res) => {
 });
 
 // ── Admin API ───────────────────────────────────────────────
+// Send (or resend) the member welcome email — the office's welcome letter
+// with their website login link (per Felicia, Jul 2026: "I approved a new
+// member. Where/how do I send the welcome email?"). Works whether or not the
+// login exists yet: it's created on the fly, and the email carries a
+// set-your-password link either way.
+router.post('/admin/members/:id/send-welcome', requireAdmin, async (req, res) => {
+  try {
+    const { members } = await loadMembersFull();
+    const m = members.find((x) => x.id === req.params.id);
+    if (!m) return res.status(404).json({ error: 'member not found' });
+    const addr = String((req.body && req.body.email) || m.email || '').trim().toLowerCase();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(addr)) return res.status(400).json({ error: 'This member has no email on file — add one first.' });
+    const existingUser = await users.getUserByEmail(addr);
+    if (!existingUser) {
+      await users.bulkImportMembers([{ email: addr, memberId: m.id, username: m.contactName || m.name, passwordHash: null, passwordAlgo: 'unknown', needsReset: true }]);
+    }
+    const token = auth.signResetToken(addr);
+    const base = process.env.SITE_URL || `${req.protocol}://${req.get('host')}`;
+    const link = `${base}/auth/reset.html?token=${encodeURIComponent(token)}`;
+    const hello = m.contactName ? `, ${m.contactName}` : '';
+    // Copy follows the office's longtime welcome letter (Felicia's sample,
+    // Jul 2026): profile setup, publishing info, newsletter announcement +
+    // $50 social campaign, Facebook group.
+    const r = await email.send({
+      to: addr,
+      subject: `Welcome to the West Valley · Warner Center Chamber of Commerce!`,
+      text: `Welcome${hello}!\n\nLog in to your very own website profile on the Chamber of Commerce website — have your logo, headshot, and headline ready, and update often.\n\nSet your password and sign in here (link expires in 1 hour; after that use "Forgot password" on the sign-in page):\n${link}\n\nBe sure the Chamber office has all of your preferred contact information for publishing. You will be announced in our newsletter — if you would like a social media campaign to accompany that, it is only $50. Let us know!\n\nAnd join our WVWC Group on Facebook.\n\nBe Connected,\nWest Valley · Warner Center Chamber of Commerce\n(818) 347-4737 · www.woodlandhillscc.net`,
+      html: `<p>Welcome${hello}!</p>
+<p>Log in to your very own website profile on the Chamber of Commerce website — have your logo, headshot, and headline ready, and update often.</p>
+<p><a href="${link}"><strong>Set your password &amp; sign in</strong></a> (link expires in 1 hour; after that use “Forgot password” on the <a href="${base}/auth/login.html">sign-in page</a>).</p>
+<p>Be sure the Chamber office has all of your preferred contact information for publishing. You will be announced in our newsletter — if you would like a social media campaign to accompany that, it is only <strong>$50</strong>. Let us know!</p>
+<p>And join our <strong>WVWC Group on Facebook</strong>.</p>
+<p>Be Connected,<br>West Valley · Warner Center Chamber of Commerce<br>(818) 347-4737 · <a href="https://www.woodlandhillscc.net">www.woodlandhillscc.net</a></p>`,
+    });
+    if (r && r.ok === false) return res.status(500).json({ error: 'Email could not be sent: ' + (r.error || 'provider error') });
+    if (r && r.skipped) return res.status(500).json({ error: 'Email provider is not configured on the server.' });
+    res.json({ ok: true, email: addr, loginCreated: !existingUser });
+  } catch (e) { console.error('send-welcome', e); res.status(500).json({ error: 'could not send the welcome email' }); }
+});
+
 // Force a member to reset their password (old password stops working).
 router.post('/admin/members/:id/reset-password', requireAdmin, async (req, res) => {
   try {
@@ -1872,8 +1927,23 @@ router.post('/admin/leads/:id/approve-member', requireAdmin, async (req, res) =>
     await repo.addMember(m);
     let login = 'no email on the application — add one in Members to create their login';
     if (emailOk) {
-      try { login = await attachLoginAndInvite(m.id, m.email, m.contactName, m.name, req, true); }
-      catch (e) { console.error('approve-member login', e); login = 'member added; login step failed'; }
+      try {
+        if (lead.passwordHash) {
+          // They chose their password on the application (old-site flow) — the
+          // login is active right away, no set-password link needed.
+          await users.bulkImportMembers([{ email: m.email, memberId: m.id, username: m.contactName || m.name, passwordHash: lead.passwordHash, passwordAlgo: 'bcrypt', needsReset: false }]);
+          const base = process.env.SITE_URL || `${req.protocol}://${req.get('host')}`;
+          const r = await email.send({
+            to: m.email,
+            subject: 'Your Chamber membership is approved — you can sign in now',
+            text: `Welcome${m.contactName ? ', ' + m.contactName : ''}!\n\nYour membership for ${m.name} is approved and your listing is live. Sign in with the email address and the password you chose on your application:\n${base}/auth/login.html\n\n— West Valley · Warner Center Chamber of Commerce\n(818) 347-4737`,
+            html: `<p>Welcome${m.contactName ? ', ' + m.contactName : ''}!</p><p>Your membership for <strong>${m.name}</strong> is approved and your listing is live. <a href="${base}/auth/login.html">Sign in</a> with the email address and the password you chose on your application.</p><p>— West Valley · Warner Center Chamber of Commerce<br>(818) 347-4737</p>`,
+          });
+          login = r && r.ok ? 'login active with the password they chose · sign-in email sent' : 'login active with the password they chose · email pending';
+        } else {
+          login = await attachLoginAndInvite(m.id, m.email, m.contactName, m.name, req, true);
+        }
+      } catch (e) { console.error('approve-member login', e); login = 'member added; login step failed'; }
     }
     try { await repo.setLeadStatus(lead.id, 'done'); } catch (e) { /* non-fatal */ }
     res.json({ ok: true, member: m, login });
@@ -1936,7 +2006,9 @@ router.post('/admin/events/seed-merge', requireAdmin, async (_req, res) => {
 });
 
 router.get('/admin/leads', requireAdmin, async (_req, res) => {
-  try { res.json({ leads: await repo.listLeads() }); }
+  // The applicant-chosen password hash stays server-side; the panel only needs
+  // to know one was chosen.
+  try { res.json({ leads: (await repo.listLeads()).map(({ passwordHash, ...l }) => (passwordHash ? { ...l, chosePassword: true } : l)) }); }
   catch (e) { res.status(500).json({ error: 'leads failed' }); }
 });
 

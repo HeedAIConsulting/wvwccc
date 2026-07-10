@@ -434,7 +434,8 @@ window.Admin = (function () {
         ? `<div class="sub">✉ <a href="mailto:${esc(m.email)}">${esc(m.email)}</a></div>`
         : '<div class="sub" style="opacity:.7">no login email on file</div>';
       const pwActions = m.email
-        ? `<button type="button" data-setpw="${esc(m.email)}" title="Set this member's password now" style="cursor:pointer;background:none;border:1px solid var(--line,#d7d2c6);border-radius:6px;padding:3px 8px;font-size:.8rem">Set password</button>
+        ? `<button type="button" data-welcome title="Email this member the Chamber welcome letter with their website login link" style="cursor:pointer;background:none;border:1px solid var(--gold,#C9A227);border-radius:6px;padding:3px 8px;font-size:.8rem;font-weight:600">✉ Welcome email</button>
+           <button type="button" data-setpw="${esc(m.email)}" title="Set this member's password now" style="cursor:pointer;background:none;border:1px solid var(--line,#d7d2c6);border-radius:6px;padding:3px 8px;font-size:.8rem">Set password</button>
            <button type="button" data-resetlink="${esc(m.email)}" title="Copy a reset link to send them" style="cursor:pointer;background:none;border:1px solid var(--line,#d7d2c6);border-radius:6px;padding:3px 8px;font-size:.8rem">Reset link</button>
            <button type="button" data-loginlink title="Open this member's portal view to assist them (opens a 20-min sign-in link — use a private window to keep your admin session)" style="cursor:pointer;background:none;border:1px solid var(--line,#d7d2c6);border-radius:6px;padding:3px 8px;font-size:.8rem">Member view</button>`
         : `<button type="button" data-createlogin title="This member has no website login yet — create one and email them a set-your-password link" style="cursor:pointer;background:var(--gold,#C9A227);color:var(--green-ink,#143c20);border:none;border-radius:6px;padding:4px 10px;font-size:.8rem;font-weight:700">➕ Create login</button>`;
@@ -484,6 +485,21 @@ window.Admin = (function () {
           el.addEventListener('change', () => { pending.leaderStatus = el.value; markDirty(); }));
         tr.querySelector('[data-field="featured"]').addEventListener('change', (e) =>
           { pending.featured = e.target.checked; markDirty(); });
+        // ✉ Welcome email — the office welcome letter + their login link.
+        tr.querySelector('[data-welcome]')?.addEventListener('click', async (e) => {
+          const m2 = memberById[id] || {};
+          if (!confirm(`Send the Chamber welcome email to ${m2.email}?\n\nIt includes their website login (set-password) link, the newsletter announcement note, and the Facebook group invite.`)) return;
+          e.target.disabled = true; e.target.textContent = 'Sending…';
+          try {
+            const r = await api(`/api/admin/members/${encodeURIComponent(id)}/send-welcome`, { method: 'POST' });
+            e.target.textContent = '✓ Sent';
+            setTimeout(() => { e.target.textContent = '✉ Welcome email'; e.target.disabled = false; }, 2500);
+            if (r.loginCreated) alert('Welcome email sent — a website login was also created for ' + r.email + '.');
+          } catch (err) {
+            e.target.disabled = false; e.target.textContent = '✉ Welcome email';
+            alert('Could not send: ' + (err.message || 'error'));
+          }
+        });
         // Open the member's portal view (magic sign-in link, 20 minutes).
         tr.querySelector('[data-loginlink]')?.addEventListener('click', async () => {
           try {
@@ -834,11 +850,41 @@ window.Admin = (function () {
     try {
       const { members } = await api('/api/admin/members?status=pending');
       const wrap = document.getElementById('approvalList');
+      // Every field the applicant gave, in one view (per Felicia, Jul 2026 —
+      // the pending list showed only name/category with no way to see more).
+      const FIELD_LABELS = [['name', 'Business'], ['contactName', 'Contact'], ['email', 'Email'], ['phone', 'Phone'],
+        ['category', 'Category'], ['typeOfBusiness', 'Type of business'], ['tier', 'Tier'], ['address', 'Address'],
+        ['city', 'City'], ['state', 'State'], ['zip', 'ZIP'], ['neighborhood', 'Neighborhood'], ['website', 'Website'],
+        ['tagline', 'Tagline'], ['description', 'Description'], ['joinDate', 'Applied / joined'], ['group', 'Group']];
+      const showDetail = (m) => {
+        const rows = FIELD_LABELS.filter(([k]) => m[k]).map(([k, l]) =>
+          `<tr><td class="sub" style="white-space:nowrap;padding:6px 14px 6px 0;vertical-align:top">${l}</td><td style="padding:6px 0">${esc(String(m[k]))}</td></tr>`).join('');
+        const ov = document.createElement('div');
+        ov.style.cssText = 'position:fixed;inset:0;background:rgba(14,42,22,.55);display:flex;align-items:flex-start;justify-content:center;padding:6vh 16px;z-index:9999;overflow-y:auto';
+        ov.innerHTML = `<div class="panel" role="dialog" aria-modal="true" style="max-width:640px;width:100%;background:#fff;border-radius:12px;padding:22px 26px">
+            <div style="display:flex;justify-content:space-between;align-items:start;gap:12px">
+              <h3 style="margin:0">${esc(m.name)} <span class="pill pill--pending">pending</span></h3>
+              <button class="btn btn--ghost btn--sm" data-x>✕ Close</button>
+            </div>
+            <table style="margin-top:12px;border-collapse:collapse">${rows || '<tr><td class="sub">Only the name was provided.</td></tr>'}</table>
+            <div class="btn-row" style="margin-top:16px">
+              <button class="btn btn--forest btn--sm" data-mapprove>✓ Approve</button>
+              <a class="btn btn--ghost btn--sm" href="members.html?focus=${encodeURIComponent(m.id)}">Open in Members (full edit)</a>
+            </div>
+          </div>`;
+        ov.addEventListener('click', (e) => { if (e.target === ov || e.target.closest('[data-x]')) ov.remove(); });
+        ov.querySelector('[data-mapprove]').addEventListener('click', async () => {
+          await api(`/api/admin/members/${encodeURIComponent(m.id)}`, { method: 'PATCH', body: JSON.stringify({ status: 'approved' }) });
+          ov.remove(); document.querySelector(`tr[data-id="${m.id}"]`)?.remove();
+        });
+        document.body.appendChild(ov);
+      };
       wrap.innerHTML = members.length ? members.map((m) => `
-        <tr data-id="${esc(m.id)}">
+        <tr data-id="${esc(m.id)}" style="cursor:pointer" title="Click for the full application details">
           <td><span class="name">${esc(m.name)}</span><div class="sub">${esc(m.contactName || '')} · ${esc(m.email || m.phone || '')}</div></td>
           <td>${esc(m.category || '')}</td>
           <td>
+            <button class="btn btn--ghost btn--sm" data-detail>Details</button>
             <button class="btn btn--forest btn--sm" data-approve>Approve</button>
             <button class="btn btn--ghost btn--sm" data-suspend>Decline</button>
           </td>
@@ -846,12 +892,15 @@ window.Admin = (function () {
         : '<tr><td colspan="3" class="sub">Nothing waiting for approval. 🎉</td></tr>';
       wrap.querySelectorAll('tr[data-id]').forEach((tr) => {
         const id = tr.dataset.id;
+        const m = members.find((x) => x.id === id);
         const act = async (status) => {
           await api(`/api/admin/members/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify({ status }) });
           tr.remove();
         };
-        tr.querySelector('[data-approve]')?.addEventListener('click', () => act('approved'));
-        tr.querySelector('[data-suspend]')?.addEventListener('click', () => act('suspended'));
+        tr.querySelector('[data-approve]')?.addEventListener('click', (e) => { e.stopPropagation(); act('approved'); });
+        tr.querySelector('[data-suspend]')?.addEventListener('click', (e) => { e.stopPropagation(); act('suspended'); });
+        tr.querySelector('[data-detail]')?.addEventListener('click', (e) => { e.stopPropagation(); showDetail(m); });
+        tr.addEventListener('click', (e) => { if (!e.target.closest('button')) showDetail(m); });
       });
     } catch (e) { showAuthError(e); }
   }
@@ -1277,6 +1326,19 @@ window.Admin = (function () {
     }));
     let evDeb;
     evSearch?.addEventListener('input', () => { clearTimeout(evDeb); evDeb = setTimeout(renderList, 180); });
+
+    // ⇪ One-click import of old-website events (with sponsor acknowledgments).
+    // Add-only: anything the office created or edited is never touched.
+    document.getElementById('evSeedMerge')?.addEventListener('click', async (e) => {
+      if (!confirm('Import old-website events?\n\n• Only adds events that are missing from the calendar (with their sponsor acknowledgments).\n• Events you created or edited are never changed.')) return;
+      e.target.disabled = true; e.target.textContent = 'Importing…';
+      try {
+        const r = await api('/api/admin/events/seed-merge', { method: 'POST' });
+        alert(r.added ? `✓ Imported ${r.added} event${r.added === 1 ? '' : 's'} from the old website.` : 'Nothing to import — every old-site event on file is already on the calendar. If specific events are still missing, send the office list to Michael and we will load them.');
+        load();
+      } catch (err) { alert('Import failed: ' + (err.message || 'error')); }
+      e.target.disabled = false; e.target.textContent = '⇪ Import old-site events';
+    });
 
     // ── Per-event RSVPs & payments (with CSV download) ──
     function dlCsv(name, rows) {
@@ -2376,6 +2438,22 @@ window.Admin = (function () {
     };
     document.getElementById('grpReset').addEventListener('click', () => fill(null));
     document.getElementById('grpNewBtn')?.addEventListener('click', () => fill(null));
+
+    // ✉ Locked-out group leader → email them a password-reset link. Uses the
+    // public forgot-password flow, so it works whether or not their login was
+    // ever set up ("no account" is reported instead of silently doing nothing).
+    document.getElementById('grpMgrReset')?.addEventListener('click', async (e) => {
+      const addr = (document.getElementById('grpMgrEmail').value || '').trim();
+      const out = document.getElementById('grpMgrResetMsg');
+      if (!addr) { out.textContent = 'Enter the manager email first.'; return; }
+      if (!confirm(`Email a password-reset link to ${addr}?\n\nThe link lets them set a new password and expires in 1 hour.`)) return;
+      e.target.disabled = true;
+      try {
+        await api('/api/auth/forgot', { method: 'POST', body: JSON.stringify({ email: addr }) });
+        out.textContent = `✓ Reset link sent to ${addr} (tell them to check spam too).`;
+      } catch (err) { out.textContent = 'Could not send: ' + (err.message || 'error'); }
+      e.target.disabled = false;
+    });
 
     // 📣 Email everyone in the current group (announcements, reminders, agendas).
     document.getElementById('grpAnnounce')?.addEventListener('click', async () => {

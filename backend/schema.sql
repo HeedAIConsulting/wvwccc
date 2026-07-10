@@ -109,6 +109,9 @@ CREATE TABLE IF NOT EXISTS leads (
   status      text DEFAULT 'new',              -- new|read|done
   received    timestamptz DEFAULT now()
 );
+-- Applicant-chosen website password (bcrypt hash only; plaintext never stored).
+-- Used by approve-member so the login is active the moment they're approved.
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS password_hash text;
 
 -- ── Content posts: member offers/discounts, member-to-member board,
 --    and staff-created news/announcements/messaging. Approval-gated. ──

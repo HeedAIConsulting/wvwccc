@@ -57,6 +57,12 @@
                 <div class="field" style="margin:0"><label>Manager name</label><input id="grpMgrName" maxlength="160" placeholder="Jane Doe" /></div>
                 <div class="field" style="margin:0"><label>Manager email</label><input id="grpMgrEmail" type="email" maxlength="160" placeholder="jane@example.com" /></div>
               </div>
+              <!-- Leader locked out? One click emails them a reset link (per
+                   Felicia, Jul 2026 — there was no reset action anywhere here). -->
+              <div style="display:flex;gap:10px;align-items:center;margin-top:10px;flex-wrap:wrap">
+                <button type="button" class="btn btn--ghost btn--sm" id="grpMgrReset" title="Emails the manager a set-a-new-password link (expires in 1 hour)">✉ Send password-reset email</button>
+                <span class="sub" id="grpMgrResetMsg"></span>
+              </div>
             </div>
             <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-top:12px">
               <label class="btn btn--gold btn--sm" style="cursor:pointer">Upload banner photo<input type="file" accept="image/*" hidden id="grpHero"></label>
@@ -102,7 +108,7 @@
     </div>
   </div>
   <script src="../js/api-base.js"></script>
-  <script src="admin.js?v=20260709a"></script>
+  <script src="admin.js?v=20260709b"></script>
   <script>Admin.initGroups();</script>
   <script defer src="/js/support.js?v=20260701a"></script>
 </body>
