@@ -305,6 +305,10 @@ a.member-tile__name:hover { color: var(--green); }
   .nav { position: fixed; inset: 118px 0 auto 0; flex-direction: column; align-items: stretch;
     background: var(--green-ink); padding: var(--s-5); gap: var(--s-2); border-bottom: 2px solid var(--gold);
     box-shadow: var(--sh-lg);
+    /* The expanded menu (all dropdown sections inline) is taller than a phone
+       screen; without its own scroll the bottom links are unreachable. */
+    max-height: calc(100vh - 118px); max-height: calc(100dvh - 118px);
+    overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
     opacity: 0; visibility: hidden; transform: translateY(-10px);
     transition: opacity var(--tr), transform var(--tr), visibility var(--tr); }
   .nav.open { opacity: 1; visibility: visible; transform: none; }
