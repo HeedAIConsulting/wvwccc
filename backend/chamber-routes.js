@@ -459,7 +459,7 @@ router.get('/assets/:id', async (req, res) => {
 
 // Public posts feed (approved, not expired).
 router.get('/posts', async (req, res) => {
-  const type = ['discount', 'member_post', 'news', 'announcement', 'gallery', 'job', 'listing'].includes(req.query.type) ? req.query.type : undefined;
+  const type = ['discount', 'member_post', 'news', 'announcement', 'gallery', 'job', 'listing', 'newsletter'].includes(req.query.type) ? req.query.type : undefined;
   try {
     const now = Date.now();
     const posts = (await repo.listPosts({ type, status: 'approved' }))
@@ -2160,7 +2160,7 @@ router.get('/admin/posts', requireAdmin, async (req, res) => {
   } catch (e) { res.status(500).json({ error: 'failed' }); }
 });
 
-const ADMIN_POST_TYPES = ['news', 'announcement', 'discount', 'member_post', 'event', 'slide', 'gallery', 'job', 'listing'];
+const ADMIN_POST_TYPES = ['news', 'announcement', 'discount', 'member_post', 'event', 'slide', 'gallery', 'job', 'listing', 'newsletter'];
 router.post('/admin/posts', requireAdmin, async (req, res) => {
   const b = req.body || {};
   if (!ADMIN_POST_TYPES.includes(b.type)) return res.status(400).json({ error: 'Invalid type.' });

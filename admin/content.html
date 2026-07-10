@@ -47,6 +47,22 @@
           </div>
         </div>
 
+        <!-- Newsletters (per the office, Jul 2026: "Where do we upload the
+             newsletters in admin?" — right here). Uploads a PDF and lists it
+             on the public Valley Biz Connect page instantly. -->
+        <div class="panel">
+          <div class="panel__head"><h3>📰 Newsletters <span class="sub">(Valley Biz Connect)</span></h3></div>
+          <div style="padding:14px 16px">
+            <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:end">
+              <div class="field" style="margin:0;min-width:260px"><label>Issue title</label><input id="nlTitle" maxlength="120" placeholder="Valley Biz Connect — June 2026" /></div>
+              <label class="btn btn--gold btn--sm" style="cursor:pointer">⬆ Upload newsletter PDF<input type="file" accept="application/pdf,.pdf" hidden id="nlFile"></label>
+              <span id="nlMsg" class="sub"></span>
+            </div>
+            <p class="sub" style="margin:8px 0 0">The issue appears on the public <a href="../newsletters/valley-biz-connect.html" target="_blank">Valley Biz Connect page</a> the moment it uploads. Max ~6&nbsp;MB per PDF.</p>
+            <table class="admin-table" style="margin-top:10px"><thead><tr><th>Issue</th><th>Added</th><th></th></tr></thead><tbody id="nlRows"><tr><td colspan="3" class="sub">Loading…</td></tr></tbody></table>
+          </div>
+        </div>
+
         <div class="panel">
           <div class="panel__head"><h3>Pending review (member submissions)</h3></div>
           <table class="admin-table"><thead><tr><th>Title</th><th>Type</th><th>Status</th><th>Action</th></tr></thead><tbody id="pendingWrap"></tbody></table>
@@ -72,7 +88,7 @@
     </div>
   </div>
   <script src="../js/api-base.js"></script>
-  <script src="admin.js?v=20260711a"></script>
+  <script src="admin.js?v=20260711b"></script>
   <script>Admin.initContent();</script>
   <script defer src="/js/support.js?v=20260701a"></script>
 </body>

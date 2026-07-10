@@ -1737,6 +1737,48 @@ window.Admin = (function () {
     const msg = document.getElementById('postMsg');
     const postById = {};
 
+    // 📰 Newsletters — upload a PDF here and it lists on the public Valley
+    // Biz Connect page instantly (per the office, Jul 2026: "Where do we
+    // upload the newsletters in admin?").
+    const nlRows = document.getElementById('nlRows');
+    async function loadNewsletters() {
+      if (!nlRows) return;
+      try {
+        const { posts } = await api('/api/admin/posts?type=newsletter');
+        nlRows.innerHTML = posts.length ? posts.map((p) => `
+          <tr data-id="${esc(p.id)}">
+            <td><a class="name" href="${esc(p.linkUrl)}" target="_blank" rel="noopener">${esc(p.title)} ↗</a></td>
+            <td class="sub">${esc(String(p.created || '').slice(0, 10))}</td>
+            <td><button class="btn btn--ghost btn--sm" data-nl-del>Remove</button></td>
+          </tr>`).join('') : '<tr><td colspan="3" class="sub">No newsletters uploaded yet — pick a title and upload the PDF above.</td></tr>';
+        nlRows.querySelectorAll('[data-nl-del]').forEach((b) => b.addEventListener('click', async (e) => {
+          const tr = e.target.closest('tr');
+          if (!confirm('Remove this newsletter from the public page? (The PDF file itself is kept.)')) return;
+          await api('/api/admin/posts/' + encodeURIComponent(tr.dataset.id), { method: 'DELETE' });
+          loadNewsletters();
+        }));
+      } catch (e) { nlRows.innerHTML = '<tr><td colspan="3" class="sub">Could not load newsletters.</td></tr>'; }
+    }
+    document.getElementById('nlFile')?.addEventListener('change', (e) => {
+      const f = e.target.files[0]; if (!f) return;
+      const title = (document.getElementById('nlTitle').value || '').trim() || f.name.replace(/\.pdf$/i, '');
+      const out = document.getElementById('nlMsg');
+      out.textContent = 'Uploading…';
+      const r = new FileReader();
+      r.onload = async () => {
+        try {
+          const up = await api('/api/me/asset', { method: 'POST', body: JSON.stringify({ kind: 'doc', dataUrl: r.result }) });
+          await api('/api/admin/posts', { method: 'POST', body: JSON.stringify({ type: 'newsletter', title, linkUrl: up.url, status: 'approved' }) });
+          out.textContent = '✓ Published to the newsletters page';
+          document.getElementById('nlTitle').value = '';
+          loadNewsletters();
+        } catch (err) { out.textContent = 'Upload failed: ' + (err.message || 'PDF up to ~6MB'); }
+        e.target.value = '';
+      };
+      r.readAsDataURL(f);
+    });
+    loadNewsletters();
+
     // Click a content title to open it for review/edit.
     function openPostEditor(p) {
       if (!p) return;

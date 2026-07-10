@@ -54,33 +54,41 @@
   </section>
   <div data-partial="footer"></div>
   <script src="../js/partials.js?v=20260708a"></script>
+  <script src="../js/api-base.js?v=20260619a"></script>
   <script>
     ChamberPartials.mount({ active: 'news', depth: 1, lang: 'en' });
     (function () {
       var grid = document.getElementById('vbcGrid');
-      fetch('assets/connect/manifest.json')
-        .then(function (r) { return r.json(); })
-        .then(function (eds) {
-          // newest first
-          eds.sort(function (a, b) { return a.slug < b.slug ? 1 : -1; });
-          if (!eds.length) { grid.innerHTML = '<p class="vbc-empty">Editions coming soon.</p>'; return; }
-          grid.innerHTML = eds.map(function (e, i) {
-            var nn = '01';
-            var cover = 'assets/connect/' + e.slug + '/page-' + nn + '.webp';
-            var href = 'valley-biz-connect-' + e.slug + '.html';
-            var badge = i === 0 ? '<span class="vbc-badge">Latest</span>' : '';
-            return '<a class="vbc-card" href="' + href + '">' +
-              '<div class="vbc-cover">' + badge +
-                '<img src="' + cover + '" alt="Valley Biz Connect ' + e.month + ' cover" loading="' + (i < 2 ? 'eager' : 'lazy') + '" decoding="async" />' +
-              '</div>' +
-              '<div class="vbc-meta">' +
-                '<h3>' + e.month + '</h3>' +
-                '<div class="pages">' + e.pages + ' pages</div>' +
-                '<div class="cta">Read edition →</div>' +
-              '</div></a>';
-          }).join('');
-        })
-        .catch(function () { grid.innerHTML = '<p class="vbc-empty">Editions are temporarily unavailable. Please check back soon.</p>'; });
+      var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+      // Two sources render together: page-flip editions from the committed
+      // manifest, and PDF issues the office uploads in Admin → Content →
+      // Newsletters (those open the PDF directly).
+      var manifestP = fetch('assets/connect/manifest.json').then(function (r) { return r.json(); }).catch(function () { return []; });
+      var uploadsP = fetch((window.ChamberAPI ? ChamberAPI.url('') : '') + '/api/posts?type=newsletter')
+        .then(function (r) { return r.json(); }).then(function (d) { return d.posts || []; }).catch(function () { return []; });
+      Promise.all([manifestP, uploadsP]).then(function (res) {
+        var eds = res[0], ups = res[1];
+        eds.sort(function (a, b) { return a.slug < b.slug ? 1 : -1; });
+        ups.sort(function (a, b) { return String(b.created || '').localeCompare(String(a.created || '')); });
+        var cards = ups.map(function (p, i) {
+          var badge = i === 0 && p.linkUrl ? '<span class="vbc-badge">Latest</span>' : '';
+          return '<a class="vbc-card" href="' + esc(p.linkUrl) + '" target="_blank" rel="noopener">' +
+            '<div class="vbc-cover" style="display:grid;place-items:center;background:var(--green-ink,#143c20)">' + badge +
+              (p.imageUrl ? '<img src="' + esc(p.imageUrl) + '" alt="" loading="lazy">' : '<img src="../images/wvwccc-logo.png" alt="" style="width:46%;height:auto;object-fit:contain;opacity:.95">') +
+            '</div>' +
+            '<div class="vbc-meta"><h3>' + esc(p.title) + '</h3><div class="pages">PDF edition</div><div class="cta">Open edition →</div></div></a>';
+        }).concat(eds.map(function (e, i) {
+          var cover = 'assets/connect/' + e.slug + '/page-01.webp';
+          var href = 'valley-biz-connect-' + e.slug + '.html';
+          var badge = (!ups.length && i === 0) ? '<span class="vbc-badge">Latest</span>' : '';
+          return '<a class="vbc-card" href="' + href + '">' +
+            '<div class="vbc-cover">' + badge +
+              '<img src="' + cover + '" alt="Valley Biz Connect ' + esc(e.month) + ' cover" loading="' + (i < 2 ? 'eager' : 'lazy') + '" decoding="async" />' +
+            '</div>' +
+            '<div class="vbc-meta"><h3>' + esc(e.month) + '</h3><div class="pages">' + esc(e.pages) + ' pages</div><div class="cta">Read edition →</div></div></a>';
+        }));
+        grid.innerHTML = cards.length ? cards.join('') : '<p class="vbc-empty">Editions coming soon.</p>';
+      }).catch(function () { grid.innerHTML = '<p class="vbc-empty">Editions are temporarily unavailable. Please check back soon.</p>'; });
     })();
   </script>
 </body>
