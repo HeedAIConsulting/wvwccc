@@ -114,6 +114,16 @@ window.Admin = (function () {
       b.addEventListener('click', logout);
       bar.appendChild(b);
     }
+    // Wide tables scroll inside their panel instead of stretching the page —
+    // an overflowing roster pushed right-edge buttons off-screen at 100% zoom.
+    document.querySelectorAll('table.admin-table').forEach((t) => {
+      if (t.parentElement.classList.contains('table-scroll')) return;
+      if (t.parentElement.getAttribute('style')?.includes('overflow-x')) return;
+      const w = document.createElement('div');
+      w.className = 'table-scroll';
+      t.parentNode.insertBefore(w, t);
+      w.appendChild(t);
+    });
     // First visit: auto-open the help assistant once (reopen anytime via ❔ Guide).
     try { if (!localStorage.getItem('wv_admin_tour_seen')) { openHelp(); localStorage.setItem('wv_admin_tour_seen', '1'); } } catch (e) {}
     // If we arrived via a "Show me" link, highlight the relevant control.
