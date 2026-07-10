@@ -657,7 +657,11 @@ function sanitizeRichHtml(html) {
     tag = tag.toLowerCase();
     if (tag === 'img') { // linked sponsor/inline images keep src (+ optional link handled via <a>)
       const src = sanitizeRichHref(richAttr(attrs, 'src'));
-      return src ? `<img src="${src}" alt="${richAttr(attrs, 'alt').replace(/[<>"]/g, '')}" style="max-width:100%">` : '';
+      // Keep the author's chosen size (percent width set by the editor's
+      // click-to-resize, per Diana Jul 2026) — everything else is stripped.
+      const wm = /width:\s*(\d{1,3})%/i.exec(richAttr(attrs, 'style') || '');
+      const w = wm ? Math.min(100, Math.max(5, Number(wm[1]))) : null;
+      return src ? `<img src="${src}" alt="${richAttr(attrs, 'alt').replace(/[<>"]/g, '')}" style="${w ? `width:${w}%;` : ''}max-width:100%">` : '';
     }
     if (!RICH_TAGS.has(tag)) return '';
     if (m0.startsWith('</')) return `</${tag}>`;

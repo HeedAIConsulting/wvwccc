@@ -1154,6 +1154,37 @@ window.Admin = (function () {
         if (!/^(https?:|mailto:|tel:|\/)/i.test(url)) url = 'https://' + url;
         focusExec(() => document.execCommand('createLink', false, url));
       });
+      // 🖼 Click any image in the editor to resize it (per Diana, Jul 2026 —
+      // there was no way to resize logos/images placed in an event).
+      rich.addEventListener('click', (e) => {
+        const img = e.target.closest('img');
+        document.querySelector('.rt-imgbar')?.remove();
+        if (!img) return;
+        const bar = document.createElement('div');
+        bar.className = 'rt-imgbar';
+        bar.style.cssText = 'position:absolute;z-index:500;background:#fff;border:1px solid var(--gold,#C9A227);border-radius:8px;box-shadow:0 8px 22px rgba(0,0,0,.18);padding:4px 6px;display:flex;gap:4px;font-size:.8rem;align-items:center';
+        const r = img.getBoundingClientRect();
+        bar.style.left = Math.max(8, r.left + scrollX) + 'px';
+        bar.style.top = Math.max(8, r.top + scrollY - 40) + 'px';
+        const mk = (label, w, title) => {
+          const b = document.createElement('button');
+          b.type = 'button'; b.textContent = label; b.title = title || '';
+          b.style.cssText = 'border:1px solid #ddd;background:#fff;border-radius:6px;padding:2px 8px;cursor:pointer;font:inherit';
+          b.addEventListener('click', (ev) => {
+            ev.stopPropagation();
+            if (w === 'remove') img.remove();
+            else { img.style.width = w; img.style.maxWidth = '100%'; }
+            bar.remove();
+          });
+          return b;
+        };
+        bar.append('Image size: ');
+        [['Small', '25%'], ['Medium', '50%'], ['Large', '75%'], ['Full', '100%']].forEach(([l, w]) => bar.appendChild(mk(l, w)));
+        bar.appendChild(mk('✕ Remove', 'remove', 'Delete this image from the text'));
+        document.body.appendChild(bar);
+        const away = (ev) => { if (!bar.contains(ev.target) && ev.target !== img) { bar.remove(); document.removeEventListener('mousedown', away, true); } };
+        document.addEventListener('mousedown', away, true);
+      });
       // 🖼 Insert an image inline where the cursor is — breaks up long text.
       richBar.querySelector('[data-rt-img]')?.addEventListener('change', (e) => {
         const f = e.target.files[0]; if (!f) return;
