@@ -912,6 +912,9 @@ window.Admin = (function () {
     const kind = String(l.kind || '').toLowerCase();
     const reason = String(l.reason || '').toLowerCase();
     if (kind === 'membership-application' || reason.includes('membership')) return 'membership';
+    // Before the l.event check — ribbon requests carry their preferred date in
+    // l.event, which used to strand them in the RSVP section with no actions.
+    if (kind === 'ribbon-cutting' || reason.includes('ribbon')) return 'ribbon';
     if (l.event || reason.includes('rsvp') || kind === 'rsvp') return 'rsvp';
     if (kind.includes('job') || reason.includes('job')) return 'jobs';
     if (kind === 'group-join') return 'groups';
@@ -925,6 +928,7 @@ window.Admin = (function () {
     if (searchEl) searchEl.value = new URLSearchParams(location.search).get('q') || '';
     const SECTIONS = [
       ['membership', '◉ Membership applications', 'People who applied to join — the office confirms dues and sets up the membership.'],
+      ['ribbon', '🎀 Ribbon cutting requests', 'Approve puts the ribbon cutting on the calendar — live right away when the request includes a date, otherwise as Pending on the Events page.'],
       ['rsvp', '◆ Event RSVPs', 'RSVPs sent from event pages. Per-event lists (with download) live on the Events page.'],
       ['jobs', '💼 Job inquiries', 'Messages about job postings and the jobs board.'],
       ['groups', '◎ Group join requests', 'Requests to join a group / Connection Circle (also visible on the Groups page).'],
@@ -945,7 +949,7 @@ window.Admin = (function () {
             <td>${esc(l.reason || l.kind || '')}${l.event ? `<div class="sub">Event: ${esc(l.event)}</div>` : ''}${l.company ? '<div class="sub">' + esc(l.company) + '</div>' : ''}</td>
             <td class="sub">${(l.message || '').length > 90 ? `<details><summary style="cursor:pointer">${esc(l.message.slice(0, 90))}…</summary><div style="white-space:pre-wrap;margin-top:6px">${esc(l.message)}</div></details>` : esc(l.message || '')}</td>
             <td>${statusPill(l.status)}</td>
-            <td style="white-space:nowrap">${key === 'membership' && l.status !== 'done' ? `<button class="btn btn--forest btn--sm" data-approve-member title="Creates their directory listing and emails them a set-your-password link — no manual re-entry">✓ Approve &amp; add</button> ` : ''}<select class="admin-select" data-mark><option value="new" ${l.status === 'new' ? 'selected' : ''}>New</option><option value="read" ${l.status === 'read' ? 'selected' : ''}>Read</option><option value="done" ${l.status === 'done' ? 'selected' : ''}>Done</option></select></td>
+            <td style="white-space:nowrap">${key === 'membership' && l.status !== 'done' ? `<button class="btn btn--forest btn--sm" data-approve-member title="Creates their directory listing and emails them a set-your-password link — no manual re-entry">✓ Approve &amp; add</button> ` : ''}${key === 'ribbon' && l.status !== 'done' ? `<button class="btn btn--forest btn--sm" data-approve-event title="Creates the calendar event — dated requests go live immediately">✓ Approve → calendar</button> ` : ''}<select class="admin-select" data-mark><option value="new" ${l.status === 'new' ? 'selected' : ''}>New</option><option value="read" ${l.status === 'read' ? 'selected' : ''}>Read</option><option value="done" ${l.status === 'done' ? 'selected' : ''}>Done</option></select></td>
           </tr>`).join('')
           : `<tr><td colspan="6" class="sub">${q ? 'No matches in this section.' : 'Nothing here yet.'}</td></tr>`;
         return `
@@ -962,6 +966,21 @@ window.Admin = (function () {
           await api(`/api/admin/leads/${encodeURIComponent(tr.dataset.id)}`, { method: 'PATCH', body: JSON.stringify({ status: e.target.value }) });
           const l = all.find((x) => x.id === tr.dataset.id); if (l) l.status = e.target.value;
           render();
+        });
+        // Ribbon-cutting request → calendar event in one click.
+        tr.querySelector('[data-approve-event]')?.addEventListener('click', async (e) => {
+          const l = all.find((x) => x.id === tr.dataset.id); if (!l) return;
+          const who = l.company || l.name || 'this request';
+          if (!confirm(`Approve the ribbon cutting for ${who}?\n\n• A calendar event is created from the request.\n• With a date on the request it goes live immediately; without one it waits as Pending on the Events page.`)) return;
+          e.target.disabled = true; e.target.textContent = 'Adding…';
+          try {
+            const r = await api(`/api/admin/leads/${encodeURIComponent(l.id)}/approve-event`, { method: 'POST' });
+            alert(`✓ On the calendar: ${r.event.title}\n${r.event.status === 'approved' ? 'It is live on the website now.' : 'It is Pending — confirm the date on the Events page, then hit ✓ Publish.'}`);
+            location.href = 'events.html';
+          } catch (err) {
+            e.target.disabled = false; e.target.textContent = '✓ Approve → calendar';
+            alert('Could not approve: ' + (err.message || 'error'));
+          }
         });
         // Membership application → live directory member in one click.
         tr.querySelector('[data-approve-member]')?.addEventListener('click', async (e) => {

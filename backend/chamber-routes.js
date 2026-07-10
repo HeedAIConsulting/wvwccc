@@ -1413,6 +1413,7 @@ router.post('/contact', async (req, res) => {
       b.businessType ? `Business type: ${String(b.businessType).slice(0, 120)}` : '',
       b.employees ? `Employees: ${String(b.employees).slice(0, 20)}` : '',
       b.level ? `Level of interest: ${String(b.level).slice(0, 80)}` : '',
+      b.ribbonCutting ? `Ribbon cutting requested: yes${b.ribbonDate ? ` (preferred ${String(b.ribbonDate).slice(0, 20)})` : ''}` : '',
     ].filter(Boolean).join('\n');
   }
   // If the lead references an event by raw id (older pages / direct API), resolve
@@ -1434,6 +1435,24 @@ router.post('/contact', async (req, res) => {
   }
   try {
     await repo.addLead(lead);
+    // A New Member application may carry a ribbon-cutting request (per the
+    // Chamber office, Jul 2026 — the application is the only place that offers
+    // it). File it as its own inquiry so it lands in the admin's pending
+    // Ribbon Cutting queue with its one-click approve.
+    if (lead.kind === 'membership-application' && b.ribbonCutting) {
+      const rcDate = String(b.ribbonDate || '').slice(0, 40);
+      try {
+        await repo.addLead({
+          id: 'lead-' + Date.now().toString(36) + 'r',
+          kind: 'ribbon-cutting',
+          reason: 'Ribbon Cutting — new member application',
+          name: lead.name, email: lead.email, phone: lead.phone, company: lead.company,
+          event: rcDate,
+          message: `OCCASION: Grand opening / new member ribbon cutting\nBUSINESS: ${lead.company || lead.name}\nPREFERRED DATE: ${rcDate || '—'}\n\n(Requested on the New Member application.)`,
+          status: 'new', received: new Date().toISOString(),
+        });
+      } catch (e) { console.error('ribbon lead from application failed', e); }
+    }
     res.json({ ok: true });
     // Inquiry notification emails to the OFFICE are off by default (per Felicia,
     // Jul 2026 — she only wants payment receipts by email; every inquiry is
@@ -1859,6 +1878,43 @@ router.post('/admin/leads/:id/approve-member', requireAdmin, async (req, res) =>
     try { await repo.setLeadStatus(lead.id, 'done'); } catch (e) { /* non-fatal */ }
     res.json({ ok: true, member: m, login });
   } catch (e) { console.error('approve-member', e); res.status(500).json({ error: 'could not approve' }); }
+});
+
+// Ribbon-cutting / event request → calendar event in one click (per Felicia,
+// Jul 2026 — requests sat under Inquiries with no approve button). A request
+// that carries a usable date goes straight onto the public calendar; an
+// undated one is created as Pending so the office confirms the date first.
+router.post('/admin/leads/:id/approve-event', requireAdmin, async (req, res) => {
+  try {
+    const lead = (await repo.listLeads()).find((l) => l.id === req.params.id);
+    if (!lead) return res.status(404).json({ error: 'inquiry not found' });
+    const msg = String(lead.message || '');
+    const line = (label) => {
+      const m = msg.match(new RegExp('^' + label + ':\\s*(.*)$', 'mi'));
+      return m ? m[1].trim() : '';
+    };
+    const isRibbon = String(lead.kind || '') === 'ribbon-cutting';
+    const dateMatch = (String(lead.event || '') + ' ' + line('PREFERRED DATE')).match(/\d{4}-\d{2}-\d{2}/);
+    const date = dateMatch ? dateMatch[0] : '';
+    const timeMatch = line('PREFERRED DATE').match(/\bat\s+(.+)$/i);
+    const occasion = line('OCCASION');
+    const company = String(lead.company || lead.name || '').trim();
+    const ev = buildEvent({
+      title: ((isRibbon ? 'Ribbon Cutting — ' : '') + (company || occasion || 'New event')).slice(0, 200),
+      category: isRibbon ? 'Ribbon Cutting' : 'Event',
+      date,
+      time: timeMatch ? timeMatch[1].slice(0, 40) : '',
+      venue: line('LOCATION').slice(0, 160),
+      summary: occasion ? `${occasion}${company ? ' · ' + company : ''}` : String(lead.reason || ''),
+      description: msg,
+      status: date ? 'approved' : 'pending',
+      confirmed: !!date,
+      showOnCalendar: true,
+    });
+    await repo.upsertEvent(ev);
+    try { await repo.setLeadStatus(lead.id, 'done'); } catch (e) { /* non-fatal */ }
+    res.json({ ok: true, event: ev });
+  } catch (e) { console.error('approve-event', e); res.status(500).json({ error: 'could not create the event' }); }
 });
 
 // Add-only merge of the committed event seed into the live store — brings

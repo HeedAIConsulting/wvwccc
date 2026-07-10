@@ -52,6 +52,16 @@
               <div class="field"><label>Tipo de negocio</label><input name="businessType" /></div>
               <div class="field"><label>Nivel de membresía de interés</label><input id="joinLevel" name="level" placeholder="Opcional — la oficina le ayuda a decidir" /></div>
             </div>
+            <div class="field" style="margin-top:var(--s-2)">
+              <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:600">
+                <input type="checkbox" name="ribbonCutting" value="yes" id="joinRibbon" style="width:auto" />
+                ✂ Solicitar un corte de listón para su negocio
+              </label>
+              <div id="joinRibbonDate" class="mt-2" hidden>
+                <label>Fecha preferida (opcional)</label>
+                <input name="ribbonDate" type="date" />
+              </div>
+            </div>
             <p id="joinMsg" class="notice" hidden></p>
             <div class="btn-row mt-3">
               <button class="btn btn--forest btn--lg" type="submit">Enviar solicitud</button>
@@ -119,6 +129,9 @@
   <script>
     ChamberPartials.mount({ active: '', depth: 1, lang: 'es' });
     Chamber.initLeadForm('joinForm', 'joinMsg', 'membership-application');
+    document.getElementById('joinRibbon').addEventListener('change', function () {
+      document.getElementById('joinRibbonDate').hidden = !this.checked;
+    });
   </script>
 </body>
 </html>

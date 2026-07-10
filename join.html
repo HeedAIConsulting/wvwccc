@@ -50,6 +50,19 @@
               <div class="field"><label>Type of business</label><input name="businessType" /></div>
               <div class="field"><label>Membership level of interest</label><input id="joinLevel" name="level" placeholder="Optional — the office will help you choose" /></div>
             </div>
+            <!-- Ribbon cuttings are requested HERE and only here (per the
+                 Chamber office, Jul 2026) — the request files into the admin's
+                 pending Ribbon Cutting queue alongside the application. -->
+            <div class="field" style="margin-top:var(--s-2)">
+              <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:600">
+                <input type="checkbox" name="ribbonCutting" value="yes" id="joinRibbon" style="width:auto" />
+                ✂ Request a Ribbon Cutting for your business
+              </label>
+              <div id="joinRibbonDate" class="mt-2" hidden>
+                <label>Preferred date (optional)</label>
+                <input name="ribbonDate" type="date" />
+              </div>
+            </div>
             <p id="joinMsg" class="notice" hidden></p>
             <div class="btn-row mt-3">
               <button class="btn btn--forest btn--lg" type="submit">Submit application</button>
@@ -118,6 +131,9 @@
   <script>
     ChamberPartials.mount({ active: '', depth: 0, lang: 'en' });
     Chamber.initLeadForm('joinForm', 'joinMsg', 'membership-application');
+    document.getElementById('joinRibbon').addEventListener('change', function () {
+      document.getElementById('joinRibbonDate').hidden = !this.checked;
+    });
   </script>
 
   <!-- Exit-intent nudge: when a visitor looks like they're leaving (likely over cost),
