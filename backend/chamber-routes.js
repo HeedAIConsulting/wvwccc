@@ -155,7 +155,7 @@ router.post('/auth/set-password', auth.requireAuth(), async (req, res) => {
 // Admin overrides (status/tier/leader/featured) come from the durable repo.
 const PUBLIC_FIELDS = ['id', 'slug', 'name', 'category', 'group', 'tier', 'neighborhood', 'contactName',
   'address', 'city', 'state', 'zip', 'phone', 'fax', 'website', 'tagline',
-  'description', 'leaderStatus', 'boardTitle', 'leaderLogo', 'seal', 'featured', 'tags', 'keywords', 'categories',
+  'description', 'leaderStatus', 'designations', 'boardTitle', 'leaderLogo', 'seal', 'featured', 'tags', 'keywords', 'categories',
   // richer profile (member-managed)
   'hours', 'occupation', 'typeOfBusiness', 'yearEstablished', 'employees',
   'logo', 'pageImage', 'photos', 'social', 'reviewLinks', 'ctaLinks', 'video',
@@ -1738,6 +1738,9 @@ router.patch('/admin/members/:id', requireAdmin, async (req, res) => {
     const patch = {};
     if (b.status !== undefined && STATUS_OPTS.includes(b.status)) patch.status = b.status;
     if (b.leaderStatus !== undefined && LEADER_OPTS.includes(b.leaderStatus)) patch.leaderStatus = b.leaderStatus;
+  // Extra designations: a member can also appear on other leadership pages
+  // (per the office, Jul 2026 — e.g. Board Member AND Ambassador).
+  if (Array.isArray(b.designations)) patch.designations = b.designations.filter((d) => d && LEADER_OPTS.includes(d)).slice(0, 5);
     if (b.tier !== undefined) patch.tier = b.tier;
     if (b.featured !== undefined) patch.featured = !!b.featured;
     if (b.expireDate !== undefined) patch.expireDate = (b.expireDate && /^\d{4}-\d{2}-\d{2}$/.test(b.expireDate)) ? b.expireDate : null;

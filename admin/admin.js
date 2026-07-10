@@ -483,7 +483,14 @@ window.Admin = (function () {
         <td><button type="button" data-editname title="Edit this member" style="background:none;border:none;padding:0;font:inherit;font-weight:600;color:var(--green-deep,#1E5631);cursor:pointer;text-align:left">${esc(m.name)}</button>${m.contactName ? `<div style="font-weight:600;color:var(--green-ink,#1b3326);font-size:.85rem">👤 ${esc(m.contactName)}</div>` : ''}<div class="sub">${esc(m.category || '')}${m.neighborhood ? ' · ' + esc(m.neighborhood) : ''}</div>${emailLine}</td>
         <td><select class="admin-select" data-field="tier">${tiers.map((t) => `<option ${((m.tier || 'member') === t) ? 'selected' : ''}>${t}</option>`).join('')}</select></td>
         <td><select class="admin-select" data-field="status">${opts.statusOptions.map((s) => `<option ${((m.status || 'approved') === s) ? 'selected' : ''}>${s}</option>`).join('')}</select></td>
-        <td><div class="radio-group" data-field="leaderStatus">${radios}</div></td>
+        <td><div class="radio-group" data-field="leaderStatus">${radios}</div>
+          <details style="margin-top:6px"${Array.isArray(m.designations) && m.designations.length ? ' open' : ''}>
+            <summary class="sub" style="cursor:pointer" title="Show this member on more than one leadership page at once">+ Also shows as…</summary>
+            <div data-desigs style="display:flex;gap:4px 12px;flex-wrap:wrap;margin-top:4px">
+              ${opts.leaderOptions.filter((o) => o).map((o) => `<label style="display:inline-flex;align-items:center;gap:4px;font-size:.78rem;cursor:pointer"><input type="checkbox" value="${esc(o)}" ${Array.isArray(m.designations) && m.designations.includes(o) ? 'checked' : ''}>${esc(o)}</label>`).join('')}
+            </div>
+          </details>
+        </td>
         <td><label class="toggle"><input type="checkbox" data-field="featured" ${m.featured ? 'checked' : ''}><span class="track"></span></label></td>
         <td style="white-space:nowrap">
           <button type="button" data-save title="Save the tier / status / designation / featured changes for this member" style="cursor:pointer;background:var(--gold,#C9A227);color:var(--green-ink,#143c20);border:none;border-radius:6px;padding:4px 12px;font-size:.8rem;font-weight:700;margin-right:6px;opacity:.45" disabled>Save</button>
@@ -523,6 +530,12 @@ window.Admin = (function () {
           el.addEventListener('change', () => { pending[el.dataset.field] = el.value; markDirty(); }));
         tr.querySelectorAll('[data-field="leaderStatus"] input').forEach((el) =>
           el.addEventListener('change', () => { pending.leaderStatus = el.value; markDirty(); }));
+        // "+ Also shows as…" — extra designations queue on the same Save.
+        tr.querySelectorAll('[data-desigs] input').forEach((el) =>
+          el.addEventListener('change', () => {
+            pending.designations = [...tr.querySelectorAll('[data-desigs] input:checked')].map((c) => c.value);
+            markDirty();
+          }));
         tr.querySelector('[data-field="featured"]').addEventListener('change', (e) =>
           { pending.featured = e.target.checked; markDirty(); });
         // ✉ Welcome email — shows the EXACT letter first (per the office,

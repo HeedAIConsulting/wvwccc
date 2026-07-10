@@ -1837,14 +1837,17 @@ window.Chamber = (function () {
       if (t.includes('secretary')) return 2;
       return 3;
     };
-    const board = members.filter((m) => want.includes(m.leaderStatus))
-      .sort((a, b) => (ORDER.indexOf(a.leaderStatus) - ORDER.indexOf(b.leaderStatus))
-        || (a.leaderStatus === 'Leader' ? officerRank(a) - officerRank(b) : 0)
-        || lastNameOf(a).localeCompare(lastNameOf(b)));
-    if (!board.length) { el.innerHTML = subnav + '<p class="notice">This roster is being finalized — check back soon. (Admins: set each member\'s designation under Members.)</p>'; return; }
-    // group by designation
+    // A member counts for a section via their primary designation OR any
+    // extra designation (per the office, Jul 2026 — e.g. someone who is a
+    // Board Member AND an Ambassador appears on every matching page).
+    const hasDesig = (m, g) => m.leaderStatus === g || (Array.isArray(m.designations) && m.designations.includes(g));
     const groups = {};
-    board.forEach((m) => { (groups[m.leaderStatus] = groups[m.leaderStatus] || []).push(m); });
+    want.forEach((g) => {
+      const list = members.filter((m) => hasDesig(m, g))
+        .sort((a, b) => (g === 'Leader' ? officerRank(a) - officerRank(b) : 0) || lastNameOf(a).localeCompare(lastNameOf(b)));
+      if (list.length) groups[g] = list;
+    });
+    if (!Object.keys(groups).length) { el.innerHTML = subnav + '<p class="notice">This roster is being finalized — check back soon. (Admins: set each member\'s designation under Members.)</p>'; return; }
     const section = (g, list) => {
       const officers = g === 'Leader';
       // Officers sit up top, larger, on their own centered row; the board is a
