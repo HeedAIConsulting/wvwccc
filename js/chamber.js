@@ -254,9 +254,10 @@ window.Chamber = (function () {
     return isNaN(dt) ? String(d) : dt.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
   }
 
-  function openEventModal(ev) {
-    if (!ev) return;
-    const base = /\/(events|members|member|community|admin|auth|es|groups|guides|jobs)\//.test(location.pathname) ? '../' : '';
+  // Full detail card for an event — used by the dedicated event page (and by
+  // the legacy modal). Per the office, Jul 2026: events open on their OWN page
+  // with room for sponsors, logos, and photo galleries.
+  function eventDetailCard(ev, base, opts = {}) {
     const loc = [ev.venue, ev.address, ev.neighborhood].filter(Boolean).join(' · ');
     // Full flyer leads the modal (portrait-friendly); the image strip follows.
     // Hero: the portrait flyer leads; fall back to the first photo so the modal
@@ -301,19 +302,17 @@ window.Chamber = (function () {
     // escaped + auto-linked so pasted URLs and "click here" links actually work.
     const descHtml = ev.descriptionHtml ? ev.descriptionHtml : (desc ? linkify(desc) : '');
     const mapU = evMapUrl(ev);
-    const overlay = document.createElement('div');
-    overlay.className = 'ev-modal';
-    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(14,42,22,.62);display:flex;align-items:flex-start;justify-content:center;padding:5vh 16px;z-index:9999;overflow-y:auto';
-    overlay.innerHTML = `
-      <div class="ev-card" role="dialog" aria-modal="true">
+    const shareUrl = location.origin + '/events/view.html?id=' + encodeURIComponent(ev.id);
+    return `
+      <div class="ev-card"${opts.dialog ? ' role="dialog" aria-modal="true"' : ''} style="${opts.dialog ? '' : 'max-width:860px;margin:0 auto'}">
         <div class="ev-card__accent"></div>
-        <button aria-label="Close" data-ev-close class="ev-card__x">×</button>
+        ${opts.dialog ? '<button aria-label="Close" data-ev-close class="ev-card__x">×</button>' : ''}
         <div class="ev-card__body">
           <div class="ev-card__head">
             <img class="ev-card__seal" src="/images/wvwccc-logo.png" alt="" onerror="this.style.display='none'">
             <div>
               <span class="ev-card__kicker">${esc(ev.category || 'Chamber Event')}</span>
-              <h2 class="ev-card__title">${esc(ev.title)}</h2>
+              <h1 class="ev-card__title">${esc(ev.title)}</h1>
             </div>
           </div>
           <div class="ev-card__meta">
@@ -327,23 +326,43 @@ window.Chamber = (function () {
           ${docs}
           <div class="ev-card__foot">
             ${ev.confirmed ? calendarMenu(ev) : ''}
-            ${shareMenu(ev.title, location.origin + (base ? '/' : location.pathname) + (base ? 'events/index.html' : '') + '#' + encodeURIComponent(ev.id))}
+            ${shareMenu(ev.title, shareUrl)}
             <div class="ev-card__cta">${cta}</div>
           </div>
         </div>
       </div>`;
-    // While the detail is open, the event id rides in the address bar so
-    // copying the browser URL shares THIS event (per the Chamber office —
-    // copied links used to point at the whole list). The events page already
-    // reopens the event from the hash on load.
-    try { history.replaceState(null, '', '#' + encodeURIComponent(ev.id)); } catch (e) { /* sandboxed iframe */ }
-    const close = () => {
-      overlay.remove();
-      try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { /* sandboxed iframe */ }
-    };
+  }
+  // Legacy inline modal — kept for compatibility; the site now navigates to
+  // the full event page instead.
+  function openEventModal(ev) {
+    if (!ev) return;
+    const base = /\/(events|members|member|community|admin|auth|es|groups|guides|jobs)\//.test(location.pathname) ? '../' : '';
+    const overlay = document.createElement('div');
+    overlay.className = 'ev-modal';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(14,42,22,.62);display:flex;align-items:flex-start;justify-content:center;padding:5vh 16px;z-index:9999;overflow-y:auto';
+    overlay.innerHTML = eventDetailCard(ev, base, { dialog: true });
+    const close = () => overlay.remove();
     overlay.addEventListener('click', (e) => { if (e.target === overlay || e.target.closest('[data-ev-close]')) close(); });
     document.addEventListener('keydown', function esc2(e) { if (e.key === 'Escape') { close(); document.removeEventListener('keydown', esc2); } });
     document.body.appendChild(overlay);
+  }
+  // Dedicated event page (events/view.html?id=…) — per the office, Jul 2026:
+  // "We want the events to open in full page when we click on them. We need
+  // to display the sponsors/logos/many images."
+  async function initEventView() {
+    const el = document.getElementById('eventView'); if (!el) return;
+    const id = new URLSearchParams(location.search).get('id') || decodeURIComponent((location.hash || '').replace(/^#/, ''));
+    let ev = null;
+    if (id) {
+      try { ev = await getJSON(ChamberAPI.url('/api/events/' + encodeURIComponent(id))); } catch (e) { /* not found */ }
+    }
+    if (!ev || !ev.id) {
+      el.innerHTML = '<p class="notice" style="max-width:640px;margin:0 auto">This event could not be found — it may have been removed or unpublished. <a href="index.html">See all upcoming events →</a></p>';
+      return;
+    }
+    _eventReg[ev.id] = ev;
+    document.title = `${ev.title} — West Valley · Warner Center Chamber of Commerce`;
+    el.innerHTML = eventDetailCard(ev, '../');
   }
   if (typeof document !== 'undefined' && !window.__wvEventBound) {
     window.__wvEventBound = true;
@@ -352,11 +371,12 @@ window.Chamber = (function () {
       if (!t) return;
       if (e.target.closest('a,button')) return; // let real buttons/links work
       e.preventDefault();
-      // On the All-Events list, open the event's detail in a new tab (the page
-      // auto-opens the matching event from the URL hash). Elsewhere, open inline.
-      const newTab = t.getAttribute('data-ev-newtab');
-      if (newTab) { window.open(newTab, '_blank', 'noopener'); return; }
-      openEventModal(_eventReg[t.getAttribute('data-ev-detail')]);
+      // Events open on their own full page (per the office, Jul 2026 — room
+      // for sponsors, logos, and galleries; no more popup).
+      const base = /\/(events|members|member|community|admin|auth|es|groups|guides|jobs)\//.test(location.pathname) ? '../' : '';
+      const href = base + 'events/view.html?id=' + encodeURIComponent(t.getAttribute('data-ev-detail'));
+      if (t.getAttribute('data-ev-newtab')) window.open(href, '_blank', 'noopener');
+      else location.href = href;
     });
   }
 
@@ -366,7 +386,7 @@ window.Chamber = (function () {
     // On the All-Events list we open the detail in a NEW TAB (deep link to the
     // same events page, which auto-opens the event from the hash). Same-folder
     // link works for both the English and Spanish events pages.
-    const newTab = opts.newTab ? ` data-ev-newtab="index.html#${encodeURIComponent(ev.id)}"` : '';
+    const newTab = opts.newTab ? ' data-ev-newtab="1"' : '';
     const confirmed = ev.confirmed && ev.day;
     const dateBlock = confirmed
       ? `<div class="event-date"><div class="event-date__mo">${esc(ev.month)}</div><div class="event-date__day">${esc(ev.day)}</div></div>`
@@ -394,7 +414,7 @@ window.Chamber = (function () {
           ${imgs}
           ${links}
           ${confirmed ? calendarMenu(ev) : ''}
-          ${shareMenu(ev.title, location.origin + '/events/index.html#' + encodeURIComponent(ev.id))}
+          ${shareMenu(ev.title, location.origin + '/events/view.html?id=' + encodeURIComponent(ev.id))}
         </div>
         <div>${cta}</div>
       </div>`;
@@ -1155,7 +1175,8 @@ window.Chamber = (function () {
       const id = decodeURIComponent((location.hash || '').replace(/^#/, ''));
       if (!id) return;
       const ev = events.find((e) => e.id === id) || _eventReg[id];
-      if (ev) openEventModal(ev);
+      // Old shared links (#event-id) land on the event's full page now.
+      if (ev) location.replace('view.html?id=' + encodeURIComponent(id));
     }
     openFromHash();
     window.addEventListener('hashchange', openFromHash);
@@ -2130,5 +2151,5 @@ window.Chamber = (function () {
     render();
   }
 
-  return { initHome, initDirectory, initProfile, initEvents, initCheckout, initLeadForm, initJobs, initDeals, initCommunity, initNews, initBizBuzz, initBoard, initLeaders, initDining, offerCard, postCard, newsCard, memberTile, eventCard, eventPreviewCard, initLeaderBanner, initGroups, initGroupView, initGallery, initFeaturedSlot, joinCtaHtml, mountJoinCta, initGuides, initGuideView, initRealEstate, getJSON, esc };
+  return { initHome, initEventView, initDirectory, initProfile, initEvents, initCheckout, initLeadForm, initJobs, initDeals, initCommunity, initNews, initBizBuzz, initBoard, initLeaders, initDining, offerCard, postCard, newsCard, memberTile, eventCard, eventPreviewCard, initLeaderBanner, initGroups, initGroupView, initGallery, initFeaturedSlot, joinCtaHtml, mountJoinCta, initGuides, initGuideView, initRealEstate, getJSON, esc };
 })();

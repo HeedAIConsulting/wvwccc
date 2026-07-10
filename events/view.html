@@ -3,26 +3,24 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Member Profile — West Valley · Warner Center Chamber of Commerce</title>
-  <meta name="description" content="A West Valley · Warner Center Chamber of Commerce member profile." />
+  <title>Event — West Valley · Warner Center Chamber of Commerce</title>
+  <meta name="description" content="Event details, tickets, and RSVP — West Valley · Warner Center Chamber of Commerce." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="../css/chamber.css?v=20260711a" />
 </head>
 <body>
   <div data-partial="header"></div>
-  <section class="section">
-    <div class="container" id="profile">
-      <p class="member-tile__meta">Loading…</p>
+  <section class="section bg-cream-deep">
+    <div class="container">
+      <p class="member-tile__meta" style="max-width:860px;margin:0 auto var(--s-4)"><a href="index.html">&larr; All events &amp; tickets</a></p>
+      <div id="eventView"><p class="member-tile__meta" style="text-align:center">Loading event…</p></div>
     </div>
   </section>
   <div data-partial="footer"></div>
   <script src="../js/partials.js?v=20260708a"></script>
   <script src="../js/api-base.js?v=20260619a"></script>
   <script src="../js/chamber.js?v=20260711a"></script>
-  <script>
-    ChamberPartials.mount({ active: 'members', depth: 1, lang: 'en' });
-    Chamber.initProfile();
-  </script>
+  <script>ChamberPartials.mount({ active: 'events', depth: 1, lang: 'en' }); Chamber.initEventView();</script>
 </body>
 </html>
