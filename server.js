@@ -61,6 +61,22 @@ app.get('/api/ping', (_req, res) => res.json({ ok: true, service: 'wvwccc' }));
 // ── Never web-serve the import store (emails + password hashes) ──
 app.use('/data/_store', (_req, res) => res.status(403).type('text/plain').send('Forbidden'));
 
+// ── Legacy ChamberWare URLs (printed on flyers, indexed by Google) ─────────
+// Known pages 301 to their new home; any other stray .php lands on the
+// homepage instead of a 404 so no old link ever dead-ends.
+const LEGACY_REDIRECTS = {
+  '/event_listings.php': '/events/',
+  '/event_listing.php': '/events/',
+  '/events.php': '/events/',
+  '/member_directory.php': '/members/directory.html',
+  '/directory.php': '/members/directory.html',
+  '/join.php': '/join.html',
+  '/contact.php': '/contact.html',
+  '/index.php': '/',
+};
+app.get(Object.keys(LEGACY_REDIRECTS), (req, res) => res.redirect(301, LEGACY_REDIRECTS[req.path.toLowerCase()] || '/'));
+app.get(/^\/[^/]+\.php$/i, (_req, res) => res.redirect(302, '/'));
+
 // ── Static site ────────────────────────────────────────────
 // Serve clean URLs (/directory -> members/directory.html handled by links;
 // extensionless handled at host level on Cloudflare; here we keep .html).
