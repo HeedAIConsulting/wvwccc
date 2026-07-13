@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex" />
+  <title>Ribbon Cuttings — WVWCCC Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="../css/chamber.css" />
+  <link rel="stylesheet" href="admin.css?v=20260710a" />
+</head>
+<body class="admin">
+  <div class="admin-shell">
+    <aside class="admin-sidebar" data-admin-nav></aside>
+    <div class="admin-main">
+      <div class="admin-topbar"><h1>Ribbon Cuttings</h1></div>
+      <div class="admin-content">
+        <p id="adminError" class="admin-notice" hidden></p>
+        <p class="admin-notice">Every ribbon-cutting request moves through the office workflow: <b>call the member</b> to agree on a date → record the date here → they send their flyer (<b>610px-wide high-res JPG</b>, no PDFs, must mention the Chamber officiating) → upload it → <b>Publish</b>. Nothing is public until Publish.</p>
+        <div id="rcSections"><!-- one panel per stage, rendered by admin.js --></div>
+      </div>
+    </div>
+  </div>
+  <script src="../js/api-base.js"></script>
+  <script src="admin.js?v=20260711c"></script>
+  <script>Admin.initRibbon();</script>
+  <script defer src="/js/support.js?v=20260701a"></script>
+</body>
+</html>

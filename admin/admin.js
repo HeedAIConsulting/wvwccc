@@ -53,9 +53,10 @@ window.Admin = (function () {
     { href: 'renewals.html', icon: '↻', label: 'Renewals', key: 'renewals' },
     { href: 'approvals.html', icon: '✓', label: 'Approvals', key: 'approvals' },
     { href: 'events.html', icon: '◆', label: 'Events', key: 'events' },
+    { href: 'ribbon-cuttings.html', icon: '✂', label: 'Ribbon Cuttings', key: 'ribbon' },
     { href: 'groups.html', icon: '◎', label: 'Groups', key: 'groups' },
     { href: 'content.html', icon: '✎', label: 'Content', key: 'content' },
-    { href: 'slides.html', icon: '▭', label: 'Homepage Banner', key: 'slides' },
+    { href: 'slides.html', icon: '▭', label: 'Homepage Management', key: 'slides' },
     { href: 'sponsorships.html', icon: '★', label: 'Sponsorships', key: 'sponsorships' },
     { href: 'ai-assistant.html', icon: '✦', label: 'AI Assistant', key: 'assistant' },
     { href: 'ai-assistant.html?tpl=1', icon: '❏', label: 'Email Templates', key: 'templates' },
@@ -1055,7 +1056,7 @@ window.Admin = (function () {
     if (searchEl) searchEl.value = new URLSearchParams(location.search).get('q') || '';
     const SECTIONS = [
       ['membership', '◉ Membership applications', 'People who applied to join — the office confirms dues and sets up the membership.'],
-      ['ribbon', '🎀 Ribbon cutting requests', 'Approve puts the ribbon cutting on the calendar — live right away when the request includes a date, otherwise as Pending on the Events page.'],
+      ['ribbon', '🎀 Ribbon cutting requests', 'These now have their own workflow page — <a href="ribbon-cuttings.html">manage them under Ribbon Cuttings</a> (call → set date → flyer → publish). The quick-approve below still works for simple ones.'],
       ['rsvp', '◆ Event RSVPs', 'RSVPs sent from event pages. Per-event lists (with download) live on the Events page.'],
       ['jobs', '💼 Job inquiries', 'Messages about job postings and the jobs board.'],
       ['groups', '◎ Group join requests', 'Requests to join a group / Connection Circle (also visible on the Groups page).'],
@@ -1135,6 +1136,141 @@ window.Admin = (function () {
     let deb;
     searchEl?.addEventListener('input', () => { clearTimeout(deb); deb = setTimeout(render, 150); });
     load();
+  }
+
+  // ── Ribbon Cuttings (office workflow, Jul 13 2026) ──
+  // Call the member FIRST (dates are never auto-scheduled) → record the agreed
+  // date/time → the flyer arrives (610px-wide JPG per the office template) →
+  // upload it → Publish creates the calendar event. Nothing public until then.
+  async function initRibbon() {
+    mountShell('ribbon');
+    const wrap = document.getElementById('rcSections');
+    let all = [];
+    const isRibbonLead = (l) => String(l.kind || '').toLowerCase() === 'ribbon-cutting' || String(l.reason || '').toLowerCase().includes('ribbon');
+    const stageOf = (l) => l.rcStage || (l.status === 'done' ? 'published' : (l.rcFlyer ? 'flyer-received' : l.rcDate ? 'date-set' : 'new'));
+    const STAGES = [
+      ['new', '📞 New requests', 'Call the member to agree on a date (check the office calendar first), then record it below.'],
+      ['date-set', '🗓 Date confirmed — waiting on the flyer', 'The member is preparing their flyer: 610px-wide high-res JPG, no PDFs, must mention the Chamber officiating.'],
+      ['flyer-received', '🖼 Flyer in — ready to publish', 'Give the flyer a final look. Publish puts the ribbon cutting on the public calendar.'],
+      ['published', '✓ Published', 'Live on the calendar. Edit details (or unpublish) on the Events page.'],
+      ['declined', '✕ Declined / archived', 'Requests the office passed on.'],
+    ];
+    const fmtReceived = (r) => { try { return new Date(r).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); } catch (e) { return ''; } };
+    function card(l) {
+      const stage = stageOf(l);
+      const done = stage === 'published' || stage === 'declined';
+      return `
+        <div class="panel" data-rc-id="${esc(l.id)}" style="padding:14px 16px;margin-bottom:12px">
+          <div style="display:flex;gap:10px;align-items:baseline;flex-wrap:wrap">
+            <b style="font-size:1.02rem">${esc(l.company || l.name || 'Unknown business')}</b>
+            <span class="sub">${esc(l.name || '')}</span>
+            <span class="sub" style="margin-left:auto">received ${fmtReceived(l.received)}</span>
+          </div>
+          <div class="sub" style="margin-top:4px">
+            ${l.email ? `✉ <a href="mailto:${esc(l.email)}">${esc(l.email)}</a>` : ''}
+            ${l.phone ? ` · ☎ <a href="tel:${esc(l.phone)}">${esc(l.phone)}</a>` : ''}
+          </div>
+          ${l.message ? `<details style="margin-top:8px"><summary class="sub" style="cursor:pointer">Full request (dates they suggested, location, details)</summary><div class="sub" style="white-space:pre-wrap;margin-top:6px;border-left:3px solid var(--gold-soft,#e6dcbf);padding-left:10px">${esc(l.message)}</div></details>` : ''}
+          ${done ? (stage === 'published'
+              ? `<p class="sub" style="margin:10px 0 0">🗓 ${esc(l.rcDate || '')} ${esc(l.rcTime || '')} ${l.rcVenue ? '· ' + esc(l.rcVenue) : ''} — <a href="events.html">manage on the Events page</a></p>`
+              : `<p class="sub" style="margin:10px 0 0">Declined. <button type="button" class="btn btn--ghost btn--sm" data-rc-reopen>Reopen</button></p>`)
+          : `
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-top:12px">
+            <div class="field" style="margin:0"><label>Confirmed date <span class="sub">(after the phone call)</span></label><input type="date" data-rc-date value="${esc(l.rcDate || '')}"></div>
+            <div class="field" style="margin:0"><label>Time</label><input type="text" data-rc-time placeholder="10:30 AM" value="${esc(l.rcTime || '')}"></div>
+            <div class="field" style="margin:0;grid-column:span 2"><label>Location</label><input type="text" data-rc-venue placeholder="Business address / venue" value="${esc(l.rcVenue || '')}"></div>
+          </div>
+          <div style="display:flex;gap:14px;align-items:center;margin-top:10px;flex-wrap:wrap">
+            <div data-rc-flyer-prev style="flex:none;width:64px;height:84px;border:1px solid var(--line,#e4dcc8);border-radius:8px;overflow:hidden;display:grid;place-items:center;background:#f6f3ea;font-size:.65rem;color:#8a8264">${l.rcFlyer ? `<img src="${esc(l.rcFlyer)}" alt="flyer" style="width:100%;height:100%;object-fit:cover">` : 'no flyer'}</div>
+            <div style="flex:1;min-width:220px">
+              <label class="sub" style="display:block;margin-bottom:4px">Flyer <b>(610px-wide high-res JPG — no PDFs; must mention the Chamber officiating)</b></label>
+              <input type="file" data-rc-flyer-file accept="image/jpeg,image/png,image/webp">
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+            <button type="button" class="btn btn--sm" data-rc-save>💾 Save details</button>
+            <button type="button" class="btn btn--gold btn--sm" data-rc-publish title="Creates the calendar event — live right away when a confirmed date is set">📅 Publish to calendar</button>
+            <button type="button" class="btn btn--ghost btn--sm" data-rc-decline style="margin-left:auto">✕ Decline</button>
+          </div>
+          <p class="sub" data-rc-msg hidden style="margin:8px 0 0"></p>`}
+        </div>`;
+    }
+    function render() {
+      const ribbons = all.filter(isRibbonLead);
+      wrap.innerHTML = STAGES.map(([key, title, blurb]) => {
+        const list = ribbons.filter((l) => stageOf(l) === key);
+        return `
+          <div class="panel" style="padding:16px 18px;margin-bottom:16px">
+            <h3 style="margin:0">${title} <span class="sub" style="font-weight:400">(${list.length})</span></h3>
+            <p class="sub" style="margin:4px 0 12px">${blurb}</p>
+            ${list.length ? list.map(card).join('') : '<p class="sub" style="margin:0">Nothing here right now.</p>'}
+          </div>`;
+      }).join('');
+      wrap.querySelectorAll('[data-rc-id]').forEach((el) => {
+        const l = all.find((x) => x.id === el.dataset.rcId); if (!l) return;
+        const msg = el.querySelector('[data-rc-msg]');
+        const note = (t) => { if (msg) { msg.hidden = false; msg.textContent = t; } };
+        let flyerUrl = l.rcFlyer || '';
+        el.querySelector('[data-rc-flyer-file]')?.addEventListener('change', (e) => {
+          const f = e.target.files && e.target.files[0]; if (!f) return;
+          if (f.size > 2_400_000) return note('That image is over ~2.4MB — export a smaller JPG and try again.');
+          const r = new FileReader();
+          r.onload = async () => {
+            try {
+              const up = await api('/api/me/asset', { method: 'POST', body: JSON.stringify({ kind: 'photo', dataUrl: r.result }) });
+              flyerUrl = up.url;
+              const prev = el.querySelector('[data-rc-flyer-prev]');
+              if (prev) prev.innerHTML = `<img src="${esc(flyerUrl)}" alt="flyer" style="width:100%;height:100%;object-fit:cover">`;
+              note('Flyer uploaded — click Save details to keep it.');
+            } catch (err) { note('Upload failed (JPG/PNG/WebP, ≤2.5MB).'); }
+          };
+          r.readAsDataURL(f);
+        });
+        async function save(extra = {}) {
+          const rcDate = el.querySelector('[data-rc-date]')?.value || '';
+          const rcTime = el.querySelector('[data-rc-time]')?.value || '';
+          const rcVenue = el.querySelector('[data-rc-venue]')?.value || '';
+          const rcStage = extra.rcStage || (flyerUrl ? 'flyer-received' : rcDate ? 'date-set' : 'new');
+          await api(`/api/admin/leads/${encodeURIComponent(l.id)}/ribbon`, {
+            method: 'PATCH',
+            body: JSON.stringify({ rcDate, rcTime, rcVenue, rcFlyer: flyerUrl, rcStage, ...extra }),
+          });
+          Object.assign(l, { rcDate, rcTime, rcVenue, rcFlyer: flyerUrl, rcStage: extra.rcStage || rcStage });
+        }
+        el.querySelector('[data-rc-save]')?.addEventListener('click', async (e) => {
+          e.target.disabled = true;
+          try { await save(); render(); } catch (err) { e.target.disabled = false; note('Could not save: ' + (err.message || 'error')); }
+        });
+        el.querySelector('[data-rc-publish]')?.addEventListener('click', async (e) => {
+          const rcDate = el.querySelector('[data-rc-date]')?.value || '';
+          const who = l.company || l.name || 'this request';
+          if (!confirm(`Publish the ribbon cutting for ${who}?\n\n${rcDate ? `• Goes LIVE on the public calendar for ${rcDate}.` : '• No confirmed date yet — it will sit as Pending on the Events page until you set one.'}${flyerUrl ? '\n• The flyer you uploaded is attached.' : '\n• No flyer attached yet — you can add it later on the Events page.'}`)) return;
+          e.target.disabled = true; e.target.textContent = 'Publishing…';
+          try {
+            await save();
+            const r = await api(`/api/admin/leads/${encodeURIComponent(l.id)}/approve-event`, { method: 'POST' });
+            l.rcStage = 'published'; l.status = 'done'; l.rcEventId = r.event && r.event.id;
+            render();
+          } catch (err) { e.target.disabled = false; e.target.textContent = '📅 Publish to calendar'; note('Could not publish: ' + (err.message || 'error')); }
+        });
+        el.querySelector('[data-rc-decline]')?.addEventListener('click', async (e) => {
+          if (!confirm(`Decline the ribbon-cutting request from ${l.company || l.name || 'this member'}? You can reopen it later.`)) return;
+          e.target.disabled = true;
+          try { await save({ rcStage: 'declined' }); await api(`/api/admin/leads/${encodeURIComponent(l.id)}`, { method: 'PATCH', body: JSON.stringify({ status: 'done' }) }); l.status = 'done'; render(); }
+          catch (err) { e.target.disabled = false; note('Could not decline: ' + (err.message || 'error')); }
+        });
+        el.querySelector('[data-rc-reopen]')?.addEventListener('click', async (e) => {
+          e.target.disabled = true;
+          try {
+            await api(`/api/admin/leads/${encodeURIComponent(l.id)}/ribbon`, { method: 'PATCH', body: JSON.stringify({ rcStage: l.rcDate ? 'date-set' : 'new' }) });
+            await api(`/api/admin/leads/${encodeURIComponent(l.id)}`, { method: 'PATCH', body: JSON.stringify({ status: 'read' }) });
+            l.rcStage = l.rcDate ? 'date-set' : 'new'; l.status = 'read'; render();
+          } catch (err) { e.target.disabled = false; }
+        });
+      });
+    }
+    try { all = (await api('/api/admin/leads')).leads || []; render(); }
+    catch (e) { showAuthError(e); }
   }
 
   // ── Events (full CRUD: create / edit / delete, rich text, flyers, sponsor logos, per-event RSVPs & payments) ──
@@ -2845,5 +2981,5 @@ window.Admin = (function () {
     });
   }
 
-  return { mountShell, initDashboard, initMembers, initBoardManager, initApprovals, initOrders, initLeads, initEvents, initContent, initAssistant, initRenewals, initUsers, initGroups, initSponsorships, initSlides, initAbout, openHelp, api, esc };
+  return { mountShell, initDashboard, initMembers, initBoardManager, initApprovals, initOrders, initLeads, initRibbon, initEvents, initContent, initAssistant, initRenewals, initUsers, initGroups, initSponsorships, initSlides, initAbout, openHelp, api, esc };
 })();

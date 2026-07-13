@@ -176,7 +176,7 @@
           if (r.ok) {
             form.querySelectorAll('input,select,textarea,button').forEach(function (el) { el.disabled = true; });
             msg.style.borderColor = 'var(--green)';
-            msg.innerHTML = '<strong>¡Solicitud recibida!</strong> El personal de la Cámara se comunicará para confirmar su fecha y comenzar a coordinar. Para algo urgente, llame al (818) 347-4737.';
+            msg.innerHTML = '<strong>¡Solicitud recibida!</strong> Espere una llamada de Felicia de la oficina de la Cámara para confirmar su fecha. Una vez fijada la fecha, le pediremos el volante de su evento (JPG de alta resolución, 610px de ancho, que mencione que la Cámara oficia la ceremonia). Para algo urgente, llame al (818) 347-4737.';
             msg.scrollIntoView({ behavior: 'smooth', block: 'center' });
           } else {
             msg.style.borderColor = 'var(--red)';

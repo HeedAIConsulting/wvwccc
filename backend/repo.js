@@ -37,9 +37,40 @@ export async function addLead(lead) {
 export async function listLeads() {
   if (db.enabled) {
     const r = await db.query('SELECT * FROM leads ORDER BY received DESC');
-    return r.rows.map(({ password_hash, ...x }) => ({ ...x, received: x.received, ...(password_hash ? { passwordHash: password_hash } : {}) }));
+    return r.rows.map(({ password_hash, rc_date, rc_time, rc_venue, rc_flyer, rc_stage, rc_event_id, ...x }) => ({
+      ...x, received: x.received,
+      ...(rc_date != null ? { rcDate: rc_date } : {}),
+      ...(rc_time != null ? { rcTime: rc_time } : {}),
+      ...(rc_venue != null ? { rcVenue: rc_venue } : {}),
+      ...(rc_flyer != null ? { rcFlyer: rc_flyer } : {}),
+      ...(rc_stage != null ? { rcStage: rc_stage } : {}),
+      ...(rc_event_id != null ? { rcEventId: rc_event_id } : {}),
+      ...(password_hash ? { passwordHash: password_hash } : {}),
+    }));
   }
   return store.read('leads.json', []).slice().reverse();
+}
+// Ribbon-cutting fields on a request — only the provided keys change.
+export async function patchLeadRibbon(id, f) {
+  if (db.enabled) {
+    const r = await db.query(
+      `UPDATE leads SET
+         rc_date     = COALESCE($1, rc_date),
+         rc_time     = COALESCE($2, rc_time),
+         rc_venue    = COALESCE($3, rc_venue),
+         rc_flyer    = COALESCE($4, rc_flyer),
+         rc_stage    = COALESCE($5, rc_stage),
+         rc_event_id = COALESCE($6, rc_event_id)
+       WHERE id=$7`,
+      [f.rcDate ?? null, f.rcTime ?? null, f.rcVenue ?? null,
+       f.rcFlyer ?? null, f.rcStage ?? null, f.rcEventId ?? null, id]);
+    return r.rowCount > 0;
+  }
+  const leads = store.read('leads.json', []);
+  const l = leads.find((x) => x.id === id);
+  if (!l) return false;
+  for (const k of ['rcDate', 'rcTime', 'rcVenue', 'rcFlyer', 'rcStage', 'rcEventId']) if (f[k] !== undefined) l[k] = f[k];
+  store.write('leads.json', leads); return true;
 }
 export async function setLeadStatus(id, status) {
   if (db.enabled) { await db.query('UPDATE leads SET status=$1 WHERE id=$2', [status, id]); return true; }

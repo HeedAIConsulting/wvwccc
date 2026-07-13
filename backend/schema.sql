@@ -113,6 +113,16 @@ CREATE TABLE IF NOT EXISTS leads (
 -- Used by approve-member so the login is active the moment they're approved.
 ALTER TABLE leads ADD COLUMN IF NOT EXISTS password_hash text;
 
+-- Ribbon-cutting workflow (office, Jul 13 2026): the date is confirmed BY
+-- PHONE, then recorded on the request; the flyer arrives afterwards; nothing
+-- goes public until the final approve publishes the calendar event.
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS rc_date text;
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS rc_time text;
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS rc_venue text;
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS rc_flyer text;
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS rc_stage text;      -- new|date-set|flyer-received|published|declined
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS rc_event_id text;   -- calendar event created on publish
+
 -- Extra designations (comma-joined) — a member can also appear on other
 -- leadership pages, e.g. Board Member AND Ambassador (office, Jul 2026).
 ALTER TABLE member_overrides ADD COLUMN IF NOT EXISTS designations text;

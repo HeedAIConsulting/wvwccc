@@ -1989,10 +1989,33 @@ router.post('/admin/leads/:id/approve-member', requireAdmin, async (req, res) =>
   } catch (e) { console.error('approve-member', e); res.status(500).json({ error: 'could not approve' }); }
 });
 
+// ── Ribbon-cutting workflow (per Diana & Felicia, Jul 13 2026) ──
+// The date is confirmed BY PHONE — never auto-scheduled. The office records
+// the agreed date/time here, the flyer arrives afterwards (610px-wide JPG per
+// the office template), and nothing goes public until Publish.
+const RC_STAGES = ['new', 'date-set', 'flyer-received', 'published', 'declined'];
+router.patch('/admin/leads/:id/ribbon', requireAdmin, async (req, res) => {
+  const b = req.body || {};
+  const f = {};
+  if (b.rcDate !== undefined) f.rcDate = (b.rcDate && /^\d{4}-\d{2}-\d{2}$/.test(b.rcDate)) ? b.rcDate : '';
+  if (b.rcTime !== undefined) f.rcTime = String(b.rcTime || '').slice(0, 40);
+  if (b.rcVenue !== undefined) f.rcVenue = String(b.rcVenue || '').slice(0, 200);
+  if (b.rcFlyer !== undefined) f.rcFlyer = String(b.rcFlyer || '').slice(0, 300);
+  if (b.rcStage !== undefined && RC_STAGES.includes(b.rcStage)) f.rcStage = b.rcStage;
+  if (!Object.keys(f).length) return res.status(400).json({ error: 'nothing to update' });
+  try {
+    const ok = await repo.patchLeadRibbon(req.params.id, f);
+    if (!ok) return res.status(404).json({ error: 'not found' });
+    res.json({ ok: true });
+  } catch (e) { console.error('ribbon patch', e); res.status(500).json({ error: 'update failed' }); }
+});
+
 // Ribbon-cutting / event request → calendar event in one click (per Felicia,
 // Jul 2026 — requests sat under Inquiries with no approve button). A request
 // that carries a usable date goes straight onto the public calendar; an
 // undated one is created as Pending so the office confirms the date first.
+// Office-confirmed details (rcDate/rcTime/rcVenue/rcFlyer, set after the
+// phone call) always beat whatever the member typed on the request.
 router.post('/admin/leads/:id/approve-event', requireAdmin, async (req, res) => {
   try {
     const lead = (await repo.listLeads()).find((l) => l.id === req.params.id);
@@ -2004,7 +2027,7 @@ router.post('/admin/leads/:id/approve-event', requireAdmin, async (req, res) => 
     };
     const isRibbon = String(lead.kind || '') === 'ribbon-cutting';
     const dateMatch = (String(lead.event || '') + ' ' + line('PREFERRED DATE')).match(/\d{4}-\d{2}-\d{2}/);
-    const date = dateMatch ? dateMatch[0] : '';
+    const date = (lead.rcDate && /^\d{4}-\d{2}-\d{2}$/.test(lead.rcDate)) ? lead.rcDate : (dateMatch ? dateMatch[0] : '');
     const timeMatch = line('PREFERRED DATE').match(/\bat\s+(.+)$/i);
     const occasion = line('OCCASION');
     const company = String(lead.company || lead.name || '').trim();
@@ -2012,8 +2035,9 @@ router.post('/admin/leads/:id/approve-event', requireAdmin, async (req, res) => 
       title: ((isRibbon ? 'Ribbon Cutting — ' : '') + (company || occasion || 'New event')).slice(0, 200),
       category: isRibbon ? 'Ribbon Cutting' : 'Event',
       date,
-      time: timeMatch ? timeMatch[1].slice(0, 40) : '',
-      venue: line('LOCATION').slice(0, 160),
+      time: (lead.rcTime || (timeMatch ? timeMatch[1] : '')).slice(0, 40),
+      venue: (lead.rcVenue || line('LOCATION')).slice(0, 160),
+      flyer: lead.rcFlyer || '',
       summary: occasion ? `${occasion}${company ? ' · ' + company : ''}` : String(lead.reason || ''),
       description: msg,
       status: date ? 'approved' : 'pending',
@@ -2022,6 +2046,7 @@ router.post('/admin/leads/:id/approve-event', requireAdmin, async (req, res) => 
     });
     await repo.upsertEvent(ev);
     try { await repo.setLeadStatus(lead.id, 'done'); } catch (e) { /* non-fatal */ }
+    if (isRibbon) { try { await repo.patchLeadRibbon(lead.id, { rcStage: 'published', rcEventId: ev.id }); } catch (e) { /* non-fatal */ } }
     res.json({ ok: true, event: ev });
   } catch (e) { console.error('approve-event', e); res.status(500).json({ error: 'could not create the event' }); }
 });
