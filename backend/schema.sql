@@ -127,6 +127,10 @@ ALTER TABLE leads ADD COLUMN IF NOT EXISTS rc_event_id text;   -- calendar event
 -- leadership pages, e.g. Board Member AND Ambassador (office, Jul 2026).
 ALTER TABLE member_overrides ADD COLUMN IF NOT EXISTS designations text;
 
+-- When the office welcome letter was last emailed (ISO timestamp) — so the
+-- panel can show "already sent" instead of leaving Felicia guessing (Jul 13).
+ALTER TABLE member_overrides ADD COLUMN IF NOT EXISTS welcome_sent text;
+
 -- ── Small key/value store for one-time migration markers & flags ──
 CREATE TABLE IF NOT EXISTS settings (
   key    text PRIMARY KEY,

@@ -1619,7 +1619,11 @@ router.post('/admin/members/:id/send-welcome', requireAdmin, async (req, res) =>
     });
     if (r && r.ok === false) return res.status(500).json({ error: 'Email could not be sent: ' + (r.error || 'provider error') });
     if (r && r.skipped) return res.status(500).json({ error: 'Email provider is not configured on the server.' });
-    res.json({ ok: true, email: addr, loginCreated: !existingUser });
+    // Stamp the member so the panel shows "welcome sent <date>" instead of
+    // leaving the office guessing whether it went out (Felicia, Jul 13).
+    const welcomeSent = new Date().toISOString();
+    try { await repo.setOverride(req.params.id, { welcomeSent }); } catch (e) { /* non-fatal */ }
+    res.json({ ok: true, email: addr, loginCreated: !existingUser, welcomeSent });
   } catch (e) { console.error('send-welcome', e); res.status(500).json({ error: 'could not send the welcome email' }); }
 });
 

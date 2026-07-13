@@ -474,8 +474,13 @@ window.Admin = (function () {
       const emailLine = m.email
         ? `<div class="sub">✉ <a href="mailto:${esc(m.email)}">${esc(m.email)}</a></div>`
         : '<div class="sub" style="opacity:.7">no login email on file</div>';
+      // "✓ sent <date>" on the button answers "did the welcome go out?" at a
+      // glance (Felicia, Jul 13). Clicking again previews + resends.
+      const welcomeLbl = m.welcomeSent
+        ? `✓ Welcome sent ${new Date(m.welcomeSent).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
+        : '✉ Welcome email';
       const pwActions = m.email
-        ? `<button type="button" data-welcome title="Email this member the Chamber welcome letter with their website login link" style="cursor:pointer;background:none;border:1px solid var(--gold,#C9A227);border-radius:6px;padding:3px 8px;font-size:.8rem;font-weight:600">✉ Welcome email</button>
+        ? `<button type="button" data-welcome title="${m.welcomeSent ? 'Already sent — click to preview and resend the welcome letter' : 'Email this member the Chamber welcome letter with their website login link'}" style="cursor:pointer;background:${m.welcomeSent ? 'var(--cream,#faf6ea)' : 'none'};border:1px solid var(--gold,#C9A227);border-radius:6px;padding:3px 8px;font-size:.8rem;font-weight:600;${m.welcomeSent ? 'opacity:.75' : ''}">${welcomeLbl}</button>
            <button type="button" data-setpw="${esc(m.email)}" title="Set this member's password now" style="cursor:pointer;background:none;border:1px solid var(--line,#d7d2c6);border-radius:6px;padding:3px 8px;font-size:.8rem">Set password</button>
            <button type="button" data-resetlink="${esc(m.email)}" title="Copy a reset link to send them" style="cursor:pointer;background:none;border:1px solid var(--line,#d7d2c6);border-radius:6px;padding:3px 8px;font-size:.8rem">Reset link</button>
            <button type="button" data-loginlink title="Open this member's portal view to assist them (opens a 20-min sign-in link — use a private window to keep your admin session)" style="cursor:pointer;background:none;border:1px solid var(--line,#d7d2c6);border-radius:6px;padding:3px 8px;font-size:.8rem">Member view</button>`
@@ -564,8 +569,11 @@ window.Admin = (function () {
               try {
                 const r = await api(`/api/admin/members/${encodeURIComponent(id)}/send-welcome`, { method: 'POST' });
                 ov.remove();
-                btn.textContent = '✓ Sent';
-                setTimeout(() => { btn.textContent = '✉ Welcome email'; btn.disabled = false; }, 2500);
+                const m2 = memberById[id]; if (m2 && r.welcomeSent) m2.welcomeSent = r.welcomeSent;
+                btn.textContent = '✓ Welcome sent ' + new Date(r.welcomeSent || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                btn.style.background = 'var(--cream,#faf6ea)'; btn.style.opacity = '.75';
+                btn.title = 'Already sent — click to preview and resend the welcome letter';
+                btn.disabled = false;
                 if (r.loginCreated) alert('Welcome email sent — a website login was also created for ' + r.email + '.');
               } catch (err) {
                 ev.target.disabled = false; ev.target.textContent = '✉ Send it';

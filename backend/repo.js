@@ -429,7 +429,7 @@ export async function setMemberEdit(id, patch) {
 // ── Member admin overrides ──────────────────────────────────
 export async function getOverrides() {
   if (db.enabled) {
-    const r = await db.query('SELECT id, status, tier, leader_status, featured, expire_date, term_months, designations FROM member_overrides');
+    const r = await db.query('SELECT id, status, tier, leader_status, featured, expire_date, term_months, designations, welcome_sent FROM member_overrides');
     const map = {};
     for (const row of r.rows) {
       const o = {};
@@ -439,6 +439,7 @@ export async function getOverrides() {
       if (row.featured != null) o.featured = row.featured;
       if (row.expire_date != null) o.expireDate = row.expire_date;
       if (row.term_months != null) o.termMonths = row.term_months;
+      if (row.welcome_sent != null) o.welcomeSent = row.welcome_sent;
       // comma-joined in the column; '' means "explicitly none"
       if (row.designations != null) o.designations = String(row.designations).split(',').filter(Boolean);
       map[row.id] = o;
@@ -450,8 +451,8 @@ export async function getOverrides() {
 export async function setOverride(id, patch) {
   if (db.enabled) {
     await db.query(
-      `INSERT INTO member_overrides (id, status, tier, leader_status, featured, expire_date, term_months, designations, updated_at)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8, now())
+      `INSERT INTO member_overrides (id, status, tier, leader_status, featured, expire_date, term_months, designations, welcome_sent, updated_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9, now())
        ON CONFLICT (id) DO UPDATE SET
          status        = COALESCE(EXCLUDED.status, member_overrides.status),
          tier          = COALESCE(EXCLUDED.tier, member_overrides.tier),
@@ -460,6 +461,7 @@ export async function setOverride(id, patch) {
          expire_date   = COALESCE(EXCLUDED.expire_date, member_overrides.expire_date),
          term_months   = COALESCE(EXCLUDED.term_months, member_overrides.term_months),
          designations  = COALESCE(EXCLUDED.designations, member_overrides.designations),
+         welcome_sent  = COALESCE(EXCLUDED.welcome_sent, member_overrides.welcome_sent),
          updated_at    = now()`,
       [id,
        patch.status ?? null,
@@ -468,7 +470,8 @@ export async function setOverride(id, patch) {
        patch.featured ?? null,
        patch.expireDate ?? null,
        patch.termMonths ?? null,
-       Array.isArray(patch.designations) ? patch.designations.join(',') : null]);
+       Array.isArray(patch.designations) ? patch.designations.join(',') : null,
+       patch.welcomeSent ?? null]);
     return;
   }
   const overrides = store.read('member-admin.json', {});
