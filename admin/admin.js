@@ -380,7 +380,7 @@ window.Admin = (function () {
   // ── Members (status radios) ──
   async function initMembers() {
     mountShell('members');
-    let opts = { leaderOptions: ['', 'Leader', 'Board Member', 'New Member', 'Past President', 'Ambassador'], statusOptions: ['approved', 'pending', 'suspended', 'inactive'] };
+    let opts = { leaderOptions: ['', 'Leader', 'Board Member', 'New Member', 'Past President', 'Ambassador', 'Staff'], statusOptions: ['approved', 'pending', 'suspended', 'inactive'] };
     try { opts = await api('/api/admin/options'); } catch (e) {}
     const tiers = ['platinum', 'gold', 'silver', 'bronze', 'supporter', 'friend', 'member', 'in-kind', 'complimentary'];
     const tbody = document.getElementById('memberRows');

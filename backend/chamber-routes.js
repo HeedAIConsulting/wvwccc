@@ -26,7 +26,7 @@ const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const requireAdmin = auth.requireAuth(['staff', 'admin', 'super_admin']);
 const requireSuper = auth.requireAuth(['super_admin']);
 
-const LEADER_OPTS = ['', 'Leader', 'Board Member', 'New Member', 'Past President', 'Ambassador'];
+const LEADER_OPTS = ['', 'Leader', 'Board Member', 'New Member', 'Past President', 'Ambassador', 'Staff'];
 const STATUS_OPTS = ['approved', 'pending', 'suspended', 'inactive'];
 
 // ── Auth ────────────────────────────────────────────────────

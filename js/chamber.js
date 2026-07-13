@@ -854,7 +854,9 @@ window.Chamber = (function () {
     let members = [];
     try {
       const dir = await getJSON(ChamberAPI.url('/api/members'));
-      members = dir.members || [];
+      // Chamber staff appear on the Board & Leadership page, not in the
+      // business directory (they're the office, not member businesses).
+      members = (dir.members || []).filter((m) => m.leaderStatus !== 'Staff');
       if (dir._meta && dir._meta.source === 'seed') {
         document.getElementById('dataNotice').innerHTML =
           '<span class="badge badge--bronze">Preview roster</span>';
@@ -1809,7 +1811,7 @@ window.Chamber = (function () {
         </a>
       </article>`;
   }
-  const LEADER_GROUP_LABEL = { 'Leader': 'Executive Officers', 'Board Member': 'Board of Directors', 'Past President': 'Past Presidents', 'Ambassador': 'Ambassadors' };
+  const LEADER_GROUP_LABEL = { 'Staff': 'Chamber Staff', 'Leader': 'Executive Officers', 'Board Member': 'Board of Directors', 'Past President': 'Past Presidents', 'Ambassador': 'Ambassadors' };
   // Board pages read like a printed roster: alphabetical by LAST name.
   const lastNameOf = (m) => { const p = String(m.contactName || m.name).trim().split(/\s+/); return p[p.length - 1]; };
   async function initBoard(depth = 0) {
@@ -1821,21 +1823,30 @@ window.Chamber = (function () {
     catch (e) { el.innerHTML = '<p class="notice">Could not load the roster right now.</p>'; return; }
     // Ambassadors are cleared from this page for now (per the Chamber office,
     // Jul 2026). Re-add 'Ambassador' to ORDER + tabs to bring the section back.
-    const ORDER = ['Leader', 'Board Member', 'Past President'];
+    // Staff leads the page (per Diana, Jul 13 — board meeting order: Staff / Officers / Board).
+    const ORDER = ['Staff', 'Leader', 'Board Member', 'Past President'];
     const base = depth ? '../' : '';
     // Sub-nav so visitors can jump to the Board or officers view.
-    const tabs = [['', 'Everyone'], ['Leader', 'Officers'], ['Board Member', 'Board of Directors']];
+    const tabs = [['', 'Everyone'], ['Staff', 'Staff'], ['Leader', 'Officers'], ['Board Member', 'Board of Directors']];
     const subnav = `<nav class="chips" style="justify-content:center;margin-bottom:var(--s-6)" aria-label="Leadership groups">${tabs.map(([g, l]) =>
       `<a class="chip${only === g ? ' chip--gold' : ''}" href="${base}leadership.html${g ? ('?group=' + encodeURIComponent(g)) : ''}">${l}</a>`).join('')}</nav>`;
     const want = only && ORDER.includes(only) ? [only] : ORDER;
-    // Officers rank by office (President → CFO → Secretary); everyone else
-    // reads like a printed roster, alphabetical by last name.
+    // Officers rank by office, per Diana (Jul 13): President → President Elect
+    // → VP → CFO → Secretary. Everyone else reads like a printed roster,
+    // alphabetical by last name.
     const officerRank = (m) => {
       const t = String(m.boardTitle || '').toLowerCase();
       if (t.includes('president of the board')) return 0;
-      if (t.includes('financial')) return 1;
-      if (t.includes('secretary')) return 2;
-      return 3;
+      if (t.includes('president elect') || t.includes('president-elect')) return 1;
+      if (t.includes('vice president') || /\bvp\b/.test(t)) return 2;
+      if (t.includes('financial') || /\bcfo\b/.test(t)) return 3;
+      if (t.includes('secretary')) return 4;
+      return 5;
+    };
+    // Staff: the CEO leads, everyone else alphabetical.
+    const staffRank = (m) => {
+      const t = String(m.boardTitle || '').toLowerCase();
+      return (t.includes('chief executive') || /\bceo\b/.test(t)) ? 0 : 1;
     };
     // A member counts for a section via their primary designation OR any
     // extra designation (per the office, Jul 2026 — e.g. someone who is a
@@ -1844,14 +1855,14 @@ window.Chamber = (function () {
     const groups = {};
     want.forEach((g) => {
       const list = members.filter((m) => hasDesig(m, g))
-        .sort((a, b) => (g === 'Leader' ? officerRank(a) - officerRank(b) : 0) || lastNameOf(a).localeCompare(lastNameOf(b)));
+        .sort((a, b) => (g === 'Leader' ? officerRank(a) - officerRank(b) : g === 'Staff' ? staffRank(a) - staffRank(b) : 0) || lastNameOf(a).localeCompare(lastNameOf(b)));
       if (list.length) groups[g] = list;
     });
     if (!Object.keys(groups).length) { el.innerHTML = subnav + '<p class="notice">This roster is being finalized — check back soon. (Admins: set each member\'s designation under Members.)</p>'; return; }
     const section = (g, list) => {
-      const officers = g === 'Leader';
-      // Officers sit up top, larger, on their own centered row; the board is a
-      // classic 4-up gallery. Gold hairline rules frame each section title.
+      const officers = g === 'Leader' || g === 'Staff';
+      // Staff and officers sit up top, larger, on their own centered rows; the
+      // board is a classic 4-up gallery. Gold hairline rules frame each section title.
       const grid = officers
         ? `<div style="display:flex;flex-wrap:wrap;justify-content:center;gap:var(--s-7)">${list.map((m) => `<div style="flex:0 1 240px">${boardCard(m, depth, { size: 156 })}</div>`).join('')}</div>`
         : `<div class="grid grid-4" style="gap:var(--s-6)">${list.map((m) => boardCard(m, depth)).join('')}</div>`;
