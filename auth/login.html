@@ -49,6 +49,19 @@
         <p class="member-tile__meta mt-2" style="text-align:center">
           Not a member yet? <a href="../join.html">Join the Chamber →</a>
         </p>
+        <!-- Sign-in FAQ (per the office, Jul 13 2026) — answers the questions
+             members call about, so the office phone rings less. -->
+        <details class="mt-3" style="border-top:1px solid var(--line,#e4dcc8);padding-top:12px">
+          <summary style="cursor:pointer;font-weight:600;font-size:.92rem">Need help signing in?</summary>
+          <ul class="member-tile__meta" style="margin:10px 0 0;padding-left:18px;display:grid;gap:8px">
+            <li><b>Use the email you registered with the Chamber.</b> That's usually your business email from when you joined. If sign-in fails, a different email is the most common reason — call us and we'll look up which one is on file.</li>
+            <li><b>Lead a group or network?</b> You may have a <i>second</i> sign-in with a different email just for managing your group. Make sure you're using the right one for what you're trying to do.</li>
+            <li><b>Didn't get the email link?</b> Check your spam or junk folder. Links expire quickly (about 20–30 minutes) — if yours expired, just request a new one.</li>
+            <li><b>Forgot your password?</b> No need to remember it — use “Email me a link” above and you're in, no password required.</li>
+            <li><b>Tired of signing in?</b> Leave “Keep me signed in” checked and this computer stays signed in for 30 days.</li>
+            <li>Still stuck? Call the Chamber office at <a href="tel:8183474737">(818) 347-4737</a>.</li>
+          </ul>
+        </details>
       </main>
     </div>
   </section>
@@ -96,7 +109,7 @@
         if (!r.ok || !data.ok) {
           msg.textContent = data.needsReset
             ? 'Your account needs a new password. Please use “Forgot your password?” below.'
-            : (data.error || 'Sign in failed.');
+            : ((data.error || 'Sign in failed.') + ' Double-check you’re using the email you registered with the Chamber — see “Need help signing in?” below.');
           msg.style.borderColor = 'var(--red)'; msg.hidden = false; return;
         }
         if (data.mustChange) { location.href = 'set-password.html'; return; }
