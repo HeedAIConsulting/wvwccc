@@ -582,8 +582,11 @@ window.Chamber = (function () {
       try {
         const evs = (await getJSON(ChamberAPI.url('/api/events'))).events || [];
         const today = new Date().toISOString().slice(0, 10);
+        // Match by title OR category (group meetings carry the group name as
+        // their category, old-site style).
+        const mm = g.eventMatch.toLowerCase();
         const mine = evs.filter((e) => e.confirmed && e.date >= today &&
-          (e.title || '').toLowerCase().includes(g.eventMatch.toLowerCase())).slice(0, 4);
+          ((e.title || '').toLowerCase().includes(mm) || (e.category || '').toLowerCase().includes(mm))).slice(0, 4);
         if (mine.length) {
           document.getElementById('gEvents').hidden = false;
           document.getElementById('gEventList').innerHTML = mine.map((e) => eventPreviewCard(e, 1)).join('');
@@ -1274,8 +1277,12 @@ window.Chamber = (function () {
       const evMeta = ev
         ? `<strong>${esc(ev.title)}</strong><br><span class="member-tile__meta">${esc(ev.month || '')} ${esc(ev.day || '')} · ${esc(ev.venue || ev.neighborhood || '')}</span>`
         : '<strong>Event tickets</strong>';
+      // Secret link-key prices (e.g. board-member gala tickets) only appear
+      // when the shared link carries ?key=<their key>.
+      const linkKey = String(params.get('key') || '').trim().toLowerCase();
       const types = (ev && Array.isArray(ev.ticketTypes) ? ev.ticketTypes : [])
-        .filter((t) => t.available !== false && t.name && (Number(t.price) > 0 || Number(t.earlyPrice) > 0));
+        .filter((t) => t.available !== false && t.name && (Number(t.price) > 0 || Number(t.earlyPrice) > 0))
+        .filter((t) => !t.linkKey || t.linkKey === linkKey);
       // Effective price: use the early-bird price until its cutoff, then the standard price.
       const nowT = Date.now();
       const priceOf = (t) => (t.earlyPrice != null && t.earlyUntil && nowT < Date.parse(t.earlyUntil)) ? Number(t.earlyPrice) : Number(t.price);
@@ -1316,20 +1323,24 @@ window.Chamber = (function () {
           qtySel.innerHTML = Array.from({ length: max }, (_, i) => `<option${i + 1 === cur ? ' selected' : ''}>${i + 1}</option>`).join('');
         };
         const namesDiv = document.getElementById('tixNames');
-        // Name + contact per ticket so the office knows who is attending
-        // (matches the legacy ChamberWare receipts). Values survive qty changes.
+        // Name + email + phone REQUIRED for every attendee (per the office,
+        // Jul 14 2026 — the buyer often isn't attendee 1, and the office needs
+        // to reach each guest). Values survive qty changes.
         const buildNames = (qty) => {
           const prev = Array.from(namesDiv.querySelectorAll('[data-att-row]')).map((r) => ({
             name: r.querySelector('[data-attendee]')?.value || '',
-            contact: r.querySelector('[data-att-contact]')?.value || '',
+            email: r.querySelector('[data-att-email]')?.value || '',
+            phone: r.querySelector('[data-att-phone]')?.value || '',
           }));
           namesDiv.innerHTML = Array.from({ length: qty }, (_, i) => `
             <div data-att-row style="margin-bottom:var(--s-2)">
+              <div class="field" style="margin:0 0 6px"><label>Attendee ${i + 1} name *</label>
+                <input data-attendee required value="${esc(prev[i]?.name || '')}" placeholder="${i === 0 ? 'Who is this ticket for?' : 'Guest name'}" /></div>
               <div class="grid grid-2" style="gap:var(--s-2)">
-                <div class="field" style="margin:0"><label>Attendee ${i + 1} name</label>
-                  <input data-attendee value="${esc(prev[i]?.name || '')}" placeholder="${i === 0 ? 'Who is this ticket for?' : 'Guest name'}" /></div>
-                <div class="field" style="margin:0"><label>Their email or phone</label>
-                  <input data-att-contact value="${esc(prev[i]?.contact || '')}" placeholder="Optional" /></div>
+                <div class="field" style="margin:0"><label>Their email *</label>
+                  <input data-att-email type="email" required value="${esc(prev[i]?.email || '')}" placeholder="guest@email.com" /></div>
+                <div class="field" style="margin:0"><label>Their phone *</label>
+                  <input data-att-phone type="tel" required value="${esc(prev[i]?.phone || '')}" placeholder="(818) 555-0100" /></div>
               </div>
             </div>`).join('');
         };
@@ -1440,8 +1451,9 @@ window.Chamber = (function () {
             attendees: Array.from(document.querySelectorAll('#tixNames [data-att-row]'))
               .map((r) => ({
                 name: (r.querySelector('[data-attendee]')?.value || '').trim(),
-                contact: (r.querySelector('[data-att-contact]')?.value || '').trim(),
-              })).filter((a) => a.name || a.contact),
+                email: (r.querySelector('[data-att-email]')?.value || '').trim(),
+                phone: (r.querySelector('[data-att-phone]')?.value || '').trim(),
+              })).filter((a) => a.name || a.email || a.phone),
             description: label,
             ...extra,
           };

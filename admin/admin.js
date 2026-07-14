@@ -1489,6 +1489,7 @@ window.Admin = (function () {
         <input data-tk="${i}" data-f="name" placeholder="Price name (e.g. Member breakfast)" value="${esc(t.name || '')}" style="flex:2;min-width:140px">
         <input data-tk="${i}" data-f="price" type="number" min="0" step="0.01" placeholder="Price $" value="${t.price != null ? esc(t.price) : ''}" style="width:90px">
         <input data-tk="${i}" data-f="qty" type="number" min="0" placeholder="Qty" value="${t.qty != null ? esc(t.qty) : ''}" style="width:70px" title="Leave blank for unlimited">
+        <input data-tk="${i}" data-f="linkKey" placeholder="Link key" value="${esc(t.linkKey || '')}" style="width:90px" title="Secret price: only shows at checkout when the shared link ends with &key=THIS. Example: put 'board' here, then give board members the event's Buy Tickets link with &key=board added — everyone else never sees this price.">
         <label style="display:inline-flex;align-items:center;gap:4px;font-size:.85rem"><input data-tk="${i}" data-f="available" type="checkbox" ${t.available !== false ? 'checked' : ''}> available</label>
         <button type="button" data-rmtk="${i}" class="btn btn--ghost btn--sm">×</button>
       </div>`).join('')

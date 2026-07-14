@@ -581,6 +581,7 @@ async function loadEvents() {
 }
 let _eventImgBackfillDone = false;
 let _legacyMergeChecked = false;
+let _groupMergeChecked = false;
 async function ensureEventsSeeded() {
   if (!(await repo.hasEvents())) {
     for (const e of readSeedEvents()) await repo.upsertEvent(buildEvent(e, e));
@@ -608,6 +609,30 @@ async function ensureEventsSeeded() {
         console.log(`[events] one-time legacy merge: added ${added} restored events`);
       }
     } catch (e) { _legacyMergeChecked = false; console.error('legacy event merge failed (will retry next boot)', e); }
+  }
+  // One-time (Jul 14 2026, per Diana/Susan): list YPN / DBN / Martin's Circle
+  // monthly meetings (generated from each group's real meeting schedule — the
+  // old site only ever listed Health & Wellness this way), and correct the
+  // 20th Annual Food & Wine date to Oct 21 (the legacy backup carried Sep 16).
+  if (!_groupMergeChecked) {
+    _groupMergeChecked = true;
+    try {
+      const KEY = 'groupEventsAndFoodWine-20260714';
+      if (!(await repo.getSetting(KEY))) {
+        const existing = new Set((await repo.listEventsStore()).map((e) => e.id));
+        let added = 0;
+        for (const e of readSeedEvents()) {
+          if (!String(e.id).startsWith('grp-') || existing.has(e.id)) continue;
+          await repo.upsertEvent(buildEvent(e, e));
+          added++;
+        }
+        const fw = (await repo.listEventsStore()).find((e) => e.id === 'le-11262');
+        // Only touch the date if the office hasn't already fixed it themselves.
+        if (fw && fw.date === '2026-09-16') await repo.upsertEvent(buildEvent({ date: '2026-10-21', confirmed: true }, fw));
+        await repo.setSetting(KEY, `applied +${added} @ ${new Date().toISOString()}`);
+        console.log(`[events] one-time group meetings merge: added ${added}; Food & Wine date checked`);
+      }
+    } catch (e) { _groupMergeChecked = false; console.error('group events merge failed (will retry next boot)', e); }
   }
   // Store already populated (e.g. seeded before flyers existed). Once per boot,
   // backfill flyer images from the committed seed onto stored events that lack
@@ -754,6 +779,10 @@ function buildEvent(b, existing = {}) {
           // Optional early-bird price used while now < earlyUntil (ISO date).
           earlyPrice: (t.earlyPrice === null || t.earlyPrice === undefined || t.earlyPrice === '') ? undefined : Math.max(0, Number(t.earlyPrice) || 0),
           earlyUntil: t.earlyUntil ? String(t.earlyUntil).slice(0, 40) : undefined,
+          // Optional secret link key (per Diana, Jul 14 — board members sell
+          // $150 gala tickets via a special link). The type only shows at
+          // checkout when the URL carries ?key=<linkKey>.
+          linkKey: t.linkKey ? String(t.linkKey).slice(0, 40).toLowerCase() : undefined,
           qty: (t.qty === null || t.qty === undefined || t.qty === '') ? null : Math.max(0, parseInt(t.qty, 10) || 0),
           available: t.available !== false,
         })).filter((t) => t.name)
@@ -1400,7 +1429,7 @@ router.post('/pay', async (req, res) => {
             ${(Array.isArray(b.attendees) ? b.attendees.slice(0, 10) : [])
               .map((a, i) => row(`Attendee ${i + 1}`,
                 typeof a === 'object' && a
-                  ? [String(a.name || '').slice(0, 80), String(a.contact || '').slice(0, 80)].filter(Boolean).join(' · ')
+                  ? [String(a.name || '').slice(0, 80), String(a.email || '').slice(0, 80), String(a.phone || a.contact || '').slice(0, 80)].filter(Boolean).join(' · ')
                   : String(a).slice(0, 80))).join('')}
           </table>
           ${coupon ? `<table style="border-collapse:collapse;font-size:14px;margin-top:14px">
