@@ -1361,6 +1361,41 @@ window.Admin = (function () {
         if (!/^(https?:|mailto:|tel:|\/)/i.test(url)) url = 'https://' + url;
         focusExec(() => document.execCommand('createLink', false, url));
       });
+      // 📋 Paste cleanup (per Felicia, Jul 14 — sponsor text pasted from Word
+      // carried Word's own fonts/styles and wouldn't reformat). Keep the
+      // structure (paragraphs, bullets, bold/italic/underline, links), drop
+      // the styling, so the toolbar works on whatever was pasted.
+      rich.addEventListener('paste', (e) => {
+        const html = e.clipboardData && e.clipboardData.getData('text/html');
+        const text = e.clipboardData && e.clipboardData.getData('text/plain');
+        if (!html && !text) return; // images etc. — let the browser handle it
+        e.preventDefault();
+        let out = '';
+        if (html) {
+          const doc = new DOMParser().parseFromString(html, 'text/html');
+          doc.querySelectorAll('style,script,meta,link,head,title').forEach((n) => n.remove());
+          const KEEP = { P: 'p', DIV: 'p', H1: 'h3', H2: 'h3', H3: 'h4', H4: 'h4', H5: 'h4', UL: 'ul', OL: 'ol', LI: 'li', B: 'b', STRONG: 'b', I: 'i', EM: 'i', U: 'u', A: 'a', BR: 'br' };
+          const walk = (node) => [...node.childNodes].map((n) => {
+            if (n.nodeType === 3) return esc(n.textContent);
+            if (n.nodeType !== 1) return '';
+            const tag = KEEP[n.tagName];
+            const inner = walk(n);
+            if (tag === 'br') return '<br>';
+            if (!tag) return inner;
+            if (!inner.trim()) return '';
+            if (tag === 'a') {
+              const href = n.getAttribute('href') || '';
+              return /^(https?:|mailto:|tel:)/i.test(href) ? `<a href="${esc(href)}">${inner}</a>` : inner;
+            }
+            return `<${tag}>${inner}</${tag}>`;
+          }).join('');
+          out = walk(doc.body)
+            .replace(/(?:<br>\s*){3,}/g, '<br><br>'); // Word's stacked spacer breaks
+        } else {
+          out = esc(text).replace(/\r?\n/g, '<br>');
+        }
+        if (out) document.execCommand('insertHTML', false, out);
+      });
       // 🖼 Click any image in the editor to resize it (per Diana, Jul 2026 —
       // there was no way to resize logos/images placed in an event).
       rich.addEventListener('click', (e) => {
