@@ -101,6 +101,24 @@ export async function updatePassword(email, bcryptHash) {
   if (mi >= 0) { arr[mi] = { ...arr[mi], passwordHash: bcryptHash, passwordAlgo: 'bcrypt', needsReset: false, mustChange: false }; store.write('users.json', { ...mu, users: arr }); }
 }
 
+// Admin-triggered: move a member's login to a new email (per the office,
+// Jul 14 2026 — members hand over new/rep addresses and welcome/reset emails
+// must follow). Returns true when a login existed and was moved.
+export async function updateEmailByMemberId(memberId, newEmail) {
+  newEmail = lc(newEmail);
+  if (db.enabled) {
+    const r = await db.query('UPDATE users SET email=$1 WHERE member_id=$2 RETURNING email', [newEmail, memberId]);
+    return r.rows.length > 0;
+  }
+  const mu = store.read('users.json', { users: [] });
+  const arr = mu.users || [];
+  const i = arr.findIndex((u) => u.memberId === memberId);
+  if (i < 0) return false;
+  arr[i] = { ...arr[i], email: newEmail };
+  store.write('users.json', { ...mu, users: arr });
+  return true;
+}
+
 // Admin-triggered: force a member to set a new password on next login.
 // Clears the stored hash so the old password no longer works.
 export async function requireReset(memberId) {

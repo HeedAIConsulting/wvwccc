@@ -685,6 +685,14 @@ window.Admin = (function () {
                 <button type="button" data-pageimg-clear class="btn btn--ghost btn--sm" style="flex:none">Remove</button>
               </div>
             </div>
+            <div class="field" style="grid-column:1/-1;margin:0;border:1px solid var(--gold-soft,#e6dcbf);border-radius:10px;padding:10px 12px;background:var(--cream,#faf6ea)">
+              <label>Login / contact email <span class="sub">(sign-in, welcome &amp; reset emails go here — updating it moves their login too)</span></label>
+              <div style="display:flex;gap:8px">
+                <input type="email" data-email-input value="${esc(m.email || '')}" placeholder="member@business.com" style="flex:1" />
+                <button type="button" data-email-save class="btn btn--gold btn--sm" style="flex:none">Update email</button>
+              </div>
+              <p class="sub" data-email-msg style="margin:6px 0 0" hidden></p>
+            </div>
             ${F.map(([k, lbl]) => `<div class="field" style="margin:0;${k === 'tagline' || k === 'name' ? 'grid-column:1/-1' : ''}">
               <label>${lbl}</label><input name="${k}" value="${esc(m[k] || '')}" /></div>`).join('')}
             <div class="field" style="grid-column:1/-1;margin:0"><label>Description</label>
@@ -744,6 +752,24 @@ window.Admin = (function () {
         }
       });
       document.body.appendChild(ov);
+      // ── Login email change (its own endpoint — also moves the login account) ──
+      ov.querySelector('[data-email-save]')?.addEventListener('click', async (e) => {
+        const inp = ov.querySelector('[data-email-input]');
+        const msgE = ov.querySelector('[data-email-msg]');
+        const v = (inp.value || '').trim();
+        if (!v || v.toLowerCase() === String(m.email || '').toLowerCase()) { msgE.hidden = false; msgE.textContent = 'Type the new email address first.'; return; }
+        if (!confirm(`Change ${m.contactName || m.name}'s email to ${v}?\n\n• Sign-in, welcome and reset emails use the new address from now on.\n• The old address (${m.email || 'none on file'}) stops working for sign-in.`)) return;
+        e.target.disabled = true; e.target.textContent = 'Updating…';
+        try {
+          const r = await api(`/api/admin/members/${encodeURIComponent(m.id)}/email`, { method: 'PATCH', body: JSON.stringify({ email: v }) });
+          m.email = r.email;
+          msgE.hidden = false;
+          msgE.textContent = r.loginMoved
+            ? '✓ Updated — their login now uses the new address. Send them a reset or magic link if they need to get in right away.'
+            : '✓ Updated. No login existed yet — use ➕ Create login (or the welcome email) to set one up at the new address.';
+        } catch (err) { msgE.hidden = false; msgE.textContent = 'Could not update: ' + (err.message || 'error'); }
+        finally { e.target.disabled = false; e.target.textContent = 'Update email'; }
+      });
       // ── Logo upload (file → data URL → /api/me/asset → url, saved with the profile) ──
       const logoPrev = ov.querySelector('[data-logo-prev]');
       const logoFile = ov.querySelector('[data-logo-file]');
@@ -1786,7 +1812,7 @@ window.Admin = (function () {
   async function initBoardManager() {
     mountShell('board');
     const host = document.getElementById('bmSections');
-    const TITLE_PRESETS = ['', 'President of the Board', 'Chief Financial Officer · Past President', 'Corporate Secretary · Past President', 'Past President', 'Economic Development Chair', 'Inaugural Term', 'Honorary Mayor · Appointed 2011'];
+    const TITLE_PRESETS = ['', 'President of the Board', 'Board President Elect', 'VP Operations/Economic Development Chair', 'Chief Financial Officer · Past President', 'Corporate Secretary · Past President', 'Past President', 'Media Chair', 'Membership Chair/YPN', 'Honorary Mayor · Appointed 2011'];
     let all = [];
     function row(m) {
       const face = m.pageImage || m.logo;

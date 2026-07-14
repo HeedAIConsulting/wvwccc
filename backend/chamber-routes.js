@@ -1770,6 +1770,24 @@ router.patch('/admin/members/:id/profile', requireAdmin, async (req, res) => {
   } catch (e) { console.error(e); res.status(500).json({ error: 'update failed' }); }
 });
 
+// Change the member's login/contact email (per Felicia's Jul 14 voicemail —
+// members hand over a new or rep address, and welcome/reset/sign-in emails
+// must follow it). Moves the linked login account at the same time.
+router.patch('/admin/members/:id/email', requireAdmin, async (req, res) => {
+  const id = req.params.id;
+  const newEmail = String((req.body || {}).email || '').trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) return res.status(400).json({ error: 'That does not look like a valid email address.' });
+  try {
+    const m = (await loadMembersFull()).members.find((x) => x.id === id);
+    if (!m) return res.status(404).json({ error: 'not found' });
+    const taken = await users.getUserByEmail(newEmail);
+    if (taken && taken.memberId !== id) return res.status(409).json({ error: 'Another login already uses that email address.' });
+    const loginMoved = await users.updateEmailByMemberId(id, newEmail);
+    await repo.setMemberEdit(id, { email: newEmail });
+    res.json({ ok: true, email: newEmail, loginMoved, previous: m.email || '' });
+  } catch (e) { console.error('member email change', e); res.status(500).json({ error: 'could not update the email' }); }
+});
+
 // Manually add a member (offline signup — paid offline).
 router.post('/admin/members', requireAdmin, async (req, res) => {
   const b = req.body || {};
