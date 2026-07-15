@@ -1436,6 +1436,7 @@ router.post('/pay', async (req, res) => {
             ${row('Name', order.name)}
             ${row('Email', b.email)}
             ${row('Phone', b.phone)}
+            ${b.invitedBy ? row('Invited by', String(b.invitedBy).slice(0, 80)) : ''}
             ${(Array.isArray(b.attendees) ? b.attendees.slice(0, 10) : [])
               .map((a, i) => row(`Attendee ${i + 1}`,
                 typeof a === 'object' && a

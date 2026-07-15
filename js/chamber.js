@@ -1309,6 +1309,8 @@ window.Chamber = (function () {
           <div class="field" style="margin-bottom:var(--s-2)"><label for="tixQty">Quantity</label>
             <select id="tixQty" style="width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:var(--r-md);font:inherit;background:var(--paper)"></select></div>
           <div id="tixNames"></div>
+          <div class="field" id="tixInvitedWrap" hidden style="margin-bottom:var(--s-2)"><label for="tixInvited">Invited by <span class="member-tile__meta">(which board member invited you?)</span></label>
+            <input id="tixInvited" placeholder="Board member's name" /></div>
           <p class="member-tile__meta" id="tixCalc" style="text-align:right"></p>`;
         amountLabel.textContent = 'Total (USD)';
         amountInput.readOnly = true;
@@ -1349,6 +1351,10 @@ window.Chamber = (function () {
           const t = types[Number(typeSel.value)] || types[0];
           const qty = Number(qtySel.value) || 1;
           buildNames(qty);
+          // Link-key tickets (e.g. the board-member gala price) capture who
+          // invited the buyer, so the office can see who sold what (Diana, Jul 14).
+          const invWrap = document.getElementById('tixInvitedWrap');
+          if (invWrap) invWrap.hidden = !t.linkKey;
           const unit = priceOf(t);
           const total = unit * qty;
           amountInput.value = total.toFixed(2);
@@ -1454,6 +1460,7 @@ window.Chamber = (function () {
                 email: (r.querySelector('[data-att-email]')?.value || '').trim(),
                 phone: (r.querySelector('[data-att-phone]')?.value || '').trim(),
               })).filter((a) => a.name || a.email || a.phone),
+            invitedBy: (document.getElementById('tixInvited')?.value || '').trim().slice(0, 80),
             description: label,
             ...extra,
           };

@@ -1490,19 +1490,34 @@ window.Admin = (function () {
     const plainFromRich = () => (rich ? rich.innerText.replace(/ /g, ' ').trim() : '');
 
     // Single-image uploader factory (flyer, thumbnail).
-    function bindSingleImage(inputId, prevId, set, get) {
+    function bindSingleImage(inputId, prevId, set, get, after) {
       const inp = document.getElementById(inputId);
       const prev = document.getElementById(prevId);
-      const draw = () => { if (prev) prev.innerHTML = get() ? `<img src="${esc(get())}" alt="" style="max-width:140px;border-radius:8px"> <button type="button" data-clr class="btn btn--ghost btn--sm">remove</button>` : ''; if (prev) { const c = prev.querySelector('[data-clr]'); if (c) c.addEventListener('click', () => { set(''); draw(); }); } };
-      if (inp) inp.addEventListener('change', (e) => {
+      const draw = () => { if (prev) prev.innerHTML = get() ? `<img src="${esc(get())}" alt="" style="max-width:140px;border-radius:8px"> <button type="button" data-clr class="btn btn--gold btn--sm" title="Delete this image — the upload box then sets a fresh one">✕ Delete</button>` : ''; if (prev) { const c = prev.querySelector('[data-clr]'); if (c) c.addEventListener('click', () => { set(''); draw(); }); } };
+      if (inp) inp.addEventListener('change', async (e) => {
         const f = e.target.files[0]; if (!f) return;
-        const r = new FileReader();
-        r.onload = async () => { try { const up = await api('/api/me/asset', { method: 'POST', body: JSON.stringify({ kind: 'photo', dataUrl: r.result }) }); set(up.url); draw(); } catch (err) { msg.hidden = false; msg.textContent = 'Image upload failed (PNG/JPG, ≤2.5MB).'; } };
-        r.readAsDataURL(f);
+        // Big Canva exports were silently bouncing off the ~2.5MB upload cap
+        // (per Felicia, Jul 15 — 'the flyer will not replace') — downscale
+        // first, exactly like the AI flyer reader does, and say so if it
+        // still fails instead of failing quietly.
+        try {
+          const dataUrl = await downscaleImage(f, 1800, 0.85);
+          const up = await api('/api/me/asset', { method: 'POST', body: JSON.stringify({ kind: 'photo', dataUrl }) });
+          set(up.url); draw();
+          if (after) after();
+        } catch (err) { alert('That image could not be uploaded (PNG/JPG/WebP). Try exporting it a bit smaller and upload again.'); }
+        e.target.value = ''; // picking the SAME file again must re-fire
       });
       draw._draw = draw; return draw;
     }
-    const drawFlyer = bindSingleImage('evFlyerImg', 'evFlyerPrev', (v) => { flyerUrl = v; }, () => flyerUrl);
+    const drawFlyer = bindSingleImage('evFlyerImg', 'evFlyerPrev', (v) => { flyerUrl = v; }, () => flyerUrl, () => {
+      // Legacy events carry their old flyer as the first entry under Images —
+      // it would keep showing under the new flyer, which reads as "did not
+      // replace" (Felicia, Jul 15). Offer to swap it out in the same motion.
+      if (images.length && confirm('New flyer set ✓\n\nThis event also has an older image attached under “Images” (usually the previous flyer) — remove it so only the new flyer shows?')) {
+        images.shift(); renderImages();
+      }
+    });
     const drawThumb = bindSingleImage('evThumb', 'evThumbPrev', (v) => { thumbnail = v; }, () => thumbnail);
 
     function renderDocs() {
