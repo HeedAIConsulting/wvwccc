@@ -254,6 +254,19 @@ window.Chamber = (function () {
     return isNaN(dt) ? String(d) : dt.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
   }
 
+  // "Hosted by …" attribution — a group they chair (links to the group page)
+  // or the member's business. Set when a leader posts an event and chooses
+  // which identity they are posting as (per the office, Jul 15 2026).
+  function hostLine(ev, base = '') {
+    const name = ev.hostName || ev.groupName || ev.submittedByName || '';
+    if (!name) return '';
+    const slug = ev.hostSlug || (ev.hostKind === 'business' ? '' : ev.groupSlug) || '';
+    const inner = slug
+      ? `<a href="${base}groups/${esc(slug)}" style="color:inherit;text-decoration:underline">${esc(name)}</a>`
+      : esc(name);
+    return `<div style="color:var(--gold-deep,#8a6d1a)">🏷️ Hosted by ${inner}</div>`;
+  }
+
   // Full detail card for an event — used by the dedicated event page (and by
   // the legacy modal). Per the office, Jul 2026: events open on their OWN page
   // with room for sponsors, logos, and photo galleries.
@@ -318,6 +331,7 @@ window.Chamber = (function () {
           <div class="ev-card__meta">
             <div class="ev-card__when">📅 ${esc(fullDate(ev))}</div>
             ${loc ? `<div>📍 ${mapU ? `<a href="${esc(mapU)}" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline" title="Open in Google Maps for directions">${esc(loc)}</a> <span style="font-size:.78rem;color:var(--gold-deep)">(map ↗)</span>` : esc(loc)}</div>` : ''}
+            ${hostLine(ev, base)}
           </div>
           ${imgs}
           ${descHtml ? `<div class="ev-card__desc"${ev.descriptionHtml ? ' style="white-space:normal"' : ''}>${descHtml}</div>` : ''}
@@ -582,11 +596,14 @@ window.Chamber = (function () {
       try {
         const evs = (await getJSON(ChamberAPI.url('/api/events'))).events || [];
         const today = new Date().toISOString().slice(0, 10);
-        // Match by title OR category (group meetings carry the group name as
-        // their category, old-site style).
-        const mm = g.eventMatch.toLowerCase();
+        // A leader posting "as this group" tags the event with groupSlug — the
+        // most reliable match. Otherwise fall back to the group's name appearing
+        // in the title or category (auto-generated meetings, old-site style).
+        const mm = (g.eventMatch || '').toLowerCase();
         const mine = evs.filter((e) => e.confirmed && e.date >= today &&
-          ((e.title || '').toLowerCase().includes(mm) || (e.category || '').toLowerCase().includes(mm))).slice(0, 4);
+          (e.groupSlug === g.slug || (mm && ((e.title || '').toLowerCase().includes(mm) || (e.category || '').toLowerCase().includes(mm)))))
+          .sort((a, b) => String(a.date || '').localeCompare(String(b.date || ''))) // soonest first, so a posted one-off isn't buried by recurring meetings
+          .slice(0, 4);
         if (mine.length) {
           document.getElementById('gEvents').hidden = false;
           document.getElementById('gEventList').innerHTML = mine.map((e) => eventPreviewCard(e, 1)).join('');

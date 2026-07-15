@@ -421,8 +421,9 @@ window.MemberPortal = (function () {
         const key = ev.seriesId || ev.id;
         if (seen.has(key)) continue; seen.add(key);
         const count = ev.seriesId ? events.filter((e) => e.seriesId === ev.seriesId).length : 1;
+        const host = ev.hostName || ev.groupName || '';
         rows.push(`<div class="card" style="padding:var(--s-4);margin-bottom:var(--s-3);display:flex;justify-content:space-between;align-items:center;gap:var(--s-3)">
-          <div><strong>${esc(ev.title)}</strong><div class="member-tile__meta">${esc(ev.date || '')}${ev.time ? ' · ' + esc(ev.time) : ''}${count > 1 ? ' · repeats weekly (' + count + ' dates)' : ''}${ev.venue ? ' · ' + esc(ev.venue) : ''}</div></div>
+          <div><strong>${esc(ev.title)}</strong>${host ? ` <span class="badge badge--gold" style="font-size:.62rem;vertical-align:middle">${esc(host)}</span>` : ''}<div class="member-tile__meta">${esc(ev.date || '')}${ev.time ? ' · ' + esc(ev.time) : ''}${count > 1 ? ' · repeats weekly (' + count + ' dates)' : ''}${ev.venue ? ' · ' + esc(ev.venue) : ''}</div></div>
           <button class="btn btn--ghost btn--sm" data-del="${esc(ev.id)}">Remove</button></div>`);
       }
       listEl.innerHTML = '<h3>Your events on the calendar</h3>' + rows.join('');
@@ -440,6 +441,25 @@ window.MemberPortal = (function () {
       return;
     }
     if (form) form.hidden = false;
+
+    // "Posting as" — a chair chooses whether this event is on behalf of their
+    // business or a group they lead (replaces the old two-logins setup).
+    const identities = Array.isArray(data.identities) ? data.identities : [];
+    const postAsField = document.getElementById('postAsField');
+    const postAsSelect = document.getElementById('postAsSelect');
+    const postAsHint = document.getElementById('postAsHint');
+    if (postAsSelect && identities.length) {
+      postAsSelect.innerHTML = identities.map((i) =>
+        `<option value="${esc(i.key)}">${i.kind === 'group' ? esc(i.name) + ' (group)' : esc(i.name) + ' (my business)'}</option>`).join('');
+      const drawHint = () => {
+        const cur = identities.find((i) => i.key === postAsSelect.value) || identities[0];
+        postAsHint.textContent = cur && cur.kind === 'group'
+          ? 'This event will show “Hosted by ' + cur.name + '” and appear on that group’s page.'
+          : 'This event will show “Hosted by ' + (cur ? cur.name : 'your business') + '.”';
+      };
+      // Only worth showing the picker when there's an actual choice to make.
+      if (identities.length > 1 && postAsField) { postAsField.hidden = false; drawHint(); postAsSelect.addEventListener('change', drawHint); }
+    }
 
     const untilField = document.getElementById('untilField');
     form.querySelectorAll('input[name="recurrence"]').forEach((r) => r.addEventListener('change', () => {

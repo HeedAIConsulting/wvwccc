@@ -21,6 +21,11 @@
       <div id="eventGate" hidden class="notice mt-4"></div>
 
       <form id="eventForm" class="card mt-5" hidden>
+        <div class="field" id="postAsField" hidden>
+          <label>Posting as <span class="member-tile__meta">(your business, or a group you lead)</span></label>
+          <select data-ev="postAs" id="postAsSelect"></select>
+          <div class="member-tile__meta" id="postAsHint"></div>
+        </div>
         <h3>Event details</h3>
         <div class="field"><label>Event name</label><input data-ev="title" maxlength="200" required /></div>
         <div class="grid grid-2" style="gap:var(--s-3)">

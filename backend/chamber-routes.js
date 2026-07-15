@@ -364,10 +364,23 @@ async function managedGroups(email) {
   catch { return []; }
 }
 
+// The identities a member can post an event "as" (per Diana/Felicia, Jul 15 —
+// this replaces the old two-logins setup: one login, but a chair chooses
+// whether an event is on behalf of their BUSINESS or a GROUP they lead).
+// First entry is the default. Business (if they have a listing) leads, then
+// each group they manage.
+async function postingIdentities(user) {
+  const out = [];
+  const m = await myMember(user.mid);
+  if (m) out.push({ key: 'business', kind: 'business', name: m.name, memberId: m.id });
+  for (const g of await managedGroups(user.sub)) out.push({ key: g.slug, kind: 'group', name: g.name, slug: g.slug });
+  return out;
+}
+
 router.get('/me/is-leader', auth.requireAuth(), async (req, res) => {
   try {
     const m = await myMember(req.user.mid); const g = await managedGroups(req.user.sub);
-    res.json({ leader: memberIsLeader(m) || g.length > 0, name: m ? m.name : null, groups: g.map((x) => x.name) });
+    res.json({ leader: memberIsLeader(m) || g.length > 0, name: m ? m.name : null, groups: g.map((x) => x.name), identities: await postingIdentities(req.user) });
   } catch (e) { res.json({ leader: false }); }
 });
 
@@ -376,7 +389,8 @@ router.get('/me/events', auth.requireAuth(), async (req, res) => {
     const mid = req.user.mid;
     const mine = (await loadEvents()).filter((e) => e.submittedBy && e.submittedBy === mid)
       .sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')));
-    res.json({ events: mine, isLeader: memberIsLeader(await myMember(mid)) || (await managedGroups(req.user.sub)).length > 0 });
+    const identities = await postingIdentities(req.user);
+    res.json({ events: mine, isLeader: memberIsLeader(await myMember(mid)) || identities.some((i) => i.kind === 'group'), identities });
   } catch (e) { res.status(500).json({ error: 'failed' }); }
 });
 
@@ -392,6 +406,12 @@ router.post('/me/event', auth.requireAuth(), async (req, res) => {
   if (!b.title || !/^\d{4}-\d{2}-\d{2}$/.test(String(b.date || ''))) {
     return res.status(400).json({ error: 'An event title and a valid date are required.' });
   }
+  // Which identity are they posting as (their business, or a group they lead)?
+  // Only identities they actually hold are accepted; default = business first,
+  // else their first group (per Diana/Felicia, Jul 15).
+  const identities = await postingIdentities(req.user);
+  const host = identities.find((i) => i.key === b.postAs)
+    || identities.find((i) => i.kind === 'business') || identities[0] || null;
   const base = {
     title: b.title, time: b.time, endTime: b.endTime, venue: b.venue, address: b.address,
     neighborhood: b.neighborhood, category: b.category || 'Community',
@@ -411,7 +431,16 @@ router.post('/me/event', auth.requireAuth(), async (req, res) => {
     for (const dt of dates) {
       const ev = buildEvent({ ...base, date: dt }, {});
       ev.submittedBy = mid; ev.submittedByName = (member && member.name) || (lead[0] && lead[0].manager && lead[0].manager.name) || ''; ev.source = 'member';
-      if (lead[0]) { ev.groupName = lead[0].name; ev.groupSlug = lead[0].slug; }
+      // Attribution from the chosen identity — a group they lead, or their own
+      // business. hostName/hostSlug drive the public "Hosted by" line; groupSlug
+      // also lands the event on that group's page.
+      if (host && host.kind === 'group') {
+        ev.hostKind = 'group'; ev.hostName = host.name; ev.hostSlug = host.slug;
+        ev.groupName = host.name; ev.groupSlug = host.slug;
+      } else if (host) {
+        ev.hostKind = 'business'; ev.hostName = host.name; ev.hostSlug = '';
+        ev.groupName = ''; ev.groupSlug = '';
+      }
       if (seriesId) ev.seriesId = seriesId;
       await repo.upsertEvent(ev); ids.push(ev.id);
     }
@@ -799,9 +828,20 @@ function buildEvent(b, existing = {}) {
       : (existing.ticketTypes || []),
     status: ['approved', 'pending', 'draft'].includes(b.status) ? b.status : (existing.status || 'approved'),
     images, links,
+    // Attribution (who/what an event is posted on behalf of) is set on member
+    // submissions; carry it through admin edits so a staff tweak never erases
+    // the "Hosted by" line or drops the event off its group page.
+    ...(pick(b, existing, ['hostKind', 'hostName', 'hostSlug', 'groupName', 'groupSlug', 'submittedBy', 'submittedByName', 'source', 'seriesId'])),
     created: existing.created || new Date().toISOString(),
     updated: new Date().toISOString(),
   };
+}
+// Copy through only the keys that are present on the patch or the existing
+// record — keeps buildEvent's output clean (no stray undefined fields).
+function pick(b, existing, keys) {
+  const out = {};
+  for (const k of keys) { const v = b[k] !== undefined ? b[k] : existing[k]; if (v !== undefined) out[k] = v; }
+  return out;
 }
 
 // Public: approved events only.
