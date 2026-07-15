@@ -1772,6 +1772,70 @@ router.get('/admin/users/:email/reset-link', requireAdmin, async (req, res) => {
   } catch (e) { console.error('reset-link', e); res.status(500).json({ error: 'could not generate link' }); }
 });
 
+// Resolve a member's login address (per the office, Jul 15 — sends must go
+// FROM the website, not pasted into staff Outlook where filters eat them).
+async function memberLoginAddress(id) {
+  const { members } = await loadMembersFull();
+  const m = members.find((x) => x.id === id);
+  if (!m) return { error: 'member not found', code: 404 };
+  const addr = String(m.email || '').trim().toLowerCase();
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(addr)) return { error: 'This member has no email on file — add one first.', code: 400 };
+  return { m, addr };
+}
+
+// Email the member a password-reset link, sent BY the website (Graph/Resend) —
+// this is what the old "Reset link" button should have done instead of just
+// copying a URL for staff to forward from Outlook (Felicia, Jul 15).
+router.post('/admin/members/:id/send-reset', requireAdmin, async (req, res) => {
+  try {
+    const info = await memberLoginAddress(req.params.id);
+    if (info.error) return res.status(info.code).json({ error: info.error });
+    const { m, addr } = info;
+    if (!(await users.getUserByEmail(addr))) {
+      await users.bulkImportMembers([{ email: addr, memberId: m.id, username: m.contactName || m.name, passwordHash: null, passwordAlgo: 'unknown', needsReset: true }]);
+    }
+    const base = process.env.SITE_URL || `${req.protocol}://${req.get('host')}`;
+    const link = `${base}/auth/reset.html?token=${encodeURIComponent(auth.signResetToken(addr))}`;
+    const hello = m.contactName ? `, ${m.contactName}` : '';
+    const r = await email.send({
+      to: addr,
+      subject: 'Set your West Valley · Warner Center Chamber password',
+      text: `Hello${hello},\n\nHere is your link to set a new password for your Chamber account (${addr}). It expires in 1 hour:\n${link}\n\nIf the link expires, ask the Chamber office to send a new one, or use “Forgot password” on the sign-in page.\n\nWest Valley · Warner Center Chamber of Commerce\n(818) 347-4737`,
+      html: `<p>Hello${hello},</p><p>Here is your link to set a new password for your Chamber account (<strong>${addr}</strong>). It expires in 1 hour:</p><p><a href="${link}"><strong>Set your password</strong></a></p><p>If the link expires, ask the Chamber office to send a new one, or use “Forgot password” on the <a href="${base}/auth/login.html">sign-in page</a>.</p><p>West Valley · Warner Center Chamber of Commerce<br>(818) 347-4737</p>`,
+    });
+    if (r && r.skipped) return res.status(500).json({ error: 'Email provider is not configured on the server.' });
+    if (r && r.ok === false) return res.status(500).json({ error: 'Email could not be sent: ' + (r.error || 'provider error') });
+    res.json({ ok: true, email: addr });
+  } catch (e) { console.error('send-reset', e); res.status(500).json({ error: 'could not send the reset link' }); }
+});
+
+// Email the member a one-click passwordless SIGN-IN link, sent by the website.
+// Best for members who can't manage passwords: they click and they're in.
+router.post('/admin/members/:id/send-signin', requireAdmin, async (req, res) => {
+  try {
+    const info = await memberLoginAddress(req.params.id);
+    if (info.error) return res.status(info.code).json({ error: info.error });
+    const { m, addr } = info;
+    // The magic-verify step needs a user record to exist; create a passwordless
+    // one if there isn't a login yet, so the link works the first time too.
+    if (!(await users.getUserByEmail(addr))) {
+      await users.bulkImportMembers([{ email: addr, memberId: m.id, username: m.contactName || m.name, passwordHash: null, passwordAlgo: 'unknown', needsReset: true }]);
+    }
+    const base = process.env.SITE_URL || `${req.protocol}://${req.get('host')}`;
+    const link = `${base}/api/auth/magic/verify?token=${encodeURIComponent(auth.signMagicToken(addr))}`;
+    const hello = m.contactName ? `, ${m.contactName}` : '';
+    const r = await email.send({
+      to: addr,
+      subject: 'Your West Valley · Warner Center Chamber sign-in link',
+      text: `Hello${hello},\n\nClick to sign straight in to your Chamber account (${addr}) — no password needed. This link expires in 20 minutes:\n${link}\n\nOnce you're in, you can set a password under your profile if you'd like.\n\nWest Valley · Warner Center Chamber of Commerce\n(818) 347-4737`,
+      html: `<p>Hello${hello},</p><p>Click to sign straight in to your Chamber account (<strong>${addr}</strong>) — no password needed. This link expires in 20 minutes:</p><p><a href="${link}"><strong>Sign in to the Chamber</strong></a></p><p>Once you're in, you can set a password under your profile if you'd like.</p><p>West Valley · Warner Center Chamber of Commerce<br>(818) 347-4737</p>`,
+    });
+    if (r && r.skipped) return res.status(500).json({ error: 'Email provider is not configured on the server.' });
+    if (r && r.ok === false) return res.status(500).json({ error: 'Email could not be sent: ' + (r.error || 'provider error') });
+    res.json({ ok: true, email: addr });
+  } catch (e) { console.error('send-signin', e); res.status(500).json({ error: 'could not send the sign-in link' }); }
+});
+
 // Admin-only: verify the transactional-email pipeline end-to-end.
 // GET /api/admin/email-test?to=someone@example.com  (defaults to the chamber notify inbox)
 router.get('/admin/email-test', requireAdmin, async (req, res) => {

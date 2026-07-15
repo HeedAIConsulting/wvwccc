@@ -482,7 +482,9 @@ window.Admin = (function () {
       const pwActions = m.email
         ? `<button type="button" data-welcome title="${m.welcomeSent ? 'Already sent — click to preview and resend the welcome letter' : 'Email this member the Chamber welcome letter with their website login link'}" style="cursor:pointer;background:${m.welcomeSent ? 'var(--cream,#faf6ea)' : 'none'};border:1px solid var(--gold,#C9A227);border-radius:6px;padding:3px 8px;font-size:.8rem;font-weight:600;${m.welcomeSent ? 'opacity:.75' : ''}">${welcomeLbl}</button>
            <button type="button" data-setpw="${esc(m.email)}" title="Set this member's password now" style="cursor:pointer;background:none;border:1px solid var(--line,#d7d2c6);border-radius:6px;padding:3px 8px;font-size:.8rem">Set password</button>
-           <button type="button" data-resetlink="${esc(m.email)}" title="Copy a reset link to send them" style="cursor:pointer;background:none;border:1px solid var(--line,#d7d2c6);border-radius:6px;padding:3px 8px;font-size:.8rem">Reset link</button>
+           <button type="button" data-sendsignin="${id}" title="Email them a one-click sign-in link (no password needed) — sent by the website, expires in 20 min" style="cursor:pointer;background:none;border:1px solid var(--gold,#C9A227);border-radius:6px;padding:3px 8px;font-size:.8rem;font-weight:600">✉ Sign-in link</button>
+           <button type="button" data-sendreset="${id}" title="Email them a set-a-password link — sent by the website (not from your Outlook), expires in 1 hour" style="cursor:pointer;background:none;border:1px solid var(--line,#d7d2c6);border-radius:6px;padding:3px 8px;font-size:.8rem">✉ Reset link</button>
+           <button type="button" data-resetlink="${esc(m.email)}" title="Copy the reset link to paste somewhere yourself (most of the time, use ✉ Reset link instead so the website sends it)" style="cursor:pointer;background:none;border:1px solid var(--line,#d7d2c6);border-radius:6px;padding:3px 8px;font-size:.8rem">Copy link</button>
            <button type="button" data-loginlink title="Open this member's portal view to assist them (opens a 20-min sign-in link — use a private window to keep your admin session)" style="cursor:pointer;background:none;border:1px solid var(--line,#d7d2c6);border-radius:6px;padding:3px 8px;font-size:.8rem">Member view</button>`
         : `<button type="button" data-createlogin title="This member has no website login yet — create one and email them a set-your-password link" style="cursor:pointer;background:var(--gold,#C9A227);color:var(--green-ink,#143c20);border:none;border-radius:6px;padding:4px 10px;font-size:.8rem;font-weight:700">➕ Create login</button>`;
       return `<tr data-id="${id}">
@@ -631,7 +633,24 @@ window.Admin = (function () {
             flash.classList.add('show'); setTimeout(() => flash.classList.remove('show'), 1500); alert('Password set for ' + email); }
           catch (err) { alert('Could not set password: ' + (err.message || '')); }
         });
-        // Copy a reset link to send the member (works before email is configured).
+        // ✉ Reset link — the WEBSITE emails it (not staff Outlook, where
+        // filters were eating it — Felicia, Jul 15).
+        tr.querySelector('[data-sendreset]')?.addEventListener('click', async (e) => {
+          const btn = e.currentTarget; btn.disabled = true; const was = btn.textContent; btn.textContent = 'Sending…';
+          try { const r = await api('/api/admin/members/' + encodeURIComponent(btn.dataset.sendreset) + '/send-reset', { method: 'POST' });
+            btn.textContent = '✓ Sent'; setTimeout(() => { btn.textContent = was; btn.disabled = false; }, 2500);
+            alert('A set-your-password link was emailed to ' + r.email + ' from the website. It expires in 1 hour.');
+          } catch (err) { btn.disabled = false; btn.textContent = was; alert('Could not send: ' + (err.message || 'error')); }
+        });
+        // ✉ Sign-in link — one-click passwordless magic link, emailed by the site.
+        tr.querySelector('[data-sendsignin]')?.addEventListener('click', async (e) => {
+          const btn = e.currentTarget; btn.disabled = true; const was = btn.textContent; btn.textContent = 'Sending…';
+          try { const r = await api('/api/admin/members/' + encodeURIComponent(btn.dataset.sendsignin) + '/send-signin', { method: 'POST' });
+            btn.textContent = '✓ Sent'; setTimeout(() => { btn.textContent = was; btn.disabled = false; }, 2500);
+            alert('A one-click sign-in link was emailed to ' + r.email + ' from the website. It expires in 20 minutes — they click it and they\'re in, no password needed.');
+          } catch (err) { btn.disabled = false; btn.textContent = was; alert('Could not send: ' + (err.message || 'error')); }
+        });
+        // Copy the reset link to paste yourself (fallback — usually use ✉ Reset link).
         tr.querySelector('[data-resetlink]')?.addEventListener('click', async (e) => {
           try {
             const r = await api('/api/admin/users/' + encodeURIComponent(e.currentTarget.dataset.resetlink) + '/reset-link');
