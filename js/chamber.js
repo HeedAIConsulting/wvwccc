@@ -1993,7 +1993,10 @@ window.Chamber = (function () {
       out.innerHTML = '<div class="member-tile__meta">Asking Wendy…</div>';
       try {
         const r = await (await fetch(ChamberAPI.url('/api/concierge'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ q: q + ' (restaurant / dining in the West Valley)' }) })).json();
-        const picks = (r.members || []).filter((m) => DINING_RE.test(m.category || '') || true).slice(0, 3);
+        // Only show members that are actually dining spots (a stray "|| true"
+        // here let ANY member Wendy mentioned — e.g. a plumber — render as a
+        // restaurant card; per Felicia, Jul 14).
+        const picks = (r.members || []).filter((m) => DINING_RE.test(m.category || '') || (m.tags || []).some((t) => DINING_RE.test(t)) || (m.keywords || []).some((t) => DINING_RE.test(t))).slice(0, 3);
         out.innerHTML = `<div style="background:#fff;border:1px solid var(--gold-soft,#e6dcbf);border-radius:10px;padding:12px 14px"><strong>💬 Wendy:</strong> ${esc(r.answer || 'Here are a few spots.')}</div>`
           + (picks.length ? `<div class="grid grid-3 mt-3" style="gap:var(--s-4)">${picks.map((m) => diningCard(m)).join('')}</div>` : '');
       } catch (err) { out.innerHTML = '<div class="notice">Could not reach Wendy right now — use the filter below.</div>'; }

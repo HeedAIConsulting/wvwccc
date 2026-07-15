@@ -682,11 +682,21 @@ function sanitizeRichHtml(html) {
     tag = tag.toLowerCase();
     if (tag === 'img') { // linked sponsor/inline images keep src (+ optional link handled via <a>)
       const src = sanitizeRichHref(richAttr(attrs, 'src'));
-      // Keep the author's chosen size (percent width set by the editor's
-      // click-to-resize, per Diana Jul 2026) — everything else is stripped.
-      const wm = /width:\s*(\d{1,3})%/i.exec(richAttr(attrs, 'style') || '');
-      const w = wm ? Math.min(100, Math.max(5, Number(wm[1]))) : null;
-      return src ? `<img src="${src}" alt="${richAttr(attrs, 'alt').replace(/[<>"]/g, '')}" style="${w ? `width:${w}%;` : ''}max-width:100%">` : '';
+      // Keep the author's size (percent OR exact pixels) and position (wrap
+      // left/right, centered) from the editor's image toolbar — per the
+      // office, Jul 14 2026. Everything else is stripped.
+      const st = richAttr(attrs, 'style') || '';
+      const out = [];
+      // Anchored to a declaration boundary so "max-width:100%" never matches.
+      const wpct = /(?:^|;)\s*width:\s*(\d{1,3})%/i.exec(st);
+      const wpx = /(?:^|;)\s*width:\s*(\d{2,4})(?:\.\d+)?px/i.exec(st);
+      if (wpct) out.push(`width:${Math.min(100, Math.max(5, Number(wpct[1])))}%`);
+      else if (wpx) out.push(`width:${Math.min(2000, Math.max(20, Number(wpx[1])))}px`);
+      const fl = /float:\s*(left|right)/i.exec(st);
+      if (fl) out.push(`float:${fl[1].toLowerCase()}`, fl[1].toLowerCase() === 'left' ? 'margin:4px 14px 8px 0' : 'margin:4px 0 8px 14px');
+      else if (/display:\s*block/i.test(st) && /margin[^;]*auto/i.test(st)) out.push('display:block', 'margin:8px auto');
+      out.push('max-width:100%');
+      return src ? `<img src="${src}" alt="${richAttr(attrs, 'alt').replace(/[<>"]/g, '')}" style="${out.join(';')}">` : '';
     }
     if (!RICH_TAGS.has(tag)) return '';
     if (m0.startsWith('</')) return `</${tag}>`;

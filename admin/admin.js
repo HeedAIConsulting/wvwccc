@@ -1339,16 +1339,23 @@ window.Admin = (function () {
       const styleSelection = (prop, val) => focusExec(() => {
         // styleWithCSS makes execCommand emit span styles (sanitizer-friendly).
         document.execCommand('styleWithCSS', false, true);
-        if (prop === 'color') document.execCommand('foreColor', false, val);
-        else {
-          // font-size / font-family: wrap the selection in a styled span.
-          const sel = window.getSelection();
-          if (!sel.rangeCount || sel.isCollapsed) return;
+        if (prop === 'color') { document.execCommand('foreColor', false, val); return; }
+        // font-size / font-family across ANY selection — including several
+        // paragraphs of pasted text (per Felicia, Jul 14: sizing pasted text
+        // did nothing). Let the browser tag the whole selection with <font>
+        // markers, then restyle those markers as clean spans.
+        const sel = window.getSelection();
+        if (!sel.rangeCount || sel.isCollapsed || !rich.contains(sel.anchorNode)) { alert('First select the text you want to change, then pick the ' + (prop === 'font-size' ? 'size' : 'font') + '.'); return; }
+        document.execCommand('styleWithCSS', false, false);
+        if (prop === 'font-size') document.execCommand('fontSize', false, '7');
+        else document.execCommand('fontName', false, '__rt-marker__');
+        document.execCommand('styleWithCSS', false, true);
+        rich.querySelectorAll(prop === 'font-size' ? 'font[size="7"]' : 'font[face="__rt-marker__"]').forEach((f) => {
           const span = document.createElement('span');
           span.style[prop === 'font-size' ? 'fontSize' : 'fontFamily'] = val;
-          try { sel.getRangeAt(0).surroundContents(span); }
-          catch (e) { /* selection crosses elements — fall back to fontName */ if (prop === 'font-family') document.execCommand('fontName', false, val); }
-        }
+          while (f.firstChild) span.appendChild(f.firstChild);
+          f.replaceWith(span);
+        });
       });
       richBar.querySelector('[data-rt-font]')?.addEventListener('change', (e) => { if (e.target.value) styleSelection('font-family', e.target.value); e.target.value = ''; });
       richBar.querySelector('[data-rt-size]')?.addEventListener('change', (e) => { if (e.target.value) styleSelection('font-size', e.target.value); e.target.value = ''; });
@@ -1420,9 +1427,47 @@ window.Admin = (function () {
           });
           return b;
         };
-        bar.append('Image size: ');
-        [['Small', '25%'], ['Medium', '50%'], ['Large', '75%'], ['Full', '100%']].forEach(([l, w]) => bar.appendChild(mk(l, w)));
-        bar.appendChild(mk('✕ Remove', 'remove', 'Delete this image from the text'));
+        bar.append('Size: ');
+        [['S', '25%'], ['M', '50%'], ['L', '75%'], ['Full', '100%']].forEach(([l, w]) => bar.appendChild(mk(l, w)));
+        // Exact width in pixels (per Felicia, Jul 14 — S/M/L wasn't precise
+        // enough when lining up several sponsor logos).
+        const px = document.createElement('input');
+        px.type = 'number'; px.min = '20'; px.max = '2000'; px.placeholder = 'px';
+        px.title = 'Exact width in pixels — type a number and press Enter (e.g. 350)';
+        px.style.cssText = 'width:64px;border:1px solid #ddd;border-radius:6px;padding:2px 6px;font:inherit';
+        const curW = /^(\d+(?:\.\d+)?)px$/.exec(img.style.width || '');
+        if (curW) px.value = Math.round(Number(curW[1]));
+        const applyPx = () => { const v = Math.min(2000, Math.max(20, Number(px.value) || 0)); if (v >= 20) { img.style.width = v + 'px'; img.style.maxWidth = '100%'; bar.remove(); } };
+        px.addEventListener('keydown', (ev) => { ev.stopPropagation(); if (ev.key === 'Enter') { ev.preventDefault(); applyPx(); } });
+        px.addEventListener('mousedown', (ev) => ev.stopPropagation());
+        bar.appendChild(px);
+        const pxBtn = document.createElement('button');
+        pxBtn.type = 'button'; pxBtn.textContent = '✓'; pxBtn.title = 'Apply the pixel width';
+        pxBtn.style.cssText = 'border:1px solid #ddd;background:#fff;border-radius:6px;padding:2px 8px;cursor:pointer;font:inherit';
+        pxBtn.addEventListener('click', (ev) => { ev.stopPropagation(); applyPx(); });
+        bar.appendChild(pxBtn);
+        // Position: wrap the text left/right, center on its own line, or inline.
+        bar.append(' Position: ');
+        const place = (mode) => {
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.textContent = mode === 'left' ? '⬅ Wrap' : mode === 'right' ? 'Wrap ➡' : mode === 'center' ? '▣ Center' : '↩ Inline';
+          b.title = mode === 'center' ? 'Center the image on its own line'
+            : mode === 'inline' ? 'Back to sitting in the text line'
+            : `Text wraps around the ${mode} side`;
+          b.style.cssText = 'border:1px solid #ddd;background:#fff;border-radius:6px;padding:2px 8px;cursor:pointer;font:inherit';
+          b.addEventListener('click', (ev) => {
+            ev.stopPropagation();
+            img.style.float = ''; img.style.display = ''; img.style.margin = '';
+            if (mode === 'left') { img.style.float = 'left'; img.style.margin = '4px 14px 8px 0'; }
+            if (mode === 'right') { img.style.float = 'right'; img.style.margin = '4px 0 8px 14px'; }
+            if (mode === 'center') { img.style.display = 'block'; img.style.margin = '8px auto'; }
+            bar.remove();
+          });
+          return b;
+        };
+        ['left', 'center', 'right', 'inline'].forEach((m) => bar.appendChild(place(m)));
+        bar.appendChild(mk('✕', 'remove', 'Delete this image from the text'));
         document.body.appendChild(bar);
         const away = (ev) => { if (!bar.contains(ev.target) && ev.target !== img) { bar.remove(); document.removeEventListener('mousedown', away, true); } };
         document.addEventListener('mousedown', away, true);
