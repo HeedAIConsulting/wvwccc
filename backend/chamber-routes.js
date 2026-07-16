@@ -1240,6 +1240,51 @@ router.post('/admin/home-spotlight', requireAdmin, async (req, res) => {
   } catch (e) { console.error(e); res.status(500).json({ error: 'save failed' }); }
 });
 
+// ── Homepage popup (the "shows-once" promo over the homepage) ──
+// Editable from Admin → Sponsorships so the office can swap the image/text and
+// sell the placement, instead of it being hardcoded (Diana, Jul 16 2026).
+const POPUP_KEY = 'homePopup';
+const POPUP_DEFAULT = {
+  enabled: true,
+  image: 'assets/events/11209.jpg',
+  title: 'Black, White & Bold Installation Gala',
+  subtitle: 'Saturday, July 25 · Woodland Hills Country Club',
+  buttonLabel: '🎟 Get tickets, sponsorships & program ads',
+  href: 'checkout.html?type=ticket&event=le-11209',
+  retireAt: '', // ISO date/datetime; blank = never auto-hide
+};
+async function loadPopup() {
+  try { const raw = await repo.getSetting(POPUP_KEY); return raw ? { ...POPUP_DEFAULT, ...JSON.parse(raw) } : { ...POPUP_DEFAULT }; }
+  catch { return { ...POPUP_DEFAULT }; }
+}
+function cleanPopup(b) {
+  return {
+    enabled: !!b.enabled,
+    image: clampUrl(b.image),
+    title: String(b.title || '').slice(0, 160),
+    subtitle: String(b.subtitle || '').slice(0, 240),
+    buttonLabel: String(b.buttonLabel || '').slice(0, 80),
+    href: clampUrl(b.href),
+    retireAt: /^\d{4}-\d{2}-\d{2}([T ]\d{2}:\d{2})?/.test(String(b.retireAt || '')) ? String(b.retireAt).slice(0, 25) : '',
+  };
+}
+router.get('/home-popup', async (_req, res) => {
+  try { res.json({ popup: await loadPopup() }); }
+  catch (e) { console.error('home-popup', e); res.status(500).json({ error: 'failed' }); }
+});
+router.get('/admin/home-popup', requireAdmin, async (_req, res) => {
+  try { res.json({ popup: await loadPopup() }); }
+  catch (e) { console.error(e); res.status(500).json({ error: 'failed' }); }
+});
+router.post('/admin/home-popup', requireAdmin, async (req, res) => {
+  try {
+    const popup = cleanPopup(req.body || {});
+    if (popup.enabled && (!popup.image || !popup.title)) return res.status(400).json({ error: 'An enabled popup needs at least an image and a title.' });
+    await repo.setSetting(POPUP_KEY, JSON.stringify(popup));
+    res.json({ ok: true, popup });
+  } catch (e) { console.error('home-popup save', e); res.status(500).json({ error: 'save failed' }); }
+});
+
 // Pricing catalog (memberships, donation presets, ticket convention).
 let _skus = null;
 router.get('/skus', (_req, res) => {

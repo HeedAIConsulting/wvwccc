@@ -2267,6 +2267,7 @@ window.Admin = (function () {
     }
     load();
     initHomeSpotlight(members);
+    initHomePopup();
   }
 
   // ── "Featured this week" homepage spotlight: a member OR an uploaded image ──
@@ -2322,6 +2323,52 @@ window.Admin = (function () {
     imgSaveBtn?.addEventListener('click', () => { if (!pendingImageUrl) return; save({ image: pendingImageUrl, caption: capInput.value.trim(), href: hrefInput.value.trim() }); });
     clearBtn?.addEventListener('click', () => save({}));
     refresh();
+  }
+
+  // ── Homepage popup editor (image + text + link) — Admin → Sponsorships ──
+  async function initHomePopup() {
+    const enabled = document.getElementById('popEnabled');
+    if (!enabled) return; // panel not on this page
+    const prev = document.getElementById('popImgPrev');
+    const imgInput = document.getElementById('popImage');
+    const title = document.getElementById('popTitle');
+    const sub = document.getElementById('popSub');
+    const btn = document.getElementById('popBtn');
+    const href = document.getElementById('popHref');
+    const retire = document.getElementById('popRetire');
+    const saveBtn = document.getElementById('popSave');
+    const flash = document.getElementById('popFlash');
+    const msg = document.getElementById('popMsg');
+    let imageUrl = '';
+    const drawImg = () => { prev.innerHTML = imageUrl ? `<img src="${esc(imageUrl)}" alt="" style="width:100%;height:100%;object-fit:cover">` : '<span class="sub" style="padding:8px">No image yet</span>'; };
+    try {
+      const { popup } = await api('/api/admin/home-popup');
+      enabled.checked = !!popup.enabled;
+      imageUrl = popup.image || ''; drawImg();
+      title.value = popup.title || ''; sub.value = popup.subtitle || '';
+      btn.value = popup.buttonLabel || ''; href.value = popup.href || '';
+      retire.value = /^\d{4}-\d{2}-\d{2}/.test(popup.retireAt || '') ? popup.retireAt.slice(0, 10) : '';
+    } catch (e) { if (msg) msg.textContent = 'Could not load the current popup.'; }
+    imgInput?.addEventListener('change', async () => {
+      const f = imgInput.files[0]; if (!f) return;
+      if (msg) msg.textContent = 'Uploading…';
+      try {
+        const dataUrl = await downscaleImage(f, 1600, 0.85);
+        const up = await api('/api/me/asset', { method: 'POST', body: JSON.stringify({ kind: 'photo', dataUrl }) });
+        imageUrl = up.url; drawImg(); if (msg) msg.textContent = 'Image ready — click “Save popup”.';
+      } catch (e) { if (msg) msg.textContent = 'Image upload failed (JPG/PNG/WebP).'; }
+    });
+    saveBtn?.addEventListener('click', async () => {
+      saveBtn.disabled = true;
+      try {
+        await api('/api/admin/home-popup', { method: 'POST', body: JSON.stringify({
+          enabled: enabled.checked, image: imageUrl, title: title.value.trim(), subtitle: sub.value.trim(),
+          buttonLabel: btn.value.trim(), href: href.value.trim(), retireAt: retire.value || '',
+        }) });
+        if (msg) msg.textContent = ''; flash.classList.add('show'); setTimeout(() => flash.classList.remove('show'), 1400);
+      } catch (e) { if (msg) msg.textContent = 'Save failed: ' + (e.message || 'error'); }
+      finally { saveBtn.disabled = false; }
+    });
   }
 
   // ── Renewals (manual date override, else join-date + term) ──

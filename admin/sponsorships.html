@@ -20,6 +20,38 @@
 
         <div class="panel">
           <div class="panel__head">
+            <h3>Homepage popup</h3>
+            <span class="sub">The promo that pops up over the homepage on the first visit. Change the image and text here anytime — this is a sellable placement too.</span>
+          </div>
+          <div style="padding:16px;display:grid;gap:14px">
+            <label style="display:flex;align-items:center;gap:8px;font-weight:600"><input type="checkbox" id="popEnabled"> Show the popup on the homepage</label>
+            <div style="display:grid;grid-template-columns:1fr 1.4fr;gap:18px;align-items:start">
+              <div class="field" style="margin:0">
+                <label>Image</label>
+                <div id="popImgPrev" style="width:100%;max-width:240px;aspect-ratio:3/4;border:1px solid var(--line,#e4dcc8);border-radius:10px;overflow:hidden;background:#f6f3ea;display:grid;place-items:center;margin-bottom:8px"></div>
+                <input type="file" id="popImage" accept="image/png,image/jpeg,image/webp" />
+                <p class="sub" style="margin:4px 0 0">A tall flyer (portrait) looks best. Big files are resized automatically.</p>
+              </div>
+              <div style="display:grid;gap:10px">
+                <div class="field" style="margin:0"><label>Headline</label><input id="popTitle" class="admin-select" style="width:100%" maxlength="160" /></div>
+                <div class="field" style="margin:0"><label>Line under the headline</label><input id="popSub" class="admin-select" style="width:100%" maxlength="240" /></div>
+                <div class="field" style="margin:0"><label>Button text</label><input id="popBtn" class="admin-select" style="width:100%" maxlength="80" /></div>
+                <div class="field" style="margin:0"><label>Button link <span class="sub">(where the popup and button go when clicked)</span></label><input id="popHref" class="admin-select" style="width:100%" placeholder="checkout.html?type=ticket&event=le-11209" maxlength="600" /></div>
+                <div class="field" style="margin:0"><label>Auto-hide after <span class="sub">(optional — leave blank to keep showing)</span></label><input id="popRetire" type="date" class="admin-select" style="width:auto" /></div>
+              </div>
+            </div>
+            <div style="display:flex;gap:10px;align-items:center">
+              <button type="button" id="popSave" class="btn btn--forest btn--sm">Save popup</button>
+              <a href="../index.html" target="_blank" rel="noopener" class="btn btn--ghost btn--sm">Preview homepage ↗</a>
+              <span class="saved-flash" id="popFlash">saved ✓</span>
+              <span id="popMsg" class="sub"></span>
+            </div>
+            <p class="sub" style="margin:0">Note: the popup shows once per visit — to see it again in your preview tab, open the homepage in a new private/incognito window.</p>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel__head">
             <h3>“Featured this week” — homepage spotlight</h3>
             <span class="sub">The top-right card on the homepage. Stays blank until you pick a member or upload an image.</span>
           </div>
