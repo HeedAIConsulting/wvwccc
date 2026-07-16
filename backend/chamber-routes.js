@@ -616,6 +616,7 @@ async function loadEvents() {
 let _eventImgBackfillDone = false;
 let _legacyMergeChecked = false;
 let _groupMergeChecked = false;
+let _galaFlyerChecked = false;
 async function ensureEventsSeeded() {
   if (!(await repo.hasEvents())) {
     for (const e of readSeedEvents()) await repo.upsertEvent(buildEvent(e, e));
@@ -667,6 +668,26 @@ async function ensureEventsSeeded() {
         console.log(`[events] one-time group meetings merge: added ${added}; Food & Wine date checked`);
       }
     } catch (e) { _groupMergeChecked = false; console.error('group events merge failed (will retry next boot)', e); }
+  }
+  // One-time (Jul 16 2026, per Diana): point the Gala (le-11209) at the current
+  // Black, White & Bold flyer, replacing the old imported image — so the event
+  // page matches the homepage popup. Only runs if the office hasn't already set
+  // its own flyer.
+  if (!_galaFlyerChecked) {
+    _galaFlyerChecked = true;
+    try {
+      const KEY = 'galaFlyer-20260716';
+      if (!(await repo.getSetting(KEY))) {
+        const g = (await repo.listEventsStore()).find((e) => e.id === 'le-11209');
+        const NEW = 'assets/events/gala-2026-black-white-bold.jpg';
+        if (g && !g.flyer) {
+          const imgs = (g.images || []).filter((u) => !/11209\.jpg/.test(String(u)));
+          await repo.upsertEvent(buildEvent({ flyer: NEW, images: imgs }, g));
+        }
+        await repo.setSetting(KEY, `applied @ ${new Date().toISOString()}`);
+        console.log('[events] one-time: gala flyer updated to current Black, White & Bold');
+      }
+    } catch (e) { _galaFlyerChecked = false; console.error('gala flyer update failed (will retry next boot)', e); }
   }
   // Store already populated (e.g. seeded before flyers existed). Once per boot,
   // backfill flyer images from the committed seed onto stored events that lack
