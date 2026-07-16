@@ -2297,7 +2297,6 @@ window.Admin = (function () {
     }
     load();
     initHomeSpotlight(members);
-    initHomePopup();
   }
 
   // ── "Featured this week" homepage spotlight: a member OR an uploaded image ──
@@ -3056,6 +3055,7 @@ window.Admin = (function () {
   // ── Hero slider manager (add / delete / reorder) ──
   async function initSlides() {
     mountShell('slides');
+    initHomePopup(); // the homepage popup editor lives on this page now (per Diana, Jul 16)
     const form = document.getElementById('slideForm');
     const msg = document.getElementById('slideMsg');
     const tbody = document.getElementById('slideRows');

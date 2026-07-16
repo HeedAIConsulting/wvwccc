@@ -617,6 +617,7 @@ let _eventImgBackfillDone = false;
 let _legacyMergeChecked = false;
 let _groupMergeChecked = false;
 let _galaFlyerChecked = false;
+let _urbrandPhotosChecked = false;
 async function ensureEventsSeeded() {
   if (!(await repo.hasEvents())) {
     for (const e of readSeedEvents()) await repo.upsertEvent(buildEvent(e, e));
@@ -688,6 +689,20 @@ async function ensureEventsSeeded() {
         console.log('[events] one-time: gala flyer updated to current Black, White & Bold');
       }
     } catch (e) { _galaFlyerChecked = false; console.error('gala flyer update failed (will retry next boot)', e); }
+  }
+  // One-time (Jul 16 2026): remove the 3 cropped gallery photos UrBrand Studio
+  // (m15911) asked to have taken down. Members can now remove their own gallery
+  // photos, so this is just clearing the specific ones already flagged.
+  if (!_urbrandPhotosChecked) {
+    _urbrandPhotosChecked = true;
+    try {
+      const KEY = 'urbrandPhotos-20260716';
+      if (!(await repo.getSetting(KEY))) {
+        await repo.setMemberEdit('m15911', { photos: [] });
+        await repo.setSetting(KEY, `cleared @ ${new Date().toISOString()}`);
+        console.log('[members] one-time: cleared UrBrand Studio (m15911) gallery photos per request');
+      }
+    } catch (e) { _urbrandPhotosChecked = false; console.error('urbrand photos clear failed (will retry next boot)', e); }
   }
   // Store already populated (e.g. seeded before flyers existed). Once per boot,
   // backfill flyer images from the committed seed onto stored events that lack

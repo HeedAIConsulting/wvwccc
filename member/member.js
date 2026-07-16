@@ -185,7 +185,13 @@ window.MemberPortal = (function () {
     // photos (up to 3 slots)
     let photos = Array.isArray(m.photos) ? m.photos.slice(0, 3) : [];
     const photoPrev = document.getElementById('photoPreview');
-    const renderPhotos = () => { if (photoPrev) photoPrev.innerHTML = photos.map((p) => `<img src="${esc(p)}" alt="" style="width:80px;height:60px;border-radius:8px;object-fit:cover">`).join('') || '<span class="member-tile__meta">No photos yet</span>'; };
+    const renderPhotos = () => {
+      if (!photoPrev) return;
+      photoPrev.innerHTML = photos.length
+        ? photos.map((p, i) => `<span style="position:relative;display:inline-block;margin:0 6px 6px 0"><img src="${esc(p)}" alt="" style="width:80px;height:60px;border-radius:8px;object-fit:cover"><button type="button" data-rmphoto="${i}" title="Remove this photo" aria-label="Remove photo" style="position:absolute;top:-7px;right:-7px;width:22px;height:22px;border-radius:50%;border:0;background:#c0392b;color:#fff;font-size:14px;line-height:1;cursor:pointer">×</button></span>`).join('')
+        : '<span class="member-tile__meta">No photos yet</span>';
+      photoPrev.querySelectorAll('[data-rmphoto]').forEach((b) => b.addEventListener('click', () => { photos.splice(Number(b.dataset.rmphoto), 1); renderPhotos(); }));
+    };
     renderPhotos();
     const photoInput = document.getElementById('photoFile');
     if (photoInput) photoInput.addEventListener('change', async (e) => {
