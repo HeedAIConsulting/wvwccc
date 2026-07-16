@@ -1251,7 +1251,7 @@ router.post('/admin/home-spotlight', requireAdmin, async (req, res) => {
 const POPUP_KEY = 'homePopup';
 const POPUP_DEFAULT = {
   enabled: true,
-  image: 'assets/events/11209.jpg',
+  image: 'assets/events/gala-2026-black-white-bold.jpg', // current flyer w/ First Bank + Horvath (Diana, Jul 16)
   title: 'Black, White & Bold Installation Gala',
   subtitle: 'Saturday, July 25 · Woodland Hills Country Club',
   buttonLabel: '🎟 Get tickets, sponsorships & program ads',
