@@ -35,9 +35,9 @@
 
         <div class="panel" id="evFormPanel" style="display:none">
           <div class="panel__head"><h3 id="evFormTitle">New event</h3></div>
-          <div style="padding:14px 16px;border-bottom:1px solid var(--line,#eee);background:#faf8f3">
-            <strong>✦ Auto-fill from a flyer</strong>
-            <span class="sub">— upload a poster/flyer (image or PDF) and the AI reads it and fills the form below for you to review &amp; approve.</span>
+          <div id="evAutofillBlock" style="padding:14px 16px;border-bottom:1px solid var(--line,#eee);background:#faf8f3">
+            <strong>✦ Start a NEW event from a flyer</strong>
+            <span class="sub">— upload a poster/flyer (image or PDF) and the AI reads it and fills the form below for a new event. (To change the flyer on an event you're editing, use “Main flyer” further down.)</span>
             <div style="margin-top:8px">
               <label class="btn btn--gold btn--sm" style="cursor:pointer">Upload flyer<input type="file" accept="image/*,application/pdf,.pdf" hidden id="evFlyer"></label>
               <span id="evFlyerMsg" class="sub" style="margin-left:8px"></span>

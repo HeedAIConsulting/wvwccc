@@ -1352,6 +1352,22 @@ window.Admin = (function () {
     // ── Rich-text toolbar (Full details) — font / size / color / align / links ──
     const richBar = document.getElementById('evRichBar');
     if (richBar && rich) {
+      // Remember where the caret is in the editor. Clicking a toolbar file
+      // input (insert image) blurs the editor and loses the caret, which is why
+      // inserted images jumped to the top (Felicia, Jul 16). We save the range
+      // while the editor has focus and restore it right before inserting.
+      let savedRange = null;
+      const rememberRange = () => {
+        const sel = window.getSelection();
+        if (sel && sel.rangeCount && rich.contains(sel.anchorNode)) savedRange = sel.getRangeAt(0).cloneRange();
+      };
+      rich.addEventListener('keyup', rememberRange);
+      rich.addEventListener('mouseup', rememberRange);
+      rich.addEventListener('blur', rememberRange);
+      const restoreRange = () => {
+        rich.focus();
+        if (savedRange) { const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(savedRange); }
+      };
       const focusExec = (fn) => { rich.focus(); fn(); };
       richBar.querySelectorAll('[data-rt]').forEach((b) => b.addEventListener('click', () =>
         focusExec(() => document.execCommand(b.dataset.rt, false, null))));
@@ -1492,14 +1508,19 @@ window.Admin = (function () {
         document.addEventListener('mousedown', away, true);
       });
       // 🖼 Insert an image inline where the cursor is — breaks up long text.
+      // Save the caret the instant the button is pressed (before the file
+      // dialog steals focus), then restore it so the image lands exactly there
+      // — and you can add as many as you like (Felicia, Jul 16).
+      richBar.querySelector('[data-rt-img]')?.addEventListener('mousedown', rememberRange);
       richBar.querySelector('[data-rt-img]')?.addEventListener('change', (e) => {
         const f = e.target.files[0]; if (!f) return;
         const r = new FileReader();
         r.onload = async () => {
           try {
             const up = await api('/api/me/asset', { method: 'POST', body: JSON.stringify({ kind: 'photo', dataUrl: r.result }) });
-            rich.focus();
+            restoreRange();
             document.execCommand('insertHTML', false, `<img src="${esc(up.url)}" alt="" style="max-width:100%"><br>`);
+            rememberRange();
           } catch (err) { alert('Image upload failed (PNG/JPG, ≤2.5 MB).'); }
           e.target.value = '';
         };
@@ -1696,12 +1717,21 @@ window.Admin = (function () {
       flyerUrl = ev && ev.flyer ? ev.flyer : '';
       thumbnail = ev && ev.thumbnail ? ev.thumbnail : '';
       images = ev && ev.images ? ev.images.map((it) => (typeof it === 'string' ? it : { ...it })) : [];
+      // Legacy events (e.g. the imported gala) carry their flyer as the first
+      // Images entry, not in the Main flyer slot — so the flyer box looked empty
+      // and couldn't be replaced (Felicia, Jul 16). Promote it into the Main
+      // flyer field so it shows with a Delete button and a new upload replaces
+      // it cleanly, with no leftover copy in Images.
+      if (!flyerUrl && images.length && typeof images[0] === 'string') { flyerUrl = images.shift(); }
       flyers = ev && ev.flyers ? ev.flyers.slice() : [];
       sponsorLogos = ev && ev.sponsorLogos ? ev.sponsorLogos.map((s) => ({ ...s })) : [];
       links = ev && ev.links ? ev.links.map((l) => ({ ...l })) : [];
       documents = ev && ev.documents ? ev.documents.map((d) => ({ ...d })) : [];
       ticketTypes = ev && ev.ticketTypes ? ev.ticketTypes.map((t) => ({ ...t })) : [];
       renderImages(); renderLinks(); renderDocs(); renderTickets(); renderFlyers(); renderSponsors(); drawFlyer(); drawThumb();
+      // The AI "start a new event from a flyer" tool only applies to new events —
+      // hide it while editing so it isn't mistaken for "replace this flyer".
+      const autofill = document.getElementById('evAutofillBlock'); if (autofill) autofill.style.display = editingId ? 'none' : '';
       document.getElementById('evFormTitle').textContent = editingId ? 'Edit event' : 'New event';
       document.getElementById('evCancel').hidden = !editingId;
       msg.hidden = true;
