@@ -23,8 +23,10 @@ window.MemberPortal = (function () {
     let data;
     try { data = await api('/api/me'); } catch (e) { return; }
     const { user, member } = data;
+    // canPost = any member with a listing may add events (leaders publish
+    // immediately; others go to the office queue) — restores member self-serve.
     let isLeader = false;
-    try { isLeader = !!(await api('/api/me/is-leader')).leader; } catch (e) {}
+    try { const il = await api('/api/me/is-leader'); isLeader = !!(il.canSubmit || il.leader); } catch (e) {}
     const bindLogout = () => document.querySelectorAll('[data-logout]').forEach((b) => b.addEventListener('click', (e) => { e.preventDefault(); logout(); }));
 
     document.getElementById('welcome').textContent = member ? member.name : user.email;
@@ -435,11 +437,16 @@ window.MemberPortal = (function () {
       }));
     }
 
-    if (!data.isLeader) {
-      if (gate) { gate.hidden = false; gate.innerHTML = 'Adding events directly is available to Chamber group leaders and board members. To add your event, email <a href="mailto:felicia@woodlandhillscc.net">Felicia at the Chamber office</a> or use the <a href="../contact.html">contact form</a> and we will post it for you.'; }
+    // Any member with a listing can submit an event. Leaders/board/chairs
+    // publish immediately; everyone else's event is reviewed by the office
+    // before it goes live (per the office, Jul 16 — restores the old site's
+    // "members post their own events" with a quick approval step).
+    if (!data.canSubmit) {
+      if (gate) { gate.hidden = false; gate.innerHTML = 'Your login isn\'t linked to a member listing yet. Call the Chamber office at (818) 347-4737 and we\'ll connect it so you can post events.'; }
       renderMyEvents(data.events || []);
       return;
     }
+    if (gate && !data.isLeader) { gate.hidden = false; gate.style.background = 'var(--cream,#faf6ea)'; gate.innerHTML = '✓ You can add your events here. Because you\'re not a group leader, each one is quickly reviewed by the Chamber office before it appears on the public calendar.'; }
     if (form) form.hidden = false;
 
     // "Posting as" — a chair chooses whether this event is on behalf of their
@@ -489,7 +496,10 @@ window.MemberPortal = (function () {
       try {
         const r = await api('/api/me/event', { method: 'POST', body: JSON.stringify(body) });
         msg.hidden = false; msg.style.borderColor = 'var(--green)';
-        msg.textContent = r.count > 1 ? ('Added ' + r.count + ' weekly dates to the calendar.') : 'Added to the calendar.';
+        const many = r.count > 1 ? ('Your ' + r.count + ' dates were submitted') : 'Your event was submitted';
+        msg.textContent = r.published
+          ? (r.count > 1 ? ('Added ' + r.count + ' weekly dates to the calendar.') : 'Added to the calendar.')
+          : (many + ' — the Chamber office will review it and it will appear on the calendar shortly.');
         form.reset(); if (flyerPrev) flyerPrev.innerHTML = ''; flyerUrl = ''; if (untilField) untilField.hidden = true;
         const d = await api('/api/me/events'); renderMyEvents(d.events || []);
       } catch (err) {

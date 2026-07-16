@@ -380,7 +380,7 @@ async function postingIdentities(user) {
 router.get('/me/is-leader', auth.requireAuth(), async (req, res) => {
   try {
     const m = await myMember(req.user.mid); const g = await managedGroups(req.user.sub);
-    res.json({ leader: memberIsLeader(m) || g.length > 0, name: m ? m.name : null, groups: g.map((x) => x.name), identities: await postingIdentities(req.user) });
+    res.json({ leader: memberIsLeader(m) || g.length > 0, canSubmit: !!req.user.mid, name: m ? m.name : null, groups: g.map((x) => x.name), identities: await postingIdentities(req.user) });
   } catch (e) { res.json({ leader: false }); }
 });
 
@@ -390,7 +390,10 @@ router.get('/me/events', auth.requireAuth(), async (req, res) => {
     const mine = (await loadEvents()).filter((e) => e.submittedBy && e.submittedBy === mid)
       .sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')));
     const identities = await postingIdentities(req.user);
-    res.json({ events: mine, isLeader: memberIsLeader(await myMember(mid)) || identities.some((i) => i.kind === 'group'), identities });
+    // canSubmit = any member with a listing may add an event (leaders publish
+    // immediately; others go to the office's approval queue). isLeader is kept
+    // for the immediate-publish path and the "posting as" chooser.
+    res.json({ events: mine, canSubmit: !!mid, isLeader: memberIsLeader(await myMember(mid)) || identities.some((i) => i.kind === 'group'), identities });
   } catch (e) { res.status(500).json({ error: 'failed' }); }
 });
 
@@ -399,13 +402,15 @@ router.post('/me/event', auth.requireAuth(), async (req, res) => {
   if (!mid) return res.status(400).json({ error: 'No member listing is linked to this account.' });
   const member = await myMember(mid);
   const lead = await managedGroups(req.user.sub);
-  if (!memberIsLeader(member) && !lead.length) {
-    return res.status(403).json({ error: 'Adding events is available to Chamber group leaders and board members. Please send your event to the office and we will add it for you.' });
-  }
   const b = req.body || {};
   if (!b.title || !/^\d{4}-\d{2}-\d{2}$/.test(String(b.date || ''))) {
     return res.status(400).json({ error: 'An event title and a valid date are required.' });
   }
+  // ANY member with a listing can submit an event (matching the old site, per
+  // the office, Jul 16). Leaders/board/chairs publish immediately; a regular
+  // member's event goes to the office's "Needs publish" queue for one-click
+  // approval, so nothing hits the public calendar unreviewed.
+  const immediate = memberIsLeader(member) || lead.length > 0;
   // Which identity are they posting as (their business, or a group they lead)?
   // Only identities they actually hold are accepted; default = business first,
   // else their first group (per Diana/Felicia, Jul 15).
@@ -416,7 +421,7 @@ router.post('/me/event', auth.requireAuth(), async (req, res) => {
     title: b.title, time: b.time, endTime: b.endTime, venue: b.venue, address: b.address,
     neighborhood: b.neighborhood, category: b.category || 'Community',
     description: b.description, summary: b.summary, flyer: b.flyer, thumbnail: b.thumbnail,
-    confirmed: true, status: 'approved', showOnCalendar: true,
+    confirmed: immediate, status: immediate ? 'approved' : 'pending', showOnCalendar: true,
   };
   // Optional weekly recurrence: one event per week through `until` (cap 52).
   const dates = [];
@@ -444,7 +449,7 @@ router.post('/me/event', auth.requireAuth(), async (req, res) => {
       if (seriesId) ev.seriesId = seriesId;
       await repo.upsertEvent(ev); ids.push(ev.id);
     }
-    res.json({ ok: true, count: ids.length, seriesId });
+    res.json({ ok: true, count: ids.length, seriesId, published: immediate });
   } catch (e) { console.error('me/event', e); res.status(500).json({ error: 'Could not add the event. Please try again.' }); }
 });
 
