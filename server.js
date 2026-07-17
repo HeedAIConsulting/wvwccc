@@ -39,7 +39,7 @@ app.use(helmet({
 app.use(compression());
 app.use(cors({ origin: true, credentials: true }));
 app.use(cookieParser());
-app.use(express.json({ limit: '8mb' })); // headroom for base64 image/flyer uploads (downscaled client-side)
+app.use(express.json({ limit: '28mb' })); // headroom for base64 uploads: images (downscaled client-side) + newsletter/event PDFs up to ~20MB
 
 // ── Rate limiting ──────────────────────────────────────────
 const apiLimiter = rateLimit({ windowMs: 60_000, max: 120, standardHeaders: true, legacyHeaders: false });

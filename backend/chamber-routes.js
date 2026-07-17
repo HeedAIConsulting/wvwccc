@@ -473,8 +473,8 @@ router.post('/me/asset', auth.requireAuth(), async (req, res) => {
   if (!m) return res.status(400).json({ error: 'Provide a PNG, JPG, GIF, or WebP image, or a PDF.' });
   const mime = m[1];
   const buffer = Buffer.from(m[2], 'base64');
-  const limit = mime === 'application/pdf' ? 6_000_000 : 2_500_000;
-  if (buffer.length > limit) return res.status(413).json({ error: mime === 'application/pdf' ? 'PDF too large (max ~6MB).' : 'Image too large (max ~2.5MB).' });
+  const limit = mime === 'application/pdf' ? 20_000_000 : 2_500_000;
+  if (buffer.length > limit) return res.status(413).json({ error: mime === 'application/pdf' ? 'PDF too large (max ~20MB). Please compress/optimize the PDF and try again.' : 'Image too large (max ~2.5MB).' });
   const kind = mime === 'application/pdf' ? 'doc' : (b.kind === 'logo' ? 'logo' : 'photo');
   const id = 'asset-' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36);
   try {
