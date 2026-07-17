@@ -1462,25 +1462,46 @@ window.Admin = (function () {
           });
           return b;
         };
-        bar.append('Size: ');
-        [['S', '25%'], ['M', '50%'], ['L', '75%'], ['Full', '100%']].forEach(([l, w]) => bar.appendChild(mk(l, w)));
-        // Exact width in pixels (per Felicia, Jul 14 — S/M/L wasn't precise
-        // enough when lining up several sponsor logos).
-        const px = document.createElement('input');
-        px.type = 'number'; px.min = '20'; px.max = '2000'; px.placeholder = 'px';
-        px.title = 'Exact width in pixels — type a number and press Enter (e.g. 350)';
-        px.style.cssText = 'width:64px;border:1px solid #ddd;border-radius:6px;padding:2px 6px;font:inherit';
-        const curW = /^(\d+(?:\.\d+)?)px$/.exec(img.style.width || '');
-        if (curW) px.value = Math.round(Number(curW[1]));
-        const applyPx = () => { const v = Math.min(2000, Math.max(20, Number(px.value) || 0)); if (v >= 20) { img.style.width = v + 'px'; img.style.maxWidth = '100%'; bar.remove(); } };
-        px.addEventListener('keydown', (ev) => { ev.stopPropagation(); if (ev.key === 'Enter') { ev.preventDefault(); applyPx(); } });
-        px.addEventListener('mousedown', (ev) => ev.stopPropagation());
-        bar.appendChild(px);
-        const pxBtn = document.createElement('button');
-        pxBtn.type = 'button'; pxBtn.textContent = '✓'; pxBtn.title = 'Apply the pixel width';
-        pxBtn.style.cssText = 'border:1px solid #ddd;background:#fff;border-radius:6px;padding:2px 8px;cursor:pointer;font:inherit';
-        pxBtn.addEventListener('click', (ev) => { ev.stopPropagation(); applyPx(); });
-        bar.appendChild(pxBtn);
+        // Live size slider (per Diana, Jul 2026 — the old S/M/L jumped in big
+        // steps and a small % could make the image seem to vanish). Drag to
+        // resize in real time; the px box mirrors it for an exact number. Width
+        // is always in pixels with a 40px floor so it can never disappear.
+        bar.append('Size ');
+        const natural = img.naturalWidth || 0;
+        const editorW = (rich && rich.clientWidth) || 800;
+        const maxW = Math.max(120, Math.min(natural || 1600, editorW, 1600));
+        const curPx = () => {
+          const m2 = /^(\d+(?:\.\d+)?)px$/.exec(img.style.width || '');
+          if (m2) return Math.round(Number(m2[1]));
+          const bw = Math.round(img.getBoundingClientRect().width);
+          return Math.min(bw || (natural || 300), maxW);
+        };
+        const slider = document.createElement('input');
+        slider.type = 'range'; slider.min = '40'; slider.max = String(maxW);
+        slider.value = String(Math.min(Math.max(40, curPx()), maxW));
+        slider.title = 'Drag to resize';
+        slider.style.cssText = 'width:120px;vertical-align:middle;cursor:pointer;accent-color:var(--gold,#C9A227)';
+        const pxBox = document.createElement('input');
+        pxBox.type = 'number'; pxBox.min = '40'; pxBox.max = String(maxW);
+        pxBox.value = slider.value;
+        pxBox.title = 'Exact width in pixels';
+        pxBox.style.cssText = 'width:60px;border:1px solid #ddd;border-radius:6px;padding:2px 6px;font:inherit';
+        const applyW = (v) => {
+          const n = Math.min(maxW, Math.max(40, Math.round(Number(v) || 0)));
+          img.style.width = n + 'px'; img.style.height = 'auto'; img.style.maxWidth = '100%';
+          slider.value = String(n); pxBox.value = String(n);
+        };
+        slider.addEventListener('mousedown', (ev) => ev.stopPropagation());
+        slider.addEventListener('input', (ev) => { ev.stopPropagation(); applyW(slider.value); });
+        pxBox.addEventListener('mousedown', (ev) => ev.stopPropagation());
+        pxBox.addEventListener('input', (ev) => ev.stopPropagation());
+        pxBox.addEventListener('change', (ev) => { ev.stopPropagation(); applyW(pxBox.value); });
+        pxBox.addEventListener('keydown', (ev) => { ev.stopPropagation(); if (ev.key === 'Enter') { ev.preventDefault(); applyW(pxBox.value); } });
+        bar.appendChild(slider);
+        bar.appendChild(pxBox);
+        bar.append('px ');
+        // Full = span the text column; clearing the width lets it size naturally.
+        bar.appendChild(mk('Full', '100%', 'Fill the width of the text column'));
         // Position: wrap the text left/right, center on its own line, or inline.
         bar.append(' Position: ');
         const place = (mode) => {
@@ -1970,8 +1991,8 @@ window.Admin = (function () {
           <div class="name">${esc(m.contactName || m.name)}</div>
           <div class="sub">${esc(m.name)}${m.pageImage ? '' : ' · <span title="Using the company logo — upload a headshot for a nicer card">no headshot yet</span>'}</div>
         </div>
-        <select class="admin-select" data-desig title="Officer = top 'Executive Officers' row; Board Member = the main grid">
-          ${['Leader', 'Board Member'].map((o) => `<option value="${o}" ${m.leaderStatus === o ? 'selected' : ''}>${o === 'Leader' ? 'Officer' : o}</option>`).join('')}
+        <select class="admin-select" data-desig title="Staff = Chamber Staff row (top); Officer = Executive Officers row; Board Member = the main grid">
+          ${['Staff', 'Leader', 'Board Member'].map((o) => `<option value="${o}" ${m.leaderStatus === o ? 'selected' : ''}>${o === 'Leader' ? 'Officer' : o}</option>`).join('')}
         </select>
         <input data-title list="bmTitles" placeholder="Office / title (e.g. Past President)" value="${esc(m.boardTitle || '')}" style="flex:1;min-width:200px" title="Shown in gold under their name on the public page" />
         <label class="btn btn--ghost btn--sm" style="cursor:pointer" title="Upload their headshot (Page Image)">📷 Photo<input type="file" accept="image/*" hidden data-photo></label>
@@ -1981,12 +2002,17 @@ window.Admin = (function () {
       </div>`;
     }
     function render() {
+      const staff = all.filter((m) => m.leaderStatus === 'Staff');
       const officers = all.filter((m) => m.leaderStatus === 'Leader');
       const board = all.filter((m) => m.leaderStatus === 'Board Member');
       const lastName = (m) => { const p = String(m.contactName || m.name).trim().split(/\s+/); return p[p.length - 1]; };
+      // Staff order mirrors the public page: the CEO leads, everyone else A–Z.
+      const isCeo = (m) => /chief executive|\bceo\b/i.test(m.boardTitle || '');
+      staff.sort((a, b) => (Number(isCeo(b)) - Number(isCeo(a))) || lastName(a).localeCompare(lastName(b)));
       board.sort((a, b) => lastName(a).localeCompare(lastName(b)));
       host.innerHTML = `
         <datalist id="bmTitles">${TITLE_PRESETS.filter(Boolean).map((t) => `<option value="${esc(t)}">`).join('')}</datalist>
+        <div class="panel"><div class="panel__head"><h3>Chamber Staff <span class="sub">(${staff.length})</span></h3></div><div style="padding:0 16px 10px" data-sec="staff">${staff.map(row).join('') || '<p class="sub">No staff designated. Use the search above (or a member row) and set them to “Staff”. Staff appear on the public Board &amp; Leadership page but not in the business directory.</p>'}</div></div>
         <div class="panel"><div class="panel__head"><h3>Executive Officers <span class="sub">(${officers.length})</span></h3></div><div style="padding:0 16px 10px" data-sec="officers">${officers.map(row).join('') || '<p class="sub">No officers designated.</p>'}</div></div>
         <div class="panel"><div class="panel__head"><h3>Board of Directors <span class="sub">(${board.length})</span></h3></div><div style="padding:0 16px 10px" data-sec="board">${board.map(row).join('') || '<p class="sub">No board members designated.</p>'}</div></div>`;
       host.querySelectorAll('[data-id]').forEach((div) => {
@@ -2031,7 +2057,7 @@ window.Admin = (function () {
     async function load() {
       try {
         const { members } = await api('/api/admin/members');
-        all = members.filter((m) => ['Leader', 'Board Member'].includes(m.leaderStatus));
+        all = members.filter((m) => ['Staff', 'Leader', 'Board Member'].includes(m.leaderStatus));
         render();
       } catch (e) { showAuthError(e); }
     }
@@ -2043,7 +2069,7 @@ window.Admin = (function () {
       const q = s.value.trim().toLowerCase();
       if (q.length < 2) { sg.hidden = true; return; }
       if (!dirCache) { try { dirCache = (await api('/api/admin/members')).members || []; } catch (e) { dirCache = []; } }
-      const list = dirCache.filter((m) => ![ 'Leader', 'Board Member' ].includes(m.leaderStatus) && [m.name, m.contactName, m.category].filter(Boolean).join(' ').toLowerCase().includes(q)).slice(0, 8);
+      const list = dirCache.filter((m) => ![ 'Staff', 'Leader', 'Board Member' ].includes(m.leaderStatus) && [m.name, m.contactName, m.category].filter(Boolean).join(' ').toLowerCase().includes(q)).slice(0, 8);
       sg.innerHTML = list.length ? list.map((m) => `<button type="button" data-add="${esc(m.id)}"><b>${esc(m.contactName || m.name)}</b><span>${esc(m.name)}</span></button>`).join('') : '<button type="button" disabled><span>No matches</span></button>';
       sg.hidden = false;
       sg.querySelectorAll('[data-add]').forEach((b) => b.addEventListener('click', async () => {

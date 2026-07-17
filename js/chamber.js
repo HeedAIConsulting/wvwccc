@@ -949,24 +949,34 @@ window.Chamber = (function () {
       if (state.category && (m.group || 'Other') !== state.category) return -1;
       if (state.hood && m.neighborhood !== state.hood) return -1;
       if (!state.q) return 0;
+      // Curated fields decide whether a business is a result. The free-text
+      // description only *boosts ranking* — it can't qualify a listing on its
+      // own, so a plumber whose blurb happens to mention "restaurants" no longer
+      // surfaces under a "restaurant" search (per the office, Jul 2026 —
+      // "Reckon & Reckon Plumbing keeps showing on the restaurants page").
       const fields = [[m.name, 10], [m.category, 6], [(m.categories || []).join(' '), 6], [m.typeOfBusiness, 6], [(m.keywords || []).join(' '), 5], [m.group, 5],
         [m.neighborhood, 4], [m.city, 4], [m.contactName, 3], [m.tagline, 3],
-        [(m.tags || []).join(' '), 2], [m.description, 1]];
+        [(m.tags || []).join(' '), 2]];
+      const boosters = [[m.description, 1]];
       const words = state.q.toLowerCase().replace(/&/g, ' ').split(/\s+/)
         .filter((w) => w && !STOP.has(w));
       if (!words.length) return 0;
-      let total = 0;
-      for (const w of words) {
-        const wb = new RegExp('\\b' + w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b');
+      const scoreIn = (w, wb, list) => {
         let best = 0;
-        for (const [val, wt] of fields) {
+        for (const [val, wt] of list) {
           if (!val) continue;
           const lv = String(val).toLowerCase();
           if (wb.test(lv)) best = Math.max(best, wt * 2);
           else if (lv.includes(w)) best = Math.max(best, wt);
         }
-        if (best === 0) return -1;   // a query word matched nothing → not a result
-        total += best;
+        return best;
+      };
+      let total = 0;
+      for (const w of words) {
+        const wb = new RegExp('\\b' + w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b');
+        const best = scoreIn(w, wb, fields);
+        if (best === 0) return -1;   // a query word hit no curated field → not a result
+        total += best + scoreIn(w, wb, boosters);   // description only sweetens ranking
       }
       return total;
     }
