@@ -63,11 +63,17 @@ window.Chamber = (function () {
   // Member video → responsive embed. Accepts YouTube/Vimeo URLs or a direct file.
   function videoEmbed(url) {
     const u = String(url || '').trim(); if (!u) return '';
-    const yt = u.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([\w-]{6,})/i);
+    // Accept watch, embed, live, shorts, /v/, and youtu.be short links.
+    const yt = u.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|live\/|shorts\/|v\/)|youtu\.be\/)([\w-]{6,})/i);
     const vm = u.match(/vimeo\.com\/(?:video\/)?(\d+)/i);
     const wrap = (inner) => `<div class="video-embed mt-5">${inner}</div>`;
-    if (yt) return wrap(`<iframe src="https://www.youtube.com/embed/${yt[1]}" title="Member video" allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture" allowfullscreen loading="lazy"></iframe>`);
-    if (vm) return wrap(`<iframe src="https://player.vimeo.com/video/${vm[1]}" title="Member video" allow="autoplay;fullscreen;picture-in-picture" allowfullscreen loading="lazy"></iframe>`);
+    // referrerpolicy makes the player receive our origin. The site's
+    // Referrer-Policy is `no-referrer`, and with no referrer YouTube refuses
+    // embedded playback with "Error 153" even for videos that allow embedding
+    // (Diana Rain / UrBrand Studio, Jul 2026). The attribute overrides the
+    // document policy for just this request, so the strict default stands elsewhere.
+    if (yt) return wrap(`<iframe src="https://www.youtube.com/embed/${yt[1]}" title="Member video" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture" allowfullscreen loading="lazy"></iframe>`);
+    if (vm) return wrap(`<iframe src="https://player.vimeo.com/video/${vm[1]}" title="Member video" referrerpolicy="strict-origin-when-cross-origin" allow="autoplay;fullscreen;picture-in-picture" allowfullscreen loading="lazy"></iframe>`);
     if (/\.(mp4|webm|ogg)(\?|$)/i.test(u)) return wrap(`<video src="${esc(u)}" controls preload="metadata" style="width:100%;border-radius:var(--r-lg)"></video>`);
     return '';
   }
