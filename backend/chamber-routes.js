@@ -421,7 +421,12 @@ router.post('/me/event', auth.requireAuth(), async (req, res) => {
     title: b.title, time: b.time, endTime: b.endTime, venue: b.venue, address: b.address,
     neighborhood: b.neighborhood, category: b.category || 'Community',
     description: b.description, summary: b.summary, flyer: b.flyer, thumbnail: b.thumbnail,
-    confirmed: immediate, status: immediate ? 'approved' : 'pending', showOnCalendar: true,
+    // Always date-confirmed (a valid date is required above); `status` is the
+    // public gate, not `confirmed`. A regular member's event sits as 'pending'
+    // (hidden) until the office publishes it — and because it's already
+    // confirmed, publishing makes it show on the calendar instead of staying
+    // hidden (the bug Felicia hit: published events not populating).
+    confirmed: true, status: immediate ? 'approved' : 'pending', showOnCalendar: true,
   };
   // Optional weekly recurrence: one event per week through `until` (cap 52).
   const dates = [];
@@ -618,6 +623,7 @@ let _legacyMergeChecked = false;
 let _groupMergeChecked = false;
 let _galaFlyerChecked = false;
 let _urbrandPhotosChecked = false;
+let _confirmPublishedChecked = false;
 async function ensureEventsSeeded() {
   if (!(await repo.hasEvents())) {
     for (const e of readSeedEvents()) await repo.upsertEvent(buildEvent(e, e));
@@ -703,6 +709,27 @@ async function ensureEventsSeeded() {
         console.log('[members] one-time: cleared UrBrand Studio (m15911) gallery photos per request');
       }
     } catch (e) { _urbrandPhotosChecked = false; console.error('urbrand photos clear failed (will retry next boot)', e); }
+  }
+  // One-time (Jul 17 2026): repair events the office published that never showed
+  // on the calendar. The old ✓ Publish only set status='approved' and left
+  // `confirmed` false, but the public calendar hides unconfirmed events — so an
+  // approved, dated event stayed invisible (Felicia: TCCC 7/26, Fogo 8/13, +1).
+  // Any approved event that has a date should be confirmed; flip those on.
+  if (!_confirmPublishedChecked) {
+    _confirmPublishedChecked = true;
+    try {
+      const KEY = 'confirmPublishedEvents-20260717';
+      if (!(await repo.getSetting(KEY))) {
+        let fixed = 0;
+        for (const ev of await repo.listEventsStore()) {
+          if ((ev.status || 'approved') === 'approved' && ev.date && !ev.confirmed) {
+            await repo.upsertEvent(buildEvent({ confirmed: true }, ev)); fixed++;
+          }
+        }
+        await repo.setSetting(KEY, `confirmed ${fixed} @ ${new Date().toISOString()}`);
+        console.log(`[events] one-time: confirmed ${fixed} approved+dated event(s) stuck hidden by the publish bug`);
+      }
+    } catch (e) { _confirmPublishedChecked = false; console.error('publish-confirm backfill failed (will retry next boot)', e); }
   }
   // Store already populated (e.g. seeded before flyers existed). Once per boot,
   // backfill flyer images from the committed seed onto stored events that lack

@@ -1888,7 +1888,12 @@ window.Admin = (function () {
         // cutting sat in pending with no obvious way to approve it).
         tr.querySelector('[data-publish]')?.addEventListener('click', async (e2) => {
           e2.target.disabled = true; e2.target.textContent = 'Publishing…';
-          try { await api('/api/admin/events/' + encodeURIComponent(id), { method: 'PATCH', body: JSON.stringify({ status: 'approved' }) }); load(); }
+          // Publish = approved AND (for a dated event) confirmed, so it actually
+          // shows on the public calendar. The calendar hides unconfirmed events,
+          // so approving alone left published events invisible (Felicia, Jul 17).
+          const ev = allEvents.find((x) => x.id === id);
+          const body = (ev && ev.date) ? { status: 'approved', confirmed: true } : { status: 'approved' };
+          try { await api('/api/admin/events/' + encodeURIComponent(id), { method: 'PATCH', body: JSON.stringify(body) }); load(); }
           catch (err) { e2.target.disabled = false; e2.target.textContent = '✓ Publish'; alert('Could not publish: ' + (err.message || 'error')); }
         });
         tr.querySelector('[data-activity]').addEventListener('click', () => openEventActivity(allEvents.find((x) => x.id === id)));
