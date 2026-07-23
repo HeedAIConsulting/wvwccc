@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Your Agreement and Plan Selection | Heed AI Solutions</title>
+<style>
+  :root{
+    --cream:#faf6f1; --white:#ffffff; --mauve:#685860; --deep:#3d3239;
+    --gold:#c4a558; --sage:#9bab8e; --sagebg:#eaf2e5; --sagetext:#4f6243;
+    --goldbg:#fef7e5; --line:#eee5da;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:var(--cream); color:var(--deep);
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Calibri,Helvetica,Arial,sans-serif;
+    line-height:1.6; font-size:16px; padding:24px 12px;
+  }
+  .card{
+    max-width:760px; margin:0 auto; background:var(--white);
+    border-radius:12px; overflow:hidden; box-shadow:0 4px 24px rgba(61,50,57,.10);
+  }
+  .band{
+    background:linear-gradient(135deg,var(--mauve) 0%,var(--deep) 100%);
+    color:var(--white); text-align:center; padding:42px 28px 38px;
+  }
+  .band .eyebrow{
+    text-transform:uppercase; letter-spacing:3px; font-size:11px; opacity:.9; margin-bottom:12px;
+  }
+  .band h1{font-size:27px; font-weight:600; line-height:1.3}
+  .band .sub{margin-top:10px; font-size:15px; opacity:.95}
+  .band .stamp{
+    display:inline-block; margin-top:16px; font-size:12px; letter-spacing:1.5px;
+    text-transform:uppercase; border:1px solid rgba(255,255,255,.45);
+    border-radius:999px; padding:5px 14px; opacity:.95;
+  }
+  main{padding:34px 32px 40px}
+  @media (max-width:560px){ main{padding:26px 18px 32px} }
+  h2{
+    color:var(--mauve); font-size:19px; margin:34px 0 14px;
+    border-bottom:2px solid var(--mauve); padding-bottom:6px;
+  }
+  section:first-child h2{margin-top:0}
+  p{margin:0 0 14px}
+  .lead{font-size:16.5px}
+  .callout{
+    border-left:4px solid var(--gold); background:var(--cream);
+    border-radius:4px; padding:14px 18px; margin:0 0 14px;
+  }
+  .callout.sage{border-left-color:var(--sage); background:var(--sagebg)}
+  .callout.sage b{color:var(--sagetext)}
+  .callout b{color:var(--mauve)}
+  .terms{list-style:none}
+  .terms li{
+    padding:13px 0; border-bottom:1px solid var(--line);
+    display:flex; gap:14px; align-items:flex-start;
+  }
+  .terms li:last-child{border-bottom:0}
+  .terms .k{
+    flex:0 0 108px; font-size:11px; letter-spacing:1.5px; text-transform:uppercase;
+    color:var(--mauve); font-weight:700; padding-top:4px;
+  }
+  .chip{
+    display:inline-block; font-size:11px; font-weight:700; letter-spacing:1px;
+    text-transform:uppercase; border-radius:999px; padding:3px 12px; white-space:nowrap;
+  }
+  .chip.paid{background:var(--sagebg); color:var(--sagetext); border:1px solid var(--sage)}
+  .chip.due{background:var(--goldbg); color:#8a6f2e; border:1px solid var(--gold)}
+  .payrow{
+    display:flex; align-items:center; gap:16px; background:var(--cream);
+    border:1px solid var(--line); border-radius:8px; padding:16px 18px; margin-bottom:10px;
+  }
+  .payrow .amt{font-size:22px; font-weight:700; color:var(--deep); flex:0 0 92px}
+  .payrow .what{flex:1}
+  .payrow .what b{color:var(--mauve)}
+  .payrow .what small{display:block; color:#7a6d74; font-size:13px}
+  @media (max-width:560px){
+    .payrow{flex-wrap:wrap; gap:8px}
+    .payrow .amt{flex:0 0 auto}
+  }
+  .timeline{list-style:none; margin:0 0 6px}
+  .timeline li{display:flex; gap:14px; padding:10px 0; align-items:flex-start}
+  .when{
+    flex:0 0 178px; background:var(--mauve); color:var(--white); border-radius:6px;
+    text-align:center; font-size:12.5px; font-weight:600; padding:7px 8px; line-height:1.35;
+  }
+  .timeline li.launch .when{background:var(--gold); color:var(--deep)}
+  .timeline li.money .when{background:var(--deep)}
+  .timeline .what{padding-top:4px}
+  .timeline .what b{color:var(--mauve)}
+  .timeline li.launch .what b{color:#8a6f2e}
+  @media (max-width:560px){
+    .timeline li{flex-direction:column; gap:4px}
+    .when{flex:0 0 auto; align-self:flex-start; padding:5px 12px}
+  }
+  .plans{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:14px; margin-top:6px}
+  .plan{
+    border:1px solid var(--line); border-radius:10px; padding:20px 18px; position:relative;
+    background:var(--white); display:flex; flex-direction:column; gap:8px;
+  }
+  .plan.elected{border:2px solid var(--gold); background:var(--goldbg)}
+  .plan .tag{
+    position:absolute; top:-11px; left:14px; font-size:10.5px; font-weight:700;
+    letter-spacing:1px; text-transform:uppercase; border-radius:999px; padding:3px 12px;
+  }
+  .plan.elected .tag{background:var(--gold); color:var(--deep)}
+  .plan.included .tag{background:var(--sagebg); color:var(--sagetext); border:1px solid var(--sage)}
+  .plan h3{color:var(--deep); font-size:16.5px; margin-top:4px}
+  .plan .price{color:var(--mauve); font-weight:700; font-size:15px}
+  .plan .price small{color:#7a6d74; font-weight:400}
+  .plan p{font-size:14px; color:#5c5157; margin:0}
+  .accept{
+    background:var(--cream); border:1px solid var(--line); border-radius:10px;
+    padding:24px 22px; margin-top:10px;
+  }
+  .accept h3{color:var(--mauve); font-size:17px; margin-bottom:6px}
+  .choices{margin:14px 0 6px}
+  .choice{
+    display:flex; gap:12px; align-items:flex-start; background:var(--white);
+    border:1px solid var(--line); border-radius:8px; padding:12px 14px; margin-bottom:8px; cursor:pointer;
+  }
+  .choice input{margin-top:5px; accent-color:var(--mauve); width:16px; height:16px}
+  .choice b{color:var(--deep)}
+  .choice small{display:block; color:#7a6d74}
+  .choice:has(input:checked){border-color:var(--gold); background:var(--goldbg)}
+  label.field{display:block; margin:16px 0 6px; font-weight:600; color:var(--mauve); font-size:14px}
+  input[type=text]{
+    width:100%; padding:12px 14px; font-size:16px; border:1px solid #d8cdc2;
+    border-radius:8px; background:var(--white); color:var(--deep);
+    font-family:inherit;
+  }
+  input[type=text]:focus{outline:2px solid var(--mauve); border-color:var(--mauve)}
+  .datebox{font-size:14px; color:#7a6d74; margin-top:8px}
+  .agreebox{display:flex; gap:10px; align-items:flex-start; margin:18px 0 6px}
+  .agreebox input{margin-top:4px; accent-color:var(--mauve); width:17px; height:17px; flex:0 0 auto}
+  .btn{
+    display:inline-block; width:100%; text-align:center; background:var(--mauve); color:var(--white);
+    font-weight:600; font-size:16px; letter-spacing:.4px; padding:15px 30px; border:0;
+    border-radius:8px; cursor:pointer; margin-top:16px; font-family:inherit;
+  }
+  .btn:hover{background:var(--deep)}
+  .btn[disabled]{opacity:.6; cursor:default}
+  .btn.alt{background:var(--gold); color:var(--deep)}
+  .formnote{font-size:13px; color:#7a6d74; text-align:center; margin-top:12px}
+  .panel{border-radius:10px; padding:22px 20px; margin-top:10px}
+  .panel.ok{background:var(--sagebg); border:1px solid var(--sage); color:var(--sagetext)}
+  .panel.err{background:var(--goldbg); border:1px solid var(--gold); color:var(--deep)}
+  .panel h3{margin-bottom:8px; font-size:17px}
+  footer{
+    background:var(--deep); color:var(--white); text-align:center;
+    font-size:12px; padding:18px 24px;
+  }
+  footer span{opacity:.75}
+  .hp{position:absolute; left:-6000px; top:-6000px}
+  @media print{
+    body{background:var(--white); padding:0}
+    .card{box-shadow:none; max-width:100%}
+    .btn{display:none}
+  }
+</style>
+</head>
+<body>
+<div class="card">
+
+  <header class="band">
+    <div class="eyebrow">Heed AI Solutions &times; Chris Gomberg Retirement Coach</div>
+    <h1>Your Agreement and Plan Selection</h1>
+    <p class="sub">One page. Everything you need.</p>
+    <span class="stamp">Finalized July 2026</span>
+  </header>
+
+  <main>
+
+    <section aria-label="Introduction">
+      <p class="lead">Hi Chris. This page gathers everything we agreed on into one place: the full services agreement, your payment schedule, the build timeline, and your plan selection. Read it top to bottom, then type your name at the end to accept. Your acceptance lands directly in Michael's inbox.</p>
+      <div class="callout">
+        <b>Updated from the May 4 proposal.</b> The original schedule split the build into four Square invoices of $1,250 each. This version replaces that schedule with the plan you proposed and Michael confirmed: a $2,000 deposit to start in July, then two balance payments to catch up. Everything else carries forward.
+      </div>
+    </section>
+
+    <section aria-label="Services agreement">
+      <h2>The Services Agreement</h2>
+      <ul class="terms">
+        <li><span class="k">Parties</span><span>This agreement is between Heed AI Solutions and Chris Gomberg Retirement Coach.</span></li>
+        <li><span class="k">Scope</span><span>A complete redesign and rebuild of chrisgombergretirementcoach.com: strategy, structure, design, copy, and launch. The working preview is already built and the review process is underway.</span></li>
+        <li><span class="k">Investment</span><span>$5,000 total for the full build, on the payment schedule below.</span></li>
+        <li><span class="k">Revisions</span><span>The build includes 5 rounds of revisions. Anything beyond that is hourly, always with a written quote approved by you first.</span></li>
+        <li><span class="k">Timeline</span><span>Approvals and feedback every Friday until completion. Target launch and completion is Friday, August 14, 2026.</span></li>
+        <li><span class="k">Hosting</span><span>Year 1 is free, a $600 value. It combines your West Valley Warner Center Chamber member benefit with a thank you for committing to the full build. The standard rate after Year 1 is $50 per month.</span></li>
+      </ul>
+    </section>
+
+    <section aria-label="Payment schedule">
+      <h2>Your Payment Schedule</h2>
+      <div class="payrow">
+        <span class="amt">$2,000</span>
+        <span class="what"><b>Deposit.</b> Received, and the project is rolling.<small>Paid in July. Thank you, Chris.</small></span>
+        <span class="chip paid">Paid</span>
+      </div>
+      <div class="payrow">
+        <span class="amt">$1,500</span>
+        <span class="what"><b>Balance payment 1.</b> The Monday after launch.<small>Due Monday, August 17, 2026.</small></span>
+        <span class="chip due">Due Aug 17</span>
+      </div>
+      <div class="payrow">
+        <span class="amt">$1,500</span>
+        <span class="what"><b>Balance payment 2.</b> The final build payment.<small>Due Thursday, September 17, 2026.</small></span>
+        <span class="chip due">Due Sep 17</span>
+      </div>
+      <div class="callout sage">
+        <b>That completes the $5,000 build.</b> No other build charges. Hosting stays free through your first year.
+      </div>
+    </section>
+
+    <section aria-label="Build timeline">
+      <h2>The Build Timeline</h2>
+      <p>We meet every Friday for approvals and feedback until the site is complete.</p>
+      <ul class="timeline">
+        <li><span class="when">Fri, Jul 24 &middot; 1:00 PM PT</span><span class="what"><b>Kickoff review meeting.</b> Already on the calendar, invite sent.</span></li>
+        <li><span class="when">Fri, Jul 31</span><span class="what"><b>Review round 1.</b> Approvals and feedback.</span></li>
+        <li><span class="when">Fri, Aug 7</span><span class="what"><b>Review round 2.</b> Approvals and feedback.</span></li>
+        <li class="launch"><span class="when">Fri, Aug 14</span><span class="what"><b>Target launch and completion.</b> Your new site goes live.</span></li>
+        <li class="money"><span class="when">Mon, Aug 17</span><span class="what"><b>Balance payment 1.</b> $1,500.</span></li>
+        <li class="money"><span class="when">Mon, Sep 14</span><span class="what"><b>Growth plan begins.</b> $625 per month at the 50% intro rate, one calendar month after the target launch.</span></li>
+        <li class="money"><span class="when">Thu, Sep 17</span><span class="what"><b>Balance payment 2.</b> $1,500.</span></li>
+      </ul>
+    </section>
+
+    <section aria-label="Plans">
+      <h2>Your Plan</h2>
+      <p>Hosting Only is the default for every client and is always included. You elected the Growth plan at the intro rate, and it is preselected below. Foundation and Authority remain available any time.</p>
+      <div class="plans">
+        <div class="plan included">
+          <span class="tag">Included</span>
+          <h3>Hosting Only</h3>
+          <div class="price">$50<small>/mo after your free first year</small></div>
+          <p>Your site stays live, secure, and backed up. This is the baseline and it never goes away.</p>
+        </div>
+        <div class="plan elected">
+          <span class="tag">Your elected plan</span>
+          <h3>Growth</h3>
+          <div class="price">$625<small>/mo for the first six months</small></div>
+          <p>The 50% intro rate begins September 14, 2026 and runs into the middle of March 2027. Then $1,250 per month standard. Ongoing marketing momentum for your practice every month.</p>
+        </div>
+        <div class="plan">
+          <span class="tag"></span>
+          <h3>Foundation</h3>
+          <div class="price">$750<small>/mo, optional</small></div>
+          <p>A lighter monthly program. Available any time.</p>
+        </div>
+        <div class="plan">
+          <span class="tag"></span>
+          <h3>Authority</h3>
+          <div class="price">$2,000<small>/mo, optional</small></div>
+          <p>The most complete monthly program. Available any time.</p>
+        </div>
+      </div>
+    </section>
+
+    <section aria-label="Agree and accept">
+      <h2>Agree and Accept</h2>
+      <div class="accept" id="acceptWrap">
+        <form id="acceptForm">
+          <h3>Confirm your plan</h3>
+          <div class="choices">
+            <label class="choice"><input type="radio" name="plan" value="Growth, $625 per month intro for six months, then $1,250 per month standard" checked><span><b>Growth</b>, your elected plan<small>$625 per month for six months at the 50% intro rate, then $1,250 per month standard. Begins September 14, 2026.</small></span></label>
+            <label class="choice"><input type="radio" name="plan" value="Hosting Only, $50 per month after the free first year"><span><b>Hosting Only</b><small>$50 per month after your free first year.</small></span></label>
+            <label class="choice"><input type="radio" name="plan" value="Foundation, $750 per month"><span><b>Foundation</b><small>$750 per month.</small></span></label>
+            <label class="choice"><input type="radio" name="plan" value="Authority, $2,000 per month"><span><b>Authority</b><small>$2,000 per month.</small></span></label>
+          </div>
+
+          <label class="field" for="fullName">Your full name</label>
+          <input type="text" id="fullName" name="name" placeholder="Type your full name" autocomplete="name" required>
+          <div class="datebox">Date: <span id="todayDate"></span>. Typing your name acts as your signature on this agreement.</div>
+
+          <div class="agreebox">
+            <input type="checkbox" id="agreeBox" required>
+            <label for="agreeBox">I have read this agreement. I accept the terms, the payment schedule, and my selected plan.</label>
+          </div>
+
+          <input type="text" name="_gotcha" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+
+          <button type="submit" class="btn" id="submitBtn">Agree and Accept</button>
+          <p class="formnote">Your acceptance goes straight to Michael's inbox. Questions first? Call or text Michael at 310&#8209;363&#8209;0826.</p>
+        </form>
+
+        <div class="panel ok" id="donePanel" hidden>
+          <h3>Thank you, Chris. You are all set.</h3>
+          <p>Your acceptance was recorded and a copy is on its way to Michael's inbox. Next stop: kickoff on Friday, July 24 at 1:00 PM PT.</p>
+        </div>
+
+        <div class="panel err" id="failPanel" hidden>
+          <h3>Almost there.</h3>
+          <p>The automatic submission did not go through, likely a network hiccup. No problem. Tap the button below and your email app opens with everything filled in, ready to send.</p>
+          <a class="btn alt" id="mailtoBtn" href="#">Send by Email Instead</a>
+          <p class="formnote">Or call or text Michael at 310&#8209;363&#8209;0826.</p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer>
+    <span>&copy; 2026 Heed AI Solutions &middot; Prepared for Chris Gomberg Retirement Coach</span>
+  </footer>
+</div>
+
+<script>
+(function () {
+  var ENDPOINT = 'https://formspree.io/f/mojbggnq';
+  var MICHAEL = 'mbowers@heedconsulting.ai';
+  var form = document.getElementById('acceptForm');
+  var btn = document.getElementById('submitBtn');
+  var donePanel = document.getElementById('donePanel');
+  var failPanel = document.getElementById('failPanel');
+  var mailtoBtn = document.getElementById('mailtoBtn');
+
+  function todayText() {
+    return new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  }
+  document.getElementById('todayDate').textContent = todayText();
+
+  function payload() {
+    var plan = form.querySelector('input[name="plan"]:checked');
+    return {
+      _subject: 'Gomberg Agreement Acceptance',
+      _gotcha: form.querySelector('input[name="_gotcha"]').value,
+      kind: 'agreement acceptance',
+      client: 'Chris Gomberg Retirement Coach',
+      name: document.getElementById('fullName').value.trim(),
+      email: 'chrisg@chrisgombergretirementcoach.com',
+      plan: plan ? plan.value : '',
+      accepted: 'Yes',
+      acceptedDate: todayText(),
+      acceptedAtISO: new Date().toISOString(),
+      page: location.href
+    };
+  }
+
+  function showFail(data) {
+    var body = 'Gomberg Agreement Acceptance\n\nName: ' + data.name +
+      '\nPlan: ' + data.plan +
+      '\nAccepted: Yes\nDate: ' + data.acceptedDate + '\n';
+    mailtoBtn.href = 'mailto:' + MICHAEL +
+      '?subject=' + encodeURIComponent('Gomberg Agreement Acceptance') +
+      '&body=' + encodeURIComponent(body);
+    failPanel.hidden = false;
+    btn.disabled = false;
+    btn.textContent = 'Agree and Accept';
+  }
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    failPanel.hidden = true;
+    var data = payload();
+    if (!data.name) { document.getElementById('fullName').focus(); return; }
+    if (!document.getElementById('agreeBox').checked) { document.getElementById('agreeBox').focus(); return; }
+    btn.disabled = true;
+    btn.textContent = 'Sending...';
+    fetch(ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify(data)
+    }).then(function (res) {
+      if (!res.ok) throw new Error('submit failed');
+      form.hidden = true;
+      donePanel.hidden = false;
+    }).catch(function () {
+      showFail(data);
+    });
+  });
+})();
+</script>
+</body>
+</html>
