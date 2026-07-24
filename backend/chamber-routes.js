@@ -538,7 +538,11 @@ router.post('/admin/tools/image', requireAdmin, async (req, res) => {
     const out = await r.json().catch(() => ({}));
     if (!r.ok || !out.request_id) {
       console.error('higgsfield submit', r.status, JSON.stringify(out).slice(0, 400));
-      return res.status(502).json({ error: out.detail || out.error || `The image service returned an error (${r.status}).` });
+      const raw = String(out.detail || out.error || '');
+      const friendly = /not_enough_credits|insufficient/i.test(raw + JSON.stringify(out))
+        ? 'The image account is out of credits — ask Michael to top up Higgsfield API credits, then try again.'
+        : (raw || `The image service returned an error (${r.status}).`);
+      return res.status(502).json({ error: friendly });
     }
     res.json({ ok: true, requestId: out.request_id });
   } catch (e) { console.error('higgsfield submit', e); res.status(502).json({ error: 'Could not reach the image service.' }); }
