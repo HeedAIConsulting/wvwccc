@@ -1710,7 +1710,7 @@ window.Admin = (function () {
     function renderLinks() {
       linkWrap.innerHTML = links.map((l, i) => `<div style="display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap;align-items:center">
         <select data-lk="${i}" data-f="type" class="admin-select">
-          ${['tickets', 'register', 'sponsors', 'info'].map((t) => `<option value="${t}" ${l.type === t ? 'selected' : ''}>${t === 'info' ? 'Details' : t[0].toUpperCase() + t.slice(1)}</option>`).join('')}
+          ${['tickets', 'register', 'sponsors', 'info', 'featured'].map((t) => `<option value="${t}" ${l.type === t ? 'selected' : ''}>${t === 'info' ? 'Details' : (t === 'featured' ? '★ Featured (top of page)' : t[0].toUpperCase() + t.slice(1))}</option>`).join('')}
         </select>
         <input data-lk="${i}" data-f="label" placeholder="Button label" value="${esc(l.label)}" style="flex:1;min-width:120px">
         <input data-lk="${i}" data-f="url" placeholder="https://…" value="${esc(l.url)}" style="flex:2;min-width:180px">

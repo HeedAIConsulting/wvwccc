@@ -312,8 +312,17 @@ window.Chamber = (function () {
           return href ? `<a href="${esc(href)}" target="_blank" rel="noopener" title="${esc(s.label || '')}">${im}</a>` : im;
         }).join('')}</div>`
       : '';
-    const links = (ev.links && ev.links.length)
-      ? `<div class="ev-card__row">${ev.links.map((l) => `<a class="btn btn--gold btn--sm" target="_blank" rel="noopener" href="${esc(l.url)}">${esc(l.label || l.type || 'Details')}</a>`).join('')}</div>` : '';
+    // Featured links (type 'featured') get a prominent banner right under the
+    // event meta — e.g. the Gala program (per Michael, Jul 24) — instead of
+    // being buried below the flyer and description with the other buttons.
+    const featured = (ev.links || []).filter((l) => l.type === 'featured');
+    const featuredRow = featured.length
+      ? `<div class="ev-card__featured" style="margin:4px 0 16px;display:grid;gap:10px">${featured.map((l) =>
+          `<a href="${esc(l.url)}" target="_blank" rel="noopener" style="display:block;text-align:center;padding:15px 20px;border-radius:12px;background:linear-gradient(135deg,var(--green-ink,#12241a),var(--green,#1b3326));color:#f3e8c8;font-weight:700;font-size:1.08rem;letter-spacing:.01em;text-decoration:none;border:1.5px solid var(--gold,#C9A227);box-shadow:0 4px 16px rgba(18,36,26,.28)">${esc(l.label || 'View')} →</a>`).join('')}</div>`
+      : '';
+    const plainLinks = (ev.links || []).filter((l) => l.type !== 'featured');
+    const links = plainLinks.length
+      ? `<div class="ev-card__row">${plainLinks.map((l) => `<a class="btn btn--gold btn--sm" target="_blank" rel="noopener" href="${esc(l.url)}">${esc(l.label || l.type || 'Details')}</a>`).join('')}</div>` : '';
     // Attached PDFs (donation form, sponsorship levels, …).
     const docs = (ev.documents && ev.documents.length)
       ? `<div class="ev-card__row">${ev.documents.map((dme) => `<a class="btn btn--ghost btn--sm" target="_blank" rel="noopener" href="${esc(evImgSrc(dme.url, base))}">📄 ${esc(dme.label || 'Document')}</a>`).join('')}</div>` : '';
@@ -346,6 +355,7 @@ window.Chamber = (function () {
             ${loc ? `<div>📍 ${mapU ? `<a href="${esc(mapU)}" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline" title="Open in Google Maps for directions">${esc(loc)}</a> <span style="font-size:.78rem;color:var(--gold-deep)">(map ↗)</span>` : esc(loc)}</div>` : ''}
             ${hostLine(ev, base)}
           </div>
+          ${featuredRow}
           ${imgs}
           ${descHtml ? `<div class="ev-card__desc"${ev.descriptionHtml ? ' style="white-space:normal"' : ''}>${descHtml}</div>` : ''}
           ${sponsorRow}
