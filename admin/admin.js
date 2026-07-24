@@ -1611,7 +1611,9 @@ window.Admin = (function () {
         <input data-tk="${i}" data-f="price" type="number" min="0" step="0.01" placeholder="Price $" value="${t.price != null ? esc(t.price) : ''}" style="width:90px">
         <input data-tk="${i}" data-f="qty" type="number" min="0" placeholder="Qty" value="${t.qty != null ? esc(t.qty) : ''}" style="width:70px" title="Leave blank for unlimited">
         <input data-tk="${i}" data-f="linkKey" placeholder="Link key" value="${esc(t.linkKey || '')}" style="width:90px" title="Secret price: only shows at checkout when the shared link ends with &key=THIS. Example: put 'board' here, then give board members the event's Buy Tickets link with &key=board added — everyone else never sees this price.">
-        <label style="display:inline-flex;align-items:center;gap:4px;font-size:.85rem"><input data-tk="${i}" data-f="available" type="checkbox" ${t.available !== false ? 'checked' : ''}> available</label>
+        <select data-tk="${i}" data-f="status" class="admin-select" style="max-width:110px" title="Available = buyable · Sold out = still listed at checkout but greyed out as SOLD OUT · Hidden = not shown at all">
+          ${[['available', 'Available'], ['soldout', 'Sold out'], ['hidden', 'Hidden']].map(([v, l]) => `<option value="${v}" ${(t.available === false ? 'hidden' : (t.soldOut ? 'soldout' : 'available')) === v ? 'selected' : ''}>${l}</option>`).join('')}
+        </select>
         <button type="button" data-rmtk="${i}" class="btn btn--ghost btn--sm">×</button>
       </div>`).join('')
         + `<button type="button" id="evAddTix" class="btn btn--ghost btn--sm">+ Add a price</button>
@@ -1624,7 +1626,8 @@ window.Admin = (function () {
       });
       tixWrap.querySelectorAll('[data-tk]').forEach((el) => el.addEventListener('input', () => {
         const t = ticketTypes[+el.dataset.tk]; const f = el.dataset.f;
-        t[f] = f === 'available' ? el.checked : (f === 'price' ? el.value : (f === 'qty' ? (el.value === '' ? null : el.value) : el.value));
+        if (f === 'status') { t.available = el.value !== 'hidden'; t.soldOut = el.value === 'soldout'; return; }
+        t[f] = (f === 'price' ? el.value : (f === 'qty' ? (el.value === '' ? null : el.value) : el.value));
       }));
       tixWrap.querySelectorAll('[data-rmtk]').forEach((b) => b.addEventListener('click', () => { ticketTypes.splice(+b.dataset.rmtk, 1); renderTickets(); }));
     }
@@ -1730,7 +1733,7 @@ window.Admin = (function () {
       }
       form.ticketCap.value = ev && ev.ticketCap != null ? ev.ticketCap : '';
       form.rsvpCutoff.value = v('rsvpCutoff'); form.status.value = v('status', 'approved');
-      form.ctaKind.value = (ev && ev.ticketed) ? (ev.alsoRsvp ? 'both' : 'buy') : 'rsvp';
+      form.ctaKind.value = (ev && ev.soldOut) ? 'soldout' : ((ev && ev.ticketed) ? (ev.alsoRsvp ? 'both' : 'buy') : 'rsvp');
       form.featured.checked = !!(ev && ev.featured);
       form.showOnCalendar.checked = ev ? (ev.showOnCalendar !== false) : true;
       form.homeOrder.value = ev && ev.homeOrder != null ? ev.homeOrder : '';
@@ -1879,7 +1882,7 @@ window.Admin = (function () {
         <td><span class="name">${esc(e.title)}</span><div class="sub">${esc(e.category || '')}${e.images && e.images.length ? ' · ' + e.images.length + ' img' : ''}${e.links && e.links.length ? ' · ' + e.links.length + ' link' + (e.links.length > 1 ? 's' : '') : ''}</div></td>
         <td>${e.date ? esc((e.month || '') + ' ' + (e.day || '') + (e.date.slice(0, 4) !== String(new Date().getFullYear()) ? ' ' + e.date.slice(0, 4) : '')) : '<span class="pill pill--pending">TBA</span>'}<div class="sub">${esc(e.time || '')}</div></td>
         <td>${esc(e.venue || e.neighborhood || '')}</td>
-        <td>${statusPill(e.status || 'approved')}${e.featured ? ` <span class="pill pill--approved">home${Number.isFinite(Number(e.homeOrder)) && e.homeOrder ? ' #' + e.homeOrder : ''}</span>` : ''}${e.ticketed ? ' 🎟' : ''}</td>
+        <td>${statusPill(e.status || 'approved')}${e.featured ? ` <span class="pill pill--approved">home${Number.isFinite(Number(e.homeOrder)) && e.homeOrder ? ' #' + e.homeOrder : ''}</span>` : ''}${e.ticketed ? ' 🎟' : ''}${e.soldOut ? ' <span class="pill pill--pending" title="Ticket sales closed — visitors see a Sold Out notice">SOLD OUT</span>' : ''}</td>
         <td style="white-space:nowrap">${(e.status || 'approved') !== 'approved' ? '<button class="btn btn--forest btn--sm" data-publish title="Make this event live on the website right now">✓ Publish</button> ' : ''}<button class="btn btn--ghost btn--sm" data-activity title="RSVPs and payments for this event">RSVPs / $</button> <button class="btn btn--ghost btn--sm" data-edit>Edit</button> <button class="btn btn--ghost btn--sm" data-del>Delete</button></td>
       </tr>`).join('') : `<tr><td colspan="5" class="sub">${q ? 'No events match that search.' : (evTab === 'past' ? 'No past events.' : 'No upcoming events. Create one above.')}</td></tr>`;
       rowsEl.querySelectorAll('tr[data-id]').forEach((tr) => {
@@ -1924,7 +1927,9 @@ window.Admin = (function () {
         // Plain text (cards/receipts/AI) + formatted HTML (public detail view).
         description: plainFromRich().slice(0, 8000),
         descriptionHtml: rich ? rich.innerHTML : '',
-        ticketed: form.ctaKind.value !== 'rsvp', alsoRsvp: form.ctaKind.value === 'both',
+        ticketed: form.ctaKind.value === 'buy' || form.ctaKind.value === 'both',
+        alsoRsvp: form.ctaKind.value === 'both',
+        soldOut: form.ctaKind.value === 'soldout',
         ticketCap: form.ticketCap.value ? Number(form.ticketCap.value) : null,
         rsvpCutoff: form.rsvpCutoff.value || null, featured: form.featured.checked, status: form.status.value,
         showOnCalendar: form.showOnCalendar.checked,

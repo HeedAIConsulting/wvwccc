@@ -624,6 +624,7 @@ let _groupMergeChecked = false;
 let _galaFlyerChecked = false;
 let _urbrandPhotosChecked = false;
 let _confirmPublishedChecked = false;
+let _galaSoldOutChecked = false;
 async function ensureEventsSeeded() {
   if (!(await repo.hasEvents())) {
     for (const e of readSeedEvents()) await repo.upsertEvent(buildEvent(e, e));
@@ -730,6 +731,22 @@ async function ensureEventsSeeded() {
         console.log(`[events] one-time: confirmed ${fixed} approved+dated event(s) stuck hidden by the publish bug`);
       }
     } catch (e) { _confirmPublishedChecked = false; console.error('publish-confirm backfill failed (will retry next boot)', e); }
+  }
+  // One-time (Jul 24 2026, per Felicia): ticket sales for the July 25 Gala are
+  // CLOSED — flag the event Sold Out (it stays listed; buttons become a Sold
+  // Out notice and checkout refuses it). The marker means the office can
+  // re-open sales from Admin → Events later without a redeploy flipping it back.
+  if (!_galaSoldOutChecked) {
+    _galaSoldOutChecked = true;
+    try {
+      const KEY = 'galaSoldOut-20260724';
+      if (!(await repo.getSetting(KEY))) {
+        const g = (await repo.listEventsStore()).find((e) => e.id === 'le-11209');
+        if (g && !g.soldOut) await repo.upsertEvent(buildEvent({ soldOut: true }, g));
+        await repo.setSetting(KEY, `applied @ ${new Date().toISOString()}`);
+        console.log('[events] one-time: July 25 Gala (le-11209) marked Sold Out per Felicia');
+      }
+    } catch (e) { _galaSoldOutChecked = false; console.error('gala sold-out flag failed (will retry next boot)', e); }
   }
   // Store already populated (e.g. seeded before flyers existed). Once per boot,
   // backfill flyer images from the committed seed onto stored events that lack
@@ -853,6 +870,9 @@ function buildEvent(b, existing = {}) {
     // Show BOTH buttons (RSVP + Buy tickets) — e.g. members RSVP free while
     // guests buy a ticket. Only meaningful when ticketed is true.
     alsoRsvp: b.alsoRsvp !== undefined ? !!b.alsoRsvp : (existing.alsoRsvp ?? false),
+    // Sold out (per Felicia, Jul 24 2026): the event stays listed but every
+    // RSVP/Buy button becomes a "Sold Out" notice and ticket checkout is closed.
+    soldOut: b.soldOut !== undefined ? !!b.soldOut : (existing.soldOut ?? false),
     ticketCap: b.ticketCap ?? existing.ticketCap ?? null,
     rsvpCutoff: b.rsvpCutoff ?? existing.rsvpCutoff ?? null,
     featured: b.featured !== undefined ? !!b.featured : (existing.featured ?? false),
@@ -892,6 +912,9 @@ function buildEvent(b, existing = {}) {
           linkKey: t.linkKey ? String(t.linkKey).slice(0, 40).toLowerCase() : undefined,
           qty: (t.qty === null || t.qty === undefined || t.qty === '') ? null : Math.max(0, parseInt(t.qty, 10) || 0),
           available: t.available !== false,
+          // Per-price sold-out: still listed in the checkout dropdown, but
+          // greyed out as "SOLD OUT" and not selectable (Felicia, Jul 24).
+          soldOut: t.soldOut === true ? true : undefined,
         })).filter((t) => t.name)
       : (existing.ticketTypes || []),
     status: ['approved', 'pending', 'draft'].includes(b.status) ? b.status : (existing.status || 'approved'),

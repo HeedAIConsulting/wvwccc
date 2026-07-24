@@ -273,6 +273,13 @@ window.Chamber = (function () {
     return `<div style="color:var(--gold-deep,#8a6d1a)">🏷️ Hosted by ${inner}</div>`;
   }
 
+  // Sold Out notice (per Felicia, Jul 24 2026) — replaces the RSVP/Buy buttons
+  // on an event flagged soldOut: still styled like a button so the card reads
+  // the same, but not clickable.
+  function soldOutBtn(small) {
+    const label = /\/es\//.test(location.pathname) ? 'Agotado' : 'Sold out';
+    return `<span class="btn${small ? ' btn--sm' : ''}" aria-disabled="true" style="pointer-events:none;cursor:default;background:var(--slate-mid,#5d6b63);border-color:transparent;color:#fff">${label}</span>`;
+  }
   // Full detail card for an event — used by the dedicated event page (and by
   // the legacy modal). Per the office, Jul 2026: events open on their OWN page
   // with room for sponsors, logos, and photo galleries.
@@ -312,10 +319,10 @@ window.Chamber = (function () {
       ? `<div class="ev-card__row">${ev.documents.map((dme) => `<a class="btn btn--ghost btn--sm" target="_blank" rel="noopener" href="${esc(evImgSrc(dme.url, base))}">📄 ${esc(dme.label || 'Document')}</a>`).join('')}</div>` : '';
     const grpQ = _groupCtx ? `&group=${encodeURIComponent(_groupCtx.slug)}` : '';
     // ticketed → Buy; ticketed + alsoRsvp → BOTH buttons (e.g. members RSVP
-    // free, guests buy); otherwise RSVP only.
+    // free, guests buy); soldOut → a non-clickable Sold Out notice; else RSVP.
     const rsvpBtn = `<a class="btn btn--forest" href="${base}contact.html?event=${esc(ev.id)}${grpQ}">RSVP</a>`;
     const buyBtn = `<a class="btn btn--gold" href="${base}checkout.html?type=ticket&event=${esc(ev.id)}">Get tickets</a>`;
-    const cta = ev.ticketed ? (ev.alsoRsvp ? rsvpBtn + ' ' + buyBtn : buyBtn) : rsvpBtn.replace('>RSVP<', '>RSVP / Notify me<');
+    const cta = ev.soldOut ? soldOutBtn() : (ev.ticketed ? (ev.alsoRsvp ? rsvpBtn + ' ' + buyBtn : buyBtn) : rsvpBtn.replace('>RSVP<', '>RSVP / Notify me<'));
     const desc = ev.description || ev.summary || '';
     // Rich description (admin editor) renders as sanitized HTML; plain text is
     // escaped + auto-linked so pasted URLs and "click here" links actually work.
@@ -412,7 +419,7 @@ window.Chamber = (function () {
       ? `<div class="event-date"><div class="event-date__mo">${esc(ev.month)}</div><div class="event-date__day">${esc(ev.day)}</div></div>`
       : `<div class="event-date"><div class="event-date__mo">${esc(ev.month || 'TBA')}</div><div class="event-date__day" style="font-size:1rem;padding-top:6px">·</div></div>`;
     const when = confirmed ? `${esc(ev.month)} ${esc(ev.day)} · ${esc(ev.time || '')}` : 'Date to be announced';
-    const cta = ev.ticketed
+    const cta = ev.soldOut ? soldOutBtn(true) : ev.ticketed
       ? (confirmed
           ? `${ev.alsoRsvp ? `<a class="btn btn--ghost btn--sm" href="${base}contact.html?event=${esc(ev.id)}">RSVP</a> ` : ''}<a class="btn btn--gold btn--sm" href="${base}checkout.html?type=ticket&event=${esc(ev.id)}">Get tickets</a>`
           : `<a class="btn btn--ghost btn--sm" href="${base}contact.html?event=${esc(ev.id)}">Notify me</a>`)
@@ -449,7 +456,7 @@ window.Chamber = (function () {
     const mo = ev.month || (ev.date ? MONTHS[Number(ev.date.slice(5, 7)) - 1] : 'TBA');
     const day = ev.day || (ev.date ? String(Number(ev.date.slice(8, 10))) : '');
     const dateUS = ev.date ? `${ev.date.slice(5, 7)}/${ev.date.slice(8, 10)}/${ev.date.slice(2, 4)}` : 'Date TBA';
-    const cta = ev.ticketed
+    const cta = ev.soldOut ? soldOutBtn(true) : ev.ticketed
       ? `${ev.alsoRsvp ? `<a class="btn btn--ghost btn--sm" href="${base}contact.html?event=${esc(ev.id)}">RSVP</a> ` : ''}<a class="btn btn--gold btn--sm" href="${base}checkout.html?type=ticket&event=${esc(ev.id)}">Tickets</a>`
       : `<a class="btn btn--ghost btn--sm" href="${base}contact.html?event=${esc(ev.id)}">RSVP</a>`;
     return `
@@ -485,7 +492,7 @@ window.Chamber = (function () {
     const sumRaw = String(ev.summary || ev.description || '').trim();
     const sum = (sumRaw && sumRaw.toLowerCase() !== String(ev.venue || '').trim().toLowerCase()
       && sumRaw.toLowerCase() !== String(ev.neighborhood || '').trim().toLowerCase()) ? sumRaw : '';
-    const cta = ev.ticketed
+    const cta = ev.soldOut ? soldOutBtn(true) : ev.ticketed
       ? `${ev.alsoRsvp ? `<a class="btn btn--forest btn--sm" href="${base}contact.html?event=${esc(ev.id)}">RSVP</a> ` : ''}<a class="btn btn--gold btn--sm" href="${base}checkout.html?type=ticket&event=${esc(ev.id)}">Buy tickets</a>`
       : `<a class="btn btn--forest btn--sm" href="${base}contact.html?event=${esc(ev.id)}">RSVP</a>`;
     return `
@@ -1316,6 +1323,16 @@ window.Chamber = (function () {
       const types = (ev && Array.isArray(ev.ticketTypes) ? ev.ticketTypes : [])
         .filter((t) => t.available !== false && t.name && (Number(t.price) > 0 || Number(t.earlyPrice) > 0))
         .filter((t) => !t.linkKey || t.linkKey === linkKey);
+      // Sold out (per the office, Jul 24 2026): the whole event is flagged, or
+      // every listed price is individually sold out — close the checkout.
+      if ((ev && ev.soldOut) || (types.length && types.every((t) => t.soldOut))) {
+        title.textContent = 'Sold out';
+        summary.innerHTML = `${evMeta}<p class="notice mt-3"><strong>This event is sold out</strong> — ticket sales are closed. Questions? Call the Chamber office at (818) 347-4737 or email <a href="mailto:felicia@woodlandhillscc.net">felicia@woodlandhillscc.net</a>.</p>`;
+        const payForm = document.getElementById('payForm');
+        ['payBtn', 'amountField', 'payError', 'sandboxNotice'].forEach((i2) => { const el2 = document.getElementById(i2); if (el2) el2.style.display = 'none'; });
+        const left = payForm && payForm.querySelector('div'); if (left) left.style.display = 'none';
+        return;
+      }
       // Effective price: use the early-bird price until its cutoff, then the standard price.
       const nowT = Date.now();
       const priceOf = (t) => (t.earlyPrice != null && t.earlyUntil && nowT < Date.parse(t.earlyUntil)) ? Number(t.earlyPrice) : Number(t.price);
@@ -1326,7 +1343,7 @@ window.Chamber = (function () {
           const g = t.group || '';
           let bucket = groups.find((x) => x.g === g);
           if (!bucket) { bucket = { g, items: [] }; groups.push(bucket); }
-          bucket.items.push(`<option value="${i}">${esc(t.name)} — $${priceOf(t).toFixed(2)}</option>`);
+          bucket.items.push(`<option value="${i}"${t.soldOut ? ' disabled' : ''}>${esc(t.name)} — ${t.soldOut ? 'SOLD OUT' : '$' + priceOf(t).toFixed(2)}</option>`);
         });
         if (groups.length === 1 && groups[0].g === '') return groups[0].items.join('');
         return groups.map((b) => b.g ? `<optgroup label="${esc(b.g)}">${b.items.join('')}</optgroup>` : b.items.join('')).join('');
@@ -1399,6 +1416,10 @@ window.Chamber = (function () {
         };
         typeSel.addEventListener('change', update);
         qtySel.addEventListener('change', update);
+        // The browser preselects the first <option> even when it's disabled —
+        // start on the first price that is actually buyable (not sold out).
+        const firstBuyable = types.findIndex((t) => !t.soldOut);
+        if (firstBuyable > 0) typeSel.value = String(firstBuyable);
         update();
       } else {
         summary.innerHTML = `${evMeta}<p class="notice mt-3">Ticket pricing is set by the Chamber — enter the amount shown for your ticket type, or confirm with the office.</p>`;
