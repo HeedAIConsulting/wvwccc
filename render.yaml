@@ -52,3 +52,10 @@ services:
         sync: false
       - key: AGMS_USERNAME
         value: woodlandhillscc
+      # ── AI image creation (Admin → Tools) via Higgsfield ──
+      # Create a key pair at platform.higgsfield.ai and set both here.
+      # Without them, the Tools image creator shows a friendly "not configured".
+      - key: HIGGSFIELD_API_KEY
+        sync: false
+      - key: HIGGSFIELD_API_SECRET
+        sync: false

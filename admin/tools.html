@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex" />
+  <title>Tools — WVWCCC Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="../css/chamber.css" />
+  <link rel="stylesheet" href="admin.css?v=20260710a" />
+</head>
+<body class="admin">
+  <div class="admin-shell">
+    <aside class="admin-sidebar" data-admin-nav></aside>
+    <div class="admin-main">
+      <div class="admin-topbar"><h1>Tools</h1></div>
+      <div class="admin-content">
+
+        <div class="panel">
+          <div class="panel__head"><h3>⌗ QR code maker</h3></div>
+          <div class="admin-form" style="padding:16px">
+            <p class="sub" style="margin:0 0 12px">Make a QR code for any event (or any link) — put it on flyers, table tents, and posters. Scanning it opens the event's page or its Get-tickets checkout.</p>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+              <div class="field"><label>Event</label>
+                <select id="qrEvent" class="admin-select"><option value="">Custom link (type it below)…</option></select>
+              </div>
+              <div class="field" id="qrKindWrap"><label>What should it open?</label>
+                <select id="qrKind" class="admin-select">
+                  <option value="page">The event's page</option>
+                  <option value="tickets">Get-tickets checkout</option>
+                </select>
+              </div>
+            </div>
+            <div class="field" id="qrCustomWrap"><label>Custom link</label><input id="qrUrl" placeholder="https://woodlandhillscc.net/…" /></div>
+            <p class="sub" id="qrLinkNote" style="margin:0 0 10px"></p>
+            <button type="button" id="qrMake" class="btn btn--forest">Create QR code</button>
+            <p id="qrMsg" class="notice" hidden style="margin-top:10px"></p>
+            <div id="qrOut" style="margin-top:14px"></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel__head"><h3>✦ Image creator (AI)</h3></div>
+          <div class="admin-form" style="padding:16px">
+            <p class="sub" style="margin:0 0 12px">Describe the image you want — a flyer background, a social-post graphic, event artwork — and the AI creates it. Then download it or attach it straight to an event.</p>
+            <div class="field"><label>Describe the image *</label>
+              <textarea id="imgPrompt" rows="3" maxlength="2000" placeholder="Elegant black and gold gala ballroom with confetti and warm lighting, space at the top for a title"></textarea></div>
+            <div style="display:flex;gap:12px;align-items:end;flex-wrap:wrap">
+              <div class="field" style="margin:0"><label>Shape</label>
+                <select id="imgAspect" class="admin-select">
+                  <option value="3:4">Portrait — flyers (3:4)</option>
+                  <option value="1:1">Square — social posts (1:1)</option>
+                  <option value="16:9">Wide — banners (16:9)</option>
+                  <option value="9:16">Tall — stories (9:16)</option>
+                  <option value="4:3">Landscape (4:3)</option>
+                </select>
+              </div>
+              <button type="button" id="imgMake" class="btn btn--gold">✦ Create image</button>
+              <span id="imgStatus" class="sub"></span>
+            </div>
+            <p id="imgMsg" class="notice" hidden style="margin-top:10px"></p>
+            <div id="imgOut" style="margin-top:14px"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+  <script src="../js/api-base.js"></script>
+  <script src="admin.js?v=20260724b"></script>
+  <script>Admin.initTools();</script>
+  <script defer src="/js/support.js?v=20260701a"></script>
+</body>
+</html>

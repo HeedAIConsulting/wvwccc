@@ -60,6 +60,7 @@ window.Admin = (function () {
     { href: 'sponsorships.html', icon: '★', label: 'Sponsorships', key: 'sponsorships' },
     { href: 'ai-assistant.html', icon: '✦', label: 'AI Assistant', key: 'assistant' },
     { href: 'ai-assistant.html?tpl=1', icon: '❏', label: 'Email Templates', key: 'templates' },
+    { href: 'tools.html', icon: '⚒', label: 'Tools', key: 'tools' },
     { href: 'users.html', icon: '⚷', label: 'Users & Roles', key: 'users' },
     { grp: 'Revenue & contact' },
     { href: 'payments.html', icon: '$', label: 'Pay Log', key: 'payments' },
@@ -1719,6 +1720,45 @@ window.Admin = (function () {
       linkWrap.querySelectorAll('[data-lk]').forEach((el) => el.addEventListener('input', () => { links[+el.dataset.lk][el.dataset.f] = el.value; }));
       linkWrap.querySelectorAll('[data-rmlk]').forEach((b) => b.addEventListener('click', () => { links.splice(+b.dataset.rmlk, 1); renderLinks(); }));
     }
+    // ── QR code for this event (per Diana, Jul 24 2026) — download for flyers
+    //    or add straight to the event's images. Full maker in Admin → Tools. ──
+    const qrWrap = document.getElementById('evQr');
+    function renderQr() {
+      if (!qrWrap) return;
+      if (!editingId) { qrWrap.innerHTML = '<span class="sub">Save the event first — then edit it and create its QR code here.</span>'; return; }
+      qrWrap.innerHTML = `
+        <button type="button" class="btn btn--ghost btn--sm" data-qr="page">⌗ QR code → event page</button>
+        <button type="button" class="btn btn--ghost btn--sm" data-qr="tickets">⌗ QR code → Get-tickets checkout</button>
+        <span class="sub" style="margin-left:6px">More options (custom links, AI images) in Admin → Tools.</span>
+        <div data-qr-out style="margin-top:8px"></div>`;
+      qrWrap.querySelectorAll('[data-qr]').forEach((b) => b.addEventListener('click', async () => {
+        const target = location.origin + (b.dataset.qr === 'tickets' ? '/checkout.html?type=ticket&event=' : '/events/view.html?id=') + encodeURIComponent(editingId);
+        const out2 = qrWrap.querySelector('[data-qr-out]');
+        out2.innerHTML = '<span class="sub">Creating…</span>';
+        try {
+          const out = await api('/api/admin/tools/qr?data=' + encodeURIComponent(target));
+          out2.innerHTML = `<div style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap">
+            <img src="${out.png}" alt="QR code" style="width:130px;height:130px;border:1px solid var(--line,#ddd);border-radius:8px;background:#fff">
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <span class="sub">Opens: ${esc(target)}</span>
+              <a class="btn btn--forest btn--sm" download="qr-${esc(b.dataset.qr)}-${esc(editingId)}.png" href="${out.png}">⬇ Download PNG</a>
+              <a class="btn btn--ghost btn--sm" download="qr-${esc(b.dataset.qr)}-${esc(editingId)}.svg" href="data:image/svg+xml;charset=utf-8,${encodeURIComponent(out.svg)}">⬇ Download SVG (crisp for print)</a>
+              <button type="button" class="btn btn--ghost btn--sm" data-qr-add>＋ Add to event images</button>
+              <span class="sub" data-qr-add-msg></span>
+            </div></div>`;
+          out2.querySelector('[data-qr-add]').addEventListener('click', async (e3) => {
+            e3.target.disabled = true;
+            const m3 = out2.querySelector('[data-qr-add-msg]');
+            try {
+              const up = await api('/api/me/asset', { method: 'POST', body: JSON.stringify({ kind: 'photo', dataUrl: out.png }) });
+              images.push(up.url); renderImages();
+              m3.textContent = '✓ Added under Images below — hit Save event to keep it.';
+            } catch (err) { e3.target.disabled = false; m3.textContent = 'Could not add it — try again.'; }
+          });
+        } catch (err) { out2.innerHTML = '<span class="sub">Could not create the QR code — try again.</span>'; }
+      }));
+    }
+
     function fillForm(ev) {
       editingId = ev ? ev.id : null;
       const v = (k, d = '') => (ev && ev[k] != null ? ev[k] : d);
@@ -1752,7 +1792,7 @@ window.Admin = (function () {
       links = ev && ev.links ? ev.links.map((l) => ({ ...l })) : [];
       documents = ev && ev.documents ? ev.documents.map((d) => ({ ...d })) : [];
       ticketTypes = ev && ev.ticketTypes ? ev.ticketTypes.map((t) => ({ ...t })) : [];
-      renderImages(); renderLinks(); renderDocs(); renderTickets(); renderFlyers(); renderSponsors(); drawFlyer(); drawThumb();
+      renderImages(); renderLinks(); renderDocs(); renderTickets(); renderFlyers(); renderSponsors(); renderQr(); drawFlyer(); drawThumb();
       // The AI "start a new event from a flyer" tool only applies to new events —
       // hide it while editing so it isn't mistaken for "replace this flyer".
       const autofill = document.getElementById('evAutofillBlock'); if (autofill) autofill.style.display = editingId ? 'none' : '';
@@ -3220,6 +3260,153 @@ window.Admin = (function () {
   }
 
   // ── About / Support (tech, version, support ticket to Heed via Formspree) ──
+  // ── Tools: QR code maker + AI image creator (per Diana, Jul 24 2026) ──
+  async function initTools() {
+    mountShell('tools');
+    // Like api(), but surfaces the server's friendly error message (api() only
+    // reports the status code — Tools needs "not configured yet" etc. verbatim).
+    async function apiMsg(pathname, opts = {}) {
+      const res = await fetch(apiBase + pathname, { credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, ...opts });
+      if (res.status === 401 || res.status === 403) { location.href = '../auth/staff-login.html'; throw new Error('auth required'); }
+      const out = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(out.error || `Request failed (${res.status}).`);
+      return out;
+    }
+    let events = [];
+    try { events = (await api('/api/admin/events')).events || []; } catch (e) { showAuthError(e); return; }
+    const todayISO = new Date().toISOString().slice(0, 10);
+    const sorted = events.slice().sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+    const upcoming = sorted.filter((e) => e.date && e.date >= todayISO);
+    const past = sorted.filter((e) => !e.date || e.date < todayISO).reverse();
+    const optOf = (e) => `<option value="${esc(e.id)}">${esc((e.date || 'TBA') + ' — ' + e.title)}</option>`;
+    const evOptions = `<optgroup label="Upcoming">${upcoming.map(optOf).join('')}</optgroup>`
+      + (past.length ? `<optgroup label="Past">${past.slice(0, 40).map(optOf).join('')}</optgroup>` : '');
+
+    // ── QR code maker ──
+    const qrEvent = document.getElementById('qrEvent');
+    const qrKindWrap = document.getElementById('qrKindWrap');
+    const qrKind = document.getElementById('qrKind');
+    const qrCustomWrap = document.getElementById('qrCustomWrap');
+    const qrUrl = document.getElementById('qrUrl');
+    const qrNote = document.getElementById('qrLinkNote');
+    const qrMsg = document.getElementById('qrMsg');
+    const qrOut = document.getElementById('qrOut');
+    qrEvent.insertAdjacentHTML('beforeend', evOptions);
+    const qrTarget = () => {
+      const id = qrEvent.value;
+      if (!id) return (qrUrl.value || '').trim();
+      return location.origin + (qrKind.value === 'tickets' ? '/checkout.html?type=ticket&event=' : '/events/view.html?id=') + encodeURIComponent(id);
+    };
+    const syncQrUi = () => {
+      const custom = !qrEvent.value;
+      qrCustomWrap.style.display = custom ? '' : 'none';
+      qrKindWrap.style.display = custom ? 'none' : '';
+      const t = qrTarget();
+      qrNote.innerHTML = t ? `The QR code will open: <strong>${esc(t)}</strong>` : '';
+    };
+    [qrEvent, qrKind, qrUrl].forEach((el) => { el.addEventListener('change', syncQrUi); el.addEventListener('input', syncQrUi); });
+    syncQrUi();
+    document.getElementById('qrMake').addEventListener('click', async (e) => {
+      const target = qrTarget();
+      qrMsg.hidden = true;
+      if (!target || !/^https?:\/\//i.test(target)) { qrMsg.hidden = false; qrMsg.textContent = 'Pick an event, or type a full link starting with https://'; return; }
+      e.target.disabled = true; e.target.textContent = 'Creating…';
+      try {
+        const out = await apiMsg('/api/admin/tools/qr?data=' + encodeURIComponent(target));
+        const src = qrEvent.value ? (events.find((x) => x.id === qrEvent.value) || {}).title : 'link';
+        const slug = String(src || 'qr').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'qr';
+        qrOut.innerHTML = `
+          <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start">
+            <img src="${out.png}" alt="QR code" style="width:180px;height:180px;border:1px solid var(--line,#ddd);border-radius:8px;background:#fff">
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <a class="btn btn--forest btn--sm" download="qr-${slug}.png" href="${out.png}">⬇ Download PNG</a>
+              <a class="btn btn--ghost btn--sm" download="qr-${slug}.svg" href="data:image/svg+xml;charset=utf-8,${encodeURIComponent(out.svg)}">⬇ Download SVG (crisp at any print size)</a>
+              ${qrEvent.value ? '<button type="button" class="btn btn--ghost btn--sm" data-qr-attach>＋ Add to this event&#39;s images</button>' : ''}
+              <span class="sub" data-qr-attach-msg></span>
+            </div>
+          </div>`;
+        qrOut.querySelector('[data-qr-attach]')?.addEventListener('click', async (e2) => {
+          e2.target.disabled = true;
+          const m2 = qrOut.querySelector('[data-qr-attach-msg]');
+          try {
+            const up = await api('/api/me/asset', { method: 'POST', body: JSON.stringify({ kind: 'photo', dataUrl: out.png }) });
+            const ev2 = events.find((x) => x.id === qrEvent.value);
+            const imgs = (ev2.images || []).concat(up.url);
+            await api('/api/admin/events/' + encodeURIComponent(ev2.id), { method: 'PATCH', body: JSON.stringify({ images: imgs }) });
+            ev2.images = imgs;
+            m2.textContent = '✓ Added to the event images.';
+          } catch (err) { e2.target.disabled = false; m2.textContent = 'Could not add it — try again.'; }
+        });
+      } catch (err) { qrMsg.hidden = false; qrMsg.textContent = err.message || 'Could not create the QR code.'; }
+      finally { e.target.disabled = false; e.target.textContent = 'Create QR code'; }
+    });
+
+    // ── AI image creator (Higgsfield via the backend) ──
+    const imgPromptEl = document.getElementById('imgPrompt');
+    const imgAspect = document.getElementById('imgAspect');
+    const imgMakeBtn = document.getElementById('imgMake');
+    const imgStatus = document.getElementById('imgStatus');
+    const imgMsg = document.getElementById('imgMsg');
+    const imgOut = document.getElementById('imgOut');
+    function renderImgResult(url) {
+      imgOut.innerHTML = `
+        <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start">
+          <img src="${esc(url)}" alt="AI image" style="max-width:280px;max-height:340px;border-radius:8px;border:1px solid var(--line,#ddd)">
+          <div style="display:flex;flex-direction:column;gap:8px;min-width:260px">
+            <a class="btn btn--forest btn--sm" target="_blank" rel="noopener" href="${esc(url)}">⬇ Open full size / save</a>
+            <label class="sub" style="margin:4px 0 0"><strong>Attach it to an event</strong></label>
+            <select data-img-ev class="admin-select"><option value="">Choose an event…</option>${evOptions}</select>
+            <select data-img-slot class="admin-select">
+              <option value="images">Add to the event&#39;s images</option>
+              <option value="flyer">Set as the main flyer</option>
+              <option value="thumbnail">Set as the thumbnail</option>
+            </select>
+            <button type="button" class="btn btn--gold btn--sm" data-img-attach>＋ Attach</button>
+            <span class="sub" data-img-attach-msg></span>
+          </div>
+        </div>`;
+      imgOut.querySelector('[data-img-attach]').addEventListener('click', async (e2) => {
+        const m2 = imgOut.querySelector('[data-img-attach-msg]');
+        const ev2 = events.find((x) => x.id === imgOut.querySelector('[data-img-ev]').value);
+        if (!ev2) { m2.textContent = 'Choose an event first.'; return; }
+        e2.target.disabled = true;
+        const slot = imgOut.querySelector('[data-img-slot]').value;
+        const body = slot === 'images' ? { images: (ev2.images || []).concat(url) } : { [slot]: url };
+        try {
+          await api('/api/admin/events/' + encodeURIComponent(ev2.id), { method: 'PATCH', body: JSON.stringify(body) });
+          if (slot === 'images') ev2.images = body.images; else ev2[slot] = url;
+          m2.textContent = '✓ Attached — open the event to see it.';
+        } catch (err) { m2.textContent = 'Could not attach — try again.'; }
+        finally { e2.target.disabled = false; }
+      });
+    }
+    imgMakeBtn.addEventListener('click', async () => {
+      const prompt = imgPromptEl.value.trim();
+      imgMsg.hidden = true;
+      if (!prompt) { imgMsg.hidden = false; imgMsg.textContent = 'Describe the image first.'; return; }
+      imgMakeBtn.disabled = true; imgStatus.textContent = 'Sending…'; imgOut.innerHTML = '';
+      const done = (errText) => {
+        imgMakeBtn.disabled = false; imgStatus.textContent = '';
+        if (errText) { imgMsg.hidden = false; imgMsg.textContent = errText; }
+      };
+      try {
+        const sub = await apiMsg('/api/admin/tools/image', { method: 'POST', body: JSON.stringify({ prompt, aspect: imgAspect.value }) });
+        const started = Date.now();
+        const poll = async () => {
+          if (Date.now() - started > 240000) return done('This is taking longer than expected — please try again in a minute.');
+          let st;
+          try { st = await apiMsg('/api/admin/tools/image/' + encodeURIComponent(sub.requestId)); }
+          catch (err) { return done(err.message || 'Could not check on the image.'); }
+          if (st.status === 'completed' && st.url) { done(); renderImgResult(st.url); return; }
+          if (st.ok === false) return done(st.error || 'The image could not be created.');
+          imgStatus.textContent = st.status === 'queued' ? 'Waiting in line…' : 'Creating your image… (usually 30–60 seconds)';
+          setTimeout(poll, 3500);
+        };
+        poll();
+      } catch (err) { done(err.message || 'Could not start the image.'); }
+    });
+  }
+
   async function initAbout() {
     mountShell('about');
     const form = document.getElementById('supportForm');
@@ -3243,5 +3430,5 @@ window.Admin = (function () {
     });
   }
 
-  return { mountShell, initDashboard, initMembers, initBoardManager, initApprovals, initOrders, initLeads, initRibbon, initEvents, initContent, initAssistant, initRenewals, initUsers, initGroups, initSponsorships, initSlides, initAbout, openHelp, api, esc };
+  return { mountShell, initDashboard, initMembers, initBoardManager, initApprovals, initOrders, initLeads, initRibbon, initEvents, initContent, initAssistant, initRenewals, initUsers, initGroups, initSponsorships, initSlides, initTools, initAbout, openHelp, api, esc };
 })();

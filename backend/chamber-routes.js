@@ -3,6 +3,7 @@
    Durable data via backend/repo.js (Postgres when DATABASE_URL set).
    ============================================================ */
 import express from 'express';
+import QRCode from 'qrcode';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -494,6 +495,84 @@ router.get('/assets/:id', async (req, res) => {
     if (!a) return res.status(404).end();
     res.type(a.mime).set('Cache-Control', 'public, max-age=86400').send(a.buffer);
   } catch (e) { res.status(500).end(); }
+});
+
+// ── Admin tools: QR codes + AI image creation (per Diana, Jul 24 2026) ──
+// QR codes render server-side (qrcode npm) so admin pages need no client
+// library. Returns a PNG data URL (preview / attach to an event) and an SVG
+// (crisp at any print size).
+router.get('/admin/tools/qr', requireAdmin, async (req, res) => {
+  const data = String(req.query.data || '').slice(0, 1500);
+  if (!data) return res.status(400).json({ error: 'data (the link to encode) is required' });
+  try {
+    const opts = { errorCorrectionLevel: 'M', margin: 2, color: { dark: '#12241a', light: '#ffffff' } };
+    const png = await QRCode.toDataURL(data, { ...opts, width: 1024 });
+    const svg = await QRCode.toString(data, { ...opts, type: 'svg' });
+    res.json({ ok: true, png, svg });
+  } catch (e) { console.error('qr', e); res.status(500).json({ error: 'Could not create the QR code.' }); }
+});
+
+// AI images via the Higgsfield platform (text-to-image, Soul model).
+// Auth = `Key <key>:<secret>` header; submit returns a request_id, results are
+// fetched from /requests/<id>/status. Needs HIGGSFIELD_API_KEY +
+// HIGGSFIELD_API_SECRET set in the Render dashboard (see render.yaml).
+const HF_BASE = 'https://platform.higgsfield.ai';
+const HF_MODEL = process.env.HIGGSFIELD_MODEL || 'higgsfield-ai/soul/standard';
+const HF_ASPECTS = ['1:1', '3:4', '4:3', '16:9', '9:16'];
+const hfAuth = () => (process.env.HIGGSFIELD_API_KEY && process.env.HIGGSFIELD_API_SECRET
+  ? `Key ${process.env.HIGGSFIELD_API_KEY}:${process.env.HIGGSFIELD_API_SECRET}` : null);
+const _hfIngested = new Map(); // request_id → stored asset url (re-polls stay idempotent)
+
+router.post('/admin/tools/image', requireAdmin, async (req, res) => {
+  const authz = hfAuth();
+  if (!authz) return res.status(503).json({ error: 'Image creation is not configured yet — add HIGGSFIELD_API_KEY and HIGGSFIELD_API_SECRET on Render, then redeploy.' });
+  const prompt = String((req.body || {}).prompt || '').trim().slice(0, 2000);
+  if (!prompt) return res.status(400).json({ error: 'Describe the image you want.' });
+  const aspect = HF_ASPECTS.includes((req.body || {}).aspect) ? req.body.aspect : '3:4';
+  try {
+    const r = await fetch(`${HF_BASE}/${HF_MODEL}`, {
+      method: 'POST',
+      headers: { Authorization: authz, 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ prompt, aspect_ratio: aspect, resolution: '720p' }),
+    });
+    const out = await r.json().catch(() => ({}));
+    if (!r.ok || !out.request_id) {
+      console.error('higgsfield submit', r.status, JSON.stringify(out).slice(0, 400));
+      return res.status(502).json({ error: out.detail || out.error || `The image service returned an error (${r.status}).` });
+    }
+    res.json({ ok: true, requestId: out.request_id });
+  } catch (e) { console.error('higgsfield submit', e); res.status(502).json({ error: 'Could not reach the image service.' }); }
+});
+
+// Poll a generation. When it completes we pull the image into our own asset
+// store (repo.addAsset) so the URL never expires — Higgsfield result links are
+// temporary.
+router.get('/admin/tools/image/:id', requireAdmin, async (req, res) => {
+  const authz = hfAuth();
+  if (!authz) return res.status(503).json({ error: 'Image creation is not configured.' });
+  const id = String(req.params.id).slice(0, 80);
+  if (_hfIngested.has(id)) return res.json({ ok: true, status: 'completed', url: _hfIngested.get(id) });
+  try {
+    const r = await fetch(`${HF_BASE}/requests/${encodeURIComponent(id)}/status`, { headers: { Authorization: authz, Accept: 'application/json' } });
+    const out = await r.json().catch(() => ({}));
+    const status = out.status || 'failed';
+    if (status === 'failed' || status === 'nsfw') {
+      return res.json({ ok: false, status, error: status === 'nsfw' ? 'The image was blocked by the content filter — try rewording the prompt.' : 'The image could not be generated — please try again.' });
+    }
+    if (status !== 'completed') return res.json({ ok: true, status }); // queued / in_progress
+    const remote = out.images && out.images[0] && out.images[0].url;
+    if (!remote) return res.json({ ok: false, status: 'failed', error: 'No image was returned.' });
+    const img = await fetch(remote);
+    const buffer = Buffer.from(await img.arrayBuffer());
+    if (!img.ok || !buffer.length || buffer.length > 12_000_000) return res.json({ ok: false, status: 'failed', error: 'Could not download the finished image.' });
+    const mime = (img.headers.get('content-type') || 'image/jpeg').split(';')[0];
+    const assetId = 'asset-' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36);
+    await repo.addAsset({ id: assetId, memberId: null, kind: 'photo', mime, buffer });
+    const url = '/api/assets/' + assetId;
+    _hfIngested.set(id, url);
+    if (_hfIngested.size > 200) _hfIngested.delete(_hfIngested.keys().next().value);
+    res.json({ ok: true, status: 'completed', url });
+  } catch (e) { console.error('higgsfield poll', e); res.status(502).json({ error: 'Could not check on the image.' }); }
 });
 
 // Public posts feed (approved, not expired).
