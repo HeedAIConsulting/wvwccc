@@ -19,6 +19,51 @@
         <p id="adminError" class="admin-notice" hidden></p>
         <p class="admin-notice">Every membership, ticket, and donation processed through AGMS is logged here. Use Refund to send a payment back to the card; charges still awaiting settlement are voided automatically.</p>
         <div class="panel">
+          <div class="panel__head"><h3>✉ Send someone a payment link</h3></div>
+          <div class="admin-form" style="padding:16px">
+            <p class="sub" style="margin:0 0 12px">For one-off charges you agreed on over the phone — valet sponsorship, a late
+              ticket, a negotiated renewal. Name it, set the amount, and either copy the link or have the website email it.
+              <strong>The amount is locked</strong>, so nobody can type in the wrong number.</p>
+            <div style="display:grid;grid-template-columns:2fr 130px;gap:12px">
+              <div class="field" style="margin:0"><label>What is the payment for? *</label>
+                <input id="plFor" maxlength="120" placeholder="Valet parking sponsorship — Black, White &amp; Bold Gala" /></div>
+              <div class="field" style="margin:0"><label>Amount ($) *</label>
+                <input id="plAmount" type="number" min="1" step="0.01" placeholder="1000.00" /></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
+              <div class="field" style="margin:0"><label>Send to <span class="sub">(leave blank to just copy the link)</span></label>
+                <input id="plTo" type="email" placeholder="name@company.com" /></div>
+              <div class="field" style="margin:0"><label>Their name <span class="sub">(optional)</span></label>
+                <input id="plName" maxlength="80" placeholder="Jack" /></div>
+            </div>
+            <div class="field"><label>Note in the email <span class="sub">(optional)</span></label>
+              <textarea id="plMessage" rows="3" maxlength="1200" placeholder="Great speaking with you — here's the link for the valet sponsorship we discussed."></textarea></div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+              <button type="button" id="plMake" class="btn btn--forest">Create the link</button>
+              <button type="button" id="plSend" class="btn btn--gold">Create &amp; email it</button>
+            </div>
+            <p id="plMsg" class="notice" hidden style="margin-top:10px"></p>
+            <div id="plOut" style="margin-top:12px"></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel__head"><h3>▤ What people can pay for online</h3></div>
+          <div class="admin-form" style="padding:16px">
+            <p class="sub" style="margin:0 0 12px">This is the drop-down on the public
+              <a href="../pay.html" target="_blank" rel="noopener">Make a payment</a> page. Add whatever people call to pay for —
+              breakfast tickets, name badges, renewals — so they pick it from a list instead of typing it and guessing.
+              <strong>Leave the price blank</strong> when the amount varies (renewals) and the payer will be asked to enter it.</p>
+            <div id="piRows"></div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px">
+              <button type="button" id="piAdd" class="btn btn--ghost btn--sm">+ Add an item</button>
+              <button type="button" id="piSave" class="btn btn--forest btn--sm">Save the list</button>
+            </div>
+            <p id="piMsg" class="notice" hidden style="margin-top:10px"></p>
+          </div>
+        </div>
+
+        <div class="panel">
           <div class="panel__head"><h3>All payments</h3></div>
           <table class="admin-table"><thead><tr><th>Date</th><th>Payer</th><th>For</th><th>Amount</th><th>Status</th><th>Txn</th><th></th></tr></thead><tbody id="orderRows"></tbody></table>
         </div>

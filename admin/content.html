@@ -63,6 +63,26 @@
           </div>
         </div>
 
+        <!-- Donation projects: the "choose what your gift supports" list on the
+             public Donate and Community Benefit Foundation pages. Restored from
+             the legacy CBF donation page (Felicia, Jul 29 2026). -->
+        <div class="panel">
+          <div class="panel__head"><h3>♥ Donation projects</h3></div>
+          <div class="admin-form" style="padding:16px">
+            <p class="sub" style="margin:0 0 12px">What donors can give to on the
+              <a href="../donate.html" target="_blank" rel="noopener">Donate</a> page and the
+              <a href="../community/community-benefit-foundation.html" target="_blank" rel="noopener">Community Benefit Foundation</a> page.
+              Tick <strong>CBF</strong> for Foundation initiatives — those are the ones that show on the Foundation page.
+              Untick <strong>Show</strong> to retire a project without deleting its history.</p>
+            <div id="dpRows"></div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px">
+              <button type="button" id="dpAdd" class="btn btn--ghost btn--sm">+ Add a project</button>
+              <button type="button" id="dpSave" class="btn btn--forest btn--sm">Save projects</button>
+            </div>
+            <p id="dpMsg" class="notice" hidden style="margin-top:10px"></p>
+          </div>
+        </div>
+
         <div class="panel">
           <div class="panel__head"><h3>Pending review (member submissions)</h3></div>
           <table class="admin-table"><thead><tr><th>Title</th><th>Type</th><th>Status</th><th>Action</th></tr></thead><tbody id="pendingWrap"></tbody></table>

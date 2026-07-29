@@ -27,6 +27,10 @@ const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const requireAdmin = auth.requireAuth(['staff', 'admin', 'super_admin']);
 const requireSuper = auth.requireAuth(['super_admin']);
 
+// HTML-escape for the emails this file composes (payment links, notifications).
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) =>
+  ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
 const LEADER_OPTS = ['', 'Leader', 'Board Member', 'New Member', 'Past President', 'Ambassador', 'Staff'];
 const STATUS_OPTS = ['approved', 'pending', 'suspended', 'inactive'];
 
@@ -324,6 +328,8 @@ router.post('/me/post', auth.requireAuth(), async (req, res) => {
   const type = MEMBER_POST_TYPES.includes(b.type) ? b.type : null;
   if (!type) return res.status(400).json({ error: 'Invalid post type.' });
   if (!b.title || !b.body) return res.status(400).json({ error: 'Title and body are required.' });
+  const badWords = flagContent(`${b.title} ${b.body}`);
+  if (badWords) return res.status(400).json({ error: badWords });
   let authorName = req.user.sub;
   try { authorName = (await loadMembersFull()).members.find((m) => m.id === mid)?.name || authorName; } catch (e) {}
   const post = {
@@ -344,6 +350,202 @@ router.get('/me/posts', auth.requireAuth(), async (req, res) => {
   if (!req.user.mid) return res.json({ posts: [] });
   try { res.json({ posts: await repo.listPosts({ memberId: req.user.mid }) }); }
   catch (e) { res.status(500).json({ error: 'failed' }); }
+});
+
+/* ── Members manage their own posts (Felicia, Jul 29 2026) ──
+   "You'd have the ability to edit your post, or duplicate it, or change it, or
+   delete it." Editing sends it back through review — the office still has the
+   last word on anything that reaches the public site. */
+async function ownPost(req, id) {
+  if (!req.user.mid) return null;
+  const posts = await repo.listPosts({ memberId: req.user.mid });
+  return posts.find((p) => p.id === id) || null;
+}
+router.patch('/me/post/:id', auth.requireAuth(), async (req, res) => {
+  try {
+    const p = await ownPost(req, req.params.id);
+    if (!p) return res.status(404).json({ error: 'That post is not yours, or no longer exists.' });
+    const b = req.body || {};
+    const patch = { status: 'pending' };   // any edit goes back through review
+    if (b.title !== undefined) patch.title = String(b.title).slice(0, 160);
+    if (b.body !== undefined) patch.body = String(b.body).slice(0, 4000);
+    if (b.imageUrl !== undefined) patch.imageUrl = clampUrl(b.imageUrl);
+    if (b.linkUrl !== undefined) patch.linkUrl = clampUrl(b.linkUrl);
+    if (b.ctaLabel !== undefined) patch.ctaLabel = String(b.ctaLabel || '').slice(0, 40);
+    if (b.ctaUrl !== undefined) patch.ctaUrl = clampUrl(b.ctaUrl);
+    if (b.code !== undefined) patch.code = String(b.code || '').slice(0, 80);
+    if (b.meta !== undefined) patch.meta = sanitizePostMeta(p.type, b.meta);
+    if (!String(patch.title ?? p.title).trim() || !String(patch.body ?? p.body).trim()) {
+      return res.status(400).json({ error: 'Title and details are both required.' });
+    }
+    const bad = flagContent(`${patch.title ?? p.title} ${patch.body ?? p.body}`);
+    if (bad) return res.status(400).json({ error: bad });
+    await repo.updatePost(req.params.id, patch);
+    res.json({ ok: true, status: 'pending' });
+  } catch (e) { console.error('me/post patch', e); res.status(500).json({ error: 'Could not save that change.' }); }
+});
+router.delete('/me/post/:id', auth.requireAuth(), async (req, res) => {
+  try {
+    const p = await ownPost(req, req.params.id);
+    if (!p) return res.status(404).json({ error: 'That post is not yours, or no longer exists.' });
+    await repo.deletePost(req.params.id);
+    res.json({ ok: true });
+  } catch (e) { console.error('me/post delete', e); res.status(500).json({ error: 'Could not remove that post.' }); }
+});
+
+/* ── Content guard for anything the public can submit ───────
+   Michael's push-back on open posting (Jul 29 2026): the chamber's name is on
+   whatever appears, so screen the obvious categories the board would never
+   co-sign, on top of the captcha and the mandatory admin approval. This is a
+   coarse first pass, not a substitute for the human review that follows. */
+const BLOCKED_PATTERNS = [
+  /\b(escort|escorts|hookup|hook-?ups?|adult\s+entertainment|strip\s?club|porn\w*|xxx|onlyfans|sugar\s?(baby|daddy|momma))\b/i,
+  /\b(firearms?\s+(sales?|dealer)|gun\s?shows?|ammo\s+sales?|silencers?|ghost\s?guns?)\b/i,
+  /\b(campaign\s+(for|to\s+elect)|vote\s+(for|against)\b|elect\s+\w+\s+for\b|ballot\s+measure|political\s+action\s+committee)\b/i,
+  /\b(cbd|thc|cannabis|marijuana|dispensar\w+|kratom|vape\s+shop)\b/i,
+  /\b(payday\s+loans?|debt\s+relief\s+guarantee|guaranteed\s+income|work\s+from\s+home\s+\$?\d|crypto\s+(giveaway|doubl\w+)|forex\s+signals?|mlm|multi-?level\s+marketing|pyramid\s+scheme)\b/i,
+];
+function flagContent(text) {
+  const s = String(text || '');
+  for (const re of BLOCKED_PATTERNS) {
+    if (re.test(s)) {
+      return 'This posting covers a topic the Chamber does not publish (adult, firearms, political campaigning, cannabis, or high-risk financial offers). '
+        + 'If you believe that is a mistake, call the office at (818) 347-4737 and we will post it for you.';
+    }
+  }
+  return '';
+}
+
+/* ── Public (non-member) job posting ───────────────────────
+   Felicia: "the public can post a position." Michael's conditions: a captcha,
+   a content filter, a verified email so the post is attributable, and nothing
+   goes live without an admin approving it. Non-members get the plain fields —
+   no logo, no flyer, no linked profile — which is the member/non-member
+   difference she asked for. */
+/* ── Community (non-member) event submission ────────────────
+   Felicia, Jul 29 2026: the chamber needs to see what else is happening on a
+   date so its own events and members' ribbon cuttings don't collide with, say,
+   another organisation's gala. Michael's condition was accountability: the
+   submitter verifies their email FIRST, so every community listing is tied to
+   a real address, is labelled as a non-member submission, and still needs an
+   admin to approve it. Codes live in memory with a 30-minute life — this is a
+   spam speed-bump, not an account system. */
+const evCodes = new Map(); // email → { code, expires, tries }
+const EV_CODE_TTL = 30 * 60 * 1000;
+function pruneEvCodes() {
+  const now = Date.now();
+  for (const [k, v] of evCodes) if (v.expires < now) evCodes.delete(k);
+}
+router.post('/public/event/verify', async (req, res) => {
+  const b = req.body || {};
+  const cap = await turnstile.verify(b['cf-turnstile-response'] || b.turnstileToken, req.ip);
+  if (!cap.ok) return res.status(400).json({ error: 'Please complete the human-verification check and try again.' });
+  const to = String(b.email || '').trim().toLowerCase();
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)) return res.status(400).json({ error: 'Please enter a valid email address.' });
+  pruneEvCodes();
+  // 6 digits, generated server-side and never echoed in the response.
+  const code = String(Math.floor(100000 + Math.random() * 900000));
+  evCodes.set(to, { code, expires: Date.now() + EV_CODE_TTL, tries: 0 });
+  const text = `Your West Valley · Warner Center Chamber of Commerce verification code is:\n\n    ${code}\n\n`
+    + `Enter it on the community event form to finish submitting your event. The code expires in 30 minutes.\n\n`
+    + `If you did not request this, you can ignore this email.\n`;
+  try {
+    const r = await email.send({ to, subject: `Your verification code: ${code}`, text });
+    // `skipped` means no mail provider is configured — the visitor would never
+    // receive the code, so never claim it was sent.
+    if (!r || r.ok === false || r.skipped) throw new Error(r && r.skipped ? 'email not configured' : 'send failed');
+    res.json({ ok: true, sent: true });
+  } catch (e) {
+    evCodes.delete(to);
+    console.error('event verify send', e.message);
+    res.status(502).json({ error: 'We could not send the code right now. Please call the office at (818) 347-4737 and we will add your event for you.' });
+  }
+});
+router.post('/public/event', async (req, res) => {
+  const b = req.body || {};
+  const to = String(b.email || '').trim().toLowerCase();
+  pruneEvCodes();
+  const rec = evCodes.get(to);
+  if (!rec) return res.status(400).json({ error: 'Please request a verification code first (or request a new one — codes expire after 30 minutes).' });
+  if (rec.tries >= 5) { evCodes.delete(to); return res.status(429).json({ error: 'Too many incorrect codes. Please request a new one.' }); }
+  if (String(b.code || '').trim() !== rec.code) {
+    rec.tries++;
+    return res.status(400).json({ error: 'That code does not match. Check the email and try again.' });
+  }
+  const title = String(b.title || '').trim().slice(0, 200);
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(String(b.date || '')) ? b.date : '';
+  const org = String(b.organization || '').trim().slice(0, 120);
+  if (!title) return res.status(400).json({ error: 'The event name is required.' });
+  if (!date) return res.status(400).json({ error: 'Please give the event date.' });
+  if (!org) return res.status(400).json({ error: 'Please name the organization putting on the event.' });
+  const bad = flagContent(`${title} ${b.summary || ''} ${org}`);
+  if (bad) return res.status(400).json({ error: bad });
+  try {
+    // Deliberately the plain fields — no flyer, no rich text, no images. That
+    // is the member/non-member difference Felicia described.
+    const ev = buildEvent({
+      id: 'ce-' + Date.now().toString(36),
+      title, date,
+      time: String(b.time || '').slice(0, 40),
+      endDate: /^\d{4}-\d{2}-\d{2}$/.test(String(b.endDate || '')) ? b.endDate : '',
+      venue: String(b.venue || '').slice(0, 160),
+      address: String(b.address || '').slice(0, 200),
+      summary: String(b.summary || '').slice(0, 600),
+      category: 'Community',
+      // Pending until an admin approves; confirmed because a date is required.
+      status: 'pending', confirmed: true, showOnCalendar: true,
+      imageMode: 'logo',        // no flyer to show, so no giant placeholder
+      links: b.website ? [{ type: 'info', label: 'Event details', url: String(b.website).slice(0, 400) }] : [],
+    }, {});
+    // Attribution — the listing says who submitted it and that they are not a
+    // Chamber member, so making the date visible never reads as an endorsement.
+    ev.hostKind = 'community';
+    ev.hostName = org;
+    ev.submittedByName = org;
+    ev.source = 'community';
+    ev.communityEmail = to;
+    await repo.upsertEvent(ev);
+    evCodes.delete(to);
+    res.json({ ok: true, status: 'pending' });
+  } catch (e) { console.error('public event', e); res.status(500).json({ error: 'Could not submit the event — please try again.' }); }
+});
+
+router.post('/public/job', async (req, res) => {
+  const b = req.body || {};
+  const cap = await turnstile.verify(b['cf-turnstile-response'] || b.turnstileToken, req.ip);
+  if (!cap.ok) return res.status(400).json({ error: 'Please complete the human-verification check and try again.' });
+  const title = String(b.title || '').trim().slice(0, 160);
+  const body = String(b.body || '').trim().slice(0, 4000);
+  const company = String(b.company || '').trim().slice(0, 120);
+  const contact = String(b.email || '').trim().slice(0, 160);
+  if (!title || !body) return res.status(400).json({ error: 'The job title and the description are both required.' });
+  if (!company) return res.status(400).json({ error: 'Please include the name of the business hiring.' });
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(contact)) return res.status(400).json({ error: 'Please give a valid email address so we can confirm this posting with you.' });
+  const bad = flagContent(`${title} ${body} ${company}`);
+  if (bad) return res.status(400).json({ error: bad });
+  const post = {
+    id: 'post-' + Date.now().toString(36) + 'p',
+    type: 'job',
+    authorId: null, authorName: company, memberId: null,
+    title, body,
+    imageUrl: '', linkUrl: '',
+    ctaLabel: '', ctaUrl: clampUrl(b.applyUrl),
+    code: '', status: 'pending', featuredHome: false, expiresAt: null,
+    // `community` + `submitterEmail` live in meta because that is the only
+    // free-form field the posts table persists — they mark this as a community
+    // submission on the public card and in the admin queue, so the Chamber is
+    // never implying it vouches for the poster.
+    meta: {
+      ...sanitizePostMeta('job', b.meta),
+      applyEmail: contact,
+      community: true,
+      submitterEmail: contact,
+    },
+  };
+  try {
+    await repo.addPost(post);
+    res.json({ ok: true, status: 'pending' });
+  } catch (e) { console.error('public job', e); res.status(500).json({ error: 'Could not submit the posting — please try again.' }); }
 });
 
 // ── Group-leader event submission → publishes straight to the calendar ──
@@ -1070,6 +1272,16 @@ function buildEvent(b, existing = {}) {
     //   none  — no image block
     imageMode: ['auto', 'flyer', 'logo', 'both', 'none'].includes(b.imageMode)
       ? b.imageMode : (existing.imageMode ?? 'auto'),
+    // Volunteer roles the office needs covered at this event (Felicia, Jul 29
+    // 2026 — the ambassador tracker). Each role carries the points an
+    // ambassador earns and how many people are needed.
+    volunteerRoles: Array.isArray(b.volunteerRoles)
+      ? b.volunteerRoles.slice(0, 12).map((r) => ({
+          role: String((r && r.role) || '').slice(0, 80),
+          points: Math.max(0, Math.min(100, Number(r && r.points) || 0)),
+          needed: Math.max(1, Math.min(50, Number(r && r.needed) || 1)),
+        })).filter((r) => r.role)
+      : (existing.volunteerRoles || []),
     // Custom wording for the action button (Felicia, Jul 29 2026): "Buy Tickets"
     // is wrong when someone is buying an ad, a name badge or a sponsorship.
     // Blank = the standard label for whichever button kind is selected.
@@ -1113,7 +1325,9 @@ function buildEvent(b, existing = {}) {
     // Attribution (who/what an event is posted on behalf of) is set on member
     // submissions; carry it through admin edits so a staff tweak never erases
     // the "Hosted by" line or drops the event off its group page.
-    ...(pick(b, existing, ['hostKind', 'hostName', 'hostSlug', 'groupName', 'groupSlug', 'submittedBy', 'submittedByName', 'source', 'seriesId'])),
+    // communityEmail keeps a non-member submission attributable even after an
+    // admin edits the event (Felicia + Michael, Jul 29 2026).
+    ...(pick(b, existing, ['hostKind', 'hostName', 'hostSlug', 'groupName', 'groupSlug', 'submittedBy', 'submittedByName', 'source', 'seriesId', 'communityEmail'])),
     created: existing.created || new Date().toISOString(),
     updated: new Date().toISOString(),
   };
@@ -1582,6 +1796,393 @@ router.post('/admin/home-popup', requireAdmin, async (req, res) => {
   } catch (e) { console.error('home-popup save', e); res.status(500).json({ error: 'save failed' }); }
 });
 
+/* ── Payment portal catalog (Felicia, Jul 29 2026) ──────────
+   "Instead of them typing it in, they can choose from a drop down." The things
+   people actually pay the Chamber for, with prices, so nobody guesses an amount
+   and the office stops making correction calls. Office-editable in
+   Admin → Pay Log, and this seed is the list Felicia named on the call —
+   she is sending the confirmed prices, which drop straight in here. */
+const PAY_ITEMS_KEY = 'payItems';
+const PAY_ITEMS_DEFAULT = [
+  { label: 'Breakfast tickets', amount: null, note: 'Monthly membership breakfast' },
+  { label: 'Mixer tickets', amount: null, note: 'Evening networking mixer' },
+  { label: 'Name badge', amount: null, note: 'Member name badge' },
+  { label: 'Membership renewal', amount: null, note: 'Annual renewal — amount varies by level' },
+  { label: 'New membership', amount: null, note: 'First-year dues' },
+  { label: 'Sponsorship', amount: null, note: 'Event or program sponsorship' },
+  { label: 'Program ad', amount: null, note: 'Ad in an event program' },
+];
+function cleanPayItems(raw) {
+  const list = Array.isArray(raw) ? raw : [];
+  return list.slice(0, 40).map((i) => ({
+    label: String((i && i.label) || '').slice(0, 80),
+    // null = "the office will tell you" → the payer types the amount.
+    amount: i && i.amount !== '' && i.amount != null && !isNaN(Number(i.amount)) ? Number(i.amount) : null,
+    note: String((i && i.note) || '').slice(0, 140),
+  })).filter((i) => i.label);
+}
+async function loadPayItems() {
+  try {
+    const raw = await repo.getSetting(PAY_ITEMS_KEY);
+    if (!raw) return PAY_ITEMS_DEFAULT;
+    const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    const clean = cleanPayItems(parsed);
+    return clean.length ? clean : PAY_ITEMS_DEFAULT;
+  } catch (e) { return PAY_ITEMS_DEFAULT; }
+}
+router.get('/pay-items', async (_req, res) => {
+  try { res.json({ ok: true, items: await loadPayItems() }); }
+  catch (e) { res.json({ ok: true, items: PAY_ITEMS_DEFAULT }); }
+});
+router.get('/admin/pay-items', requireAdmin, async (_req, res) => {
+  try { res.json({ ok: true, items: await loadPayItems() }); }
+  catch (e) { res.status(500).json({ error: 'Could not load the payment list.' }); }
+});
+router.post('/admin/pay-items', requireAdmin, async (req, res) => {
+  try {
+    const items = cleanPayItems(req.body && req.body.items);
+    await repo.setSetting(PAY_ITEMS_KEY, JSON.stringify(items));
+    res.json({ ok: true, items });
+  } catch (e) { console.error('pay-items save', e); res.status(500).json({ error: 'Could not save the payment list.' }); }
+});
+
+/* ══ Ambassador / volunteer tracker (Felicia, Jul 29 2026) ══
+   "We have ambassadors that volunteer for things and they can accumulate
+   points." An ambassador signs in, claims a role at an upcoming event
+   ("registration at the Aug 5 breakfast"), and the office sees who covered
+   what plus a running total per person. Tiers are point thresholds the office
+   sets, because Felicia said they had not settled on names yet. */
+const VOL_TIERS_KEY = 'volunteerTiers';
+const VOL_TIERS_DEFAULT = [
+  { name: 'Bronze Ambassador', min: 0 },
+  { name: 'Silver Ambassador', min: 25 },
+  { name: 'Gold Ambassador', min: 60 },
+  { name: 'Platinum Ambassador', min: 120 },
+];
+// Starting point for events that have no roles set — the tasks Felicia named
+// plus the usual mixer/breakfast jobs. The office edits these per event.
+const VOL_ROLE_SUGGESTIONS = [
+  { role: 'Registration / check-in', points: 10, needed: 2 },
+  { role: 'Greeter', points: 8, needed: 2 },
+  { role: 'Setup', points: 8, needed: 2 },
+  { role: 'Cleanup / breakdown', points: 8, needed: 2 },
+  { role: 'Raffle / prizes', points: 6, needed: 1 },
+  { role: 'Photographer', points: 6, needed: 1 },
+  { role: 'Name badges', points: 6, needed: 1 },
+];
+function cleanTiers(raw) {
+  const list = Array.isArray(raw) ? raw : [];
+  return list.slice(0, 12).map((t) => ({
+    name: String((t && t.name) || '').slice(0, 60),
+    min: Math.max(0, Math.min(100000, Number(t && t.min) || 0)),
+  })).filter((t) => t.name).sort((a, b) => a.min - b.min);
+}
+async function loadTiers() {
+  try {
+    const raw = await repo.getSetting(VOL_TIERS_KEY);
+    if (!raw) return VOL_TIERS_DEFAULT;
+    const clean = cleanTiers(typeof raw === 'string' ? JSON.parse(raw) : raw);
+    return clean.length ? clean : VOL_TIERS_DEFAULT;
+  } catch (e) { return VOL_TIERS_DEFAULT; }
+}
+const tierFor = (tiers, pts) => {
+  let out = tiers[0] ? tiers[0].name : '';
+  for (const t of tiers) if (pts >= t.min) out = t.name;
+  return out;
+};
+// Only confirmed shifts count toward points — a no-show should not earn a tier.
+const countsForPoints = (v) => v.status !== 'no-show';
+
+// What an ambassador can sign up for: upcoming events that have roles defined,
+// with the remaining headcount per role.
+router.get('/me/volunteer/openings', auth.requireAuth(), async (_req, res) => {
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    const events = (await loadEvents()).filter((e) =>
+      e.date && e.date >= today && (e.status || 'approved') === 'approved'
+      && Array.isArray(e.volunteerRoles) && e.volunteerRoles.length);
+    const signups = await repo.listVolunteers({});
+    const out = events
+      .sort((a, b) => String(a.date).localeCompare(String(b.date)))
+      .map((e) => ({
+        id: e.id, title: e.title, date: e.date, time: e.time || '', venue: e.venue || '',
+        roles: e.volunteerRoles.map((r) => {
+          const taken = signups.filter((s) => s.eventId === e.id && s.role === r.role && s.status !== 'no-show').length;
+          return { ...r, taken, open: Math.max(0, r.needed - taken) };
+        }),
+      }));
+    res.json({ ok: true, events: out });
+  } catch (e) { console.error('volunteer openings', e); res.status(500).json({ error: 'Could not load the volunteer list.' }); }
+});
+
+// My shifts + my running total and tier.
+router.get('/me/volunteer', auth.requireAuth(), async (req, res) => {
+  try {
+    if (!req.user.mid) return res.json({ ok: true, mine: [], points: 0, tier: '' });
+    const mine = await repo.listVolunteers({ memberId: req.user.mid });
+    const tiers = await loadTiers();
+    const points = mine.filter(countsForPoints).reduce((s, v) => s + (Number(v.points) || 0), 0);
+    res.json({ ok: true, mine, points, tier: tierFor(tiers, points), tiers });
+  } catch (e) { res.status(500).json({ error: 'Could not load your volunteer history.' }); }
+});
+
+router.post('/me/volunteer', auth.requireAuth(), async (req, res) => {
+  const mid = req.user.mid;
+  if (!mid) return res.status(400).json({ error: 'No member listing is linked to this account.' });
+  const b = req.body || {};
+  try {
+    const ev = (await loadEvents()).find((e) => e.id === b.eventId);
+    if (!ev) return res.status(404).json({ error: 'That event no longer exists.' });
+    const role = (ev.volunteerRoles || []).find((r) => r.role === b.role);
+    if (!role) return res.status(400).json({ error: 'That volunteer role is not on this event.' });
+    const existing = await repo.listVolunteers({ eventId: ev.id });
+    if (existing.some((v) => v.memberId === mid && v.role === role.role)) {
+      return res.status(409).json({ error: 'You are already signed up for that role at this event.' });
+    }
+    const taken = existing.filter((v) => v.role === role.role && v.status !== 'no-show').length;
+    if (taken >= role.needed) return res.status(409).json({ error: 'That role is already fully covered — thank you though! Try another one.' });
+    const m = await myMember(mid);
+    await repo.addVolunteer({
+      id: 'vol-' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36),
+      eventId: ev.id, eventTitle: ev.title || '', eventDate: ev.date || '',
+      memberId: mid,
+      name: (m && (m.contactName || m.name)) || req.user.sub,
+      email: (m && m.email) || req.user.sub, phone: (m && m.phone) || '',
+      role: role.role, points: Number(role.points) || 0,
+      status: 'signed-up', note: String(b.note || '').slice(0, 300),
+    });
+    res.json({ ok: true });
+  } catch (e) { console.error('volunteer signup', e); res.status(500).json({ error: 'Could not sign you up — please try again.' }); }
+});
+
+router.delete('/me/volunteer/:id', auth.requireAuth(), async (req, res) => {
+  try {
+    const mine = await repo.listVolunteers({ memberId: req.user.mid });
+    if (!mine.some((v) => v.id === req.params.id)) return res.status(404).json({ error: 'That sign-up is not yours.' });
+    await repo.deleteVolunteer(req.params.id);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: 'Could not cancel that sign-up.' }); }
+});
+
+// Admin: every shift, plus the leaderboard the office asked to "look and see".
+router.get('/admin/volunteers', requireAdmin, async (req, res) => {
+  try {
+    const all = await repo.listVolunteers(req.query.event ? { eventId: req.query.event } : {});
+    const tiers = await loadTiers();
+    const byPerson = new Map();
+    for (const v of await repo.listVolunteers({})) {
+      const key = v.memberId || (v.email || v.name || '').toLowerCase();
+      if (!key) continue;
+      const cur = byPerson.get(key) || { key, name: v.name, email: v.email || '', memberId: v.memberId || '', points: 0, shifts: 0, lastDate: '' };
+      cur.shifts++;
+      if (countsForPoints(v)) cur.points += Number(v.points) || 0;
+      if (String(v.eventDate || '') > String(cur.lastDate)) cur.lastDate = v.eventDate || '';
+      byPerson.set(key, cur);
+    }
+    const leaderboard = [...byPerson.values()]
+      .map((p) => ({ ...p, tier: tierFor(tiers, p.points) }))
+      .sort((a, b) => b.points - a.points || a.name.localeCompare(b.name));
+    res.json({ ok: true, volunteers: all, leaderboard, tiers, roleSuggestions: VOL_ROLE_SUGGESTIONS });
+  } catch (e) { console.error('admin volunteers', e); res.status(500).json({ error: 'Could not load the volunteer tracker.' }); }
+});
+
+// Add a helper by hand — plenty of ambassadors sign up by phone or in person.
+router.post('/admin/volunteers', requireAdmin, async (req, res) => {
+  const b = req.body || {};
+  const name = String(b.name || '').trim().slice(0, 120);
+  if (!name) return res.status(400).json({ error: 'Whose name should go on the shift?' });
+  try {
+    let ev = null;
+    if (b.eventId) ev = (await loadEvents()).find((e) => e.id === b.eventId) || null;
+    const role = String(b.role || '').slice(0, 80);
+    const fromEvent = ev && (ev.volunteerRoles || []).find((r) => r.role === role);
+    await repo.addVolunteer({
+      id: 'vol-' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36),
+      eventId: ev ? ev.id : '', eventTitle: ev ? (ev.title || '') : String(b.eventTitle || '').slice(0, 200),
+      eventDate: ev ? (ev.date || '') : String(b.eventDate || '').slice(0, 10),
+      memberId: String(b.memberId || '') || null,
+      name, email: String(b.email || '').slice(0, 160), phone: String(b.phone || '').slice(0, 40),
+      role,
+      points: b.points != null && b.points !== '' ? Math.max(0, Math.min(100, Number(b.points) || 0)) : (fromEvent ? fromEvent.points : 0),
+      status: ['signed-up', 'confirmed', 'no-show'].includes(b.status) ? b.status : 'confirmed',
+      note: String(b.note || '').slice(0, 300),
+    });
+    res.json({ ok: true });
+  } catch (e) { console.error('admin volunteer add', e); res.status(500).json({ error: 'Could not add that volunteer.' }); }
+});
+
+router.patch('/admin/volunteers/:id', requireAdmin, async (req, res) => {
+  const b = req.body || {};
+  const patch = {};
+  if (b.status !== undefined) {
+    if (!['signed-up', 'confirmed', 'no-show'].includes(b.status)) return res.status(400).json({ error: 'Unknown status.' });
+    patch.status = b.status;
+  }
+  if (b.points !== undefined) patch.points = Math.max(0, Math.min(100, Number(b.points) || 0));
+  if (b.role !== undefined) patch.role = String(b.role).slice(0, 80);
+  if (b.note !== undefined) patch.note = String(b.note).slice(0, 300);
+  try {
+    const ok = await repo.updateVolunteer(req.params.id, patch);
+    if (!ok) return res.status(404).json({ error: 'That shift no longer exists.' });
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: 'Could not save that change.' }); }
+});
+
+router.delete('/admin/volunteers/:id', requireAdmin, async (req, res) => {
+  try { await repo.deleteVolunteer(req.params.id); res.json({ ok: true }); }
+  catch (e) { res.status(500).json({ error: 'Could not remove that shift.' }); }
+});
+
+router.get('/admin/volunteer-tiers', requireAdmin, async (_req, res) => {
+  try { res.json({ ok: true, tiers: await loadTiers() }); }
+  catch (e) { res.status(500).json({ error: 'Could not load the tiers.' }); }
+});
+router.post('/admin/volunteer-tiers', requireAdmin, async (req, res) => {
+  try {
+    const tiers = cleanTiers(req.body && req.body.tiers);
+    await repo.setSetting(VOL_TIERS_KEY, JSON.stringify(tiers));
+    res.json({ ok: true, tiers });
+  } catch (e) { res.status(500).json({ error: 'Could not save the tiers.' }); }
+});
+
+// CSV of every shift — the office keeps this history in Excel today.
+router.get('/admin/volunteers.csv', requireAdmin, async (_req, res) => {
+  try {
+    const all = await repo.listVolunteers({});
+    const tiers = await loadTiers();
+    const totals = new Map();
+    for (const v of all) {
+      const k = v.memberId || (v.email || v.name || '').toLowerCase();
+      if (countsForPoints(v)) totals.set(k, (totals.get(k) || 0) + (Number(v.points) || 0));
+    }
+    const cell = (s) => `"${String(s == null ? '' : s).replace(/"/g, '""')}"`;
+    const rows = [['Date', 'Event', 'Volunteer', 'Email', 'Phone', 'Task', 'Points', 'Status', 'Running total', 'Tier', 'Note']];
+    for (const v of all) {
+      const k = v.memberId || (v.email || v.name || '').toLowerCase();
+      const tot = totals.get(k) || 0;
+      rows.push([v.eventDate, v.eventTitle, v.name, v.email, v.phone, v.role, v.points, v.status, tot, tierFor(tiers, tot), v.note]);
+    }
+    res.type('text/csv').set('Content-Disposition', 'attachment; filename="ambassador-tracker.csv"')
+      .send(rows.map((r) => r.map(cell).join(',')).join('\r\n'));
+  } catch (e) { res.status(500).send('export failed'); }
+});
+
+/* ── Community Benefit Foundation donation projects ─────────
+   Felicia, Jul 29 2026: "We used to have a donation page for our Community
+   Benefit Foundation... it pertained to each of the individual Community
+   Benefit Foundation events." The legacy site did this with
+   choose_donation_project.php; the initiatives here come from the Chamber's own
+   archived CBF page (beautification, education, Adopt-A-School, Earth Day and
+   tree planting), and the office can add or retire them without a developer. */
+const DONATION_PROJECTS_KEY = 'donationProjects';
+const DONATION_PROJECTS_DEFAULT = [
+  { key: 'Beautification & Community Cleanups', blurb: 'Supplies and equipment for the Saturday cleanups — graffiti removal, weed cutting, litter pickup and parkway care across the West Valley.', cbf: true, active: true },
+  { key: 'Earth Day & Tree Planting', blurb: 'Earth Day events and tree giveaways with the neighborhood councils. Over 500 trees planted in the West Valley so far.', cbf: true, active: true },
+  { key: 'Education & Youth Programs', blurb: 'Career days, Get Empowered / Get Employed workshops, and education and art grants for West Valley students.', cbf: true, active: true },
+  { key: 'Adopt-A-School Program', blurb: 'Connects West Valley businesses with local schools through cash grants and supplies — $500 minimum per adoption.', cbf: true, active: true },
+  { key: 'Community Benefit Foundation — General Fund', blurb: 'Goes wherever the need is greatest across the Foundation\'s beautification and education work.', cbf: true, active: true },
+  { key: 'Grateful Hearts', blurb: 'Honoring and supporting our local LAPD and LAFD first responders.', cbf: false, active: true },
+  { key: 'Valley Asian Cultural Festival', blurb: 'Celebrating the Valley\'s vibrant Asian and Pacific Islander communities.', cbf: false, active: true },
+];
+function cleanDonationProjects(raw) {
+  const list = Array.isArray(raw) ? raw : [];
+  return list.slice(0, 40).map((p) => ({
+    key: String((p && p.key) || '').slice(0, 120),
+    blurb: String((p && p.blurb) || '').slice(0, 400),
+    cbf: !!(p && p.cbf),
+    active: p && p.active === false ? false : true,
+  })).filter((p) => p.key);
+}
+async function loadDonationProjects() {
+  try {
+    const raw = await repo.getSetting(DONATION_PROJECTS_KEY);
+    if (!raw) return DONATION_PROJECTS_DEFAULT;
+    const clean = cleanDonationProjects(typeof raw === 'string' ? JSON.parse(raw) : raw);
+    return clean.length ? clean : DONATION_PROJECTS_DEFAULT;
+  } catch (e) { return DONATION_PROJECTS_DEFAULT; }
+}
+router.get('/donation-projects', async (req, res) => {
+  try {
+    let list = (await loadDonationProjects()).filter((p) => p.active);
+    if (req.query.cbf === '1') list = list.filter((p) => p.cbf);
+    res.json({ ok: true, projects: list });
+  } catch (e) { res.json({ ok: true, projects: DONATION_PROJECTS_DEFAULT.filter((p) => p.active) }); }
+});
+router.get('/admin/donation-projects', requireAdmin, async (_req, res) => {
+  try { res.json({ ok: true, projects: await loadDonationProjects() }); }
+  catch (e) { res.status(500).json({ error: 'Could not load the donation projects.' }); }
+});
+router.post('/admin/donation-projects', requireAdmin, async (req, res) => {
+  try {
+    const projects = cleanDonationProjects(req.body && req.body.projects);
+    await repo.setSetting(DONATION_PROJECTS_KEY, JSON.stringify(projects));
+    res.json({ ok: true, projects });
+  } catch (e) { console.error('donation-projects save', e); res.status(500).json({ error: 'Could not save the donation projects.' }); }
+});
+
+/* ── Custom payment link (Felicia + Michael, Jul 29 2026) ───
+   The invoice equivalent: the office names the charge and the amount, gets a
+   link, and can email it from the site. `lock=1` freezes the amount so the
+   payer can't fat-finger $2,000 instead of $200. */
+router.post('/admin/payment-link', requireAdmin, async (req, res) => {
+  const b = req.body || {};
+  const what = String(b.for || '').trim().slice(0, 120);
+  const amount = Number(b.amount);
+  if (!what) return res.status(400).json({ error: 'Describe what the payment is for.' });
+  if (!(amount > 0)) return res.status(400).json({ error: 'Enter an amount greater than zero.' });
+  const origin = process.env.PUBLIC_ORIGIN || `${req.protocol}://${req.get('host')}`;
+  const qs = new URLSearchParams({ type: 'payment', for: what, amount: amount.toFixed(2) });
+  if (b.lock !== false) qs.set('lock', '1');
+  const url = `${origin}/checkout.html?${qs}`;
+
+  // Nothing to send → just hand back the link for the office to paste.
+  const to = String(b.to || '').trim();
+  if (!to) return res.json({ ok: true, url, sent: false });
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)) return res.status(400).json({ error: 'That email address does not look right.' });
+
+  const who = String(b.name || '').trim().slice(0, 80);
+  const note = String(b.message || '').trim().slice(0, 1200);
+  const subject = String(b.subject || '').trim().slice(0, 140)
+    || `Your payment link — ${what} ($${amount.toFixed(2)})`;
+  const text = [
+    who ? `Hi ${who},` : 'Hello,',
+    '',
+    note || `Here is your secure payment link for ${what}.`,
+    '',
+    `${what} — $${amount.toFixed(2)}`,
+    url,
+    '',
+    'The link opens our secure checkout. Card details are encrypted and never stored on our site.',
+    '',
+    'Thank you,',
+    'West Valley · Warner Center Chamber of Commerce',
+    '(818) 347-4737',
+  ].join('\n');
+  const html = `<p>${who ? `Hi ${esc(who)},` : 'Hello,'}</p>
+    <p>${esc(note || `Here is your secure payment link for ${what}.`).replace(/\n/g, '<br>')}</p>
+    <table role="presentation" style="border-collapse:collapse;margin:18px 0">
+      <tr><td style="padding:10px 14px;border:1px solid #dcd6c4;background:#faf8f3">
+        <strong>${esc(what)}</strong><br><span style="font-size:1.3rem;color:#12241a">$${amount.toFixed(2)}</span>
+      </td></tr></table>
+    <p><a href="${esc(url)}" style="display:inline-block;background:#C9A227;color:#12241a;padding:12px 22px;border-radius:8px;text-decoration:none;font-weight:600">Pay securely →</a></p>
+    <p style="font-size:.85rem;color:#5d6b63">Or paste this into your browser:<br>${esc(url)}</p>
+    <p style="font-size:.85rem;color:#5d6b63">Card details are encrypted and never stored on our site.</p>
+    <p>Thank you,<br><strong>West Valley · Warner Center Chamber of Commerce</strong><br>(818) 347-4737</p>`;
+  try {
+    const r = await email.send({ to, subject, text, html, replyTo: email.notifyTo() });
+    // `skipped` = no mail provider configured; the link is still valid, but the
+    // office needs to know it has to send it by hand.
+    const sent = !!(r && r.ok !== false && !r.skipped);
+    res.json({
+      ok: true, url, sent, provider: email.provider(),
+      ...(sent ? {} : { error: 'The link is ready, but the website could not send the email — copy the link and send it yourself.' }),
+    });
+  } catch (e) {
+    console.error('payment-link send', e);
+    res.json({ ok: true, url, sent: false, error: 'The link is ready, but the email could not be sent — copy the link and send it yourself.' });
+  }
+});
+
 // Pricing catalog (memberships, donation presets, ticket convention).
 let _skus = null;
 router.get('/skus', (_req, res) => {
@@ -1888,13 +2489,39 @@ router.post('/contact', async (req, res) => {
       if (ev) lead.event = `${ev.title}${ev.date ? ` (${ev.date})` : ''} [${ev.id}]`;
     } catch (e) { /* keep the raw id */ }
   }
-  // If the inquiry came from a group page (e.g. a meeting RSVP), route the
-  // notification to that group's manager instead of the general office.
+  // If the inquiry came from a group page (e.g. a meeting RSVP), notify that
+  // group's own leaders. Felicia, Jul 29 2026: the leaders were NOT getting
+  // these — routing sent the mail to the manager INSTEAD of the office, so a
+  // group with no manager email notified nobody, and the Wendy inbox lost its
+  // copy. Now every group leader is emailed AND the Wendy inbox always keeps
+  // one, as the log of all activity.
   let notifyTo = email.notifyTo(), groupName = '';
+  const leaderTo = [];
   if (b.group) {
     try {
       const g = (await loadGroups()).find((x) => x.slug === b.group || x.id === b.group);
-      if (g) { groupName = g.name; if (g.manager && g.manager.email) notifyTo = g.manager.email; lead.reason = lead.reason || `Group: ${g.name}`; }
+      if (g) {
+        groupName = g.name;
+        lead.reason = lead.reason || `Group: ${g.name}`;
+        const ok = (a) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(a || ''));
+        const add = (a) => {
+          const addr = String(a || '').trim().toLowerCase();
+          if (ok(addr) && addr !== String(email.notifyTo()).toLowerCase() && !leaderTo.includes(addr)) leaderTo.push(addr);
+        };
+        add(g.manager && g.manager.email);
+        add(g.contactEmail);
+        // Roster leaders too (Leader / Chair / Co-Chair). Entries added from the
+        // directory carry only a memberId, so resolve those against the roster.
+        try {
+          const { members: dir } = await loadMembersFull();
+          const emailById = new Map(dir.filter((m) => m.email).map((m) => [m.id, m.email]));
+          for (const m of (g.members || [])) {
+            if (m.status === 'pending') continue;
+            if (!/^(leader|chair|co-chair)$/i.test(String(m.role || ''))) continue;
+            add(m.email || emailById.get(m.memberId));
+          }
+        } catch (e) { /* manager/contact address still gets it */ }
+      }
     } catch (e) {}
   }
   try {
@@ -1923,17 +2550,22 @@ router.post('/contact', async (req, res) => {
     // visible under Admin → Inquiries). Re-enable with INQUIRY_EMAILS=on.
     // Group inquiries still notify that group's own manager either way.
     const officeWantsEmail = String(process.env.INQUIRY_EMAILS || '').toLowerCase() === 'on';
-    const isGroupManager = notifyTo !== email.notifyTo();
-    if (officeWantsEmail || isGroupManager) {
+    // Group leaders always get theirs. The Wendy inbox gets a copy whenever a
+    // leader was notified (so it stays the complete log) or when the office has
+    // inquiry emails switched on.
+    const recipients = [...leaderTo];
+    if (officeWantsEmail || leaderTo.length) recipients.push(notifyTo);
+    if (recipients.length) {
       const body = `New ${lead.reason || lead.kind} from the website\n\n`
         + `Name: ${lead.name || '—'}\nEmail: ${lead.email}\nPhone: ${lead.phone || '—'}\n`
-        + `Company: ${lead.company || '—'}\nEvent: ${lead.event || '—'}${groupName ? `\nGroup: ${groupName}` : ''}\n\nMessage:\n${lead.message || '—'}\n`;
-      email.send({
-        to: notifyTo,
-        replyTo: lead.email,
-        subject: `${groupName ? `[${groupName}] ` : ''}Website inquiry: ${lead.reason || lead.kind}${lead.company ? ' — ' + lead.company : ''}`,
-        text: body,
-      }).catch((e) => console.error('notify email failed', e));
+        + `Company: ${lead.company || '—'}\nEvent: ${lead.event || '—'}${groupName ? `\nGroup: ${groupName}` : ''}\n\nMessage:\n${lead.message || '—'}\n`
+        + `\n—\nAlso filed under Admin → Inquiries on the Chamber website.\n`;
+      const subject = `${groupName ? `[${groupName}] ` : ''}Website inquiry: ${lead.reason || lead.kind}${lead.company ? ' — ' + lead.company : ''}`;
+      // Individually addressed so leaders never see each other's addresses.
+      for (const to of [...new Set(recipients)]) {
+        email.send({ to, replyTo: lead.email, subject, text: body })
+          .catch((e) => console.error('notify email failed', to, e));
+      }
     }
   } catch (e) { console.error('lead save failed', e); res.status(500).json({ ok: false, error: 'could not send' }); }
 });
@@ -2186,12 +2818,76 @@ router.get('/admin/email-test', requireAdmin, async (req, res) => {
   res.json({ enabled: email.enabled(), notifyTo: email.notifyTo(), to, ...detail });
 });
 
+/* Everything waiting on the office, in one list (Felicia, Jul 29 2026).
+   "We don't need the notification sent to us as long as we could see it when
+   we go into the dashboard." The pending counter used to mean members only, so
+   a job posting or a community event could sit unseen. */
+async function pendingApprovals() {
+  const out = [];
+  try {
+    const { members } = await loadMembersFull();
+    for (const m of members.filter((x) => x.status === 'pending')) {
+      out.push({ kind: 'member', label: 'New member', title: m.name || m.contactName || m.id, id: m.id, href: 'approvals.html' });
+    }
+  } catch (e) {}
+  try {
+    for (const p of await repo.listPosts({ status: 'pending' })) {
+      const community = p.meta && p.meta.community;
+      out.push({
+        kind: p.type === 'job' ? 'job' : 'post',
+        label: p.type === 'job' ? (community ? 'Job posting (community)' : 'Job posting') : 'Member content',
+        title: p.title || p.id, id: p.id, who: p.authorName || '', created: p.created || '',
+        href: 'content.html',
+      });
+    }
+  } catch (e) {}
+  try {
+    for (const ev of await loadEvents()) {
+      if ((ev.status || 'approved') !== 'pending') continue;
+      out.push({
+        kind: ev.hostKind === 'community' ? 'community-event' : 'event',
+        label: ev.hostKind === 'community' ? 'Community event' : 'Member event',
+        title: ev.title || ev.id, id: ev.id, who: ev.hostName || ev.submittedByName || '',
+        created: ev.date || '', href: 'events.html?tab=pending',
+      });
+    }
+  } catch (e) {}
+  try {
+    for (const g of await loadGroups()) {
+      for (const m of (g.members || [])) {
+        if (m.status !== 'pending') continue;
+        out.push({
+          kind: 'group-join', label: `Join request — ${g.name}`,
+          title: m.name || m.email || m.id, id: `${g.id}:${m.id}`, who: m.business || '',
+          href: 'groups.html',
+        });
+      }
+    }
+  } catch (e) {}
+  try {
+    for (const l of await repo.listLeads()) {
+      if (l.kind === 'ribbon-cutting' && l.status !== 'done') {
+        out.push({ kind: 'ribbon', label: 'Ribbon cutting request', title: l.company || l.name || l.id, id: l.id, href: 'ribbon-cuttings.html' });
+      }
+    }
+  } catch (e) {}
+  return out;
+}
+
+router.get('/admin/approvals-feed', requireAdmin, async (_req, res) => {
+  try {
+    const items = await pendingApprovals();
+    res.json({ ok: true, count: items.length, items });
+  } catch (e) { console.error('approvals-feed', e); res.status(500).json({ error: 'Could not load the approvals list.' }); }
+});
+
 router.get('/admin/summary', requireAdmin, async (_req, res) => {
   try {
     const { members, source } = await loadMembersFull();
     const leads = await repo.listLeads();
     const orders = await repo.listOrders();
     const pendingPosts = (await repo.listPosts({ status: 'pending' })).length;
+    const approvals = await pendingApprovals();
     res.json({
       source,
       members: members.length,
@@ -2199,6 +2895,10 @@ router.get('/admin/summary', requireAdmin, async (_req, res) => {
       leaders: members.filter((m) => m.leaderStatus).length,
       newLeads: leads.filter((l) => l.status === 'new').length,
       pendingPosts,
+      // Every kind of approval, not just members — the office works off this
+      // number instead of email notifications.
+      pendingAll: approvals.length,
+      pendingByKind: approvals.reduce((acc, a) => { acc[a.kind] = (acc[a.kind] || 0) + 1; return acc; }, {}),
       // Declined attempts are visible in the Pay Log but never count as money.
       orders: orders.filter((o) => (o.status || 'paid') !== 'declined').length,
       revenue: orders.filter((o) => (o.status || 'paid') === 'paid').reduce((s, o) => s + (Number(o.amount) || 0), 0),

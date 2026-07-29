@@ -202,6 +202,30 @@ ALTER TABLE assets ADD COLUMN IF NOT EXISTS name text;
 ALTER TABLE assets ADD COLUMN IF NOT EXISTS tags text;
 ALTER TABLE assets ADD COLUMN IF NOT EXISTS archived boolean DEFAULT false;
 
+-- ── Ambassador / volunteer tracker (Felicia, Jul 29 2026) ──
+-- "A way for me to sign in and say I'm volunteering for this event... it'll say
+-- the task, like I helped with registration at the August 5th breakfast, and
+-- it'll track it." One row per person per role per event; points accumulate
+-- and drive the tier shown on the leaderboard.
+CREATE TABLE IF NOT EXISTS volunteers (
+  id          text PRIMARY KEY,                -- 'vol-...'
+  event_id    text,
+  event_title text,
+  event_date  text,                            -- YYYY-MM-DD, denormalized for reporting
+  member_id   text,                            -- null for a manually-added helper
+  name        text NOT NULL,
+  email       text,
+  phone       text,
+  role        text,                            -- 'Registration / check-in', 'Greeter', ...
+  points      integer DEFAULT 0,
+  -- signed-up → confirmed (they showed) | no-show (points not credited)
+  status      text DEFAULT 'signed-up',
+  note        text,
+  created     timestamptz DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS volunteers_event_idx ON volunteers (event_id);
+CREATE INDEX IF NOT EXISTS volunteers_member_idx ON volunteers (member_id);
+
 -- ── Member self-service profile edits (member portal) ─────
 -- Stores only the fields a member changed; merged onto the base directory record.
 CREATE TABLE IF NOT EXISTS member_profiles (

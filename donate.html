@@ -32,19 +32,26 @@
 
   <div data-partial="footer"></div>
 
-  <script src="js/partials.js?v=20260708a"></script>
+  <script src="js/partials.js?v=20260729a"></script>
   <script src="js/api-base.js?v=20260619a"></script>
   <script src="js/chamber.js?v=20260729a"></script>
   <script>
     ChamberPartials.mount({ active: '', depth: 0, lang: 'en' });
-    // Real donation projects from the live ChamberWare site.
-    const PROJECTS = [
-      { key: 'Community Benefit Foundation', desc: 'Community cleanup supplies and equipment for a cleaner, greener Valley.' },
-      { key: 'Grateful Hearts', desc: 'Honoring and supporting our local LAPD and LAFD first responders.' },
-      { key: 'Valley Asian Cultural Festival', desc: 'Celebrating the Valley’s vibrant Asian and Pacific Islander communities.' },
-      { key: 'Education', desc: 'Youth and adult education programs and scholarships across the West Valley.' },
+    // Donation projects are office-editable (Admin → Content). Restored from the
+    // legacy Community Benefit Foundation donation page (Felicia, Jul 29 2026),
+    // which let a donor choose which initiative or event their gift went to.
+    const FALLBACK = [
+      { key: 'Community Benefit Foundation', blurb: 'Community cleanup supplies and equipment for a cleaner, greener Valley.' },
+      { key: 'Grateful Hearts', blurb: 'Honoring and supporting our local LAPD and LAFD first responders.' },
+      { key: 'Valley Asian Cultural Festival', blurb: 'Celebrating the Valley’s vibrant Asian and Pacific Islander communities.' },
+      { key: 'Education', blurb: 'Youth and adult education programs and scholarships across the West Valley.' },
     ];
     (async () => {
+      let projects = FALLBACK;
+      try {
+        const d = await Chamber.getJSON(ChamberAPI.url('/api/donation-projects'));
+        if (d && Array.isArray(d.projects) && d.projects.length) projects = d.projects;
+      } catch (e) {}
       // Preset amounts come from the SKU catalog (actual gifts the Chamber receives).
       let cat = null;
       try { cat = await Chamber.getJSON(ChamberAPI.url('/api/skus')); }
@@ -52,11 +59,12 @@
       const presets = ((cat && cat.donations) || []).filter((d) => d.amount != null);
       const amounts = presets.length ? presets : [25, 50, 100, 150, 300].map((a) => ({ sku: 'don-' + a, amount: a }));
       const enc = encodeURIComponent;
-      document.getElementById('donateProjects').innerHTML = PROJECTS.map((p) => `
+      const esc = Chamber.esc;
+      document.getElementById('donateProjects').innerHTML = projects.map((p) => `
         <article class="card card--hover">
           <div class="card__icon">♥</div>
-          <h3>${p.key}</h3>
-          <p>${p.desc}</p>
+          <h3>${esc(p.key)}</h3>
+          <p>${esc(p.blurb || p.desc || '')}</p>
           <div class="chips mt-4">
             ${amounts.map((a) => `<a class="chip" href="checkout.html?type=donation&sku=${enc(a.sku)}&project=${enc(p.key)}&amount=${a.amount}">$${a.amount}</a>`).join('')}
             <a class="chip" href="checkout.html?type=donation&sku=don-custom&project=${enc(p.key)}">Other</a>

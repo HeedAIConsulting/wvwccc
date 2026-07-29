@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex" />
+  <title>Ambassador Tracker — WVWCCC Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="../css/chamber.css" />
+  <link rel="stylesheet" href="admin.css?v=20260710a" />
+</head>
+<body class="admin">
+  <div class="admin-shell">
+    <aside class="admin-sidebar" data-admin-nav></aside>
+    <div class="admin-main">
+      <div class="admin-topbar"><h1>Ambassador Tracker</h1></div>
+      <div class="admin-content">
+        <p id="adminError" class="admin-notice" hidden></p>
+        <p class="admin-notice">Who volunteered for what, and how many points they've earned. Ambassadors sign themselves
+          up from the member portal — you can also add someone here when they volunteer by phone. Set the roles you need
+          covered on each event in <a href="events.html">Events</a>.</p>
+
+        <div class="panel">
+          <div class="panel__head" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <h3 style="margin-right:auto">🏅 Leaderboard</h3>
+            <a class="btn btn--ghost btn--sm" href="/api/admin/volunteers.csv" title="Every shift with points and running totals">⤓ Export CSV</a>
+          </div>
+          <table class="admin-table">
+            <thead><tr><th>Ambassador</th><th>Tier</th><th>Points</th><th>Shifts</th><th>Most recent</th></tr></thead>
+            <tbody id="leaderRows"><tr><td colspan="5" class="sub">Loading…</td></tr></tbody>
+          </table>
+        </div>
+
+        <div class="panel">
+          <div class="panel__head" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <h3 style="margin-right:auto">Every shift</h3>
+            <select id="volEventFilter" class="admin-select" style="min-width:220px"><option value="">All events</option></select>
+            <input id="volSearch" class="admin-select" type="search" placeholder="Search a name or task…" style="min-width:200px" />
+          </div>
+          <table class="admin-table">
+            <thead><tr><th>Date</th><th>Event</th><th>Volunteer</th><th>Task</th><th>Points</th><th>Status</th><th></th></tr></thead>
+            <tbody id="volRows"><tr><td colspan="7" class="sub">Loading…</td></tr></tbody>
+          </table>
+          <p id="volMsg" class="notice" hidden style="margin:10px 16px"></p>
+        </div>
+
+        <div class="panel">
+          <div class="panel__head"><h3>＋ Add a volunteer by hand</h3></div>
+          <div class="admin-form" style="padding:16px">
+            <p class="sub" style="margin:0 0 12px">For anyone who volunteers over the phone or on the day — or to record
+              a shift from a past event so their points and history are complete.</p>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+              <div class="field" style="margin:0"><label>Event</label>
+                <select id="vaEvent" class="admin-select"><option value="">— pick an event —</option></select></div>
+              <div class="field" style="margin:0"><label>Task</label>
+                <input id="vaRole" list="vaRoleIdeas" placeholder="Registration / check-in" />
+                <datalist id="vaRoleIdeas"></datalist></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1.4fr 1.4fr 100px 130px;gap:12px;margin-top:12px">
+              <div class="field" style="margin:0"><label>Name *</label><input id="vaName" maxlength="120" placeholder="Lonnie" /></div>
+              <div class="field" style="margin:0"><label>Email</label><input id="vaEmail" type="email" placeholder="optional" /></div>
+              <div class="field" style="margin:0"><label>Points</label><input id="vaPoints" type="number" min="0" max="100" placeholder="auto" title="Leave blank to use the points set on the event's role" /></div>
+              <div class="field" style="margin:0"><label>Status</label>
+                <select id="vaStatus" class="admin-select">
+                  <option value="confirmed">Confirmed (showed up)</option>
+                  <option value="signed-up">Signed up</option>
+                  <option value="no-show">No-show (no points)</option>
+                </select></div>
+            </div>
+            <div class="field"><label>Note <span class="sub">(optional)</span></label><input id="vaNote" maxlength="300" placeholder="Covered the front table until 9" /></div>
+            <button type="button" id="vaAdd" class="btn btn--forest">Add the shift</button>
+            <p id="vaMsg" class="notice" hidden style="margin-top:10px"></p>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel__head"><h3>Tiers</h3></div>
+          <div class="admin-form" style="padding:16px">
+            <p class="sub" style="margin:0 0 12px">Point thresholds and what you call each level. An ambassador's tier is
+              the highest one their points reach. Rename these to whatever the committee decides.</p>
+            <div id="tierRows"></div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px">
+              <button type="button" id="tierAdd" class="btn btn--ghost btn--sm">+ Add a tier</button>
+              <button type="button" id="tierSave" class="btn btn--forest btn--sm">Save tiers</button>
+            </div>
+            <p id="tierMsg" class="notice" hidden style="margin-top:10px"></p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+  <script src="../js/api-base.js"></script>
+  <script src="admin.js?v=20260729a"></script>
+  <script>Admin.initAmbassadors();</script>
+  <script defer src="/js/support.js?v=20260701a"></script>
+</body>
+</html>

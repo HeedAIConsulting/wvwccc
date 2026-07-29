@@ -109,8 +109,103 @@ window.MemberPortal = (function () {
             <li><a style="color:var(--gold-bright)" href="../donate.html">› Sponsor / donate</a></li>
           </ul>
         </aside>
-      </div>`;
+      </div>
+      <div id="volunteerBlock" class="mt-6"></div>`;
     bindLogout();
+    mountVolunteer();
+  }
+
+  /* ── Volunteer sign-up (ambassador tracker, Felicia Jul 29 2026) ──
+     "There's a way for me to sign in and say I'm volunteering for this event."
+     Shows the open jobs on upcoming events, what each is worth, and the
+     member's own running total and tier. */
+  async function mountVolunteer() {
+    const host = document.getElementById('volunteerBlock');
+    if (!host) return;
+    let openings = { events: [] };
+    let me = { mine: [], points: 0, tier: '' };
+    try {
+      [openings, me] = await Promise.all([
+        api('/api/me/volunteer/openings').catch(() => ({ events: [] })),
+        api('/api/me/volunteer').catch(() => ({ mine: [], points: 0, tier: '' })),
+      ]);
+    } catch (e) { return; }
+    const evs = openings.events || [];
+    const mine = me.mine || [];
+    // Nothing to volunteer for and no history → don't clutter the dashboard.
+    if (!evs.length && !mine.length) return;
+
+    const claimed = new Set(mine.map((m) => `${m.eventId}|${m.role}`));
+    const upcomingMine = mine.filter((m) => !m.eventDate || m.eventDate >= new Date().toISOString().slice(0, 10));
+
+    host.innerHTML = `
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:start;gap:var(--s-4);flex-wrap:wrap">
+          <div>
+            <span class="kicker">Ambassadors</span>
+            <h2 style="margin:4px 0">Volunteer at an event</h2>
+            <p class="member-tile__meta">Pick a job and we'll put you down for it. The Chamber office sees exactly who's covering what.</p>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:2rem;font-weight:700;color:var(--green-ink,#12241a);line-height:1">${esc(me.points || 0)}</div>
+            <div class="member-tile__meta">points${me.tier ? ` · <strong>${esc(me.tier)}</strong>` : ''}</div>
+          </div>
+        </div>
+
+        ${upcomingMine.length ? `<div class="notice mt-4" style="border-color:var(--green)">
+          <strong>You're signed up for:</strong>
+          <ul style="margin:6px 0 0;padding-left:18px">
+            ${upcomingMine.map((m) => `<li>${esc(m.role)} — ${esc(m.eventTitle)}${m.eventDate ? ` (${esc(m.eventDate)})` : ''}
+              <button type="button" data-vcancel="${esc(m.id)}" class="btn btn--ghost btn--sm" style="margin-left:6px;color:var(--red)">Cancel</button></li>`).join('')}
+          </ul></div>` : ''}
+
+        ${evs.length ? `<div class="mt-5" style="display:flex;flex-direction:column;gap:var(--s-4)">
+          ${evs.map((e) => `<div style="border:1px solid var(--line);border-radius:var(--r-md);padding:var(--s-4)">
+            <strong>${esc(e.title)}</strong>
+            <div class="member-tile__meta">${esc(e.date)}${e.time ? ' · ' + esc(e.time) : ''}${e.venue ? ' · ' + esc(e.venue) : ''}</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+              ${e.roles.map((r) => {
+                const isMine = claimed.has(`${e.id}|${r.role}`);
+                const full = r.open <= 0;
+                return `<button type="button" class="chip" ${isMine || full ? 'disabled' : ''}
+                  data-vsign="${esc(e.id)}" data-vrole="${esc(r.role)}"
+                  style="${isMine ? 'background:var(--green);color:#fff;border-color:var(--green)' : full ? 'opacity:.5;cursor:not-allowed' : 'cursor:pointer'}"
+                  title="${isMine ? "You're signed up for this" : full ? 'Already covered' : `${r.points} points`}">
+                  ${isMine ? '✓ ' : ''}${esc(r.role)} · ${esc(r.points)} pts${full && !isMine ? ' · covered' : (isMine ? '' : ` · ${esc(r.open)} needed`)}
+                </button>`;
+              }).join('')}
+            </div>
+          </div>`).join('')}
+        </div>` : '<p class="member-tile__meta mt-4">No events need volunteers right now — check back soon.</p>'}
+
+        <p id="volMsg" class="notice mt-4" hidden></p>
+        ${mine.length ? `<p class="member-tile__meta mt-4">You've helped at ${mine.length} shift${mine.length === 1 ? '' : 's'}. Thank you 🌿</p>` : ''}
+      </div>`;
+
+    const msg = document.getElementById('volMsg');
+    const say = (t, bad) => { msg.hidden = !t; msg.textContent = t || ''; msg.style.borderColor = bad ? 'var(--red)' : 'var(--green)'; msg.style.color = bad ? 'var(--red)' : ''; };
+
+    host.querySelectorAll('[data-vsign]').forEach((b) => b.addEventListener('click', async () => {
+      if (b.disabled) return;
+      b.disabled = true;
+      try {
+        const r = await fetch(base + '/api/me/volunteer', {
+          method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ eventId: b.dataset.vsign, role: b.dataset.vrole }),
+        });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok || d.ok === false) { say(d.error || 'Could not sign you up.', true); b.disabled = false; return; }
+        say(`You're down for "${b.dataset.vrole}" — thank you!`);
+        mountVolunteer();
+      } catch (e) { say('Could not reach the Chamber right now.', true); b.disabled = false; }
+    }));
+    host.querySelectorAll('[data-vcancel]').forEach((b) => b.addEventListener('click', async () => {
+      if (!confirm('Cancel this volunteer shift?')) return;
+      try {
+        await api('/api/me/volunteer/' + encodeURIComponent(b.dataset.vcancel), { method: 'DELETE' });
+        mountVolunteer();
+      } catch (e) { say('Could not cancel that shift.', true); }
+    }));
   }
 
   // ── Image upload helper (file → data URL → /api/me/asset → url) ──
@@ -374,19 +469,81 @@ window.MemberPortal = (function () {
     form.querySelectorAll('input[name="type"]').forEach((r) => r.addEventListener('change', syncTypeFields));
     syncTypeFields();
 
-    // load my posts with statuses
-    try {
-      const mine = (await api('/api/me/posts')).posts || [];
+    // ── My posts: edit, repost, remove (Felicia, Jul 29 2026) ──
+    // A member can now manage what they put up instead of emailing the office
+    // to change a typo. Editing sends it back through staff review.
+    let editingId = null;
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const submitLabel = submitBtn ? submitBtn.textContent : 'Submit';
+    const stopEditing = () => {
+      editingId = null;
+      if (submitBtn) submitBtn.textContent = submitLabel;
+      const c = document.getElementById('postCancelEdit');
+      if (c) c.remove();
+    };
+    const startEditing = (p, duplicate) => {
+      editingId = duplicate ? null : p.id;
+      const radio = form.querySelector(`input[name="type"][value="${p.type}"]`);
+      if (radio) { radio.checked = true; syncTypeFields(); }
+      form.querySelector('[name="title"]').value = duplicate ? `${p.title} (copy)` : (p.title || '');
+      form.querySelector('[name="body"]').value = p.body || '';
+      const setIf = (n, v) => { const el = form.querySelector(`[name="${n}"]`); if (el) el.value = v || ''; };
+      setIf('ctaLabel', p.ctaLabel); setIf('ctaUrl', p.ctaUrl || p.linkUrl); setIf('code', p.code);
+      const m = p.meta || {};
+      setIf('jobType', m.jobType); setIf('jobLocation', m.location); setIf('payRange', m.payRange); setIf('applyEmail', m.applyEmail);
+      setIf('listingType', m.listingType); setIf('dealType', m.dealType); setIf('price', m.price);
+      setIf('listingAddress', m.address); setIf('beds', m.beds); setIf('baths', m.baths); setIf('sqft', m.sqft);
+      imageUrl = p.imageUrl || '';
+      if (submitBtn) submitBtn.textContent = editingId ? 'Save changes (goes back for review)' : 'Submit the copy for review';
+      if (submitBtn && !document.getElementById('postCancelEdit')) {
+        const c = document.createElement('button');
+        c.type = 'button'; c.id = 'postCancelEdit'; c.className = 'btn btn--ghost';
+        c.style.marginLeft = '8px'; c.textContent = 'Cancel';
+        c.addEventListener('click', () => { form.reset(); imageUrl = ''; syncTypeFields(); stopEditing(); });
+        submitBtn.insertAdjacentElement('afterend', c);
+      }
+      msg.hidden = false; msg.style.borderColor = 'var(--gold)';
+      msg.textContent = editingId
+        ? 'Editing your posting below. Saving sends it back to Chamber staff for a quick review.'
+        : 'Copied into the form below — change what you need, then submit it.';
+      form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    };
+
+    async function loadMine() {
       const list = document.getElementById('myPosts');
-      if (list) list.innerHTML = mine.length ? mine.map((p) => `
-        <div class="card" style="padding:var(--s-4)">
+      if (!list) return;
+      let mine = [];
+      try { mine = (await api('/api/me/posts')).posts || []; } catch (e) { return; }
+      list.innerHTML = mine.length ? mine.map((p) => `
+        <div class="card" style="padding:var(--s-4)" data-post="${esc(p.id)}">
           <div style="display:flex;justify-content:space-between;gap:var(--s-3)">
             <strong>${esc(p.title)}</strong>
             <span class="badge ${p.status === 'approved' ? 'badge--gold' : p.status === 'rejected' ? 'badge--bronze' : ''}">${esc(p.status)}</span>
           </div>
-          <div class="member-tile__meta">${esc(TYPE_LABEL[p.type] || p.type)}</div>
+          <div class="member-tile__meta">${esc(TYPE_LABEL[p.type] || p.type)}${p.created ? ' · ' + new Date(p.created).toLocaleDateString() : ''}</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">
+            <button type="button" class="btn btn--ghost btn--sm" data-pedit>Edit</button>
+            <button type="button" class="btn btn--ghost btn--sm" data-pdupe title="Start a new posting from this one">Repost / duplicate</button>
+            <button type="button" class="btn btn--ghost btn--sm" data-pdel style="color:var(--red)">Remove</button>
+          </div>
         </div>`).join('') : '<p class="member-tile__meta">You haven\'t posted anything yet.</p>';
-    } catch (e) {}
+
+      list.querySelectorAll('[data-post]').forEach((card) => {
+        const p = mine.find((x) => x.id === card.dataset.post);
+        card.querySelector('[data-pedit]')?.addEventListener('click', () => startEditing(p, false));
+        card.querySelector('[data-pdupe]')?.addEventListener('click', () => startEditing(p, true));
+        card.querySelector('[data-pdel]')?.addEventListener('click', async () => {
+          if (!confirm(`Remove "${p.title}"?\n\nIt comes off the website right away and can't be undone.`)) return;
+          try {
+            await api('/api/me/post/' + encodeURIComponent(p.id), { method: 'DELETE' });
+            if (editingId === p.id) { form.reset(); imageUrl = ''; syncTypeFields(); stopEditing(); }
+            msg.hidden = false; msg.style.borderColor = 'var(--green)'; msg.textContent = 'Removed.';
+            loadMine();
+          } catch (err) { msg.hidden = false; msg.style.borderColor = 'var(--red)'; msg.textContent = 'Could not remove that posting.'; }
+        });
+      });
+    }
+    await loadMine();
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -403,13 +560,26 @@ window.MemberPortal = (function () {
         listingType: fd.get('listingType'), dealType: fd.get('dealType'), price: fd.get('price'),
         address: fd.get('listingAddress'), beds: fd.get('beds'), baths: fd.get('baths'), sqft: fd.get('sqft'),
       };
-      const btn = form.querySelector('button[type="submit"]'); btn.disabled = true; btn.textContent = 'Submitting…';
+      const btn = form.querySelector('button[type="submit"]'); btn.disabled = true;
+      // Captured so a FAILED save puts the button back the way it was; a
+      // successful one is relabelled by stopEditing() instead.
+      const wasLabel = btn.textContent;
+      let ok = false;
+      btn.textContent = editingId ? 'Saving…' : 'Submitting…';
       try {
-        await api('/api/me/post', { method: 'POST', body: JSON.stringify(body) });
-        msg.hidden = false; msg.style.borderColor = 'var(--green)'; msg.textContent = 'Submitted! The Chamber will review it before it goes live.';
-        form.reset(); imageUrl = '';
+        if (editingId) {
+          await api('/api/me/post/' + encodeURIComponent(editingId), { method: 'PATCH', body: JSON.stringify(body) });
+          msg.hidden = false; msg.style.borderColor = 'var(--green)';
+          msg.textContent = 'Saved — it goes back to Chamber staff for a quick review, then updates on the site.';
+        } else {
+          await api('/api/me/post', { method: 'POST', body: JSON.stringify(body) });
+          msg.hidden = false; msg.style.borderColor = 'var(--green)'; msg.textContent = 'Submitted! The Chamber will review it before it goes live.';
+        }
+        ok = true;
+        form.reset(); imageUrl = ''; syncTypeFields(); stopEditing();
+        loadMine();
       } catch (err) { msg.hidden = false; msg.style.borderColor = 'var(--red)'; msg.textContent = 'Could not submit (title and details are required).'; }
-      finally { btn.disabled = false; btn.textContent = 'Submit for review'; }
+      finally { btn.disabled = false; if (!ok) btn.textContent = wasLabel; }
     });
   }
 

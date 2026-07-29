@@ -37,16 +37,57 @@
 
       <div class="notice mt-6">
         <strong>Hiring?</strong> Chamber members post openings free from the
-        <a href="../member/post.html">member portal</a> — every posting is reviewed by Chamber staff before it goes live.
+        <a href="../member/post.html">member portal</a> — with your logo, your business profile attached, and the
+        ability to edit or repost anytime. Every posting is reviewed by Chamber staff before it goes live.
         Not a member yet? <a href="../join.html">Join the Chamber</a> to reach local talent.
       </div>
+
+      <!-- Non-member posting (Felicia, Jul 29 2026). Deliberately the plain
+           fields — no logo, no flyer, no linked profile — that's the member
+           difference. Captcha + content screen + staff approval before it
+           appears, and the posting is attributed to the submitting business. -->
+      <div class="card mt-6" id="publicJobCard" style="border-left:4px solid var(--gold)">
+        <span class="kicker" style="color:var(--gold-deep)">Not a member?</span>
+        <h2 style="margin:4px 0 6px">Post an opening anyway</h2>
+        <p class="member-tile__meta">Any local business can list a job here. We review every submission before it
+          goes live, and it shows as a community posting. Chamber members get logos, their business profile
+          attached, and self-service editing — <a href="../join.html">that's worth a look</a>.</p>
+
+        <form id="publicJobForm" class="mt-5">
+          <div class="grid grid-2" style="gap:var(--s-3)">
+            <div class="field"><label>Job title *</label><input name="title" required maxlength="160" placeholder="Service Advisor" /></div>
+            <div class="field"><label>Business hiring *</label><input name="company" required maxlength="120" placeholder="Valley Auto Care" /></div>
+          </div>
+          <div class="grid grid-2" style="gap:var(--s-3)">
+            <div class="field"><label>Your email *</label><input name="email" type="email" required placeholder="hiring@business.com" />
+              <span class="member-tile__meta">Applicants reach you here, and we use it to confirm the posting.</span></div>
+            <div class="field"><label>Location</label><input name="location" maxlength="120" placeholder="Woodland Hills" /></div>
+          </div>
+          <div class="grid grid-2" style="gap:var(--s-3)">
+            <div class="field"><label>Type</label>
+              <select name="jobType" style="width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:var(--r-md);font:inherit;background:var(--paper)">
+                <option>Full-time</option><option>Part-time</option><option>Contract</option><option>Internship</option><option>Temporary</option>
+              </select></div>
+            <div class="field"><label>Pay range</label><input name="payRange" maxlength="80" placeholder="$22–$28 / hour" /></div>
+          </div>
+          <div class="field"><label>Description *</label>
+            <textarea name="body" required rows="5" maxlength="4000" placeholder="What the role involves, what you're looking for, and how to apply."></textarea></div>
+          <div class="field"><label>Application link <span class="member-tile__meta">(optional)</span></label>
+            <input name="applyUrl" type="url" placeholder="https://…" /></div>
+          <p id="publicJobMsg" class="notice" hidden></p>
+          <button class="btn btn--gold" type="submit">Submit for review</button>
+          <p class="member-tile__meta mt-3">By submitting you confirm this is a genuine opening at the business named above.
+            The Chamber does not publish adult, firearms, political-campaign, cannabis, or high-risk financial postings.</p>
+        </form>
+      </div>
+
       <div data-join-cta></div>
     </div>
   </section>
 
   <div data-partial="footer"></div>
 
-  <script src="../js/partials.js?v=20260708a"></script>
+  <script src="../js/partials.js?v=20260729a"></script>
   <script src="../js/api-base.js?v=20260619a"></script>
   <script src="../js/chamber.js?v=20260729a"></script>
   <script>

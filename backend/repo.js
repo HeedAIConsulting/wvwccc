@@ -463,6 +463,66 @@ export async function deleteAsset(id) {
   store.write('assets.json', idx);
 }
 
+/* ── Ambassador / volunteer tracker (Felicia, Jul 29 2026) ──
+   One row per person per role per event. Points are stored on the row (not
+   recomputed from the role) so that changing a role's point value later never
+   silently rewrites what someone already earned. */
+const VOL_COLS = ['id', 'event_id', 'event_title', 'event_date', 'member_id',
+  'name', 'email', 'phone', 'role', 'points', 'status', 'note'];
+const volToRow = (v) => ({
+  id: v.id, event_id: v.eventId, event_title: v.eventTitle, event_date: v.eventDate,
+  member_id: v.memberId, name: v.name, email: v.email, phone: v.phone,
+  role: v.role, points: v.points, status: v.status, note: v.note,
+});
+const volFromRow = (r) => ({
+  id: r.id, eventId: r.event_id, eventTitle: r.event_title, eventDate: r.event_date,
+  memberId: r.member_id, name: r.name, email: r.email, phone: r.phone,
+  role: r.role, points: r.points, status: r.status, note: r.note, created: r.created,
+});
+export async function listVolunteers({ eventId, memberId } = {}) {
+  let arr;
+  if (db.enabled) {
+    arr = (await db.query('SELECT * FROM volunteers ORDER BY created DESC')).rows.map(volFromRow);
+  } else {
+    arr = store.read('volunteers.json', []).slice().reverse();
+  }
+  if (eventId) arr = arr.filter((v) => v.eventId === eventId);
+  if (memberId) arr = arr.filter((v) => v.memberId === memberId);
+  return arr;
+}
+export async function addVolunteer(v) {
+  if (db.enabled) {
+    const row = volToRow(v);
+    await db.query(
+      `INSERT INTO volunteers (${VOL_COLS.join(',')}, created)
+       VALUES (${VOL_COLS.map((_, i) => '$' + (i + 1)).join(',')}, now())`,
+      VOL_COLS.map((c) => row[c]));
+    return;
+  }
+  store.append('volunteers.json', { ...v, created: new Date().toISOString() });
+}
+export async function updateVolunteer(id, patch) {
+  const allowed = ['role', 'points', 'status', 'note', 'name', 'email', 'phone'];
+  const colMap = { };
+  const keys = Object.keys(patch).filter((k) => allowed.includes(k));
+  if (!keys.length) return false;
+  if (db.enabled) {
+    const sets = keys.map((k, i) => `${colMap[k] || k} = $${i + 2}`);
+    const r = await db.query(`UPDATE volunteers SET ${sets.join(',')} WHERE id = $1`, [id, ...keys.map((k) => patch[k])]);
+    return r.rowCount > 0;
+  }
+  const arr = store.read('volunteers.json', []);
+  const v = arr.find((x) => x.id === id);
+  if (!v) return false;
+  keys.forEach((k) => { v[k] = patch[k]; });
+  store.write('volunteers.json', arr);
+  return true;
+}
+export async function deleteVolunteer(id) {
+  if (db.enabled) { await db.query('DELETE FROM volunteers WHERE id=$1', [id]); return; }
+  store.write('volunteers.json', store.read('volunteers.json', []).filter((v) => v.id !== id));
+}
+
 // ── Member self-service profile edits ──────────────────────
 export async function getMemberEdits() {
   if (db.enabled) {

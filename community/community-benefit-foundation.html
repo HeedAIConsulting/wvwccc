@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Community Benefit Foundation — West Valley · Warner Center Chamber of Commerce</title>
+  <meta name="description" content="The West Valley · Warner Center Chamber of Commerce Community Benefit Foundation — a 501(c)(3) supporting beautification and education across the West Valley. Donate to a specific cleanup, Earth Day, tree planting, or education program." />
+  <link rel="canonical" href="https://woodlandhillscc.net/community/community-benefit-foundation.html" />
+  <meta property="og:title" content="Community Benefit Foundation — West Valley · Warner Center Chamber of Commerce" />
+  <meta property="og:description" content="A 501(c)(3) benefiting the West Valley in beautification and education. Choose the initiative your gift supports." />
+  <meta property="og:type" content="website" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="../css/chamber.css?v=20260711a" />
+</head>
+<body>
+  <div data-partial="header"></div>
+
+  <section class="section-sm bg-forest">
+    <div class="container">
+      <span class="kicker">501(c)(3) Charitable Foundation</span>
+      <h1 style="color:#fff">Community Benefit Foundation</h1>
+      <p class="lead" style="color:rgba(255,255,255,.85);max-width:64ch">
+        “The mission of the Foundation is to benefit the West Valley communities at large
+        in the areas of education and beautification.”
+      </p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container container-narrow">
+      <p>The West Valley · Warner Center Chamber of Commerce Community Benefit Foundation, incorporated in
+        2011, is an extension of the Chamber. It holds 501(c)(3) charitable nonprofit status, which
+        strengthens our ability to raise funds — <strong>your donation is tax-deductible</strong>. Since 2011 the
+        Foundation has run its own events and contributed directly to the community.</p>
+
+      <div class="grid grid-2 mt-6" style="gap:var(--s-5)">
+        <article class="card">
+          <div class="card__icon">🌿</div>
+          <h3>Beautification</h3>
+          <p>The Beautification Committee identifies and addresses blight across the West Valley. We clean
+            commercial and residential parkways and center dividers, cut weeds, remove litter, and restore
+            locations suffering from graffiti — because businesses flourish in communities that are clean and safe.</p>
+          <p>The Foundation steps in when city services and private owners cannot remedy a blight problem. We have
+            painted bridges over the Los Angeles River from Topanga Boulevard west to Balboa and Burbank in the
+            Sepulveda Basin, and <strong>planted over 500 trees</strong> in the West Valley.</p>
+          <p class="member-tile__meta">We work with the Woodland Hills · Warner Center, Reseda, Tarzana and Canoga Park
+            Neighborhood Councils, and with St. Bernardine's, St. Mel's, Latter Day Saints, Louisville High School,
+            El Camino, Taft and Reseda High School.</p>
+        </article>
+
+        <article class="card">
+          <div class="card__icon">🎓</div>
+          <h3>Education</h3>
+          <p>The Education Committee works to make the West Valley a better place to learn and work, through
+            collaboration between business, community and educators. Foundation funds have underwritten
+            <strong>Earth Day, tree planting, disaster-preparedness fairs, career and job expos, education and art
+            grants,</strong> and candidate forums. Nearly <strong>$70,000</strong> has gone to youth organizations here in the West Valley.</p>
+          <p><strong>Adopt-A-School</strong> pairs West Valley businesses with local schools — a $500 minimum cash grant
+            or supplies, with the school giving its business partner exposure in its own community.</p>
+          <p><strong>Career Days</strong> and <strong>Get Empowered. Get Employed.</strong> prepare young people entering
+            the workforce: interview skills, résumé writing, branding and social-media conduct, with mock interviews
+            run by local business professionals.</p>
+        </article>
+      </div>
+
+      <div class="notice mt-6">
+        <strong>See a spot that needs help?</strong> Send us the address and what you're seeing, and the Beautification
+        Committee will take a look. Call the Chamber at <strong>(818) 347-4737</strong> or
+        <a href="../contact.html?reason=Community%20Benefit%20Foundation">send us a note</a>.
+      </div>
+    </div>
+  </section>
+
+  <!-- Donation chooser — the restored "choose a donation project" flow. -->
+  <section class="section bg-cream" id="cbfDonate">
+    <div class="container">
+      <span class="kicker">Donate</span>
+      <h2>Choose what your gift supports</h2>
+      <p class="lead" style="max-width:64ch">Give to a specific initiative — the Saturday cleanups, Earth Day, tree
+        planting, a school program — or to the general fund and we'll put it where the need is greatest.
+        The Foundation is a 501(c)(3), so your donation is tax-deductible.</p>
+      <div class="grid grid-2 mt-6" id="cbfProjects" style="gap:var(--s-5)"></div>
+      <p class="member-tile__meta mt-5">Prefer to give by check, or want to underwrite a specific event? Call the
+        Chamber office at <strong>(818) 347-4737</strong> and we'll set it up.</p>
+    </div>
+  </section>
+
+  <div data-partial="footer"></div>
+
+  <script src="../js/partials.js?v=20260729a"></script>
+  <script src="../js/api-base.js?v=20260619a"></script>
+  <script src="../js/chamber.js?v=20260729a"></script>
+  <script>
+    ChamberPartials.mount({ active: '', depth: 1, lang: 'en' });
+    (async () => {
+      const esc = Chamber.esc;
+      const enc = encodeURIComponent;
+      let projects = [];
+      try {
+        const d = await Chamber.getJSON(ChamberAPI.url('/api/donation-projects?cbf=1'));
+        projects = (d && d.projects) || [];
+      } catch (e) {}
+      if (!projects.length) {
+        projects = [{ key: 'Community Benefit Foundation — General Fund',
+          blurb: 'Supports the Foundation’s beautification and education work across the West Valley.' }];
+      }
+      let cat = null;
+      try { cat = await Chamber.getJSON(ChamberAPI.url('/api/skus')); }
+      catch (e) { try { cat = await Chamber.getJSON('../data/skus.json'); } catch (e2) {} }
+      const presets = ((cat && cat.donations) || []).filter((d) => d.amount != null);
+      const amounts = presets.length ? presets : [25, 50, 100, 150, 300].map((a) => ({ sku: 'don-' + a, amount: a }));
+      document.getElementById('cbfProjects').innerHTML = projects.map((p) => `
+        <article class="card card--hover">
+          <div class="card__icon">♥</div>
+          <h3>${esc(p.key)}</h3>
+          <p>${esc(p.blurb || '')}</p>
+          <div class="chips mt-4">
+            ${amounts.map((a) => `<a class="chip" href="../checkout.html?type=donation&sku=${enc(a.sku)}&project=${enc(p.key)}&amount=${a.amount}">$${a.amount}</a>`).join('')}
+            <a class="chip" href="../checkout.html?type=donation&sku=don-custom&project=${enc(p.key)}">Other amount</a>
+          </div>
+        </article>`).join('');
+    })();
+  </script>
+</body>
+</html>

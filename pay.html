@@ -89,7 +89,7 @@
 
   <div data-partial="footer"></div>
 
-  <script src="js/partials.js?v=20260708a"></script>
+  <script src="js/partials.js?v=20260729a"></script>
   <script src="js/api-base.js?v=20260619a"></script>
   <script src="js/chamber.js?v=20260729a"></script>
   <script>
@@ -100,18 +100,61 @@
       const wrap = document.getElementById('payItems');
       const totalEl = document.getElementById('payTotal');
       const msg = document.getElementById('payMsg');
+      const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) =>
+        ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+      // What people actually pay the Chamber for, straight from the office's own
+      // list (Felicia, Jul 29 2026) — picking from the menu beats typing a
+      // description and guessing an amount. Editable in Admin → Pay Log.
+      let CATALOG = [];
 
       function row(desc, amt) {
         const div = document.createElement('div');
         div.className = 'pay-item';
-        div.style.cssText = 'display:grid;grid-template-columns:1fr 130px 34px;gap:8px;align-items:center';
+        div.style.cssText = 'display:grid;grid-template-columns:1fr 130px 34px;gap:8px;align-items:start';
         div.innerHTML = `
-          <input type="text" class="pi-desc" placeholder="What is this for? (e.g., Name badge)" value="${desc || ''}" style="padding:10px 12px;border:1px solid var(--gold-soft);border-radius:8px;font:inherit" />
-          <input type="number" class="pi-amt" placeholder="0.00" min="0" step="0.01" inputmode="decimal" value="${amt || ''}" style="padding:10px 12px;border:1px solid var(--gold-soft);border-radius:8px;font:inherit" />
+          <div>
+            <select class="pi-pick" style="width:100%;padding:10px 12px;border:1px solid var(--gold-soft);border-radius:8px;font:inherit;background:var(--paper)">
+              <option value="">What is this for?…</option>
+              ${CATALOG.map((c, i) => `<option value="${i}">${esc(c.label)}${c.amount != null ? ` — $${Number(c.amount).toFixed(2)}` : ''}</option>`).join('')}
+              <option value="other">Something else — I'll type it in</option>
+            </select>
+            <input type="text" class="pi-desc" placeholder="What is this for? (e.g., Name badge)" value="${esc(desc || '')}" hidden
+                   style="width:100%;margin-top:8px;padding:10px 12px;border:1px solid var(--gold-soft);border-radius:8px;font:inherit" />
+            <p class="pi-note member-tile__meta" style="margin:4px 0 0"></p>
+          </div>
+          <input type="number" class="pi-amt" placeholder="0.00" min="0" step="0.01" inputmode="decimal" value="${esc(amt || '')}" style="padding:10px 12px;border:1px solid var(--gold-soft);border-radius:8px;font:inherit" />
           <button type="button" class="pi-x" aria-label="Remove item" style="background:none;border:1px solid var(--gold-soft);border-radius:8px;height:38px;cursor:pointer;color:var(--slate-mid)">×</button>`;
+        const pick = div.querySelector('.pi-pick');
+        const descEl = div.querySelector('.pi-desc');
+        const amtEl = div.querySelector('.pi-amt');
+        const noteEl = div.querySelector('.pi-note');
+        pick.addEventListener('change', () => {
+          msg.hidden = true;
+          if (pick.value === 'other') {
+            descEl.hidden = false; descEl.value = ''; noteEl.textContent = ''; descEl.focus();
+          } else if (pick.value === '') {
+            descEl.hidden = true; noteEl.textContent = '';
+          } else {
+            const c = CATALOG[Number(pick.value)];
+            descEl.hidden = true; descEl.value = c.label;
+            noteEl.textContent = c.note || '';
+            // A catalog price fills the amount; a blank one means "the office
+            // quoted you" — leave it for the payer to enter.
+            if (c.amount != null) amtEl.value = Number(c.amount).toFixed(2);
+            else { amtEl.value = ''; noteEl.textContent = (c.note ? c.note + ' — ' : '') + 'enter the amount the office gave you.'; }
+          }
+          total();
+        });
+        // A deep link (pay.html?for=…) arrives with a description already set.
+        if (desc) {
+          const hit = CATALOG.findIndex((c) => c.label.toLowerCase() === String(desc).toLowerCase());
+          if (hit >= 0) { pick.value = String(hit); pick.dispatchEvent(new Event('change')); if (amt) amtEl.value = amt; }
+          else { pick.value = 'other'; descEl.hidden = false; descEl.value = desc; }
+        }
         div.querySelector('.pi-x').addEventListener('click', () => { div.remove(); if (!wrap.children.length) row(); total(); });
-        div.querySelector('.pi-amt').addEventListener('input', total);
-        div.querySelector('.pi-desc').addEventListener('input', () => { msg.hidden = true; });
+        amtEl.addEventListener('input', total);
+        descEl.addEventListener('input', () => { msg.hidden = true; });
         wrap.appendChild(div);
         return div;
       }
@@ -130,7 +173,7 @@
         return t;
       }
 
-      document.getElementById('addItem').addEventListener('click', () => { row().querySelector('.pi-desc').focus(); });
+      document.getElementById('addItem').addEventListener('click', () => { row().querySelector('.pi-pick').focus(); });
       document.getElementById('payGo').addEventListener('click', () => {
         const list = items();
         const t = total();
@@ -140,10 +183,23 @@
         location.href = 'checkout.html?type=payment&for=' + encodeURIComponent(label) + '&amount=' + encodeURIComponent(t.toFixed(2));
       });
 
-      // Deep-link support: pay.html?for=Name%20badge&amount=25
-      const q = new URLSearchParams(location.search);
-      row(q.get('for') || '', q.get('amount') || '');
-      total();
+      // Load the office's list first so the first row already has the menu,
+      // then fall back to a plain text box if the API is unreachable.
+      (async () => {
+        try {
+          const r = await fetch((window.ChamberAPI ? ChamberAPI.url('/api/pay-items') : '/api/pay-items'));
+          const d = await r.json();
+          CATALOG = Array.isArray(d.items) ? d.items : [];
+        } catch (e) { CATALOG = []; }
+        // Deep-link support: pay.html?for=Name%20badge&amount=25
+        const q = new URLSearchParams(location.search);
+        row(q.get('for') || '', q.get('amount') || '');
+        if (!CATALOG.length) {                      // no catalog → free text only
+          const d0 = wrap.querySelector('.pay-item');
+          if (d0) { d0.querySelector('.pi-pick').hidden = true; d0.querySelector('.pi-desc').hidden = false; }
+        }
+        total();
+      })();
     })();
   </script>
 </body>

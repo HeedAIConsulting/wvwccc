@@ -49,12 +49,63 @@
 
       <div id="eventsList" class="grid" style="gap:var(--s-4)"></div>
       <div id="eventsGrid" hidden></div>
+
+      <!-- Community event submission (Felicia, Jul 29 2026). The chamber wants
+           to SEE what else is on a date so its own events and members' ribbon
+           cuttings don't collide. Email is verified first so every listing is
+           attributable; staff still approve before it appears. -->
+      <div class="card mt-6" id="communityEventCard" style="border-left:4px solid var(--gold)">
+        <span class="kicker" style="color:var(--gold-deep)">Community calendar</span>
+        <h2 style="margin:4px 0 6px">Putting on an event in the West Valley?</h2>
+        <p class="member-tile__meta">Add it to our community calendar so local businesses can see it — and so the
+          Chamber and its members can avoid booking on top of you. Open to any local organization, member or not.
+          Chamber members can post richer listings with flyers and sponsor logos from the
+          <a href="../member/index.html">member portal</a>.</p>
+
+        <form id="communityEventForm" class="mt-5">
+          <div class="grid grid-2" style="gap:var(--s-3)">
+            <div class="field"><label>Event name *</label><input name="title" required maxlength="200" placeholder="Annual Fall Festival" /></div>
+            <div class="field"><label>Organization putting it on *</label><input name="organization" required maxlength="120" placeholder="Warner Center Rotary" /></div>
+          </div>
+          <div class="grid grid-2" style="gap:var(--s-3)">
+            <div class="field"><label>Date *</label><input name="date" type="date" required /></div>
+            <div class="field"><label>Time</label><input name="time" maxlength="40" placeholder="6:00 PM" /></div>
+          </div>
+          <div class="grid grid-2" style="gap:var(--s-3)">
+            <div class="field"><label>Venue</label><input name="venue" maxlength="160" placeholder="Warner Center Park" /></div>
+            <div class="field"><label>Address</label><input name="address" maxlength="200" placeholder="5800 Topanga Canyon Blvd" /></div>
+          </div>
+          <div class="field"><label>What is it? <span class="member-tile__meta">(a couple of sentences)</span></label>
+            <textarea name="summary" rows="3" maxlength="600" placeholder="Who it's for, what happens, whether tickets are needed."></textarea></div>
+          <div class="field"><label>Event website or ticket link <span class="member-tile__meta">(optional)</span></label>
+            <input name="website" type="url" placeholder="https://…" /></div>
+
+          <div class="field"><label>Your email *</label><input name="email" type="email" required placeholder="you@organization.org" />
+            <span class="member-tile__meta">We send a 6-digit code here to confirm the submission is genuine.</span></div>
+
+          <div id="ceStep1">
+            <p id="ceMsg" class="notice" hidden></p>
+            <button class="btn btn--forest" type="button" id="ceSendCode">Email me a code</button>
+          </div>
+
+          <div id="ceStep2" hidden>
+            <div class="field"><label>Verification code *</label>
+              <input name="code" maxlength="6" inputmode="numeric" autocomplete="one-time-code" placeholder="123456" style="max-width:160px;letter-spacing:.3em;font-family:var(--mono,monospace)" /></div>
+            <p id="ceMsg2" class="notice" hidden></p>
+            <button class="btn btn--gold" type="submit">Submit the event</button>
+            <button class="btn btn--ghost" type="button" id="ceResend" style="margin-left:8px">Send a new code</button>
+          </div>
+
+          <p class="member-tile__meta mt-3">Community listings show the organization's name and are marked as community
+            events. The Chamber does not publish adult, firearms, political-campaign, cannabis, or high-risk financial events.</p>
+        </form>
+      </div>
     </div>
   </section>
 
   <div data-partial="footer"></div>
 
-  <script src="../js/partials.js?v=20260708a"></script>
+  <script src="../js/partials.js?v=20260729a"></script>
   <script src="../js/api-base.js?v=20260619a"></script>
   <script src="../js/chamber.js?v=20260729a"></script>
   <script>

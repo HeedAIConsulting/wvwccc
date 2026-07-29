@@ -55,6 +55,7 @@ window.Admin = (function () {
     { href: 'events.html', icon: '◆', label: 'Events', key: 'events' },
     { href: 'ribbon-cuttings.html', icon: '✂', label: 'Ribbon Cuttings', key: 'ribbon' },
     { href: 'groups.html', icon: '◎', label: 'Groups', key: 'groups' },
+    { href: 'ambassadors.html', icon: '🏅', label: 'Ambassador Tracker', key: 'ambassadors' },
     { href: 'content.html', icon: '✎', label: 'Content', key: 'content' },
     { href: 'images.html', icon: '🖼', label: 'Image Library', key: 'images' },
     { href: 'slides.html', icon: '▭', label: 'Homepage Management', key: 'slides' },
@@ -198,6 +199,11 @@ window.Admin = (function () {
     { id: 'group-manager', t: 'Set a group / network manager', kw: 'group manager rsvp join request leader contact', href: 'groups.html', sel: '#grpMgrSearch', tip: 'Search a member to set as the group’s manager — they receive that group’s join requests and meeting RSVPs.' },
     { id: 'group-approve', t: 'Approve a “Join this group” request', kw: 'group join request approve pending decline', href: 'groups.html', sel: '#grpPending', tip: 'Edit a group and click Approve or Decline here — it saves right away, no Save group needed.' },
     { id: 'image-library', t: 'Reuse an image you already uploaded', kw: 'image library gallery photo logo reuse upload media council headshot sponsor', href: 'images.html', sel: '#libSearch', tip: 'Every image you have ever uploaded lives here — name and tag them, then pick them anywhere with the 📁 Library button.' },
+    { id: 'ambassador-tracker', t: 'See who volunteered and their points', kw: 'ambassador tracker volunteer points tier leaderboard registration check-in greeter shift', href: 'ambassadors.html', sel: '#leaderRows', tip: 'Every volunteer shift with points and tiers. Set the roles you need covered on each event under Events.' },
+    { id: 'volunteer-roles', t: 'Ask for volunteers at an event', kw: 'volunteer roles ambassador event registration greeter setup points needed', href: 'events.html', sel: '#evVolunteers', tip: 'Add the jobs you need covered and what each is worth — ambassadors sign up for them from their member portal.' },
+    { id: 'cbf-donations', t: 'Change what donors can give to', kw: 'donation project cbf community benefit foundation cleanup earth day education adopt a school', href: 'content.html', sel: '#dpRows', tip: 'Edit the list on the Donate and Community Benefit Foundation pages. Tick CBF for Foundation initiatives.' },
+    { id: 'payment-link', t: 'Send someone a payment link', kw: 'payment link invoice custom charge sponsorship email amount bill quote', href: 'payments.html', sel: '#plFor', tip: 'Name the charge, set the amount, then copy the link or have the site email it. The amount is locked so they cannot type the wrong number.' },
+    { id: 'pay-menu', t: 'Change what people can pay for online', kw: 'payment list menu dropdown breakfast mixer badge renewal price pay page', href: 'payments.html', sel: '#piRows', tip: 'This is the drop-down on the public Make a payment page. Leave a price blank when the amount varies.' },
     { id: 'event-create', t: 'Create or edit an event', kw: 'event create edit add date venue ticket calendar feature homepage', href: 'events.html', sel: '#eventForm', tip: 'Fill in the event here. Toggle “Feature on homepage” to spotlight it.' },
     { id: 'event-flyer', t: 'Make an event from a flyer (AI auto-fill)', kw: 'event flyer poster pdf upload ai autofill', href: 'events.html', sel: '#evFlyer', tip: 'Upload a flyer (image or PDF) and the AI reads it and fills the event form for you to review.' },
     { id: 'member-edit', t: 'Edit a member’s profile / listing', kw: 'member profile edit description services accomplishments associations social logo photos', href: 'members.html', sel: '#memberSearch', tip: 'Search the member, then click their name to edit their public listing (incl. services, accomplishments, associations & social links).' },
@@ -544,7 +550,10 @@ window.Admin = (function () {
       const s = await api('/api/admin/summary');
       const cards = [
         { num: s.members, lbl: 'Members', href: 'members.html' },
-        { num: s.pendingMembers, lbl: 'Pending approval', accent: s.pendingMembers > 0, href: 'approvals.html' },
+        // One number for EVERYTHING waiting on the office (Felicia, Jul 29) —
+        // members, jobs, events, group joins, ribbon cuttings. Clicking it
+        // opens the full list rather than one section's page.
+        { num: s.pendingAll != null ? s.pendingAll : s.pendingMembers, lbl: 'Waiting for you', accent: (s.pendingAll != null ? s.pendingAll : s.pendingMembers) > 0, detail: 'approvals' },
         { num: s.leaders, lbl: 'Leaders / Board', href: 'members.html' },
         { num: s.newLeads, lbl: 'New inquiries', accent: s.newLeads > 0, href: 'leads.html' },
         { num: s.pendingPosts, lbl: 'Pending content', accent: s.pendingPosts > 0, href: 'content.html' },
@@ -556,6 +565,36 @@ window.Admin = (function () {
       document.getElementById('statRow').innerHTML = cards.map((c, i) => c.detail
         ? `<button type="button" class="stat-card${c.accent ? ' accent' : ''}" data-stat-detail="${c.detail}" style="text-align:left;border:0;font:inherit;cursor:pointer"><div class="num">${esc(c.num)}</div><div class="lbl">${esc(c.lbl)} — see breakdown →</div></button>`
         : `<a class="stat-card${c.accent ? ' accent' : ''}" href="${c.href}" style="text-decoration:none;color:inherit;cursor:pointer"><div class="num">${esc(c.num)}</div><div class="lbl">${esc(c.lbl)} →</div></a>`).join('');
+      // "Waiting for you" → the whole approval queue in one place, each row
+      // linking to where it gets approved (Felicia, Jul 29 2026).
+      document.querySelectorAll('[data-stat-detail="approvals"]').forEach((btn) => btn.addEventListener('click', async () => {
+        if (document.querySelector('[data-approvals-panel]')) return;
+        const ov = document.createElement('div');
+        ov.className = 'chat-modal'; ov.setAttribute('data-approvals-panel', '');
+        ov.innerHTML = `<div class="chat-modal__box" style="max-width:720px">
+          <button class="chat-modal__x" data-x aria-label="Close" type="button">×</button>
+          <h2 style="margin:0 0 4px">Waiting for you</h2>
+          <p class="sub" style="margin:0 0 14px">Everything that needs your yes or no, in one place. Click a row to go where you approve it.</p>
+          <div data-rows style="display:flex;flex-direction:column;gap:8px;max-height:60vh;overflow:auto"></div>
+        </div>`;
+        const close = () => ov.remove();
+        ov.addEventListener('click', (e) => { if (e.target === ov || e.target.closest('[data-x]')) close(); });
+        document.addEventListener('keydown', function k(e) { if (e.key === 'Escape') { close(); document.removeEventListener('keydown', k); } });
+        document.body.appendChild(ov);
+        const rows = ov.querySelector('[data-rows]');
+        rows.innerHTML = '<p class="sub">Loading…</p>';
+        try {
+          const { items } = await api('/api/admin/approvals-feed');
+          const ICON = { member: '◉', job: '💼', post: '✎', event: '◆', 'community-event': '◇', 'group-join': '◎', ribbon: '✂' };
+          rows.innerHTML = items.length ? items.map((it) => `<a href="${esc(it.href)}" class="help-row" style="text-decoration:none">
+            <span class="grow">
+              <span class="help-t">${esc(ICON[it.kind] || '•')} ${esc(it.title)}</span>
+              <span class="sub" style="line-height:1.5">${esc(it.label)}${it.who ? ' · ' + esc(it.who) : ''}</span>
+            </span>
+            <span class="help-show">Review →</span></a>`).join('')
+            : '<p class="sub" style="padding:10px">Nothing waiting — you\'re all caught up. 🌿</p>';
+        } catch (e) { rows.innerHTML = '<p class="sub">Could not load the list.</p>'; }
+      }));
       // Revenue / payments breakdown modal: totals by type + every payment with its date.
       document.querySelectorAll('[data-stat-detail="payments"]').forEach((btn) => btn.addEventListener('click', async () => {
         if (document.querySelector('[data-pay-breakdown]')) return;
@@ -1321,8 +1360,91 @@ window.Admin = (function () {
   }
 
   // ── Pay Log ──
+  /* ── Custom payment links + the public payment menu ────────
+     Both from Felicia's Jul 29 2026 call: the invoice-equivalent link the
+     office can email on the spot, and the drop-down of things people call to
+     pay for so nobody types a description and guesses an amount. */
+  function initPaymentTools() {
+    // ── Send someone a payment link ──
+    const plFor = document.getElementById('plFor');
+    if (plFor) {
+      const plAmount = document.getElementById('plAmount');
+      const plMsg = document.getElementById('plMsg');
+      const plOut = document.getElementById('plOut');
+      const say = (t, bad) => { plMsg.hidden = !t; plMsg.textContent = t || ''; plMsg.style.color = bad ? 'var(--red,#b00020)' : 'var(--green,#2b6b3f)'; };
+      const build = async (send) => {
+        say('');
+        plOut.innerHTML = '';
+        const body = {
+          for: plFor.value.trim(),
+          amount: plAmount.value,
+          lock: true,
+          ...(send ? {
+            to: document.getElementById('plTo').value.trim(),
+            name: document.getElementById('plName').value.trim(),
+            message: document.getElementById('plMessage').value.trim(),
+          } : {}),
+        };
+        if (!body.for) return say('Say what the payment is for — it prints on their receipt.', true);
+        if (!(Number(body.amount) > 0)) return say('Enter an amount greater than zero.', true);
+        if (send && !body.to) return say('Add the email address to send it to (or use “Create the link” and copy it).', true);
+        const r = await apiRaw('/api/admin/payment-link', { method: 'POST', body: JSON.stringify(body) });
+        if (!r.ok) return say(r.body.error || 'Could not create the link.', true);
+        const { url, sent, error } = r.body;
+        plOut.innerHTML = `<div class="panel" style="padding:12px;margin:0;background:#faf8f3">
+          <p class="sub" style="margin:0 0 6px"><strong>${esc(body.for)}</strong> — $${Number(body.amount).toFixed(2)} (amount locked)</p>
+          <input value="${esc(url)}" readonly data-pl-url style="width:100%;font-family:var(--mono,monospace);font-size:.8rem;padding:8px 10px;border:1px solid var(--line,#ddd);border-radius:8px">
+          <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+            <button type="button" class="btn btn--ghost btn--sm" data-pl-copy>⧉ Copy link</button>
+            <a class="btn btn--ghost btn--sm" href="${esc(url)}" target="_blank" rel="noopener">↗ Open it yourself to check</a>
+          </div></div>`;
+        plOut.querySelector('[data-pl-copy]').addEventListener('click', async () => {
+          try { await navigator.clipboard.writeText(url); say('Link copied ✓'); }
+          catch (_) { plOut.querySelector('[data-pl-url]').select(); say('Press Ctrl+C to copy the highlighted link.'); }
+        });
+        if (send) say(sent ? `Emailed to ${body.to} ✓ — the link is below too, in case they ask again.` : (error || 'The link is ready, but the email did not go out — copy it and send it yourself.'), !sent);
+        else say('Link ready — copy it into an email, a text, or a calendar invite.');
+      };
+      document.getElementById('plMake')?.addEventListener('click', () => build(false));
+      document.getElementById('plSend')?.addEventListener('click', () => build(true));
+    }
+
+    // ── The public "Make a payment" menu ──
+    const piRows = document.getElementById('piRows');
+    if (piRows) {
+      const piMsg = document.getElementById('piMsg');
+      const say2 = (t, bad) => { piMsg.hidden = !t; piMsg.textContent = t || ''; piMsg.style.color = bad ? 'var(--red,#b00020)' : 'var(--green,#2b6b3f)'; };
+      let items = [];
+      const draw = () => {
+        piRows.innerHTML = items.map((it, i) => `<div style="display:grid;grid-template-columns:1.4fr 110px 1.4fr 34px;gap:8px;margin-bottom:8px;align-items:center">
+          <input data-pi="${i}" data-f="label" value="${esc(it.label || '')}" placeholder="Breakfast tickets" />
+          <input data-pi="${i}" data-f="amount" type="number" min="0" step="0.01" value="${it.amount != null ? esc(it.amount) : ''}" placeholder="blank = varies" title="Leave blank when the price varies — the payer is asked to enter it" />
+          <input data-pi="${i}" data-f="note" value="${esc(it.note || '')}" placeholder="Short note shown under the choice" />
+          <button type="button" data-pirm="${i}" class="btn btn--ghost btn--sm" style="color:var(--red,#b00020)">×</button>
+        </div>`).join('') || '<p class="sub">Nothing on the list yet — click “Add an item”.</p>';
+        piRows.querySelectorAll('[data-pi]').forEach((el) => el.addEventListener('input', () => {
+          const it = items[+el.dataset.pi];
+          const f = el.dataset.f;
+          it[f] = f === 'amount' ? (el.value === '' ? null : Number(el.value)) : el.value;
+        }));
+        piRows.querySelectorAll('[data-pirm]').forEach((b) => b.addEventListener('click', () => { items.splice(+b.dataset.pirm, 1); draw(); }));
+      };
+      document.getElementById('piAdd')?.addEventListener('click', () => { items.push({ label: '', amount: null, note: '' }); draw(); });
+      document.getElementById('piSave')?.addEventListener('click', async () => {
+        const clean = items.filter((i) => (i.label || '').trim());
+        try {
+          const r = await api('/api/admin/pay-items', { method: 'POST', body: JSON.stringify({ items: clean }) });
+          items = r.items || clean; draw();
+          say2(`Saved ✓ — ${items.length} item${items.length === 1 ? '' : 's'} now show on the public payment page.`);
+        } catch (e) { say2('Could not save the list.', true); }
+      });
+      api('/api/admin/pay-items').then((r) => { items = r.items || []; draw(); }).catch(() => { items = []; draw(); });
+    }
+  }
+
   async function initOrders() {
     mountShell('payments');
+    initPaymentTools();
     try {
       const { orders } = await api('/api/admin/orders');
       const rows = document.getElementById('orderRows');
@@ -1621,6 +1743,7 @@ window.Admin = (function () {
     const tixWrap = document.getElementById('evTickets');
     const flyersWrap = document.getElementById('evFlyers');
     const sponsorWrap = document.getElementById('evSponsors');
+    const volWrap = document.getElementById('evVolunteers');
     const rich = document.getElementById('evRich');
     let editingId = null;
     let images = [];       // strings or {src, href, label}
@@ -1629,6 +1752,7 @@ window.Admin = (function () {
     let ticketTypes = [];
     let flyers = [];       // extra full-size flyers
     let sponsorLogos = []; // {src, href, label}
+    let volunteerRoles = []; // {role, points, needed}
     let flyerUrl = '';
     let thumbnail = '';
 
@@ -2073,6 +2197,40 @@ window.Admin = (function () {
       sponsorWrap.querySelectorAll('[data-sphref]').forEach((el) => el.addEventListener('input', () => { sponsorLogos[+el.dataset.sphref].href = el.value.trim(); }));
       sponsorWrap.querySelectorAll('[data-rmsp]').forEach((b) => b.addEventListener('click', () => { sponsorLogos.splice(+b.dataset.rmsp, 1); renderSponsors(); }));
     }
+    // ── Volunteer roles (ambassador tracker, Felicia Jul 29 2026) ──
+    const VOL_PRESETS = [
+      { role: 'Registration / check-in', points: 10, needed: 2 },
+      { role: 'Greeter', points: 8, needed: 2 },
+      { role: 'Setup', points: 8, needed: 2 },
+      { role: 'Cleanup / breakdown', points: 8, needed: 2 },
+      { role: 'Raffle / prizes', points: 6, needed: 1 },
+      { role: 'Photographer', points: 6, needed: 1 },
+      { role: 'Name badges', points: 6, needed: 1 },
+    ];
+    function renderVolunteers() {
+      if (!volWrap) return;
+      volWrap.innerHTML = volunteerRoles.map((r, i) => `<div style="display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap;align-items:center">
+        <input data-vr="${i}" data-f="role" list="evVolIdeas" placeholder="Task (e.g. Registration / check-in)" value="${esc(r.role || '')}" style="flex:2;min-width:180px">
+        <input data-vr="${i}" data-f="points" type="number" min="0" max="100" placeholder="Points" value="${esc(r.points != null ? r.points : '')}" style="width:90px" title="Points an ambassador earns for this shift">
+        <input data-vr="${i}" data-f="needed" type="number" min="1" max="50" placeholder="How many" value="${esc(r.needed != null ? r.needed : 1)}" style="width:95px" title="How many people you need for this task">
+        <button type="button" data-rmvr="${i}" class="btn btn--ghost btn--sm">×</button>
+      </div>`).join('')
+        + `<datalist id="evVolIdeas">${VOL_PRESETS.map((p) => `<option value="${esc(p.role)}"></option>`).join('')}</datalist>
+           <button type="button" id="evAddVr" class="btn btn--ghost btn--sm">+ Add a role</button>
+           <button type="button" id="evVrPreset" class="btn btn--ghost btn--sm" title="Adds the usual breakfast/mixer jobs so you can trim from there">+ Use the usual set</button>
+           ${volunteerRoles.length ? '<span class="sub" style="margin-left:8px">Ambassadors see these in their member portal.</span>' : '<span class="sub" style="margin-left:8px">Leave empty if you don\'t need volunteers for this event.</span>'}`;
+      volWrap.querySelector('#evAddVr').addEventListener('click', () => { volunteerRoles.push({ role: '', points: 8, needed: 1 }); renderVolunteers(); });
+      volWrap.querySelector('#evVrPreset').addEventListener('click', () => {
+        for (const p of VOL_PRESETS) if (!volunteerRoles.some((r) => r.role === p.role)) volunteerRoles.push({ ...p });
+        renderVolunteers();
+      });
+      volWrap.querySelectorAll('[data-vr]').forEach((el) => el.addEventListener('input', () => {
+        const r = volunteerRoles[+el.dataset.vr]; const f = el.dataset.f;
+        r[f] = f === 'role' ? el.value : (el.value === '' ? '' : Number(el.value));
+      }));
+      volWrap.querySelectorAll('[data-rmvr]').forEach((b) => b.addEventListener('click', () => { volunteerRoles.splice(+b.dataset.rmvr, 1); renderVolunteers(); }));
+    }
+
     function renderLinks() {
       linkWrap.innerHTML = links.map((l, i) => `<div style="display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap;align-items:center">
         <select data-lk="${i}" data-f="type" class="admin-select">
@@ -2160,7 +2318,8 @@ window.Admin = (function () {
       links = ev && ev.links ? ev.links.map((l) => ({ ...l })) : [];
       documents = ev && ev.documents ? ev.documents.map((d) => ({ ...d })) : [];
       ticketTypes = ev && ev.ticketTypes ? ev.ticketTypes.map((t) => ({ ...t })) : [];
-      renderImages(); renderLinks(); renderDocs(); renderTickets(); renderFlyers(); renderSponsors(); renderQr(); drawFlyer(); drawThumb();
+      volunteerRoles = ev && ev.volunteerRoles ? ev.volunteerRoles.map((r) => ({ ...r })) : [];
+      renderImages(); renderLinks(); renderDocs(); renderTickets(); renderFlyers(); renderSponsors(); renderVolunteers(); renderQr(); drawFlyer(); drawThumb();
       // The AI "start a new event from a flyer" tool only applies to new events —
       // hide it while editing so it isn't mistaken for "replace this flyer".
       const autofill = document.getElementById('evAutofillBlock'); if (autofill) autofill.style.display = editingId ? 'none' : '';
@@ -2351,6 +2510,8 @@ window.Admin = (function () {
         sponsorLogos: sponsorLogos.filter((s) => s.src),
         documents: documents.filter((d) => d.url),
         ticketTypes: ticketTypes.filter((t) => (t.name || '').trim()),
+        volunteerRoles: volunteerRoles.filter((r) => (r.role || '').trim())
+          .map((r) => ({ role: r.role, points: Number(r.points) || 0, needed: Number(r.needed) || 1 })),
         images, links: links.filter((l) => l.url),
       };
       if (body.ticketed && !body.ticketTypes.length) { msg.hidden = false; msg.textContent = 'The Buy tickets button needs at least one ticket price — add one under “Ticket prices” (or switch the action button to RSVP).'; return; }
@@ -2506,8 +2667,182 @@ window.Admin = (function () {
   }
 
   // ── Content & approvals (posts) ──
+  /* ── Ambassador tracker (Felicia, Jul 29 2026) ─────────────
+     Who volunteered for what, running points, and the tier that follows from
+     them. The office keeps this in Excel today; this replaces it. */
+  async function initAmbassadors() {
+    mountShell('ambassadors');
+    const leaderRows = document.getElementById('leaderRows');
+    const volRows = document.getElementById('volRows');
+    if (!leaderRows) return;
+    const volMsg = document.getElementById('volMsg');
+    const say = (el, t, bad) => { if (!el) return; el.hidden = !t; el.textContent = t || ''; el.style.color = bad ? 'var(--red,#b00020)' : 'var(--green,#2b6b3f)'; };
+    const STATUS = [['signed-up', 'Signed up'], ['confirmed', 'Confirmed'], ['no-show', 'No-show']];
+    let data = { volunteers: [], leaderboard: [], tiers: [], roleSuggestions: [] };
+    let events = [];
+
+    const paintLeader = () => {
+      leaderRows.innerHTML = data.leaderboard.length ? data.leaderboard.map((p, i) => `<tr>
+        <td>${i < 3 ? ['🥇', '🥈', '🥉'][i] + ' ' : ''}<strong>${esc(p.name)}</strong>${p.email ? `<div class="sub">${esc(p.email)}</div>` : ''}</td>
+        <td><span class="badge badge--gold">${esc(p.tier)}</span></td>
+        <td><strong>${esc(p.points)}</strong></td>
+        <td>${esc(p.shifts)}</td>
+        <td>${esc(p.lastDate || '—')}</td>
+      </tr>`).join('') : '<tr><td colspan="5" class="sub">No volunteer shifts recorded yet.</td></tr>';
+    };
+
+    const paintShifts = () => {
+      const evFilter = document.getElementById('volEventFilter').value;
+      const q = (document.getElementById('volSearch').value || '').toLowerCase();
+      const rows = data.volunteers
+        .filter((v) => !evFilter || v.eventId === evFilter)
+        .filter((v) => !q || [v.name, v.role, v.eventTitle, v.email].filter(Boolean).join(' ').toLowerCase().includes(q));
+      volRows.innerHTML = rows.length ? rows.map((v) => `<tr data-vol="${esc(v.id)}">
+        <td style="white-space:nowrap">${esc(v.eventDate || '—')}</td>
+        <td>${esc(v.eventTitle || '—')}</td>
+        <td><strong>${esc(v.name)}</strong>${v.email ? `<div class="sub">${esc(v.email)}</div>` : ''}</td>
+        <td>${esc(v.role || '—')}${v.note ? `<div class="sub">${esc(v.note)}</div>` : ''}</td>
+        <td><input data-vpoints type="number" min="0" max="100" value="${esc(v.points || 0)}" style="width:70px"></td>
+        <td><select data-vstatus class="admin-select" style="min-width:120px">
+          ${STATUS.map(([val, lbl]) => `<option value="${val}" ${v.status === val ? 'selected' : ''}>${lbl}</option>`).join('')}
+        </select></td>
+        <td><button type="button" data-vdel class="btn btn--ghost btn--sm" style="color:var(--red,#b00020)">×</button></td>
+      </tr>`).join('') : '<tr><td colspan="7" class="sub">Nothing matches.</td></tr>';
+
+      volRows.querySelectorAll('[data-vol]').forEach((tr) => {
+        const id = tr.dataset.vol;
+        const patch = async (body) => {
+          try { await api('/api/admin/volunteers/' + encodeURIComponent(id), { method: 'PATCH', body: JSON.stringify(body) }); say(volMsg, 'Saved ✓'); await load(); }
+          catch (e) { say(volMsg, 'Could not save that change.', true); }
+        };
+        tr.querySelector('[data-vstatus]')?.addEventListener('change', (e) => patch({ status: e.target.value }));
+        tr.querySelector('[data-vpoints]')?.addEventListener('change', (e) => patch({ points: e.target.value }));
+        tr.querySelector('[data-vdel]')?.addEventListener('click', async () => {
+          const v = data.volunteers.find((x) => x.id === id) || {};
+          if (!confirm(`Remove ${v.name}'s "${v.role}" shift?\n\nTheir points for it come off the leaderboard.`)) return;
+          try { await api('/api/admin/volunteers/' + encodeURIComponent(id), { method: 'DELETE' }); say(volMsg, 'Removed ✓'); await load(); }
+          catch (e) { say(volMsg, 'Could not remove that shift.', true); }
+        });
+      });
+    };
+
+    // ── Tiers ──
+    let tiers = [];
+    const tierRows = document.getElementById('tierRows');
+    const tierMsg = document.getElementById('tierMsg');
+    const paintTiers = () => {
+      if (!tierRows) return;
+      tierRows.innerHTML = tiers.map((t, i) => `<div style="display:grid;grid-template-columns:1.6fr 130px 34px;gap:8px;margin-bottom:8px;align-items:center">
+        <input data-tier="${i}" data-f="name" value="${esc(t.name || '')}" placeholder="Gold Ambassador" />
+        <input data-tier="${i}" data-f="min" type="number" min="0" value="${esc(t.min || 0)}" title="Points needed to reach this tier" />
+        <button type="button" data-tierrm="${i}" class="btn btn--ghost btn--sm" style="color:var(--red,#b00020)">×</button>
+      </div>`).join('') || '<p class="sub">No tiers yet.</p>';
+      tierRows.querySelectorAll('[data-tier]').forEach((el) => el.addEventListener('input', () => {
+        const t = tiers[+el.dataset.tier];
+        t[el.dataset.f] = el.dataset.f === 'min' ? Number(el.value) || 0 : el.value;
+      }));
+      tierRows.querySelectorAll('[data-tierrm]').forEach((b) => b.addEventListener('click', () => { tiers.splice(+b.dataset.tierrm, 1); paintTiers(); }));
+    };
+    document.getElementById('tierAdd')?.addEventListener('click', () => { tiers.push({ name: '', min: 0 }); paintTiers(); });
+    document.getElementById('tierSave')?.addEventListener('click', async () => {
+      try {
+        const r = await api('/api/admin/volunteer-tiers', { method: 'POST', body: JSON.stringify({ tiers: tiers.filter((t) => (t.name || '').trim()) }) });
+        tiers = r.tiers || tiers; paintTiers();
+        say(tierMsg, 'Tiers saved ✓ — the leaderboard now uses them.');
+        await load();
+      } catch (e) { say(tierMsg, 'Could not save the tiers.', true); }
+    });
+
+    // ── Add by hand ──
+    const vaMsg = document.getElementById('vaMsg');
+    document.getElementById('vaAdd')?.addEventListener('click', async () => {
+      const body = {
+        eventId: document.getElementById('vaEvent').value,
+        role: document.getElementById('vaRole').value.trim(),
+        name: document.getElementById('vaName').value.trim(),
+        email: document.getElementById('vaEmail').value.trim(),
+        points: document.getElementById('vaPoints').value,
+        status: document.getElementById('vaStatus').value,
+        note: document.getElementById('vaNote').value.trim(),
+      };
+      if (!body.name) return say(vaMsg, 'Whose name should go on the shift?', true);
+      const r = await apiRaw('/api/admin/volunteers', { method: 'POST', body: JSON.stringify(body) });
+      if (!r.ok) return say(vaMsg, r.body.error || 'Could not add that volunteer.', true);
+      say(vaMsg, `${body.name} added ✓`);
+      ['vaName', 'vaEmail', 'vaPoints', 'vaNote'].forEach((id) => { document.getElementById(id).value = ''; });
+      await load();
+    });
+
+    document.getElementById('volEventFilter').addEventListener('change', paintShifts);
+    document.getElementById('volSearch').addEventListener('input', paintShifts);
+
+    async function load() {
+      try { data = await api('/api/admin/volunteers'); }
+      catch (e) { showAuthError(e); return; }
+      tiers = (data.tiers || []).slice();
+      // Event pickers: anything with volunteer roles, plus anything already used.
+      try { events = (await api('/api/admin/events')).events || []; } catch (e) { events = []; }
+      const withRoles = events.filter((e) => Array.isArray(e.volunteerRoles) && e.volunteerRoles.length);
+      const used = [...new Set(data.volunteers.map((v) => v.eventId).filter(Boolean))];
+      const opts = [...withRoles, ...events.filter((e) => used.includes(e.id) && !withRoles.some((w) => w.id === e.id))]
+        .sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
+      const optHtml = opts.map((e) => `<option value="${esc(e.id)}">${esc(e.date || '—')} · ${esc(e.title || e.id)}</option>`).join('');
+      const f = document.getElementById('volEventFilter');
+      const keep = f.value;
+      f.innerHTML = '<option value="">All events</option>' + optHtml;
+      f.value = keep;
+      document.getElementById('vaEvent').innerHTML = '<option value="">— pick an event —</option>' + optHtml;
+      // Role suggestions in the datalist: the roles on the chosen event, plus defaults.
+      const roleNames = [...new Set([
+        ...opts.flatMap((e) => (e.volunteerRoles || []).map((r) => r.role)),
+        ...(data.roleSuggestions || []).map((r) => r.role),
+      ])].filter(Boolean);
+      document.getElementById('vaRoleIdeas').innerHTML = roleNames.map((r) => `<option value="${esc(r)}"></option>`).join('');
+      paintLeader(); paintShifts(); paintTiers();
+    }
+    await load();
+  }
+
+  /* Donation projects editor — the restored "choose a donation project" list
+     from the legacy Community Benefit Foundation page (Felicia, Jul 29 2026). */
+  function initDonationProjects() {
+    const rows = document.getElementById('dpRows');
+    if (!rows) return;
+    const msg = document.getElementById('dpMsg');
+    const say = (t, bad) => { msg.hidden = !t; msg.textContent = t || ''; msg.style.color = bad ? 'var(--red,#b00020)' : 'var(--green,#2b6b3f)'; };
+    let projects = [];
+    const draw = () => {
+      rows.innerHTML = projects.map((p, i) => `<div style="display:grid;grid-template-columns:1.2fr 2fr auto auto 34px;gap:8px;margin-bottom:8px;align-items:center">
+        <input data-dp="${i}" data-f="key" value="${esc(p.key || '')}" placeholder="Earth Day & Tree Planting" title="Shown as the project name and printed on the receipt" />
+        <input data-dp="${i}" data-f="blurb" value="${esc(p.blurb || '')}" placeholder="One line on what the gift pays for" />
+        <label style="display:inline-flex;align-items:center;gap:5px;white-space:nowrap" title="Show this on the Community Benefit Foundation page">
+          <input type="checkbox" data-dp="${i}" data-f="cbf" ${p.cbf ? 'checked' : ''}> CBF</label>
+        <label style="display:inline-flex;align-items:center;gap:5px;white-space:nowrap" title="Untick to retire it from both public pages">
+          <input type="checkbox" data-dp="${i}" data-f="active" ${p.active !== false ? 'checked' : ''}> Show</label>
+        <button type="button" data-dprm="${i}" class="btn btn--ghost btn--sm" style="color:var(--red,#b00020)">×</button>
+      </div>`).join('') || '<p class="sub">No projects yet — click “Add a project”.</p>';
+      rows.querySelectorAll('[data-dp]').forEach((el) => el.addEventListener(el.type === 'checkbox' ? 'change' : 'input', () => {
+        const p = projects[+el.dataset.dp];
+        p[el.dataset.f] = el.type === 'checkbox' ? el.checked : el.value;
+      }));
+      rows.querySelectorAll('[data-dprm]').forEach((b) => b.addEventListener('click', () => { projects.splice(+b.dataset.dprm, 1); draw(); }));
+    };
+    document.getElementById('dpAdd')?.addEventListener('click', () => { projects.push({ key: '', blurb: '', cbf: true, active: true }); draw(); });
+    document.getElementById('dpSave')?.addEventListener('click', async () => {
+      const clean = projects.filter((p) => (p.key || '').trim());
+      try {
+        const r = await api('/api/admin/donation-projects', { method: 'POST', body: JSON.stringify({ projects: clean }) });
+        projects = r.projects || clean; draw();
+        const live = projects.filter((p) => p.active !== false).length;
+        say(`Saved ✓ — ${live} project${live === 1 ? '' : 's'} showing to donors.`);
+      } catch (e) { say('Could not save the projects.', true); }
+    });
+    api('/api/admin/donation-projects').then((r) => { projects = r.projects || []; draw(); }).catch(() => { projects = []; draw(); });
+  }
+
   async function initContent() {
     mountShell('content');
+    initDonationProjects();
     const TYPES = ['news', 'announcement', 'discount', 'member_post', 'event'];
     const form = document.getElementById('postForm');
     const msg = document.getElementById('postMsg');
@@ -3851,5 +4186,5 @@ window.Admin = (function () {
     });
   }
 
-  return { mountShell, initDashboard, initMembers, initBoardManager, initApprovals, initOrders, initLeads, initRibbon, initEvents, initContent, initAssistant, initRenewals, initUsers, initGroups, initSponsorships, initSlides, initTools, initImages, initAbout, openHelp, pickImage, libraryBtn, bindLibraryBtn, api, esc };
+  return { mountShell, initDashboard, initMembers, initBoardManager, initApprovals, initOrders, initLeads, initRibbon, initEvents, initContent, initAssistant, initRenewals, initUsers, initGroups, initSponsorships, initSlides, initTools, initImages, initAmbassadors, initAbout, openHelp, pickImage, libraryBtn, bindLibraryBtn, api, esc };
 })();

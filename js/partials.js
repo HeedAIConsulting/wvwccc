@@ -102,6 +102,7 @@ window.ChamberPartials = (function () {
             <a href="/newsletters/valley-biz-connect.html">${L?'Revista Valley Biz Connect':'Valley Biz Connect Magazine'}</a>
             <a href="/community/board.html">${L?'Tablón Comunitario':'Community Board'}</a>
             <a href="/community/our-community.html">${L?'Nuestra Comunidad':'Our Community'}</a>
+            <a href="/community/community-benefit-foundation.html">${L?'Fundación de Beneficio Comunitario':'Community Benefit Foundation'}</a>
             <a href="/community/grateful-hearts.html">Grateful Hearts</a>
             <a href="/community/history.html">${L?'Historia':'Our History'}</a>
           </div>
@@ -205,6 +206,7 @@ window.ChamberPartials = (function () {
           <li><a href="${nv('/about.html')}">${t.chamber}</a></li>
           <li><a href="/leadership.html">${L?'Junta y Liderazgo':'Board & Leadership'}</a></li>
           <li><a href="/community/our-community.html">${L?'Nuestra Comunidad':'Our Community'}</a></li>
+          <li><a href="/community/community-benefit-foundation.html">${L?'Fundación de Beneficio Comunitario':'Community Benefit Foundation'}</a></li>
           <li><a href="/community/grateful-hearts.html">Grateful Hearts</a></li>
           <li><a href="/community/history.html">${L?'Historia':'Our History'}</a></li>
           <li><a href="${nv('/contact.html')}">${t.contact}</a></li>

@@ -270,7 +270,13 @@ window.Chamber = (function () {
     const inner = slug
       ? `<a href="${base}groups/${esc(slug)}" style="color:inherit;text-decoration:underline">${esc(name)}</a>`
       : esc(name);
-    return `<div style="color:var(--gold-deep,#8a6d1a)">🏷️ Hosted by ${inner}</div>`;
+    // A community submission is labelled as such (Michael, Jul 29 2026): the
+    // date is published as a service to the calendar, and the Chamber is not
+    // implying it hosts or endorses someone else's event.
+    const community = ev.hostKind === 'community'
+      ? ` <span style="font-weight:400;opacity:.85" title="Submitted by a local organization that is not a Chamber member. Listed so members can see what else is happening that day.">· community event</span>`
+      : '';
+    return `<div style="color:var(--gold-deep,#8a6d1a)">🏷️ Hosted by ${inner}${community}</div>`;
   }
 
   // Sold Out notice (per Felicia, Jul 24 2026) — replaces the RSVP/Buy buttons
@@ -351,8 +357,10 @@ window.Chamber = (function () {
     // names the event, shows the tier ("Member — free with pre-registration")
     // and collects attendee details. Only tier-less events fall back to the
     // general contact form.
+    // grpQ rides along either way, so a group's RSVP still notifies that
+    // group's leaders (not just the office).
     const rsvpHref = (Array.isArray(ev.ticketTypes) && ev.ticketTypes.some((t) => t.available !== false && t.name))
-      ? `${base}checkout.html?type=ticket&event=${esc(ev.id)}`
+      ? `${base}checkout.html?type=ticket&event=${esc(ev.id)}${grpQ}`
       : `${base}contact.html?event=${esc(ev.id)}${grpQ}`;
     const rsvpBtn = `<a class="btn btn--forest" href="${rsvpHref}">RSVP</a>`;
     const buyBtn = `<a class="btn btn--gold" href="${base}checkout.html?type=ticket&event=${esc(ev.id)}">${esc(buyLabel(ev, 'Get tickets'))}</a>`;
@@ -1299,6 +1307,74 @@ window.Chamber = (function () {
         renderList();
       });
     });
+
+    mountCommunityEventForm();
+  }
+
+  /* Community (non-member) event submission — verify the email, then submit.
+     Felicia, Jul 29 2026: the chamber wants visibility of other organizations'
+     dates; Michael's condition was that every listing is attributable. */
+  function mountCommunityEventForm() {
+    const form = document.getElementById('communityEventForm');
+    if (!form) return;
+    mountTurnstile(form);
+    const step1 = document.getElementById('ceStep1');
+    const step2 = document.getElementById('ceStep2');
+    const m1 = document.getElementById('ceMsg');
+    const m2 = document.getElementById('ceMsg2');
+    const say = (el, t, bad) => {
+      el.hidden = !t; el.textContent = t || '';
+      el.style.borderColor = bad ? 'var(--red)' : 'var(--green)';
+      el.style.color = bad ? 'var(--red)' : '';
+    };
+    const emailEl = form.querySelector('[name="email"]');
+
+    const sendCode = async (btn, msgEl) => {
+      const addr = (emailEl.value || '').trim();
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(addr)) return say(msgEl, 'Enter your email address first.', true);
+      const was = btn.textContent; btn.disabled = true; btn.textContent = 'Sending…';
+      try {
+        const r = await fetch(ChamberAPI.url('/api/public/event/verify'), {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: addr, 'cf-turnstile-response': (new FormData(form)).get('cf-turnstile-response') || '' }),
+        });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok || d.ok === false) return say(msgEl, d.error || 'Could not send the code.', true);
+        step2.hidden = false;
+        say(msgEl, `Code sent to ${addr}. Enter it below to finish — it expires in 30 minutes.`);
+        form.querySelector('[name="code"]').focus();
+      } catch (e) { say(msgEl, 'Could not reach the Chamber right now. Please try again.', true); }
+      finally { btn.disabled = false; btn.textContent = was; }
+    };
+    document.getElementById('ceSendCode')?.addEventListener('click', (e) => sendCode(e.target, m1));
+    document.getElementById('ceResend')?.addEventListener('click', (e) => sendCode(e.target, m2));
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!form.reportValidity()) return;
+      const fd = new FormData(form);
+      if (!String(fd.get('code') || '').trim()) return say(m2, 'Enter the 6-digit code from your email.', true);
+      const btn = form.querySelector('[type="submit"]');
+      const was = btn.textContent; btn.disabled = true; btn.textContent = 'Submitting…';
+      try {
+        const r = await fetch(ChamberAPI.url('/api/public/event'), {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: fd.get('email'), code: fd.get('code'),
+            title: fd.get('title'), organization: fd.get('organization'),
+            date: fd.get('date'), time: fd.get('time'),
+            venue: fd.get('venue'), address: fd.get('address'),
+            summary: fd.get('summary'), website: fd.get('website'),
+          }),
+        });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok || d.ok === false) return say(m2, d.error || 'Could not submit the event.', true);
+        form.reset(); step2.hidden = true; say(m1, '');
+        say(m2, 'Thank you — your event is with Chamber staff for review and appears on the community calendar once approved.');
+        m2.hidden = false;
+      } catch (err) { say(m2, 'Could not reach the Chamber right now. Please try again, or call (818) 347-4737.', true); }
+      finally { btn.disabled = false; btn.textContent = was; }
+    });
   }
 
   // ── Checkout (AGMS / NMI Collect.js) ────────────────────
@@ -1371,6 +1447,8 @@ window.Chamber = (function () {
         firstName: fd.get('firstName') || '', lastName: fd.get('lastName') || '',
         email: fd.get('email') || '', phone: fd.get('phone') || '', company: fd.get('company') || '',
         event: extra.eventTitle ? `${extra.eventTitle} [${params.get('event') || ''}]` : (params.get('event') || ''),
+        // Carried from a group page so the group's leaders get notified too.
+        ...(params.get('group') ? { group: params.get('group') } : {}),
         message: [
           label,
           extra.ticketType ? `Registration type: ${extra.ticketType}` : '',
@@ -1585,8 +1663,18 @@ window.Chamber = (function () {
       sku = 'payment:' + what.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40);
       title.textContent = 'Make a payment';
       label = `Payment: ${what}`;
-      summary.innerHTML = `<strong>${esc(what)}</strong><p class="member-tile__meta mt-2">Pay the Chamber securely by card. If the amount was not filled in for you, enter the amount provided by the Chamber office.</p>`;
-      amountLabel.textContent = 'Amount (USD)';
+      // A link the office generated carries lock=1: the amount is fixed, so the
+      // payer cannot type $2,000 in place of $200 (Michael, Jul 29 — no more
+      // "did you mean to pay that?" follow-up calls).
+      const locked = params.get('lock') === '1' && Number(params.get('amount')) > 0;
+      summary.innerHTML = `<strong>${esc(what)}</strong><p class="member-tile__meta mt-2">${locked
+        ? 'This amount was set by the Chamber office. Pay securely by card below.'
+        : 'Pay the Chamber securely by card. If the amount was not filled in for you, enter the amount provided by the Chamber office.'}</p>`;
+      amountLabel.textContent = locked ? 'Amount due (USD)' : 'Amount (USD)';
+      if (locked) {
+        amountInput.readOnly = true;
+        amountInput.style.background = 'var(--cream-deep, #f3ecda)';
+      }
     } else {
       const item = findSku('donations', skuParam);
       const project = params.get('project') || 'General Fund';
@@ -1813,6 +1901,7 @@ window.Chamber = (function () {
             <div class="member-tile__meta">
               ${p.memberId ? `<a href="/members/profile.html?id=${esc(p.memberId)}">${esc(p.authorName || '')}</a>` : esc(p.authorName || '')}
               ${meta.location ? ' · 📍 ' + esc(meta.location) : ''}
+              ${meta.community ? ` · <span title="Posted by a local business that is not a Chamber member. Listed as a community service — the Chamber does not vouch for the employer.">${tr('Community posting')}</span>` : ''}
             </div>
           </div>
           ${apply}
@@ -1843,6 +1932,41 @@ window.Chamber = (function () {
       const q = sb.value.trim().toLowerCase();
       render(!q ? jobs : jobs.filter((p) => [p.title, p.body, p.authorName, p.meta && p.meta.location, p.meta && p.meta.jobType].filter(Boolean).join(' ').toLowerCase().includes(q)));
     });
+
+    // Non-member job submission (Felicia, Jul 29 2026) → staff review queue.
+    const pjf = document.getElementById('publicJobForm');
+    if (pjf) {
+      mountTurnstile(pjf);
+      const pjm = document.getElementById('publicJobMsg');
+      const say = (t, bad) => {
+        pjm.hidden = !t; pjm.textContent = t || '';
+        pjm.style.borderColor = bad ? 'var(--red)' : 'var(--green)';
+        pjm.style.color = bad ? 'var(--red)' : '';
+      };
+      pjf.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!pjf.reportValidity()) return;
+        const fd = new FormData(pjf);
+        const btn = pjf.querySelector('[type="submit"]');
+        const was = btn.textContent; btn.disabled = true; btn.textContent = 'Submitting…';
+        try {
+          const r = await fetch(ChamberAPI.url('/api/public/job'), {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              title: fd.get('title'), company: fd.get('company'), email: fd.get('email'),
+              body: fd.get('body'), applyUrl: fd.get('applyUrl'),
+              meta: { jobType: fd.get('jobType'), location: fd.get('location'), payRange: fd.get('payRange') },
+              'cf-turnstile-response': fd.get('cf-turnstile-response') || '',
+            }),
+          });
+          const d = await r.json().catch(() => ({}));
+          if (!r.ok || d.ok === false) { say(d.error || 'Could not submit the posting — please try again.', true); return; }
+          pjf.reset();
+          say('Thank you — your posting is with Chamber staff for review. It appears on this page once approved, usually within a business day.');
+        } catch (err) { say('Could not reach the Chamber right now. Please try again, or call (818) 347-4737.', true); }
+        finally { btn.disabled = false; btn.textContent = was; }
+      });
+    }
   }
 
   // ── Posts: discounts (offers) + member community board ──
