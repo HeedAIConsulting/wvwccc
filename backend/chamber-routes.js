@@ -484,7 +484,13 @@ router.post('/me/asset', auth.requireAuth(), async (req, res) => {
   const kind = mime === 'application/pdf' ? 'doc' : (b.kind === 'logo' ? 'logo' : 'photo');
   const id = 'asset-' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36);
   try {
-    await repo.addAsset({ id, memberId: req.user.mid || null, kind, mime, buffer });
+    // The original filename becomes the library name so the gallery is
+    // searchable from day one instead of a wall of unlabelled thumbnails.
+    await repo.addAsset({
+      id, memberId: req.user.mid || null, kind, mime, buffer,
+      name: String(b.name || '').replace(/\.[a-z0-9]{2,5}$/i, '').slice(0, 160),
+      tags: String(b.tags || '').slice(0, 300),
+    });
     res.json({ ok: true, id, url: '/api/assets/' + id });
   } catch (e) { console.error(e); res.status(500).json({ error: 'upload failed' }); }
 });
@@ -495,6 +501,94 @@ router.get('/assets/:id', async (req, res) => {
     if (!a) return res.status(404).end();
     res.type(a.mime).set('Cache-Control', 'public, max-age=86400').send(a.buffer);
   } catch (e) { res.status(500).end(); }
+});
+
+// ── Image Library (Felicia, Jul 29 2026) ────────────────────
+// "Is there a gallery now in the back end?" — every image the office has ever
+// uploaded, browsable and reusable, so a council-member headshot or a sponsor
+// logo gets uploaded once and picked from a list forever after.
+router.get('/admin/assets', requireAdmin, async (req, res) => {
+  try {
+    const rows = await repo.listAssets({
+      q: String(req.query.q || '').trim().slice(0, 80),
+      kind: ['logo', 'photo', 'headshot', 'doc'].includes(req.query.kind) ? req.query.kind : '',
+      limit: +req.query.limit || 500,
+      includeArchived: req.query.archived === '1',
+    });
+    res.json({ ok: true, assets: rows });
+  } catch (e) { console.error('admin/assets', e); res.status(500).json({ error: 'Could not load the image library.' }); }
+});
+
+// A member's own uploads — lets the member portal reuse the same picker.
+router.get('/me/assets', auth.requireAuth(), async (req, res) => {
+  if (!req.user.mid) return res.json({ ok: true, assets: [] });
+  try {
+    res.json({ ok: true, assets: await repo.listAssets({ memberId: req.user.mid, limit: 200 }) });
+  } catch (e) { res.status(500).json({ error: 'Could not load your images.' }); }
+});
+
+router.patch('/admin/assets/:id', requireAdmin, async (req, res) => {
+  const b = req.body || {};
+  try {
+    await repo.updateAsset(req.params.id, {
+      ...(b.name !== undefined ? { name: b.name } : {}),
+      ...(b.tags !== undefined ? { tags: b.tags } : {}),
+      ...(b.kind !== undefined ? { kind: b.kind } : {}),
+      ...(b.archived !== undefined ? { archived: b.archived } : {}),
+    });
+    res.json({ ok: true });
+  } catch (e) { console.error('patch asset', e); res.status(500).json({ error: 'Could not save that change.' }); }
+});
+
+// Where is this image actually used? Checked before a delete so the office
+// can't silently blank a live event flyer or a member logo.
+async function assetUsage(id) {
+  const url = '/api/assets/' + id;
+  const hits = [];
+  const scan = (val, where) => {
+    if (!val) return;
+    if (typeof val === 'string') { if (val.includes(url)) hits.push(where); return; }
+    if (Array.isArray(val)) { val.forEach((v) => scan(v, where)); return; }
+    if (typeof val === 'object') { Object.values(val).forEach((v) => scan(v, where)); }
+  };
+  try {
+    for (const ev of await repo.listEventsStore()) scan(ev, `Event — ${ev.title || ev.id}`);
+  } catch (_) {}
+  try {
+    const edits = await repo.getMemberEdits();
+    for (const [mid, d] of Object.entries(edits)) scan(d, `Member profile ${mid}`);
+  } catch (_) {}
+  try {
+    const ov = await repo.getOverrides();
+    for (const [mid, d] of Object.entries(ov)) scan(d, `Member record ${mid}`);
+  } catch (_) {}
+  try {
+    for (const g of await repo.listGroupsStore()) scan(g, `Group — ${g.name || g.id}`);
+  } catch (_) {}
+  try {
+    for (const p of await repo.listPosts({})) scan(p, `Post — ${p.title || p.id}`);
+  } catch (_) {}
+  try { scan(await repo.getSetting('homePopup'), 'Homepage popup'); } catch (_) {}
+  try { scan(await repo.getSetting('slides'), 'Homepage slides'); } catch (_) {}
+  return [...new Set(hits)];
+}
+
+router.get('/admin/assets/:id/usage', requireAdmin, async (req, res) => {
+  try { res.json({ ok: true, usedIn: await assetUsage(req.params.id) }); }
+  catch (e) { res.status(500).json({ error: 'Could not check where this image is used.' }); }
+});
+
+router.delete('/admin/assets/:id', requireAdmin, async (req, res) => {
+  try {
+    const usedIn = await assetUsage(req.params.id);
+    // Deleting an in-use image would leave broken images on the live site, so
+    // it takes a deliberate second step (?force=1) after seeing the list.
+    if (usedIn.length && req.query.force !== '1') {
+      return res.status(409).json({ error: 'This image is still in use.', usedIn });
+    }
+    await repo.deleteAsset(req.params.id);
+    res.json({ ok: true, usedIn });
+  } catch (e) { console.error('delete asset', e); res.status(500).json({ error: 'Could not delete that image.' }); }
 });
 
 // ── Admin tools: QR codes + AI image creation (per Diana, Jul 24 2026) ──
@@ -966,6 +1060,20 @@ function buildEvent(b, existing = {}) {
     // Additional flyers (an event can attach several — all render in the detail view).
     flyers: Array.isArray(b.flyers) ? b.flyers.slice(0, 5).map(clampUrl).filter(Boolean) : (existing.flyers || []),
     thumbnail: b.thumbnail !== undefined ? clampUrl(b.thumbnail) : (existing.thumbnail ?? ''),
+    // What fills the image slot on the event page (Felicia, Jul 29 2026). With
+    // no flyer the chamber logo used to blow up to full width and shove the
+    // details off the screen; the office now chooses:
+    //   auto  — flyer if there is one, otherwise a compact logo banner (default)
+    //   flyer — the flyer only; nothing at all when there isn't one
+    //   logo  — the compact logo banner only, even if a flyer exists
+    //   both  — the logo banner AND the flyer
+    //   none  — no image block
+    imageMode: ['auto', 'flyer', 'logo', 'both', 'none'].includes(b.imageMode)
+      ? b.imageMode : (existing.imageMode ?? 'auto'),
+    // Custom wording for the action button (Felicia, Jul 29 2026): "Buy Tickets"
+    // is wrong when someone is buying an ad, a name badge or a sponsorship.
+    // Blank = the standard label for whichever button kind is selected.
+    ctaLabel: b.ctaLabel !== undefined ? String(b.ctaLabel || '').slice(0, 40) : (existing.ctaLabel ?? ''),
     // Sponsor logos — each optionally hyperlinked to the sponsor's site.
     sponsorLogos: Array.isArray(b.sponsorLogos)
       ? b.sponsorLogos.slice(0, 8).map((s) => {
@@ -1205,6 +1313,21 @@ router.post('/admin/groups', requireAdmin, async (req, res) => {
     res.json({ ok: true, group: g });
   } catch (e) { console.error(e); res.status(500).json({ error: 'save failed' }); }
 });
+// Roster-only save (Felicia, Jul 29 2026): approving a pending join request
+// used to change the screen but nothing else — the roster only reached the
+// server on "Save group", which is easy to miss, so the request came back as
+// still-pending. Approve/Decline now writes through here immediately, and it
+// touches nothing but `members` so unrelated edits in the open form are safe.
+router.post('/admin/groups/:id/members', requireAdmin, async (req, res) => {
+  try {
+    const existing = (await loadGroups()).find((g) => g.id === req.params.id);
+    if (!existing) return res.status(404).json({ error: 'That group no longer exists.' });
+    const g = buildGroup({ ...existing, members: Array.isArray(req.body?.members) ? req.body.members : [] }, existing);
+    await repo.upsertGroup(g);
+    res.json({ ok: true, members: g.members || [] });
+  } catch (e) { console.error('group members', e); res.status(500).json({ error: 'Could not save the roster.' }); }
+});
+
 router.delete('/admin/groups/:id', requireAdmin, async (req, res) => {
   try { await repo.deleteGroup(req.params.id); res.json({ ok: true }); }
   catch (e) { res.status(500).json({ error: 'delete failed' }); }

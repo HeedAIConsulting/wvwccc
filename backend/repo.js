@@ -379,14 +379,14 @@ export async function deleteTemplate(id) {
 }
 
 // ── Image assets (Postgres bytea, or dev files) ─────────────
-export async function addAsset({ id, memberId, kind, mime, buffer }) {
+export async function addAsset({ id, memberId, kind, mime, buffer, name, tags }) {
   if (db.enabled) {
-    await db.query('INSERT INTO assets (id, member_id, kind, mime, bytes, created) VALUES ($1,$2,$3,$4,$5, now())',
-      [id, memberId, kind, mime, buffer]);
+    await db.query('INSERT INTO assets (id, member_id, kind, mime, bytes, name, tags, created) VALUES ($1,$2,$3,$4,$5,$6,$7, now())',
+      [id, memberId, kind, mime, buffer, name || null, tags || null]);
     return;
   }
   const idx = store.read('assets.json', {});
-  idx[id] = { memberId, kind, mime, b64: buffer.toString('base64') };
+  idx[id] = { memberId, kind, mime, name: name || '', tags: tags || '', created: new Date().toISOString(), b64: buffer.toString('base64') };
   store.write('assets.json', idx);
 }
 export async function getAsset(id) {
@@ -398,6 +398,69 @@ export async function getAsset(id) {
   const idx = store.read('assets.json', {});
   if (!idx[id]) return null;
   return { mime: idx[id].mime, buffer: Buffer.from(idx[id].b64, 'base64') };
+}
+
+// ── Image Library (Felicia, Jul 29 2026) ────────────────────
+// Metadata-only listing — never SELECT bytes here, a few hundred logos would
+// be tens of MB per page load. Size comes from octet_length instead.
+export async function listAssets({ q, kind, memberId, limit = 300, includeArchived = false } = {}) {
+  const lim = Math.min(Math.max(+limit || 300, 1), 1000);
+  if (db.enabled) {
+    const where = []; const args = [];
+    if (!includeArchived) where.push('COALESCE(archived, false) = false');
+    if (kind) { args.push(kind); where.push(`kind = $${args.length}`); }
+    if (memberId) { args.push(memberId); where.push(`member_id = $${args.length}`); }
+    if (q) { args.push('%' + q.toLowerCase() + '%'); where.push(`(lower(COALESCE(name,'')) LIKE $${args.length} OR lower(COALESCE(tags,'')) LIKE $${args.length} OR lower(id) LIKE $${args.length})`); }
+    args.push(lim);
+    const r = await db.query(
+      `SELECT id, member_id, kind, mime, name, tags, created, octet_length(bytes) AS size
+         FROM assets ${where.length ? 'WHERE ' + where.join(' AND ') : ''}
+        ORDER BY created DESC NULLS LAST LIMIT $${args.length}`, args);
+    return r.rows.map((a) => ({
+      id: a.id, url: '/api/assets/' + a.id, kind: a.kind, mime: a.mime,
+      name: a.name || '', tags: a.tags || '', memberId: a.member_id || '',
+      size: +a.size || 0, created: a.created,
+    }));
+  }
+  const idx = store.read('assets.json', {});
+  const ql = (q || '').toLowerCase();
+  return Object.entries(idx)
+    .filter(([id, a]) => (includeArchived || !a.archived)
+      && (!kind || a.kind === kind)
+      && (!memberId || a.memberId === memberId)
+      && (!ql || (id + ' ' + (a.name || '') + ' ' + (a.tags || '')).toLowerCase().includes(ql)))
+    .map(([id, a]) => ({
+      id, url: '/api/assets/' + id, kind: a.kind || '', mime: a.mime || '',
+      name: a.name || '', tags: a.tags || '', memberId: a.memberId || '',
+      size: a.b64 ? Math.round(a.b64.length * 0.75) : 0, created: a.created || '',
+    }))
+    .sort((x, y) => String(y.created).localeCompare(String(x.created)))
+    .slice(0, lim);
+}
+export async function updateAsset(id, patch = {}) {
+  const sets = {};
+  if (patch.name !== undefined) sets.name = String(patch.name || '').slice(0, 160);
+  if (patch.tags !== undefined) sets.tags = String(patch.tags || '').slice(0, 300);
+  if (patch.kind !== undefined) sets.kind = String(patch.kind || '').slice(0, 40);
+  if (patch.archived !== undefined) sets.archived = !!patch.archived;
+  if (!Object.keys(sets).length) return;
+  if (db.enabled) {
+    const cols = Object.keys(sets);
+    const args = cols.map((c) => sets[c]);
+    args.push(id);
+    await db.query(`UPDATE assets SET ${cols.map((c, i) => `${c}=$${i + 1}`).join(', ')} WHERE id=$${args.length}`, args);
+    return;
+  }
+  const idx = store.read('assets.json', {});
+  if (!idx[id]) return;
+  Object.assign(idx[id], sets);
+  store.write('assets.json', idx);
+}
+export async function deleteAsset(id) {
+  if (db.enabled) { await db.query('DELETE FROM assets WHERE id=$1', [id]); return; }
+  const idx = store.read('assets.json', {});
+  delete idx[id];
+  store.write('assets.json', idx);
 }
 
 // ── Member self-service profile edits ──────────────────────

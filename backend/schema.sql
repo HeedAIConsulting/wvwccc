@@ -195,6 +195,12 @@ CREATE TABLE IF NOT EXISTS assets (
   bytes       bytea,
   created     timestamptz DEFAULT now()
 );
+-- Image Library (Felicia, Jul 29 2026): a name + tags turn the raw asset store
+-- into a browsable gallery the office can search and reuse, instead of
+-- re-uploading the same council-member and sponsor logos every time.
+ALTER TABLE assets ADD COLUMN IF NOT EXISTS name text;
+ALTER TABLE assets ADD COLUMN IF NOT EXISTS tags text;
+ALTER TABLE assets ADD COLUMN IF NOT EXISTS archived boolean DEFAULT false;
 
 -- ── Member self-service profile edits (member portal) ─────
 -- Stores only the fields a member changed; merged onto the base directory record.

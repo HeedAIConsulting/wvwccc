@@ -734,6 +734,21 @@ html { scrollbar-color: var(--gold) var(--cream-deep); scrollbar-width: thin; }
 .ev-card__imgs { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 16px; }
 .ev-card__imgs img { width: 120px; height: 88px; object-fit: cover; border-radius: var(--r-md); border: 1px solid var(--line); }
 .ev-card__desc { white-space: pre-wrap; line-height: 1.7; color: var(--slate); margin: 0 0 18px; }
+/* Formatted (rich) descriptions: the public page and the admin editor must
+   agree on type metrics and paragraph gaps, or text that looked right while
+   typing re-wraps and bunches up once published (Felicia, Jul 29 2026 — her
+   Aug 5 sponsor blurb). `.rt-typo` is applied to BOTH containers so there is
+   one definition of the spacing, not two that drift apart. */
+.rt-typo { font-size: 1rem; line-height: 1.7; color: var(--slate); }
+.rt-typo p { margin: 0 0 var(--s-4); }
+.rt-typo p:last-child { margin-bottom: 0; }
+.rt-typo div { min-height: 1.7em; }              /* an empty line stays a blank line */
+.rt-typo ul, .rt-typo ol { margin: 0 0 var(--s-4); padding-left: 1.35em; }
+.rt-typo li { margin: 0 0 var(--s-2); }
+.rt-typo h3, .rt-typo h4 { margin: 0 0 var(--s-3); line-height: 1.25; }
+.rt-typo blockquote { margin: 0 0 var(--s-4); padding-left: var(--s-4); border-left: 3px solid var(--line); }
+.rt-typo img { height: auto; }
+.rt-typo a img { border-radius: var(--r-md); }
 .ev-card__row { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 14px; }
 .ev-card__foot { border-top: 1px solid var(--line); margin-top: 6px; padding-top: 16px; display: flex; flex-wrap: wrap;
   align-items: center; gap: 12px; }
@@ -750,3 +765,11 @@ html { scrollbar-color: var(--gold) var(--cream-deep); scrollbar-width: thin; }
 /* Event image layered over the logo placeholder; removed on error → logo shows. */
 .evp__cover { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .ev-card__flyer--ph { object-fit: contain !important; background: linear-gradient(140deg, var(--forest), var(--green-ink)); padding: 22px; }
+/* Compact chamber-logo banner for events with no flyer (Felicia, Jul 29 2026).
+   Same card structure and green identity as a flyer, a fraction of the height,
+   so the date, venue and RSVP button stay above the fold. */
+.ev-card__logobar { display: flex; align-items: center; justify-content: center; border-radius: var(--r-lg);
+  background: linear-gradient(140deg, var(--forest), var(--green-ink)); border: 1px solid var(--line);
+  box-shadow: var(--sh-sm); margin: 0 0 16px; padding: 18px 22px; min-height: 104px; }
+.ev-card__logobar img { max-height: 68px; max-width: min(260px, 70%); width: auto; object-fit: contain; }
+@media (max-width: 560px) { .ev-card__logobar { min-height: 84px; padding: 14px 16px; } .ev-card__logobar img { max-height: 54px; } }

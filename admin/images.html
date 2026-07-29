@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex" />
+  <title>Image Library — WVWCCC Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="../css/chamber.css" />
+  <link rel="stylesheet" href="admin.css?v=20260710a" />
+</head>
+<body class="admin">
+  <div class="admin-shell">
+    <aside class="admin-sidebar" data-admin-nav></aside>
+    <div class="admin-main">
+      <div class="admin-topbar"><h1>Image Library</h1></div>
+      <div class="admin-content">
+
+        <div class="panel">
+          <div class="panel__head"><h3>🖼 Every image you've uploaded</h3></div>
+          <div class="admin-form" style="padding:16px">
+            <p class="sub" style="margin:0 0 14px">
+              Upload a logo or photo once and reuse it anywhere — event flyers, sponsor logos, homepage graphics, member profiles.
+              Anything you upload elsewhere on the console lands here automatically, and every image box now has a
+              <strong>📁 Library</strong> button next to it so you never have to hunt for the file again.
+            </p>
+
+            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px">
+              <input id="libSearch" placeholder="Search by name or tag…  e.g. council" autocomplete="off"
+                     style="flex:1;min-width:220px;padding:11px 13px;border:1.5px solid var(--line,#ddd);border-radius:10px;font:inherit" />
+              <select id="libKind" class="admin-select" style="max-width:190px">
+                <option value="">All images</option>
+                <option value="photo">Photos &amp; flyers</option>
+                <option value="logo">Logos</option>
+                <option value="headshot">Headshots</option>
+              </select>
+              <label class="btn btn--gold" style="cursor:pointer;white-space:nowrap">⬆ Upload images
+                <input type="file" id="libUpload" accept="image/*" multiple hidden></label>
+            </div>
+
+            <p class="sub" style="margin:0 0 10px"><strong>Tip:</strong> give each image a clear name and a tag or two
+              (<em>council</em>, <em>sponsor</em>, <em>mixer</em>, <em>breakfast</em>) — that's what the search box looks at.
+              Names save as soon as you click out of the box.</p>
+
+            <p id="libMsg" class="notice" hidden style="margin:0 0 10px"></p>
+            <p id="libCount" class="sub" style="margin:0 0 10px"></p>
+            <div id="libGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+  <script src="../js/api-base.js"></script>
+  <script src="admin.js?v=20260729a"></script>
+  <script>Admin.initImages();</script>
+  <script defer src="/js/support.js?v=20260701a"></script>
+</body>
+</html>

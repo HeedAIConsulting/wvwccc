@@ -56,6 +56,7 @@ window.Admin = (function () {
     { href: 'ribbon-cuttings.html', icon: '✂', label: 'Ribbon Cuttings', key: 'ribbon' },
     { href: 'groups.html', icon: '◎', label: 'Groups', key: 'groups' },
     { href: 'content.html', icon: '✎', label: 'Content', key: 'content' },
+    { href: 'images.html', icon: '🖼', label: 'Image Library', key: 'images' },
     { href: 'slides.html', icon: '▭', label: 'Homepage Management', key: 'slides' },
     { href: 'sponsorships.html', icon: '★', label: 'Sponsorships', key: 'sponsorships' },
     { href: 'ai-assistant.html', icon: '✦', label: 'AI Assistant', key: 'assistant' },
@@ -195,7 +196,8 @@ window.Admin = (function () {
   const HELP = [
     { id: 'group-add-members', t: 'Add members to a group / Connection Circle', kw: 'group network connection circle roster add member leader join', href: 'groups.html', sel: '#grpMemberSearch', tip: 'Open a group, then search your directory here and click a member to add them. You can also “Add someone manually.”' },
     { id: 'group-manager', t: 'Set a group / network manager', kw: 'group manager rsvp join request leader contact', href: 'groups.html', sel: '#grpMgrSearch', tip: 'Search a member to set as the group’s manager — they receive that group’s join requests and meeting RSVPs.' },
-    { id: 'group-approve', t: 'Approve a “Join this group” request', kw: 'group join request approve pending decline', href: 'groups.html', sel: '#grpPending', tip: 'Edit a group; pending join requests show here with Approve / Decline, then Save group.' },
+    { id: 'group-approve', t: 'Approve a “Join this group” request', kw: 'group join request approve pending decline', href: 'groups.html', sel: '#grpPending', tip: 'Edit a group and click Approve or Decline here — it saves right away, no Save group needed.' },
+    { id: 'image-library', t: 'Reuse an image you already uploaded', kw: 'image library gallery photo logo reuse upload media council headshot sponsor', href: 'images.html', sel: '#libSearch', tip: 'Every image you have ever uploaded lives here — name and tag them, then pick them anywhere with the 📁 Library button.' },
     { id: 'event-create', t: 'Create or edit an event', kw: 'event create edit add date venue ticket calendar feature homepage', href: 'events.html', sel: '#eventForm', tip: 'Fill in the event here. Toggle “Feature on homepage” to spotlight it.' },
     { id: 'event-flyer', t: 'Make an event from a flyer (AI auto-fill)', kw: 'event flyer poster pdf upload ai autofill', href: 'events.html', sel: '#evFlyer', tip: 'Upload a flyer (image or PDF) and the AI reads it and fills the event form for you to review.' },
     { id: 'member-edit', t: 'Edit a member’s profile / listing', kw: 'member profile edit description services accomplishments associations social logo photos', href: 'members.html', sel: '#memberSearch', tip: 'Search the member, then click their name to edit their public listing (incl. services, accomplishments, associations & social links).' },
@@ -247,6 +249,273 @@ window.Admin = (function () {
     document.body.appendChild(ov);
     setTimeout(() => ov.querySelector('#helpSearch').focus(), 60);
   }
+  /* ==========================================================
+     IMAGE LIBRARY (Felicia, Jul 29 2026)
+     "Is there a gallery now in the back end?" — one store of every
+     image the office has uploaded, so a council-member headshot or a
+     sponsor logo is uploaded once and picked from a list forever after.
+     pickImage() is the shared picker; every upload box on the console
+     gets a "Library" button next to it via libraryBtn()/bindLibraryBtn().
+     ========================================================== */
+  const LIB_KINDS = [['', 'All images'], ['photo', 'Photos & flyers'], ['logo', 'Logos'], ['headshot', 'Headshots']];
+  const prettySize = (n) => (!n ? '' : n > 900000 ? (n / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB');
+  const prettyDate = (d) => { const t = d ? new Date(d) : null; return t && !isNaN(t) ? t.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : ''; };
+
+  // fetch that hands back the parsed body even on 4xx (the delete route
+  // answers 409 + the in-use list, which api() would throw away).
+  async function apiRaw(pathname, opts = {}) {
+    const res = await fetch(apiBase + pathname, { credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, ...opts });
+    if (res.status === 401 || res.status === 403) { location.href = '../auth/staff-login.html'; throw new Error('auth required'); }
+    const body = await res.json().catch(() => ({}));
+    return { ok: res.ok, status: res.status, body };
+  }
+
+  async function libraryList({ q = '', kind = '' } = {}) {
+    const qs = new URLSearchParams();
+    if (q) qs.set('q', q);
+    if (kind) qs.set('kind', kind);
+    const out = await api('/api/admin/assets' + (qs.toString() ? '?' + qs : ''));
+    return out.assets || [];
+  }
+
+  // Upload one File into the library (downscaled) and return the new row.
+  async function libraryUpload(file, { kind = 'photo', tags = '' } = {}) {
+    const isPdf = /pdf$/i.test(file.type) || /\.pdf$/i.test(file.name || '');
+    const dataUrl = isPdf
+      ? await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(file); })
+      : await downscaleImage(file, 1800, 0.85);
+    const up = await api('/api/me/asset', {
+      method: 'POST',
+      body: JSON.stringify({ kind: isPdf ? 'doc' : kind, dataUrl, name: file.name || '', tags }),
+    });
+    return { id: up.id, url: up.url, name: (file.name || '').replace(/\.[a-z0-9]{2,5}$/i, ''), kind, tags, created: new Date().toISOString() };
+  }
+
+  /* Open the library picker.
+     opts: { multiple, kind, title, max }
+     Resolves to an array of URLs, or null when cancelled. */
+  function pickImage(opts = {}) {
+    const { multiple = false, kind = '', title = 'Choose an image', max = 24 } = opts;
+    return new Promise((resolve) => {
+      const chosen = new Set();
+      let rows = [];
+      const ov = document.createElement('div');
+      ov.className = 'chat-modal';
+      ov.setAttribute('data-img-picker', '');
+      ov.innerHTML = `<div class="chat-modal__box" style="max-width:880px">
+        <button class="chat-modal__x" data-x aria-label="Close" type="button">×</button>
+        <h2 style="margin:0 0 4px">🖼 ${esc(title)}</h2>
+        <p class="sub" style="margin:0 0 12px">Pick from images you've already uploaded${multiple ? ' — click as many as you need' : ''}, or add a new one. Everything you upload anywhere on the console lands here automatically.</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
+          <input data-q placeholder="Search by name or tag…" autocomplete="off" style="flex:1;min-width:190px;padding:10px 12px;border:1.5px solid var(--line,#ddd);border-radius:10px;font:inherit" />
+          <select data-kind class="admin-select" style="max-width:170px">
+            ${LIB_KINDS.map(([v, l]) => `<option value="${v}" ${v === kind ? 'selected' : ''}>${l}</option>`).join('')}
+          </select>
+          <label class="btn btn--ghost btn--sm" style="cursor:pointer;white-space:nowrap">⬆ Upload new<input type="file" accept="image/*" multiple hidden data-up></label>
+        </div>
+        <p data-msg class="notice" hidden style="margin:0 0 10px"></p>
+        <div data-grid style="display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:10px;max-height:52vh;overflow:auto;padding:2px"></div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;align-items:center;margin-top:14px;flex-wrap:wrap">
+          <span data-count class="sub" style="margin-right:auto"></span>
+          <button type="button" class="btn btn--ghost btn--sm" data-cancel>Cancel</button>
+          <button type="button" class="btn btn--forest btn--sm" data-use disabled>Use ${multiple ? 'selected' : 'this image'}</button>
+        </div>
+      </div>`;
+      const grid = ov.querySelector('[data-grid]');
+      const msg = ov.querySelector('[data-msg]');
+      const useBtn = ov.querySelector('[data-use]');
+      const countEl = ov.querySelector('[data-count]');
+      const say = (t, bad) => { msg.hidden = !t; msg.textContent = t || ''; msg.style.color = bad ? 'var(--red,#b00020)' : ''; };
+
+      const paint = () => {
+        countEl.textContent = rows.length
+          ? `${rows.length} image${rows.length === 1 ? '' : 's'}${chosen.size ? ` · ${chosen.size} selected` : ''}`
+          : '';
+        useBtn.disabled = !chosen.size;
+        if (!rows.length) {
+          grid.innerHTML = `<p class="sub" style="grid-column:1/-1;padding:14px">No images yet — click <strong>Upload new</strong> to add the first one.</p>`;
+          return;
+        }
+        grid.innerHTML = rows.map((a) => `<button type="button" data-pick="${esc(a.id)}" title="${esc(a.name || a.id)}"
+          style="border:2.5px solid ${chosen.has(a.url) ? 'var(--gold,#C9A227)' : 'var(--line,#e3e3e3)'};background:#fff;border-radius:10px;padding:5px;cursor:pointer;text-align:left;display:flex;flex-direction:column;gap:4px">
+          <span style="display:block;height:88px;border-radius:6px;overflow:hidden;background:#f6f6f4">
+            <img src="${esc(a.url)}" alt="" loading="lazy" style="width:100%;height:100%;object-fit:contain">
+          </span>
+          <span style="font-size:.74rem;line-height:1.25;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(a.name || 'Untitled')}</span>
+          <span class="sub" style="font-size:.68rem">${esc(prettySize(a.size))}${a.size && a.created ? ' · ' : ''}${esc(prettyDate(a.created))}</span>
+        </button>`).join('');
+        grid.querySelectorAll('[data-pick]').forEach((b) => b.addEventListener('click', () => {
+          const a = rows.find((r) => r.id === b.dataset.pick); if (!a) return;
+          if (multiple) {
+            if (chosen.has(a.url)) chosen.delete(a.url);
+            else if (chosen.size >= max) return say(`You can pick up to ${max} at a time.`, true);
+            else chosen.add(a.url);
+            paint();
+          } else { chosen.clear(); chosen.add(a.url); finish(); }
+        }));
+      };
+
+      const load = async () => {
+        try {
+          rows = await libraryList({ q: ov.querySelector('[data-q]').value.trim(), kind: ov.querySelector('[data-kind]').value });
+          paint();
+        } catch (e) { say('Could not load the image library.', true); }
+      };
+      const close = () => { ov.remove(); document.removeEventListener('keydown', onKey); };
+      const finish = () => { const out = [...chosen]; close(); resolve(out.length ? out : null); };
+      const onKey = (e) => { if (e.key === 'Escape') { close(); resolve(null); } };
+
+      ov.addEventListener('click', (e) => { if (e.target === ov || e.target.closest('[data-x]') || e.target.closest('[data-cancel]')) { close(); resolve(null); } });
+      useBtn.addEventListener('click', finish);
+      let t; ov.querySelector('[data-q]').addEventListener('input', () => { clearTimeout(t); t = setTimeout(load, 220); });
+      ov.querySelector('[data-kind]').addEventListener('change', load);
+      ov.querySelector('[data-up]').addEventListener('change', async (e) => {
+        const files = [...e.target.files]; if (!files.length) return;
+        say(`Uploading ${files.length} image${files.length === 1 ? '' : 's'}…`);
+        let bad = 0;
+        for (const f of files) {
+          try { const a = await libraryUpload(f, { kind: kind || 'photo' }); chosen.add(a.url); } catch (_) { bad++; }
+        }
+        e.target.value = '';
+        say(bad ? `${bad} image${bad === 1 ? '' : 's'} could not be uploaded (PNG/JPG/WebP).` : '', !!bad);
+        await load();
+        if (!multiple && chosen.size === 1 && !bad) finish();
+      });
+      document.addEventListener('keydown', onKey);
+      document.body.appendChild(ov);
+      load();
+      setTimeout(() => ov.querySelector('[data-q]').focus(), 60);
+    });
+  }
+
+  // Markup for a "Library" button — drop it next to any upload control.
+  const libraryBtn = (key, label = '📁 Library') =>
+    `<button type="button" data-lib="${esc(key)}" class="btn btn--ghost btn--sm" title="Pick an image you've already uploaded">${esc(label)}</button>`;
+
+  /* Drop a "Choose from library" button straight after a file input.
+     Used wherever the upload control is a plain <input type=file> that we do
+     not want to restructure. Idempotent — safe to call on every re-render. */
+  function addLibBtn(fileEl, onPick, opts = {}) {
+    if (!fileEl || fileEl._libAdded) return;
+    fileEl._libAdded = true;
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'btn btn--ghost btn--sm';
+    b.style.marginTop = '6px';
+    b.textContent = opts.label || '📁 Choose from library';
+    b.title = 'Pick an image you have already uploaded';
+    b.addEventListener('click', async () => {
+      const urls = await pickImage(opts);
+      if (urls && urls.length) onPick(urls);
+    });
+    fileEl.insertAdjacentElement('afterend', b);
+  }
+
+  /* Wire every [data-lib="<key>"] inside `root` to the picker.
+     onPick(urls) receives the chosen URLs. */
+  function bindLibraryBtn(root, key, onPick, opts = {}) {
+    (root || document).querySelectorAll(`[data-lib="${key}"]`).forEach((b) => {
+      if (b._libBound) return;
+      b._libBound = true;
+      b.addEventListener('click', async () => {
+        const urls = await pickImage(opts);
+        if (urls && urls.length) onPick(urls);
+      });
+    });
+  }
+
+  /* ── Admin → Image Library page ───────────────────────────── */
+  async function initImages() {
+    mountShell('images');
+    const grid = document.getElementById('libGrid');
+    const msg = document.getElementById('libMsg');
+    const countEl = document.getElementById('libCount');
+    if (!grid) return;
+    const qEl = document.getElementById('libSearch');
+    const kEl = document.getElementById('libKind');
+    let rows = [];
+    const say = (t, bad) => { if (!msg) return; msg.hidden = !t; msg.textContent = t || ''; msg.style.color = bad ? 'var(--red,#b00020)' : 'var(--green,#2b6b3f)'; };
+
+    const paint = () => {
+      countEl.textContent = rows.length ? `${rows.length} image${rows.length === 1 ? '' : 's'} in the library` : '';
+      if (!rows.length) {
+        grid.innerHTML = `<p class="sub" style="grid-column:1/-1;padding:18px">Nothing here yet. Use <strong>⬆ Upload images</strong> above — or just keep working normally: every logo and flyer you upload anywhere on the console shows up here automatically.</p>`;
+        return;
+      }
+      grid.innerHTML = rows.map((a) => `<div class="panel" style="padding:10px;margin:0">
+        <a href="${esc(a.url)}" target="_blank" rel="noopener" title="Open full size"
+           style="display:block;height:130px;border-radius:8px;overflow:hidden;background:#f6f6f4;margin-bottom:8px">
+          <img src="${esc(a.url)}" alt="" loading="lazy" style="width:100%;height:100%;object-fit:contain">
+        </a>
+        <input data-name="${esc(a.id)}" value="${esc(a.name || '')}" placeholder="Name this image…"
+               style="width:100%;margin-bottom:6px;font-weight:600" title="A clear name makes it findable later — e.g. 'Councilmember Blumenfield headshot'">
+        <input data-tags="${esc(a.id)}" value="${esc(a.tags || '')}" placeholder="Tags (council, sponsor, mixer…)"
+               style="width:100%;margin-bottom:6px;font-size:.82rem">
+        <p class="sub" style="margin:0 0 8px;font-size:.72rem">${esc(prettySize(a.size))}${a.size && a.created ? ' · ' : ''}${esc(prettyDate(a.created))}${a.kind ? ' · ' + esc(a.kind) : ''}</p>
+        <div style="display:flex;gap:5px;flex-wrap:wrap">
+          <button type="button" data-copy="${esc(a.url)}" class="btn btn--ghost btn--sm" title="Copy the image address">⧉ Copy link</button>
+          <button type="button" data-where="${esc(a.id)}" class="btn btn--ghost btn--sm" title="See which events and profiles use this image">? Where used</button>
+          <button type="button" data-del="${esc(a.id)}" class="btn btn--ghost btn--sm" style="color:var(--red,#b00020)">🗑</button>
+        </div>
+        <p class="sub" data-info="${esc(a.id)}" style="margin:6px 0 0;font-size:.74rem"></p>
+      </div>`).join('');
+
+      // Rename / retag saves on blur — no Save button to forget.
+      grid.querySelectorAll('[data-name],[data-tags]').forEach((el) => el.addEventListener('change', async () => {
+        const id = el.dataset.name || el.dataset.tags;
+        const field = el.dataset.name ? 'name' : 'tags';
+        try {
+          await api('/api/admin/assets/' + encodeURIComponent(id), { method: 'PATCH', body: JSON.stringify({ [field]: el.value }) });
+          const row = rows.find((r) => r.id === id); if (row) row[field] = el.value;
+          say('Saved ✓');
+        } catch (_) { say('Could not save that name.', true); }
+      }));
+      grid.querySelectorAll('[data-copy]').forEach((b) => b.addEventListener('click', async () => {
+        const full = location.origin + b.dataset.copy;
+        try { await navigator.clipboard.writeText(full); say('Link copied ✓'); }
+        catch (_) { prompt('Copy this image link:', full); }
+      }));
+      grid.querySelectorAll('[data-where]').forEach((b) => b.addEventListener('click', async () => {
+        const info = grid.querySelector(`[data-info="${b.dataset.where}"]`);
+        info.textContent = 'Checking…';
+        try {
+          const r = await api('/api/admin/assets/' + encodeURIComponent(b.dataset.where) + '/usage');
+          info.textContent = r.usedIn && r.usedIn.length ? 'Used in: ' + r.usedIn.join(' · ') : 'Not used anywhere yet — safe to delete.';
+        } catch (_) { info.textContent = 'Could not check.'; }
+      }));
+      grid.querySelectorAll('[data-del]').forEach((b) => b.addEventListener('click', async () => {
+        const id = b.dataset.del;
+        const row = rows.find((r) => r.id === id) || {};
+        if (!confirm(`Delete "${row.name || id}" from the library?\n\nIf it's on a live event or profile, you'll get a warning first.`)) return;
+        const r1 = await apiRaw('/api/admin/assets/' + encodeURIComponent(id), { method: 'DELETE' });
+        if (r1.status === 409) {
+          const where = (r1.body.usedIn || []).join('\n• ');
+          if (!confirm(`⚠ This image is still in use:\n\n• ${where}\n\nDeleting it will leave a broken image in those places. Delete anyway?`)) return;
+          const r2 = await apiRaw('/api/admin/assets/' + encodeURIComponent(id) + '?force=1', { method: 'DELETE' });
+          if (!r2.ok) return say(r2.body.error || 'Could not delete that image.', true);
+        } else if (!r1.ok) return say(r1.body.error || 'Could not delete that image.', true);
+        rows = rows.filter((r) => r.id !== id); paint(); say('Deleted ✓');
+      }));
+    };
+
+    const load = async () => {
+      try { rows = await libraryList({ q: qEl.value.trim(), kind: kEl.value }); paint(); }
+      catch (e) { say('Could not load the image library.', true); }
+    };
+    let t; qEl.addEventListener('input', () => { clearTimeout(t); t = setTimeout(load, 220); });
+    kEl.addEventListener('change', load);
+    document.getElementById('libUpload')?.addEventListener('change', async (e) => {
+      const files = [...e.target.files]; if (!files.length) return;
+      say(`Uploading ${files.length} image${files.length === 1 ? '' : 's'}…`);
+      let bad = 0;
+      for (const f of files) { try { await libraryUpload(f); } catch (_) { bad++; } }
+      e.target.value = '';
+      say(bad ? `${bad} of ${files.length} could not be uploaded — images must be PNG/JPG/GIF/WebP.` : `Uploaded ${files.length} image${files.length === 1 ? '' : 's'} ✓`, !!bad);
+      load();
+    });
+    load();
+  }
+
   // After a "Show me" navigation (?help=<id>): show a tip banner + pulse the target element.
   function helpHighlight() {
     const id = new URLSearchParams(location.search).get('help');
@@ -807,10 +1076,14 @@ window.Admin = (function () {
         msgEl.hidden = false; msgEl.textContent = 'Uploading logo…';
         try {
           const dataUrl = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(f); });
-          const up = await api('/api/me/asset', { method: 'POST', body: JSON.stringify({ kind: 'logo', dataUrl }) });
+          const up = await api('/api/me/asset', { method: 'POST', body: JSON.stringify({ kind: 'logo', dataUrl, name: f.name || '' }) });
           logoUrl = up.url; drawLogo(); msgEl.textContent = 'Logo uploaded — click Save profile to apply.';
         } catch (err) { msgEl.textContent = 'Logo upload failed (PNG/JPG/WebP, ≤2.5 MB).'; }
       });
+      addLibBtn(logoFile, (urls) => {
+        logoUrl = urls[0]; drawLogo();
+        msgEl.hidden = false; msgEl.textContent = 'Logo chosen — click Save profile to apply.';
+      }, { kind: 'logo', title: 'Choose a logo' });
       logoClear?.addEventListener('click', () => { logoUrl = ''; drawLogo(); if (logoFile) logoFile.value = ''; msgEl.hidden = false; msgEl.textContent = 'Logo will be removed on Save.'; });
       // ── Page Image (headshot for Board / Ambassador / Leaders pages) ──
       const piPrev = ov.querySelector('[data-pageimg-prev]');
@@ -828,10 +1101,14 @@ window.Admin = (function () {
         msgEl.hidden = false; msgEl.textContent = 'Uploading page image…';
         try {
           const dataUrl = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(f); });
-          const up = await api('/api/me/asset', { method: 'POST', body: JSON.stringify({ kind: 'headshot', dataUrl }) });
+          const up = await api('/api/me/asset', { method: 'POST', body: JSON.stringify({ kind: 'headshot', dataUrl, name: f.name || '' }) });
           pageImageUrl = up.url; drawPageImg(); msgEl.textContent = 'Page image uploaded — click Save profile to apply.';
         } catch (err) { msgEl.textContent = 'Page image upload failed (PNG/JPG/WebP, ≤2.5 MB).'; }
       });
+      addLibBtn(piFile, (urls) => {
+        pageImageUrl = urls[0]; drawPageImg();
+        msgEl.hidden = false; msgEl.textContent = 'Page image chosen — click Save profile to apply.';
+      }, { kind: 'headshot', title: 'Choose a photo' });
       piClear?.addEventListener('click', () => { pageImageUrl = ''; drawPageImg(); if (piFile) piFile.value = ''; msgEl.hidden = false; msgEl.textContent = 'Page image will be removed on Save.'; });
       // ── Photo gallery (multi-upload → /api/me/asset → urls, saved with the profile) ──
       const photoFile = ov.querySelector('[data-photo-file]');
@@ -853,13 +1130,18 @@ window.Admin = (function () {
           msgEl.hidden = false; msgEl.textContent = 'Uploading photos…';
           try {
             const dataUrl = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(f); });
-            const up = await api('/api/me/asset', { method: 'POST', body: JSON.stringify({ kind: 'photo', dataUrl }) });
+            const up = await api('/api/me/asset', { method: 'POST', body: JSON.stringify({ kind: 'photo', dataUrl, name: f.name || '' }) });
             photos.push(up.url); drawPhotos();
           } catch (err) { msgEl.textContent = 'A photo failed to upload (JPG/PNG/WebP, ≤2.5 MB).'; }
         }
         if (photoFile) photoFile.value = '';
         msgEl.textContent = 'Photos uploaded — click Save profile to apply.';
       });
+      addLibBtn(photoFile, (urls) => {
+        urls.slice(0, 8 - photos.length).forEach((u) => photos.push(u));
+        drawPhotos();
+        msgEl.hidden = false; msgEl.textContent = 'Photos added — click Save profile to apply.';
+      }, { multiple: true, title: 'Choose gallery photos', max: 8 });
       ov.querySelector('input:not([type=file])')?.focus();
     }
 
@@ -1353,6 +1635,11 @@ window.Admin = (function () {
     // ── Rich-text toolbar (Full details) — font / size / color / align / links ──
     const richBar = document.getElementById('evRichBar');
     if (richBar && rich) {
+      // Enter makes a real <p> instead of Chrome's default bare <div>. Divs
+      // carry no margin, so paragraphs typed in the editor published as one
+      // dense block — Felicia's "there's not a lot of spacing in between"
+      // (Jul 29). Paragraphs now get the same 16px gap here and on the site.
+      try { document.execCommand('defaultParagraphSeparator', false, 'p'); } catch (_) {}
       // Remember where the caret is in the editor. Clicking a toolbar file
       // input (insert image) blurs the editor and loses the caret, which is why
       // inserted images jumped to the top (Felicia, Jul 16). We save the range
@@ -1457,8 +1744,12 @@ window.Admin = (function () {
           b.style.cssText = 'border:1px solid #ddd;background:#fff;border-radius:6px;padding:2px 8px;cursor:pointer;font:inherit';
           b.addEventListener('click', (ev) => {
             ev.stopPropagation();
-            if (w === 'remove') img.remove();
-            else { img.style.width = w; img.style.maxWidth = '100%'; }
+            if (w === 'remove') {
+              // A linked image lives inside an <a> — take the empty wrapper too.
+              const p = img.parentElement;
+              img.remove();
+              if (p && p.tagName === 'A' && !p.textContent.trim() && !p.querySelector('img')) p.remove();
+            } else { img.style.width = w; img.style.maxWidth = '100%'; }
             bar.remove();
           });
           return b;
@@ -1524,6 +1815,42 @@ window.Admin = (function () {
           return b;
         };
         ['left', 'center', 'right', 'inline'].forEach((m) => bar.appendChild(place(m)));
+        // 🔗 Make the image clickable (Felicia, Jul 29 — sponsor logos in the
+        // description need to reach the sponsor's site). Always opens in a new
+        // tab so the visitor keeps the chamber page behind them.
+        const linkBtn = document.createElement('button');
+        const linkedA = () => (img.parentElement && img.parentElement.tagName === 'A' ? img.parentElement : null);
+        linkBtn.type = 'button';
+        linkBtn.style.cssText = 'border:1px solid #ddd;background:#fff;border-radius:6px;padding:2px 8px;cursor:pointer;font:inherit';
+        const paintLink = () => {
+          const a = linkedA();
+          linkBtn.textContent = a ? '🔗 Linked' : '🔗 Link';
+          linkBtn.title = a ? `Opens ${a.getAttribute('href')} — click to change or remove` : 'Make this image clickable (opens in a new tab)';
+          linkBtn.style.borderColor = a ? 'var(--gold,#C9A227)' : '#ddd';
+        };
+        paintLink();
+        linkBtn.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          const a = linkedA();
+          const next = prompt('Where should this image link to?\n\nPaste the web address (leave blank to remove the link).', a ? a.getAttribute('href') || '' : 'https://');
+          if (next === null) return;
+          const url = next.trim();
+          if (!url || url === 'https://') {                    // unwrap
+            if (a) { a.replaceWith(img); }
+            paintLink(); bar.remove(); return;
+          }
+          const href = /^(https?:|mailto:|tel:|\/)/i.test(url) ? url : 'https://' + url;
+          if (a) { a.setAttribute('href', href); }
+          else {
+            const wrap = document.createElement('a');
+            wrap.setAttribute('href', href);
+            img.replaceWith(wrap); wrap.appendChild(img);
+          }
+          const holder = linkedA();
+          if (holder) { holder.setAttribute('target', '_blank'); holder.setAttribute('rel', 'noopener'); }
+          paintLink(); bar.remove();
+        });
+        bar.appendChild(linkBtn);
         bar.appendChild(mk('✕', 'remove', 'Delete this image from the text'));
         document.body.appendChild(bar);
         const away = (ev) => { if (!bar.contains(ev.target) && ev.target !== img) { bar.remove(); document.removeEventListener('mousedown', away, true); } };
@@ -1548,6 +1875,17 @@ window.Admin = (function () {
         };
         r.readAsDataURL(f);
       });
+      // Same insert, but from the library — sponsor logos and headshots get
+      // reused across events, so re-uploading them was pure busywork.
+      const libImg = richBar.querySelector('[data-rt-libimg]');
+      libImg?.addEventListener('mousedown', rememberRange);
+      libImg?.addEventListener('click', async () => {
+        const urls = await pickImage({ multiple: true, title: 'Insert images into the description', max: 8 });
+        if (!urls || !urls.length) return;
+        restoreRange();
+        document.execCommand('insertHTML', false, urls.map((u) => `<img src="${esc(u)}" alt="" style="max-width:100%">`).join('') + '<br>');
+        rememberRange();
+      });
     }
     const plainFromRich = () => (rich ? rich.innerText.replace(/ /g, ' ').trim() : '');
 
@@ -1555,6 +1893,21 @@ window.Admin = (function () {
     function bindSingleImage(inputId, prevId, set, get, after) {
       const inp = document.getElementById(inputId);
       const prev = document.getElementById(prevId);
+      // Library picker sits right beside the upload box (Felicia, Jul 29) —
+      // injected here so every single-image field gets it without touching HTML.
+      if (inp && !inp._libAdded) {
+        inp._libAdded = true;
+        const b = document.createElement('button');
+        b.type = 'button'; b.className = 'btn btn--ghost btn--sm';
+        b.style.marginTop = '6px';
+        b.textContent = '📁 Choose from library';
+        b.title = 'Pick an image you have already uploaded';
+        b.addEventListener('click', async () => {
+          const urls = await pickImage({ title: 'Choose an image' });
+          if (urls && urls[0]) { set(urls[0]); draw(); if (after) after(); }
+        });
+        inp.insertAdjacentElement('afterend', b);
+      }
       const draw = () => { if (prev) prev.innerHTML = get() ? `<img src="${esc(get())}" alt="" style="max-width:140px;border-radius:8px"> <button type="button" data-clr class="btn btn--gold btn--sm" title="Delete this image — the upload box then sets a fresh one">✕ Delete</button>` : ''; if (prev) { const c = prev.querySelector('[data-clr]'); if (c) c.addEventListener('click', () => { set(''); draw(); }); } };
       if (inp) inp.addEventListener('change', async (e) => {
         const f = e.target.files[0]; if (!f) return;
@@ -1642,10 +1995,14 @@ window.Admin = (function () {
         <input data-imghref="${i}" placeholder="Link (optional — makes the image clickable)" value="${esc(imgHrefOf(it))}" style="flex:1;min-width:200px">
         <button type="button" data-rmimg="${i}" title="Remove" class="btn btn--ghost btn--sm">×</button>
       </div>`).join('') + (images.length < 6
-        ? `<label class="btn btn--ghost btn--sm" style="cursor:pointer">+ Image<input type="file" accept="image/*" hidden id="evImgInput"></label>`
+        ? `<label class="btn btn--ghost btn--sm" style="cursor:pointer">+ Image<input type="file" accept="image/*" hidden id="evImgInput"></label> ${libraryBtn('evImg')}`
         : '<span class="sub">Max 6 images.</span>');
       const inp = document.getElementById('evImgInput');
       if (inp) inp.addEventListener('change', onImg);
+      bindLibraryBtn(imgWrap, 'evImg', (urls) => {
+        urls.slice(0, 6 - images.length).forEach((u) => images.push(u));
+        renderImages();
+      }, { multiple: true, title: 'Add images to this event', max: 6 });
       imgWrap.querySelectorAll('[data-imghref]').forEach((el) => el.addEventListener('input', () => {
         const i = +el.dataset.imghref; const src = imgSrcOf(images[i]);
         images[i] = el.value.trim() ? { src, href: el.value.trim() } : src;
@@ -1668,8 +2025,12 @@ window.Admin = (function () {
         <img src="${esc(u)}" style="width:88px;height:110px;object-fit:cover;border-radius:8px;border:1px solid var(--line,#ddd)">
         <button type="button" data-rmfly="${i}" title="Remove" style="position:absolute;top:-7px;right:-7px;border:none;background:#b00020;color:#fff;border-radius:50%;width:20px;height:20px;line-height:18px;cursor:pointer">×</button>
       </span>`).join('') + (flyers.length < 5
-        ? `<label class="btn btn--ghost btn--sm" style="cursor:pointer">+ Flyer<input type="file" accept="image/*" hidden id="evFlyerAdd"></label>`
+        ? `<label class="btn btn--ghost btn--sm" style="cursor:pointer">+ Flyer<input type="file" accept="image/*" hidden id="evFlyerAdd"></label> ${libraryBtn('evFly')}`
         : '<span class="sub">Max 5 extra flyers.</span>');
+      bindLibraryBtn(flyersWrap, 'evFly', (urls) => {
+        urls.slice(0, 5 - flyers.length).forEach((u) => flyers.push(u));
+        renderFlyers();
+      }, { multiple: true, title: 'Add more flyers', max: 5 });
       const inp = document.getElementById('evFlyerAdd');
       if (inp) inp.addEventListener('change', (e) => {
         const f = e.target.files[0]; if (!f) return;
@@ -1691,8 +2052,13 @@ window.Admin = (function () {
         <input data-sphref="${i}" placeholder="Sponsor website (optional — makes the logo clickable)" value="${esc(s.href || '')}" style="flex:2;min-width:200px">
         <button type="button" data-rmsp="${i}" class="btn btn--ghost btn--sm">×</button>
       </div>`).join('') + (sponsorLogos.length < 8
-        ? `<label class="btn btn--ghost btn--sm" style="cursor:pointer">+ Sponsor logo<input type="file" accept="image/*" hidden id="evSpAdd"></label>`
+        ? `<label class="btn btn--ghost btn--sm" style="cursor:pointer">+ Sponsor logo<input type="file" accept="image/*" hidden id="evSpAdd"></label> ${libraryBtn('evSp')}`
         : '<span class="sub">Max 8 sponsor logos.</span>');
+      // Sponsor logos repeat event after event — the library is the whole point.
+      bindLibraryBtn(sponsorWrap, 'evSp', (urls) => {
+        urls.slice(0, 8 - sponsorLogos.length).forEach((u) => sponsorLogos.push({ src: u, href: '', label: '' }));
+        renderSponsors();
+      }, { multiple: true, kind: 'logo', title: 'Choose sponsor logos', max: 8 });
       const inp = document.getElementById('evSpAdd');
       if (inp) inp.addEventListener('change', (e) => {
         const f = e.target.files[0]; if (!f) return;
@@ -1774,6 +2140,8 @@ window.Admin = (function () {
       form.ticketCap.value = ev && ev.ticketCap != null ? ev.ticketCap : '';
       form.rsvpCutoff.value = v('rsvpCutoff'); form.status.value = v('status', 'approved');
       form.ctaKind.value = (ev && ev.soldOut) ? 'soldout' : ((ev && ev.ticketed) ? (ev.alsoRsvp ? 'both' : 'buy') : 'rsvp');
+      if (form.ctaLabel) form.ctaLabel.value = v('ctaLabel');
+      if (form.imageMode) form.imageMode.value = (ev && ev.imageMode) || 'auto';
       form.featured.checked = !!(ev && ev.featured);
       form.showOnCalendar.checked = ev ? (ev.showOnCalendar !== false) : true;
       form.homeOrder.value = ev && ev.homeOrder != null ? ev.homeOrder : '';
@@ -1970,6 +2338,10 @@ window.Admin = (function () {
         ticketed: form.ctaKind.value === 'buy' || form.ctaKind.value === 'both',
         alsoRsvp: form.ctaKind.value === 'both',
         soldOut: form.ctaKind.value === 'soldout',
+        // Custom wording for the action button (Felicia, Jul 29) — "Purchase",
+        // "Buy an ad", "Order a name badge"… blank keeps the standard label.
+        ctaLabel: form.ctaLabel ? form.ctaLabel.value.trim() : '',
+        imageMode: form.imageMode ? form.imageMode.value : 'auto',
         ticketCap: form.ticketCap.value ? Number(form.ticketCap.value) : null,
         rsvpCutoff: form.rsvpCutoff.value || null, featured: form.featured.checked, status: form.status.value,
         showOnCalendar: form.showOnCalendar.checked,
@@ -2459,10 +2831,22 @@ window.Admin = (function () {
       if (msg) msg.textContent = 'Uploading…';
       try {
         const dataUrl = await downscaleImage(f, 1600, 0.85);
-        const up = await api('/api/me/asset', { method: 'POST', body: JSON.stringify({ kind: 'photo', dataUrl }) });
+        const up = await api('/api/me/asset', { method: 'POST', body: JSON.stringify({ kind: 'photo', dataUrl, name: f.name || '' }) });
         imageUrl = up.url; drawImg(); if (msg) msg.textContent = 'Image ready — click “Save popup”.';
       } catch (e) { if (msg) msg.textContent = 'Image upload failed (JPG/PNG/WebP).'; }
     });
+    // Reuse a flyer already in the library instead of re-uploading it.
+    if (imgInput && !imgInput._libAdded) {
+      imgInput._libAdded = true;
+      const lb = document.createElement('button');
+      lb.type = 'button'; lb.className = 'btn btn--ghost btn--sm'; lb.style.marginTop = '6px';
+      lb.textContent = '📁 Choose from library';
+      lb.addEventListener('click', async () => {
+        const urls = await pickImage({ title: 'Choose the popup image' });
+        if (urls && urls[0]) { imageUrl = urls[0]; drawImg(); if (msg) msg.textContent = 'Image ready — click “Save popup”.'; }
+      });
+      imgInput.insertAdjacentElement('afterend', lb);
+    }
     saveBtn?.addEventListener('click', async () => {
       saveBtn.disabled = true;
       try {
@@ -2954,8 +3338,30 @@ window.Admin = (function () {
           </div>`).join('')}</div>` : '';
         pendEl.querySelectorAll('[data-mid]').forEach((row) => {
           const m = members.find((x) => x.id === row.dataset.mid);
-          row.querySelector('[data-approve]')?.addEventListener('click', () => { m.status = 'active'; renderRoster(); });
-          row.querySelector('[data-decline]')?.addEventListener('click', () => { members = members.filter((x) => x.id !== m.id); renderRoster(); });
+          // Approve/Decline saves on the spot (Felicia, Jul 29) — the old
+          // behaviour only updated the screen and silently needed Save group.
+          const persist = async (label) => {
+            const gid = form.querySelector('[name="id"]')?.value || '';
+            if (!gid) { note('Save the group once first, then approve join requests.'); return false; }
+            try {
+              await api(`/api/admin/groups/${encodeURIComponent(gid)}/members`, { method: 'POST', body: JSON.stringify({ members }) });
+              note(label, true);
+              return true;
+            } catch (err) { note('Could not save that — please try again.'); return false; }
+          };
+          row.querySelector('[data-approve]')?.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const prev = m.status;
+            m.status = 'active'; renderRoster();
+            if (!await persist(`${m.name} approved ✓`)) { m.status = prev; renderRoster(); }
+          });
+          row.querySelector('[data-decline]')?.addEventListener('click', async (e) => {
+            e.preventDefault();
+            if (!confirm(`Decline ${m.name}'s request to join this group?`)) return;
+            const before = members.slice();
+            members = members.filter((x) => x.id !== m.id); renderRoster();
+            if (!await persist(`${m.name}'s request declined`)) { members = before; renderRoster(); }
+          });
         });
       }
       if (rosEl) {
@@ -3148,17 +3554,32 @@ window.Admin = (function () {
     const heroSrc = (u) => { u = String(u || ''); return /^(https?:|data:|\/)/i.test(u) ? u : '/' + u.replace(/^\.?\//, ''); };
 
     const imgInput = document.getElementById('slideImage');
+    const showSlideImg = () => {
+      if (prev) prev.innerHTML = `<img src="${esc(imageUrl)}" alt="" style="max-width:260px;border-radius:8px;margin-top:8px">`;
+      msg.hidden = false;
+      msg.textContent = editingId ? 'New image ready — click Save changes.' : 'Image ready — add an optional title, then click Add slide.';
+    };
     if (imgInput) imgInput.addEventListener('change', async (e) => {
       const f = e.target.files[0]; if (!f) return;
       msg.hidden = false; msg.textContent = 'Uploading image…';
       try {
         const dataUrl = await downscaleImage(f, 1800, 0.85);
-        const up = await api('/api/me/asset', { method: 'POST', body: JSON.stringify({ kind: 'photo', dataUrl }) });
+        const up = await api('/api/me/asset', { method: 'POST', body: JSON.stringify({ kind: 'photo', dataUrl, name: f.name || '' }) });
         imageUrl = up.url;
-        if (prev) prev.innerHTML = `<img src="${imageUrl}" alt="" style="max-width:260px;border-radius:8px;margin-top:8px">`;
-        msg.textContent = editingId ? 'New image ready — click Save changes.' : 'Image ready — add an optional title, then click Add slide.';
+        showSlideImg();
       } catch (err) { msg.textContent = 'Image upload failed (PNG/JPG, ≤2.5MB).'; }
     });
+    if (imgInput && !imgInput._libAdded) {
+      imgInput._libAdded = true;
+      const lb = document.createElement('button');
+      lb.type = 'button'; lb.className = 'btn btn--ghost btn--sm'; lb.style.marginTop = '6px';
+      lb.textContent = '📁 Choose from library';
+      lb.addEventListener('click', async () => {
+        const urls = await pickImage({ title: 'Choose a banner image' });
+        if (urls && urls[0]) { imageUrl = urls[0]; showSlideImg(); }
+      });
+      imgInput.insertAdjacentElement('afterend', lb);
+    }
 
     // Switch the form between "add" and "edit" modes.
     function startEdit(s) {
@@ -3430,5 +3851,5 @@ window.Admin = (function () {
     });
   }
 
-  return { mountShell, initDashboard, initMembers, initBoardManager, initApprovals, initOrders, initLeads, initRibbon, initEvents, initContent, initAssistant, initRenewals, initUsers, initGroups, initSponsorships, initSlides, initTools, initAbout, openHelp, api, esc };
+  return { mountShell, initDashboard, initMembers, initBoardManager, initApprovals, initOrders, initLeads, initRibbon, initEvents, initContent, initAssistant, initRenewals, initUsers, initGroups, initSponsorships, initSlides, initTools, initImages, initAbout, openHelp, pickImage, libraryBtn, bindLibraryBtn, api, esc };
 })();

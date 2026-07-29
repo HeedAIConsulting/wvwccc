@@ -280,6 +280,12 @@ window.Chamber = (function () {
     const label = /\/es\//.test(location.pathname) ? 'Agotado' : 'Sold out';
     return `<span class="btn${small ? ' btn--sm' : ''}" aria-disabled="true" style="pointer-events:none;cursor:default;background:var(--slate-mid,#5d6b63);border-color:transparent;color:#fff">${label}</span>`;
   }
+  // Label for the paid action button. The office can override the wording per
+  // event (Felicia, Jul 29 2026) because "Buy Tickets" is wrong when what's for
+  // sale is an ad, a name badge or a sponsorship. Blank falls back to the
+  // standard translated label.
+  const buyLabel = (ev, fallback) => (ev && ev.ctaLabel ? ev.ctaLabel : tr(fallback));
+
   // Full detail card for an event — used by the dedicated event page (and by
   // the legacy modal). Per the office, Jul 2026: events open on their OWN page
   // with room for sponsors, logos, and photo galleries.
@@ -291,10 +297,21 @@ window.Chamber = (function () {
     // Flyers: main flyer plus any additional flyers (admin can attach several).
     const flyers = [ev.flyer].concat(Array.isArray(ev.flyers) ? ev.flyers : []).map(evImgOf).filter(Boolean);
     const hero = flyers[0] || ev.thumbnail || evImgOf(ev.images && ev.images[0]) || '';
-    const flyerImg = hero
+    // The office picks what fills this slot (Felicia, Jul 29 2026). A flyer-less
+    // event used to render the chamber logo at full 560px height, pushing the
+    // date/venue/RSVP below the fold — `logoBar` is the compact alternative.
+    const mode = ['auto', 'flyer', 'logo', 'both', 'none'].includes(ev.imageMode) ? ev.imageMode : 'auto';
+    const logoBar = `<div class="ev-card__logobar"><img src="${base}images/wvwccc-logo.png" alt="West Valley · Warner Center Chamber of Commerce" onerror="this.style.display='none'"></div>`;
+    const heroImg = hero
       ? `<img class="ev-card__flyer" src="${esc(evImgSrc(hero, base))}" alt="${esc(ev.title)} flyer" onerror="this.onerror=null;this.src='${base}images/wvwccc-logo.png';this.classList.add('ev-card__flyer--ph')">`
-      : `<img class="ev-card__flyer ev-card__flyer--ph" src="${base}images/wvwccc-logo.png" alt="">`;
-    const moreFlyers = flyers.slice(1).map((u) => `<img class="ev-card__flyer" src="${esc(evImgSrc(u, base))}" alt="${esc(ev.title)} flyer" loading="lazy">`).join('');
+      : '';
+    let flyerImg;
+    if (mode === 'none') flyerImg = '';
+    else if (mode === 'logo') flyerImg = logoBar;
+    else if (mode === 'both') flyerImg = logoBar + heroImg;
+    else if (mode === 'flyer') flyerImg = heroImg;                 // nothing when no flyer
+    else flyerImg = heroImg || logoBar;                            // auto
+    const moreFlyers = mode === 'none' || mode === 'logo' ? '' : flyers.slice(1).map((u) => `<img class="ev-card__flyer" src="${esc(evImgSrc(u, base))}" alt="${esc(ev.title)} flyer" loading="lazy">`).join('');
     // Photo strip: each image may carry a link (e.g. sponsor logo → sponsor site).
     const extra = (ev.images || []).filter((it) => evImgOf(it) && evImgOf(it) !== hero).slice(0, 6);
     const imgTag = (it) => {
@@ -329,8 +346,16 @@ window.Chamber = (function () {
     const grpQ = _groupCtx ? `&group=${encodeURIComponent(_groupCtx.slug)}` : '';
     // ticketed → Buy; ticketed + alsoRsvp → BOTH buttons (e.g. members RSVP
     // free, guests buy); soldOut → a non-clickable Sold Out notice; else RSVP.
-    const rsvpBtn = `<a class="btn btn--forest" href="${base}contact.html?event=${esc(ev.id)}${grpQ}">RSVP</a>`;
-    const buyBtn = `<a class="btn btn--gold" href="${base}checkout.html?type=ticket&event=${esc(ev.id)}">Get tickets</a>`;
+    // RSVP destination (Felicia + Diana, Jul 29 2026): when the event has
+    // registration tiers set up, RSVP goes to the same screen tickets use — it
+    // names the event, shows the tier ("Member — free with pre-registration")
+    // and collects attendee details. Only tier-less events fall back to the
+    // general contact form.
+    const rsvpHref = (Array.isArray(ev.ticketTypes) && ev.ticketTypes.some((t) => t.available !== false && t.name))
+      ? `${base}checkout.html?type=ticket&event=${esc(ev.id)}`
+      : `${base}contact.html?event=${esc(ev.id)}${grpQ}`;
+    const rsvpBtn = `<a class="btn btn--forest" href="${rsvpHref}">RSVP</a>`;
+    const buyBtn = `<a class="btn btn--gold" href="${base}checkout.html?type=ticket&event=${esc(ev.id)}">${esc(buyLabel(ev, 'Get tickets'))}</a>`;
     const cta = ev.soldOut ? soldOutBtn() : (ev.ticketed ? (ev.alsoRsvp ? rsvpBtn + ' ' + buyBtn : buyBtn) : rsvpBtn.replace('>RSVP<', '>RSVP / Notify me<'));
     const desc = ev.description || ev.summary || '';
     // Rich description (admin editor) renders as sanitized HTML; plain text is
@@ -357,7 +382,7 @@ window.Chamber = (function () {
           </div>
           ${featuredRow}
           ${imgs}
-          ${descHtml ? `<div class="ev-card__desc"${ev.descriptionHtml ? ' style="white-space:normal"' : ''}>${descHtml}</div>` : ''}
+          ${descHtml ? `<div class="ev-card__desc${ev.descriptionHtml ? ' rt-typo' : ''}"${ev.descriptionHtml ? ' style="white-space:normal"' : ''}>${descHtml}</div>` : ''}
           ${sponsorRow}
           ${links}
           ${docs}
@@ -431,7 +456,7 @@ window.Chamber = (function () {
     const when = confirmed ? `${esc(ev.month)} ${esc(ev.day)} · ${esc(ev.time || '')}` : 'Date to be announced';
     const cta = ev.soldOut ? soldOutBtn(true) : ev.ticketed
       ? (confirmed
-          ? `${ev.alsoRsvp ? `<a class="btn btn--ghost btn--sm" href="${base}contact.html?event=${esc(ev.id)}">RSVP</a> ` : ''}<a class="btn btn--gold btn--sm" href="${base}checkout.html?type=ticket&event=${esc(ev.id)}">Get tickets</a>`
+          ? `${ev.alsoRsvp ? `<a class="btn btn--ghost btn--sm" href="${base}contact.html?event=${esc(ev.id)}">RSVP</a> ` : ''}<a class="btn btn--gold btn--sm" href="${base}checkout.html?type=ticket&event=${esc(ev.id)}">${esc(buyLabel(ev, 'Get tickets'))}</a>`
           : `<a class="btn btn--ghost btn--sm" href="${base}contact.html?event=${esc(ev.id)}">Notify me</a>`)
       : `<a class="btn btn--ghost btn--sm" href="${base}contact.html?event=${esc(ev.id)}">RSVP</a>`;
     const imgs = (ev.images && ev.images.length)
@@ -467,7 +492,7 @@ window.Chamber = (function () {
     const day = ev.day || (ev.date ? String(Number(ev.date.slice(8, 10))) : '');
     const dateUS = ev.date ? `${ev.date.slice(5, 7)}/${ev.date.slice(8, 10)}/${ev.date.slice(2, 4)}` : 'Date TBA';
     const cta = ev.soldOut ? soldOutBtn(true) : ev.ticketed
-      ? `${ev.alsoRsvp ? `<a class="btn btn--ghost btn--sm" href="${base}contact.html?event=${esc(ev.id)}">RSVP</a> ` : ''}<a class="btn btn--gold btn--sm" href="${base}checkout.html?type=ticket&event=${esc(ev.id)}">Tickets</a>`
+      ? `${ev.alsoRsvp ? `<a class="btn btn--ghost btn--sm" href="${base}contact.html?event=${esc(ev.id)}">RSVP</a> ` : ''}<a class="btn btn--gold btn--sm" href="${base}checkout.html?type=ticket&event=${esc(ev.id)}">${esc(buyLabel(ev, 'Tickets'))}</a>`
       : `<a class="btn btn--ghost btn--sm" href="${base}contact.html?event=${esc(ev.id)}">RSVP</a>`;
     return `
       <div class="ev-quick" data-ev-detail="${esc(ev.id)}" style="display:flex;align-items:center;gap:14px;padding:11px 14px;border-bottom:1px solid var(--gold-soft,#e6dcbf);cursor:pointer">
@@ -503,7 +528,7 @@ window.Chamber = (function () {
     const sum = (sumRaw && sumRaw.toLowerCase() !== String(ev.venue || '').trim().toLowerCase()
       && sumRaw.toLowerCase() !== String(ev.neighborhood || '').trim().toLowerCase()) ? sumRaw : '';
     const cta = ev.soldOut ? soldOutBtn(true) : ev.ticketed
-      ? `${ev.alsoRsvp ? `<a class="btn btn--forest btn--sm" href="${base}contact.html?event=${esc(ev.id)}">RSVP</a> ` : ''}<a class="btn btn--gold btn--sm" href="${base}checkout.html?type=ticket&event=${esc(ev.id)}">Buy tickets</a>`
+      ? `${ev.alsoRsvp ? `<a class="btn btn--forest btn--sm" href="${base}contact.html?event=${esc(ev.id)}">RSVP</a> ` : ''}<a class="btn btn--gold btn--sm" href="${base}checkout.html?type=ticket&event=${esc(ev.id)}">${esc(buyLabel(ev, 'Buy tickets'))}</a>`
       : `<a class="btn btn--forest btn--sm" href="${base}contact.html?event=${esc(ev.id)}">RSVP</a>`;
     return `
       <article class="evp card--hover" id="${esc(ev.id)}" data-ev-detail="${esc(ev.id)}">
@@ -1294,12 +1319,82 @@ window.Chamber = (function () {
     // a "$1 test" on a ticket checkout charged the real $200 ticket price and
     // nothing on screen said so before the tap).
     const payBtnEl = document.getElementById('payBtn');
+    // Free (RSVP) mode — a $0 tier means there is nothing to charge, so the card
+    // section and amount box come off the screen and the button confirms an RSVP
+    // on this same page (Felicia + Diana, Jul 29 2026: an RSVP should look like
+    // the ticket screen, naming the event, not a generic "contact us" form).
+    let freeMode = false;
+    const setFreeMode = (on) => {
+      freeMode = !!on;
+      const cardBlock = document.getElementById('payCardBlock');
+      const amountField = document.getElementById('amountField');
+      const secureNote = document.getElementById('paySecureNote');
+      const rsvpNote = document.getElementById('rsvpNote');
+      if (cardBlock) cardBlock.hidden = freeMode;
+      if (amountField) amountField.hidden = freeMode;
+      if (secureNote) secureNote.hidden = freeMode;
+      if (rsvpNote) rsvpNote.hidden = !freeMode;
+      // A hidden required field would block submit with an un-focusable error,
+      // and a free RSVP has no card to run AVS against — so billing goes too.
+      if (amountInput) amountInput.required = !freeMode;
+      const form0 = document.getElementById('payForm');
+      const billing = document.getElementById('payBillingBlock');
+      if (billing) billing.hidden = freeMode;
+      ['address1', 'zip'].forEach((n) => {
+        const el = form0 && form0.querySelector(`[name="${n}"]`);
+        if (el) el.required = !freeMode;
+      });
+      syncPayBtn();
+    };
     const syncPayBtn = () => {
       if (!payBtnEl) return;
+      if (freeMode) { payBtnEl.textContent = 'Confirm my RSVP'; return; }
       const a = Number(amountInput && amountInput.value);
       payBtnEl.textContent = a > 0 ? `Pay $${a.toFixed(2)} securely` : 'Pay securely';
     };
     if (amountInput) amountInput.addEventListener('input', syncPayBtn);
+
+    // Submit a free RSVP through the same inquiry pipeline the office already
+    // watches (Inquiries + the RSVP view on the event), then show the same
+    // confirmation panel a paid order gets.
+    async function submitFreeRsvp() {
+      const fd = new FormData(form);
+      const attendees = Array.from(document.querySelectorAll('#tixNames [data-att-row]'))
+        .map((r) => ({
+          name: (r.querySelector('[data-attendee]')?.value || '').trim(),
+          email: (r.querySelector('[data-att-email]')?.value || '').trim(),
+          phone: (r.querySelector('[data-att-phone]')?.value || '').trim(),
+        })).filter((a) => a.name || a.email || a.phone);
+      const payload = {
+        kind: 'rsvp',
+        reason: 'RSVP',
+        firstName: fd.get('firstName') || '', lastName: fd.get('lastName') || '',
+        email: fd.get('email') || '', phone: fd.get('phone') || '', company: fd.get('company') || '',
+        event: extra.eventTitle ? `${extra.eventTitle} [${params.get('event') || ''}]` : (params.get('event') || ''),
+        message: [
+          label,
+          extra.ticketType ? `Registration type: ${extra.ticketType}` : '',
+          extra.quantity ? `Attending: ${extra.quantity}` : '',
+          attendees.length ? 'Attendees:\n' + attendees.map((a, i) => `  ${i + 1}. ${a.name} · ${a.email} · ${a.phone}`).join('\n') : '',
+        ].filter(Boolean).join('\n'),
+      };
+      const tk = form.querySelector('[name="cf-turnstile-response"]');
+      if (tk && tk.value) payload['cf-turnstile-response'] = tk.value;
+      const r = await fetch(ChamberAPI.url('/api/contact'), {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok || data.ok === false) throw new Error(data.error || 'Could not record your RSVP.');
+      form.hidden = true;
+      const ok = document.getElementById('paySuccess');
+      if (ok) {
+        ok.hidden = false;
+        const h = ok.querySelector('h3'); if (h) h.textContent = 'You’re on the list — thank you!';
+        const p = ok.querySelector('p');
+        if (p) p.innerHTML = `We’ve got your RSVP for <strong>${esc(extra.eventTitle || 'the event')}</strong>. `
+          + 'A confirmation is on its way to your email. See you there!';
+      }
+    }
 
     // Build the order context. A `sku` param (from join.html / donate.html) is
     // resolved against the /api/skus catalog so prices have one source of truth.
@@ -1330,8 +1425,14 @@ window.Chamber = (function () {
       // Secret link-key prices (e.g. board-member gala tickets) only appear
       // when the shared link carries ?key=<their key>.
       const linkKey = String(params.get('key') || '').trim().toLowerCase();
+      // FREE tiers belong here too (Felicia, Jul 29 2026). The old filter
+      // required a price above zero, so a "Member — Free with pre-registration"
+      // row silently disappeared: an event whose only rows were a free member
+      // tier and a guest tier with the price left blank fell through to the
+      // "enter the amount shown" box, which is what she saw instead of $15.
+      // Any named, available row now shows — free ones read "Free".
       const types = (ev && Array.isArray(ev.ticketTypes) ? ev.ticketTypes : [])
-        .filter((t) => t.available !== false && t.name && (Number(t.price) > 0 || Number(t.earlyPrice) > 0))
+        .filter((t) => t.available !== false && t.name)
         .filter((t) => !t.linkKey || t.linkKey === linkKey);
       // Sold out (per the office, Jul 24 2026): the whole event is flagged, or
       // every listed price is individually sold out — close the checkout.
@@ -1353,10 +1454,19 @@ window.Chamber = (function () {
           const g = t.group || '';
           let bucket = groups.find((x) => x.g === g);
           if (!bucket) { bucket = { g, items: [] }; groups.push(bucket); }
-          bucket.items.push(`<option value="${i}"${t.soldOut ? ' disabled' : ''}>${esc(t.name)} — ${t.soldOut ? 'SOLD OUT' : '$' + priceOf(t).toFixed(2)}</option>`);
+          // Free tiers read "Free" — and when the name already spells out the
+          // terms ("Member — free with pre-registration") the dropdown shows
+          // exactly that wording, which is what Diana asked for.
+          const p = priceOf(t);
+          const priceTxt = t.soldOut ? 'SOLD OUT' : (p > 0 ? '$' + p.toFixed(2) : 'Free');
+          const spellsItOut = p <= 0 && /free/i.test(t.name);
+          bucket.items.push(`<option value="${i}"${t.soldOut ? ' disabled' : ''}>${esc(t.name)}${spellsItOut && !t.soldOut ? '' : ' — ' + priceTxt}</option>`);
         });
         if (groups.length === 1 && groups[0].g === '') return groups[0].items.join('');
-        return groups.map((b) => b.g ? `<optgroup label="${esc(b.g)}">${b.items.join('')}</optgroup>` : b.items.join('')).join('');
+        // The admin stores audience as 'member' / 'guest' — show it the way a
+        // visitor reads it, not the raw value.
+        const groupLabel = (g) => ({ member: 'Members', guest: 'Guests' }[String(g).toLowerCase()] || g);
+        return groups.map((b) => b.g ? `<optgroup label="${esc(groupLabel(b.g))}">${b.items.join('')}</optgroup>` : b.items.join('')).join('');
       })();
       if (types.length) {
         // Ticket picker: type dropdown + quantity → total auto-fills (amounts are
@@ -1418,10 +1528,19 @@ window.Chamber = (function () {
           const unit = priceOf(t);
           const total = unit * qty;
           amountInput.value = total.toFixed(2);
-          calc.textContent = `${qty} × ${t.name} @ $${unit.toFixed(2)} = $${total.toFixed(2)}`;
-          label = `Tickets — ${ev.title} · ${qty} × ${t.name} @ $${unit.toFixed(2)}`;
+          calc.textContent = unit > 0
+            ? `${qty} × ${t.name} @ $${unit.toFixed(2)} = $${total.toFixed(2)}`
+            : `${qty} × ${t.name} — no charge`;
+          label = unit > 0
+            ? `Tickets — ${ev.title} · ${qty} × ${t.name} @ $${unit.toFixed(2)}`
+            : `RSVP — ${ev.title} · ${qty} × ${t.name}`;
           sku = `ticket:${id}:${t.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40)}`;
           extra.eventTitle = ev.title; extra.ticketType = t.name; extra.quantity = qty;
+          // A free tier is an RSVP, not a sale — hide the card fields entirely so
+          // a member choosing "Member — free with pre-registration" completes on
+          // this same screen (with the event named at the top) instead of being
+          // sent to a generic "contact the chamber" form (Felicia + Diana, Jul 29).
+          setFreeMode(total <= 0);
           syncPayBtn();
         };
         typeSel.addEventListener('change', update);
@@ -1431,9 +1550,21 @@ window.Chamber = (function () {
         const firstBuyable = types.findIndex((t) => !t.soldOut);
         if (firstBuyable > 0) typeSel.value = String(firstBuyable);
         update();
+        // Free-only events read as a registration, not a sale.
+        if (types.every((t) => priceOf(t) <= 0)) title.textContent = 'Event registration';
       } else {
-        summary.innerHTML = `${evMeta}<p class="notice mt-3">Ticket pricing is set by the Chamber — enter the amount shown for your ticket type, or confirm with the office.</p>`;
-        amountLabel.textContent = 'Ticket amount (USD)';
+        // No registration tiers configured on this event yet. Rather than an
+        // open amount box (Felicia, Jul 29 — "it doesn't say $15, it has all
+        // other numbers"), send them to the office and say why.
+        summary.innerHTML = `${evMeta}<p class="notice mt-3">Registration for this event isn't set up online yet.
+          Please call the Chamber office at <strong>(818) 347-4737</strong> or email
+          <a href="mailto:felicia@woodlandhillscc.net">felicia@woodlandhillscc.net</a> and we'll take care of it.</p>`;
+        ['payBtn', 'amountField', 'payError', 'payCardBlock', 'payBillingBlock', 'paySecureNote'].forEach((i2) => {
+          const el2 = document.getElementById(i2); if (el2) el2.style.display = 'none';
+        });
+        const pf = document.getElementById('payForm');
+        const left = pf && pf.querySelector('div'); if (left) left.style.display = 'none';
+        return;
       }
     } else if (kind === 'membership') {
       const item = findSku('memberships', skuParam);
@@ -1477,10 +1608,16 @@ window.Chamber = (function () {
     const showErr = (m) => { errEl.textContent = m; errEl.hidden = false; };
 
     // No tokenization key yet → show notice, keep UI but block live submit.
+    // A FREE RSVP still goes through: it never touches the card gateway.
     if (!cfg.tokenizationKey) {
       document.getElementById('sandboxNotice').hidden = false;
-      form.addEventListener('submit', (e) => {
-        e.preventDefault();
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault(); errEl.hidden = true;
+        if (!form.reportValidity()) return;
+        if (freeMode) {
+          try { await submitFreeRsvp(); } catch (err) { showErr(err.message || 'Could not record your RSVP.'); }
+          return;
+        }
         showErr('Card processing is not enabled yet (AGMS sandbox key pending). Your details look good — add the key to go live.');
       });
       return;
@@ -1541,9 +1678,18 @@ window.Chamber = (function () {
       },
     });
 
-    form.addEventListener('submit', (e) => {
+    form.addEventListener('submit', async (e) => {
       e.preventDefault(); errEl.hidden = true;
       if (!form.reportValidity()) return;
+      // Free tier → record the RSVP; there is no charge to tokenize.
+      if (freeMode) {
+        const btn = payBtnEl; const was = btn ? btn.textContent : '';
+        if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
+        try { await submitFreeRsvp(); }
+        catch (err) { showErr(err.message || 'Could not record your RSVP. Please call the office at (818) 347-4737.'); }
+        finally { if (btn) { btn.disabled = false; btn.textContent = was; } }
+        return;
+      }
       window.CollectJS.startPaymentRequest();
     });
   }

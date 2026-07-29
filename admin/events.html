@@ -74,10 +74,13 @@
                   <button type="button" data-rt="justifyRight" title="Align right">⯈</button>
                   <button type="button" data-rt-link title="Turn the selected text into a link">🔗 Link</button>
                   <label title="Insert an image right here in the text (breaks up long descriptions)" style="cursor:pointer;display:inline-flex;align-items:center;padding:2px 8px;border:1px solid var(--line,#ddd);border-radius:6px;background:#fff">🖼 Image<input type="file" data-rt-img accept="image/*" hidden></label>
+                  <button type="button" data-rt-libimg title="Insert an image you have already uploaded (sponsor logos, headshots…)">📁 Library</button>
                   <button type="button" data-rt="removeFormat" title="Clear formatting">⌫ Clear</button>
                 </div>
-                <div id="evRich" contenteditable="true" style="border:1px solid var(--line,#ddd);border-radius:0 0 8px 8px;min-height:130px;max-height:340px;overflow:auto;padding:10px 12px;background:#fff;font-size:.95rem;line-height:1.6"></div>
-                <p class="sub" style="margin:4px 0 0">Select text, then use the buttons — e.g. select “Click here to sign up” and press 🔗 Link.</p>
+                <div id="evRich" class="rt-typo" contenteditable="true" style="border:1px solid var(--line,#ddd);border-radius:0 0 8px 8px;min-height:130px;max-height:340px;overflow:auto;padding:10px 12px;background:#fff"></div>
+                <p class="sub" style="margin:4px 0 0">Select text, then use the buttons — e.g. select “Click here to sign up” and press 🔗 Link.
+                  Press <strong>Enter</strong> for a new paragraph (with a gap) and <strong>Shift+Enter</strong> for a plain line break —
+                  what you see here is now exactly how it lands on the website.</p>
               </div>
               <div class="field"><label>Ticket cap <span class="sub">(optional)</span></label><input name="ticketCap" type="number" min="0" /></div>
               <div class="field"><label>RSVP / ticket cutoff <span class="sub">(optional)</span></label><input name="rsvpCutoff" type="date" /></div>
@@ -93,12 +96,41 @@
                   <option value="soldout">Sold out — event stays listed, ticket sales closed</option>
                 </select>
               </span>
+              <span style="display:inline-flex;align-items:center;gap:6px">
+                <label style="margin:0">Button says</label>
+                <input name="ctaLabel" maxlength="40" style="width:170px" list="ctaLabelIdeas"
+                       placeholder="Buy Tickets"
+                       title="Leave blank for the standard wording. Type anything you like — Purchase, Register, Buy an ad, Order a name badge…" />
+                <datalist id="ctaLabelIdeas">
+                  <option value="Purchase"></option>
+                  <option value="Buy Tickets"></option>
+                  <option value="Register"></option>
+                  <option value="Reserve my seat"></option>
+                  <option value="Buy an ad"></option>
+                  <option value="Order a name badge"></option>
+                  <option value="Become a sponsor"></option>
+                  <option value="Make a payment"></option>
+                </datalist>
+              </span>
               <label style="display:inline-flex;align-items:center;gap:10px;cursor:pointer"><span class="toggle"><input type="checkbox" name="featured"><span class="track"></span></span> Show on homepage</label>
               <label style="display:inline-flex;align-items:center;gap:10px;cursor:pointer"><span class="toggle"><input type="checkbox" name="showOnCalendar" checked><span class="track"></span></span> Show on calendar</label>
               <span style="display:inline-flex;align-items:center;gap:6px"><label style="margin:0">Home order</label><input name="homeOrder" type="number" min="1" max="4" style="width:80px" title="1–4: position on the homepage (1 is first). Only events with 'Show on homepage' appear." /></span>
             </div>
 
             <div class="field"><label>Home-page blurb <span class="sub">(optional — short text shown with this event on the home page)</span></label><textarea name="homeBlurb" rows="2" maxlength="400"></textarea></div>
+
+            <div class="field"><label>Picture at the top of the event page</label>
+              <select name="imageMode" class="admin-select" style="max-width:420px"
+                      title="Controls what fills the image area on the event's own page">
+                <option value="auto">Flyer if there is one — otherwise a small chamber logo (recommended)</option>
+                <option value="flyer">Flyer only — show nothing when there's no flyer</option>
+                <option value="logo">Small chamber logo only</option>
+                <option value="both">Small chamber logo above the flyer</option>
+                <option value="none">No picture at all</option>
+              </select>
+              <p class="sub" style="margin:4px 0 0">Use this when an event has no flyer — the chamber logo shows as a slim
+                banner instead of a full-height image, so the date, venue and RSVP button stay in view.</p>
+            </div>
 
             <div class="grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
               <div class="field"><label>Main flyer <span class="sub">(portrait; shown on the event detail)</span></label><input type="file" id="evFlyerImg" accept="image/*" /><div id="evFlyerPrev" style="margin-top:6px"></div></div>
@@ -127,7 +159,7 @@
     </div>
   </div>
   <script src="../js/api-base.js"></script>
-  <script src="admin.js?v=20260724c"></script>
+  <script src="admin.js?v=20260729a"></script>
   <script>Admin.initEvents();</script>
   <script defer src="/js/support.js?v=20260701a"></script>
 </body>
