@@ -2821,7 +2821,16 @@ window.Admin = (function () {
           .map((r) => ({ role: r.role, points: Number(r.points) || 0, needed: Number(r.needed) || 1 })),
         images, links: links.filter((l) => l.url),
       };
-      if (body.ticketed && !body.ticketTypes.length) { msg.hidden = false; msg.textContent = 'The Buy tickets button needs at least one ticket price — add one under “Ticket prices” (or switch the action button to RSVP).'; return; }
+      // Felicia, Jul 29 2026 ("Event Fix Please"): this used to be a hard block,
+      // which stranded her on the Oct 21 Food & Wine event — she was selling
+      // tickets but did not have the prices yet, so she could not save the rest
+      // of her edits at all. Warn, say exactly what a visitor gets meanwhile,
+      // and let her save.
+      if (body.ticketed && !body.ticketTypes.length && !confirm(
+        'This event has a ticket button but no prices yet.\n\n'
+        + 'Until you add one under "Ticket prices", anyone clicking it sees '
+        + '"Registration for this event isn\'t set up online yet" and is asked to call the office.\n\n'
+        + 'Save anyway and add the prices later?')) return;
       if (!body.title) { msg.hidden = false; msg.textContent = 'Title is required.'; return; }
       // A price whose name and amount disagree is the costliest mistake on this
       // form: it either charges nothing for a $15 ticket or charges for
