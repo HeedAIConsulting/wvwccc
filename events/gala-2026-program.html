@@ -36,6 +36,9 @@
     .top { position: fixed; right: 16px; bottom: 16px; width: 44px; height: 44px; border-radius: 50%; background: #c9a227; color: #14100a; font-size: 1.2rem; line-height: 44px; text-align: center; text-decoration: none; box-shadow: 0 4px 16px rgba(0,0,0,.5); opacity: 0; pointer-events: none; transition: opacity .25s; }
     .top.show { opacity: 1; pointer-events: auto; }
   </style>
+  <!-- This page renders its own chrome and never mounts partials.js, so it
+       loads the shared analytics tag directly. -->
+  <script src="/js/analytics.js?v=20260730a" async></script>
 </head>
 <body>
   <header class="head">

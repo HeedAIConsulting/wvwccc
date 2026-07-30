@@ -459,6 +459,20 @@ window.ChamberPartials = (function () {
     document.head.appendChild(s);
   }
 
+  // Analytics: GA4 (traffic, acquisition, conversions) + Microsoft Clarity
+  // (heatmaps and session replay). The tag itself lives in js/analytics.js so
+  // the standalone pages that never mount partials — the gala program, the
+  // newsletter issues — can load the identical tag; the measurement IDs then
+  // live in exactly one file. analytics.js skips /admin/ and /auth/ on its own
+  // and self-guards a double load. GA4 Enhanced Measurement is on, so page
+  // views, scrolls, outbound clicks, downloads and form interactions are free.
+  function mountAnalytics() {
+    if (window.__wvAnalytics || document.querySelector('script[src*="js/analytics.js"]')) return;
+    var s = document.createElement('script');
+    s.src = '/js/analytics.js?v=20260730a'; s.async = true;
+    document.head.appendChild(s);
+  }
+
   function mount({ active = '', depth = 0, lang = 'en' } = {}) {
     const h = document.querySelector('[data-partial="header"]');
     const f = document.querySelector('[data-partial="footer"]');
@@ -549,6 +563,7 @@ window.ChamberPartials = (function () {
         .catch(() => {});
     })();
 
+    mountAnalytics();
     mountElevenLabs();
     mountAccessibility(depth);
     mountPageTransition(depth);
