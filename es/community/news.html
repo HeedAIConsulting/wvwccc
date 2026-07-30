@@ -93,11 +93,11 @@
     (function () {
     const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
     const EDITIONS = [
-      { t: 'Junio 2026', u: '../../newsletters/valley-biz-buzz-2026-06.html' },
+      { t: 'Junio 2026', u: '../../newsletters/valley-biz-connect-2026-06.pdf' },
     ];
     const ed = document.getElementById('bizEditions');
     if (ed) ed.innerHTML = '<div style="font-family:var(--mono);font-size:.64rem;letter-spacing:.14em;text-transform:uppercase;color:var(--gold-bright);margin-bottom:10px">Ediciones anteriores</div>' +
-      EDITIONS.map((e) => `<a href="${esc(e.u)}" target="_blank" rel="noopener" style="display:flex;gap:10px;align-items:center;color:#fff;text-decoration:none;padding:10px 12px;border:1px solid rgba(255,255,255,.22);border-radius:10px;margin-bottom:8px"><span style="font-size:1.15rem">📄</span><span><strong>Valley Biz Buzz</strong><br><span style="font-size:.82rem;color:rgba(255,255,255,.78)">${esc(e.t)}</span></span></a>`).join('');
+      EDITIONS.map((e) => `<a href="${esc(e.u)}" target="_blank" rel="noopener" style="display:flex;gap:10px;align-items:center;color:#fff;text-decoration:none;padding:10px 12px;border:1px solid rgba(255,255,255,.22);border-radius:10px;margin-bottom:8px"><span style="font-size:1.15rem">📄</span><span><strong>Valley Biz Connect</strong><br><span style="font-size:.82rem;color:rgba(255,255,255,.78)">${esc(e.t)}</span></span></a>`).join('');
     })();
   </script>
 </body>
