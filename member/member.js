@@ -135,6 +135,10 @@ window.MemberPortal = (function () {
     const mine = me.mine || [];
     // Nothing to volunteer for and no history → don't clutter the dashboard.
     if (!evs.length && !mine.length) return;
+    // Points/tiers only render once the Chamber turns them on (Felicia, Jul 30
+    // 2026 — "we do not have a point system at this moment"). Until then this
+    // is a plain "who is covering what" sign-up sheet.
+    const showPoints = !!(me.pointsOn || openings.pointsOn);
 
     const claimed = new Set(mine.map((m) => `${m.eventId}|${m.role}`));
     const upcomingMine = mine.filter((m) => !m.eventDate || m.eventDate >= new Date().toISOString().slice(0, 10));
@@ -147,10 +151,10 @@ window.MemberPortal = (function () {
             <h2 style="margin:4px 0">Volunteer at an event</h2>
             <p class="member-tile__meta">Pick a job and we'll put you down for it. The Chamber office sees exactly who's covering what.</p>
           </div>
-          <div style="text-align:right">
+          ${showPoints ? `<div style="text-align:right">
             <div style="font-size:2rem;font-weight:700;color:var(--green-ink,#12241a);line-height:1">${esc(me.points || 0)}</div>
             <div class="member-tile__meta">points${me.tier ? ` · <strong>${esc(me.tier)}</strong>` : ''}</div>
-          </div>
+          </div>` : ''}
         </div>
 
         ${upcomingMine.length ? `<div class="notice mt-4" style="border-color:var(--green)">
@@ -171,8 +175,8 @@ window.MemberPortal = (function () {
                 return `<button type="button" class="chip" ${isMine || full ? 'disabled' : ''}
                   data-vsign="${esc(e.id)}" data-vrole="${esc(r.role)}"
                   style="${isMine ? 'background:var(--green);color:#fff;border-color:var(--green)' : full ? 'opacity:.5;cursor:not-allowed' : 'cursor:pointer'}"
-                  title="${isMine ? "You're signed up for this" : full ? 'Already covered' : `${r.points} points`}">
-                  ${isMine ? '✓ ' : ''}${esc(r.role)} · ${esc(r.points)} pts${full && !isMine ? ' · covered' : (isMine ? '' : ` · ${esc(r.open)} needed`)}
+                  title="${isMine ? "You're signed up for this" : full ? 'Already covered' : (showPoints ? `${r.points} points` : 'Sign up for this job')}">
+                  ${isMine ? '✓ ' : ''}${esc(r.role)}${showPoints ? ` · ${esc(r.points)} pts` : ''}${full && !isMine ? ' · covered' : (isMine ? '' : ` · ${esc(r.open)} needed`)}
                 </button>`;
               }).join('')}
             </div>

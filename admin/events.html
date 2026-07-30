@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="../css/chamber.css" />
-  <link rel="stylesheet" href="admin.css?v=20260730a" />
+  <link rel="stylesheet" href="admin.css?v=20260730b" />
 </head>
 <body class="admin">
   <div class="admin-shell">
@@ -78,6 +78,9 @@
                   <button type="button" data-rt="removeFormat" title="Clear formatting">⌫ Clear</button>
                 </div>
                 <div id="evRich" class="rt-typo" contenteditable="true" style="border:1px solid var(--line,#ddd);border-radius:0 0 8px 8px;min-height:130px;max-height:340px;overflow:auto;padding:10px 12px;background:#fff"></div>
+                <p class="sub rt-measure-note">This box is exactly as wide as the event page, so your lines break in the
+                  same places once published. <strong>Tip:</strong> let the text wrap on its own — only press Enter
+                  where you want a real new line.</p>
                 <p class="sub" style="margin:4px 0 0">Select text, then use the buttons — e.g. select “Click here to sign up” and press 🔗 Link.
                   Press <strong>Enter</strong> for a new paragraph (with a gap) and <strong>Shift+Enter</strong> for a plain line break —
                   what you see here is now exactly how it lands on the website.</p>
@@ -166,7 +169,7 @@
     </div>
   </div>
   <script src="../js/api-base.js"></script>
-  <script src="admin.js?v=20260730d"></script>
+  <script src="admin.js?v=20260730e"></script>
   <script>Admin.initEvents();</script>
   <script defer src="/js/support.js?v=20260701a"></script>
 </body>

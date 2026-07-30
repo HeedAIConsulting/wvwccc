@@ -3073,12 +3073,29 @@ window.Admin = (function () {
       }));
       tierRows.querySelectorAll('[data-tierrm]').forEach((b) => b.addEventListener('click', () => { tiers.splice(+b.dataset.tierrm, 1); paintTiers(); }));
     };
+    // The points switch (Felicia, Jul 30 2026 — they have no scoring scheme yet).
+    // With it off, the tier rows are irrelevant, so grey them out rather than
+    // leaving the office editing thresholds nobody will ever see.
+    const ptsOn = document.getElementById('tierPointsOn');
+    const ptsBlock = document.getElementById('tierPointsBlock');
+    const syncPtsBlock = () => {
+      if (!ptsBlock || !ptsOn) return;
+      ptsBlock.style.opacity = ptsOn.checked ? '' : '.45';
+      ptsBlock.style.pointerEvents = ptsOn.checked ? '' : 'none';
+    };
+    ptsOn?.addEventListener('change', syncPtsBlock);
     document.getElementById('tierAdd')?.addEventListener('click', () => { tiers.push({ name: '', min: 0 }); paintTiers(); });
     document.getElementById('tierSave')?.addEventListener('click', async () => {
       try {
-        const r = await api('/api/admin/volunteer-tiers', { method: 'POST', body: JSON.stringify({ tiers: tiers.filter((t) => (t.name || '').trim()) }) });
+        const r = await api('/api/admin/volunteer-tiers', { method: 'POST', body: JSON.stringify({
+          tiers: tiers.filter((t) => (t.name || '').trim()),
+          pointsOn: !!(ptsOn && ptsOn.checked),
+        }) });
         tiers = r.tiers || tiers; paintTiers();
-        say(tierMsg, 'Tiers saved ✓ — the leaderboard now uses them.');
+        if (ptsOn) { ptsOn.checked = !!r.pointsOn; syncPtsBlock(); }
+        say(tierMsg, r.pointsOn
+          ? 'Saved ✓ — ambassadors now see their points and tier.'
+          : 'Saved ✓ — points are off, so ambassadors see a plain sign-up sheet.');
         await load();
       } catch (e) { say(tierMsg, 'Could not save the tiers.', true); }
     });
@@ -3110,6 +3127,11 @@ window.Admin = (function () {
       try { data = await api('/api/admin/volunteers'); }
       catch (e) { showAuthError(e); return; }
       tiers = (data.tiers || []).slice();
+      // Reflect the saved points switch, so reopening the page shows the truth.
+      try {
+        const t = await api('/api/admin/volunteer-tiers');
+        if (ptsOn) { ptsOn.checked = !!t.pointsOn; syncPtsBlock(); }
+      } catch (e) { /* leave the checkbox as-is */ }
       // Event pickers: anything with volunteer roles, plus anything already used.
       try { events = (await api('/api/admin/events')).events || []; } catch (e) { events = []; }
       const withRoles = events.filter((e) => Array.isArray(e.volunteerRoles) && e.volunteerRoles.length);

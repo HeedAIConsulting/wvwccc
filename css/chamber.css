@@ -766,6 +766,16 @@ html { scrollbar-color: var(--gold) var(--cream-deep); scrollbar-width: thin; }
    typing re-wraps and bunches up once published (Felicia, Jul 29 2026 — her
    Aug 5 sponsor blurb). `.rt-typo` is applied to BOTH containers so there is
    one definition of the spacing, not two that drift apart. */
+/* THE MEASURE — the single most important number for "what I typed is what
+   published". The public event description sits in an 860px card with 30px of
+   body padding and a 1px border, so its text column is 798px. The admin editor
+   was 900px wide at identical font metrics, which meant every hard line break
+   the office typed re-wrapped ~100px later once published: Felicia, Jul 29 AND
+   again Jul 30 2026 — "the spacing/text formatting is still not synching."
+   Matching font-size and line-height was necessary but NOT sufficient; the
+   column width is what decides where a line actually breaks. Change the card
+   width and you must change this with it. */
+:root { --rt-measure: 798px; }
 .rt-typo { font-size: 1rem; line-height: 1.7; color: var(--slate); }
 .rt-typo p { margin: 0 0 var(--s-4); }
 .rt-typo p:last-child { margin-bottom: 0; }

@@ -42,6 +42,15 @@ body.admin { background: var(--cream-deep); }
 .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: var(--s-4); margin-bottom: var(--s-6); }
 .stat-card { background: var(--paper); border: 1px solid var(--line); border-radius: var(--r-lg); padding: var(--s-5); }
 .stat-card .num { font-family: var(--display); font-size: 2.1rem; font-weight: 600; color: var(--green-deep); line-height: 1; }
+/* The event description editor is a true-width preview of the public page:
+   --rt-measure (798px) of text, plus its own 12px side padding and 1px border.
+   Anything wider and the office's hard line breaks land somewhere else once
+   published (Felicia, Jul 30 2026). Keep it centred so the form still looks
+   deliberate on a wide screen rather than half-empty. */
+#evRich { max-width: calc(var(--rt-measure) + 26px); margin: 0 auto; }
+#evRichBar { max-width: calc(var(--rt-measure) + 26px); margin: 0 auto; }
+.rt-measure-note { max-width: calc(var(--rt-measure) + 26px); margin: 4px auto 0; }
+
 .stat-card .lbl { font-size: .82rem; color: var(--muted); margin-top: 6px; }
 /* The "…of what?" line (Michael, Jul 30 2026). Deliberately quieter than the
    label so the row still scans as numbers first, detail second. */

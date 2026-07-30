@@ -2112,6 +2112,18 @@ router.post('/me/albums/:id/photos', auth.requireAuth(), async (req, res) => {
    ("registration at the Aug 5 breakfast"), and the office sees who covered
    what plus a running total per person. Tiers are point thresholds the office
    sets, because Felicia said they had not settled on names yet. */
+/* Points are OFF until the Chamber decides it wants a scoring system. Felicia,
+   Jul 30 2026: "Points taking a backseat. We do not have a point system at this
+   moment." Members were being shown a big points total and a tier name for a
+   scheme that does not exist. The tracker still records who covered which role
+   at which event — that part is useful on its own — it just stops keeping
+   score. The office flips this on from Admin → Ambassador Tracker when they
+   have settled on one. */
+const VOL_POINTS_KEY = 'volunteerPointsOn';
+async function pointsOn() {
+  try { return String(await repo.getSetting(VOL_POINTS_KEY) || '') === '1'; }
+  catch { return false; }
+}
 const VOL_TIERS_KEY = 'volunteerTiers';
 const VOL_TIERS_DEFAULT = [
   { name: 'Bronze Ambassador', min: 0 },
@@ -2171,7 +2183,7 @@ router.get('/me/volunteer/openings', auth.requireAuth(), async (_req, res) => {
           return { ...r, taken, open: Math.max(0, r.needed - taken) };
         }),
       }));
-    res.json({ ok: true, events: out });
+    res.json({ ok: true, events: out, pointsOn: await pointsOn() });
   } catch (e) { console.error('volunteer openings', e); res.status(500).json({ error: 'Could not load the volunteer list.' }); }
 });
 
@@ -2182,7 +2194,8 @@ router.get('/me/volunteer', auth.requireAuth(), async (req, res) => {
     const mine = await repo.listVolunteers({ memberId: req.user.mid });
     const tiers = await loadTiers();
     const points = mine.filter(countsForPoints).reduce((s, v) => s + (Number(v.points) || 0), 0);
-    res.json({ ok: true, mine, points, tier: tierFor(tiers, points), tiers });
+    const on = await pointsOn();
+    res.json({ ok: true, mine, points, tier: tierFor(tiers, points), tiers, pointsOn: on });
   } catch (e) { res.status(500).json({ error: 'Could not load your volunteer history.' }); }
 });
 
@@ -2294,14 +2307,17 @@ router.delete('/admin/volunteers/:id', requireAdmin, async (req, res) => {
 });
 
 router.get('/admin/volunteer-tiers', requireAdmin, async (_req, res) => {
-  try { res.json({ ok: true, tiers: await loadTiers() }); }
+  try { res.json({ ok: true, tiers: await loadTiers(), pointsOn: await pointsOn() }); }
   catch (e) { res.status(500).json({ error: 'Could not load the tiers.' }); }
 });
 router.post('/admin/volunteer-tiers', requireAdmin, async (req, res) => {
   try {
-    const tiers = cleanTiers(req.body && req.body.tiers);
+    const b = req.body || {};
+    // The points switch rides along with the tiers — they are the same decision.
+    if (b.pointsOn !== undefined) await repo.setSetting(VOL_POINTS_KEY, b.pointsOn ? '1' : '0');
+    const tiers = cleanTiers(b.tiers);
     await repo.setSetting(VOL_TIERS_KEY, JSON.stringify(tiers));
-    res.json({ ok: true, tiers });
+    res.json({ ok: true, tiers, pointsOn: await pointsOn() });
   } catch (e) { res.status(500).json({ error: 'Could not save the tiers.' }); }
 });
 

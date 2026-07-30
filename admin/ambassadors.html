@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="../css/chamber.css" />
-  <link rel="stylesheet" href="admin.css?v=20260730a" />
+  <link rel="stylesheet" href="admin.css?v=20260730b" />
 </head>
 <body class="admin">
   <div class="admin-shell">
@@ -75,11 +75,23 @@
         </div>
 
         <div class="panel">
-          <div class="panel__head"><h3>Tiers</h3></div>
+          <div class="panel__head"><h3>Points &amp; tiers</h3></div>
           <div class="admin-form" style="padding:16px">
-            <p class="sub" style="margin:0 0 12px">Point thresholds and what you call each level. An ambassador's tier is
-              the highest one their points reach. Rename these to whatever the committee decides.</p>
-            <div id="tierRows"></div>
+            <!-- Felicia, Jul 30 2026: "We do not have a point system at this moment."
+                 Off by default — members just see a sign-up sheet until the
+                 committee decides on scoring. -->
+            <label style="display:flex;gap:9px;align-items:flex-start;margin:0 0 14px;cursor:pointer">
+              <input type="checkbox" id="tierPointsOn" style="margin-top:3px">
+              <span><strong>Use a points system</strong>
+                <span class="sub" style="display:block">Off: ambassadors see a plain sign-up sheet — the roles and how many
+                  people each still needs — and you still see exactly who covered what. On: points and tier names appear
+                  for members too. Leave this off until the committee settles on a scheme.</span></span>
+            </label>
+            <div id="tierPointsBlock">
+              <p class="sub" style="margin:0 0 12px">Point thresholds and what you call each level. An ambassador's tier is
+                the highest one their points reach. Rename these to whatever the committee decides.</p>
+              <div id="tierRows"></div>
+            </div>
             <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px">
               <button type="button" id="tierAdd" class="btn btn--ghost btn--sm">+ Add a tier</button>
               <button type="button" id="tierSave" class="btn btn--forest btn--sm">Save tiers</button>
@@ -92,7 +104,7 @@
     </div>
   </div>
   <script src="../js/api-base.js"></script>
-  <script src="admin.js?v=20260730d"></script>
+  <script src="admin.js?v=20260730e"></script>
   <script>Admin.initAmbassadors();</script>
   <script defer src="/js/support.js?v=20260701a"></script>
 </body>
