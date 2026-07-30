@@ -10,7 +10,7 @@
   <link rel="alternate" hreflang="es" href="https://www.woodlandhillscc.net/es/ribbon-cutting.html" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="stylesheet" href="css/chamber.css?v=20260711a" />
+  <link rel="stylesheet" href="css/chamber.css?v=20260730a" />
   <style>
     .rc-grid { display: grid; grid-template-columns: 1.15fr .85fr; gap: var(--s-8); align-items: start; }
     @media (max-width: 920px) { .rc-grid { grid-template-columns: 1fr; } }
@@ -128,7 +128,7 @@
 
   <div data-partial="footer"></div>
   <script src="js/partials.js?v=20260729a"></script>
-  <script src="js/api-base.js?v=20260619a"></script>
+  <script src="js/api-base.js?v=20260729b"></script>
   <script src="js/forms.js"></script>
   <script>
     ChamberPartials.mount({ active: '', depth: 0, lang: 'en' });
@@ -171,6 +171,9 @@
           var r = await fetch((window.ChamberAPI ? ChamberAPI.url('') : '') + '/api/contact', {
             method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
           });
+          // Single-use token: spent by this attempt, so clear it or a retry
+          // after a rejection fails the captcha instead of the real problem.
+          if (window.ChamberAPI && ChamberAPI.resetTurnstile) ChamberAPI.resetTurnstile(form);
           var ok = r.ok;
           msg.hidden = false;
           if (ok) {

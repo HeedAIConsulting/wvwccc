@@ -1004,6 +1004,8 @@ let _galaFlyerChecked = false;
 let _urbrandPhotosChecked = false;
 let _confirmPublishedChecked = false;
 let _galaSoldOutChecked = false;
+let _mixerPricesChecked = false;
+let _galaAlbumChecked = false;
 async function ensureEventsSeeded() {
   if (!(await repo.hasEvents())) {
     for (const e of readSeedEvents()) await repo.upsertEvent(buildEvent(e, e));
@@ -1126,6 +1128,73 @@ async function ensureEventsSeeded() {
         console.log('[events] one-time: July 25 Gala (le-11209) marked Sold Out per Felicia');
       }
     } catch (e) { _galaSoldOutChecked = false; console.error('gala sold-out flag failed (will retry next boot)', e); }
+  }
+  /* One-time (Jul 30 2026, per Felicia): repair ticket rows whose NAME and
+     AMOUNT disagree. The Aug 26 Belmont Village mixer went live with both rows
+     at $100 — "Member Free With Pre-registration" would have charged $100, and
+     "Guests $15 with Pre-registration" charged $100 instead of $15 (before that
+     it had no amount at all, so the checkout said "Free / No payment needed",
+     which is what she wrote in about). The rule is deliberately narrow: only
+     touch a row whose own name states the price, and only set it to the number
+     that name already promises. The marker means the office can overrule any of
+     this from Admin → Events without a redeploy undoing their change. */
+  if (!_mixerPricesChecked) {
+    _mixerPricesChecked = true;
+    try {
+      const KEY = 'ticketNamePriceRepair-20260730';
+      if (!(await repo.getSetting(KEY))) {
+        const named = (n) => { const m = String(n || '').match(/\$\s*(\d[\d,]*(?:\.\d{1,2})?)/); return m ? Number(m[1].replace(/,/g, '')) : null; };
+        const saysFree = (n) => /\bfree\b/i.test(String(n || ''));
+        let fixed = 0;
+        for (const ev of await repo.listEventsStore()) {
+          if (!Array.isArray(ev.ticketTypes) || !ev.ticketTypes.length) continue;
+          let touched = false;
+          const rows = ev.ticketTypes.map((t) => {
+            const price = Number(t.price) || 0;
+            const want = named(t.name);
+            // "…$15…" priced at anything else → charge the $15 it advertises.
+            if (want != null && Math.abs(want - price) >= 0.005) { touched = true; return { ...t, price: want }; }
+            // "Member Free…" priced above zero → it says free, so make it free.
+            if (want == null && saysFree(t.name) && price > 0) { touched = true; return { ...t, price: 0 }; }
+            return t;
+          });
+          if (touched) {
+            await repo.upsertEvent(buildEvent({ ticketTypes: rows }, ev));
+            fixed++;
+            console.log(`[events] one-time price repair on ${ev.id} (${ev.title}): `
+              + rows.map((r) => `${r.name} → $${Number(r.price) || 0}`).join(' · '));
+          }
+        }
+        await repo.setSetting(KEY, `repaired ${fixed} event(s) @ ${new Date().toISOString()}`);
+      }
+    } catch (e) { _mixerPricesChecked = false; console.error('ticket price repair failed (will retry next boot)', e); }
+  }
+  /* One-time (Jul 30 2026): stand up the album Diana asked for by name — "a
+     photo gallery for the Black and White Gala" — attached to the Gala event
+     and covered by its flyer, so the office only has to drop photos in. Empty
+     albums are legitimate: the page invites members to add the first shots. */
+  if (!_galaAlbumChecked) {
+    _galaAlbumChecked = true;
+    try {
+      const KEY = 'galaAlbum-20260730';
+      if (!(await repo.getSetting(KEY))) {
+        const have = (await repo.listPosts({ type: 'album' })).some((p) => (p.meta || {}).eventId === 'le-11209');
+        if (!have) {
+          await repo.addPost({
+            id: 'alb-gala-2026',
+            type: 'album',
+            status: 'approved',
+            authorName: 'Chamber office',
+            title: 'Black, White & Bold Gala 2026',
+            body: 'Photos from our 2026 installation gala at the Woodland Hills Country Club.',
+            imageUrl: '/assets/events/gala-2026-black-white-bold.jpg',
+            meta: { eventId: 'le-11209', groupSlug: '', locked: false, photos: [] },
+          });
+          console.log('[albums] one-time: created the Black, White & Bold Gala 2026 album (Diana, Jul 30)');
+        }
+        await repo.setSetting(KEY, `applied @ ${new Date().toISOString()}`);
+      }
+    } catch (e) { _galaAlbumChecked = false; console.error('gala album seed failed (will retry next boot)', e); }
   }
   // Store already populated (e.g. seeded before flyers existed). Once per boot,
   // backfill flyer images from the committed seed onto stored events that lack
@@ -1844,6 +1913,161 @@ router.post('/admin/pay-items', requireAdmin, async (req, res) => {
     await repo.setSetting(PAY_ITEMS_KEY, JSON.stringify(items));
     res.json({ ok: true, items });
   } catch (e) { console.error('pay-items save', e); res.status(500).json({ error: 'Could not save the payment list.' }); }
+});
+
+/* ══ Photo albums (Diana, Jul 30 2026) ══════════════════════════════════
+   "A photo gallery for the Black and White Gala … a photo gallery for events
+   or whatever the admins want to create. Especially to associate with the
+   groups so that the members and group managers are encouraged to share
+   activity. All the images should be shareable to social."
+
+   An album is ONE post row (type 'album') carrying its photos in `meta`, not a
+   row per photo — adding a photo is a single PATCH, and an album renders from
+   one fetch. It can hang off an event, a group, both, or neither (a standalone
+   album like the Gala). Per Michael, uploads go live immediately: no approval
+   queue, because a queue is exactly the friction that stops members posting.
+   Captions still run through flagContent, and the office can lock an album. */
+const ALBUM_PHOTO_CAP = 300;
+/* A photo URL is rendered both as <img src> AND as the <a href> behind the
+   lightbox, so it has to be scheme-checked — clampUrl only trims length, and a
+   `javascript:` href would run on click. Site-relative, http(s) and inline
+   image data only. */
+function safePhotoUrl(raw) {
+  const u = clampUrl(raw);
+  if (!u) return '';
+  if (u.startsWith('/') && !u.startsWith('//')) return u;
+  if (/^https?:\/\//i.test(u)) return u;
+  if (/^data:image\/(png|jpe?g|gif|webp|avif);base64,/i.test(u)) return u;
+  return '';
+}
+function cleanPhotos(raw) {
+  return (Array.isArray(raw) ? raw : []).slice(0, ALBUM_PHOTO_CAP).map((p) => {
+    const url = safePhotoUrl(typeof p === 'string' ? p : (p && p.url));
+    if (!url) return null;
+    return {
+      url,
+      caption: String((p && p.caption) || '').slice(0, 180),
+      by: String((p && p.by) || '').slice(0, 80),
+      at: (p && p.at) || new Date().toISOString(),
+    };
+  }).filter(Boolean);
+}
+function albumOut(p, full) {
+  const meta = p.meta || {};
+  const photos = Array.isArray(meta.photos) ? meta.photos : [];
+  const base = {
+    id: p.id,
+    title: p.title || 'Photos',
+    body: p.body || '',
+    // Cover falls back to the first photo, so an album is never a blank card.
+    cover: p.imageUrl || (photos[0] && photos[0].url) || '',
+    count: photos.length,
+    eventId: meta.eventId || '',
+    groupSlug: meta.groupSlug || '',
+    locked: !!meta.locked,
+    created: p.created,
+  };
+  return full ? { ...base, photos } : base;
+}
+async function loadAlbums() {
+  return (await repo.listPosts({ type: 'album', status: 'approved' }));
+}
+router.get('/albums', async (req, res) => {
+  try {
+    const ev = String(req.query.event || '').trim();
+    const grp = String(req.query.group || '').trim().toLowerCase();
+    let list = await loadAlbums();
+    if (ev) list = list.filter((p) => (p.meta || {}).eventId === ev);
+    if (grp) list = list.filter((p) => String((p.meta || {}).groupSlug || '').toLowerCase() === grp);
+    res.json({ ok: true, albums: list.map((p) => albumOut(p, false)) });
+  } catch (e) { console.error('albums list', e); res.json({ ok: true, albums: [] }); }
+});
+router.get('/albums/:id', async (req, res) => {
+  try {
+    const p = (await loadAlbums()).find((x) => x.id === req.params.id);
+    if (!p) return res.status(404).json({ error: 'Album not found.' });
+    res.json({ ok: true, album: albumOut(p, true) });
+  } catch (e) { console.error('album get', e); res.status(500).json({ error: 'Could not load the album.' }); }
+});
+// Shared writer for both the admin editor and a member adding shots.
+async function saveAlbum(id, body, existing) {
+  const meta = { ...((existing && existing.meta) || {}) };
+  if (body.photos !== undefined) meta.photos = cleanPhotos(body.photos);
+  if (body.eventId !== undefined) meta.eventId = String(body.eventId || '').slice(0, 60);
+  if (body.groupSlug !== undefined) meta.groupSlug = String(body.groupSlug || '').slice(0, 80);
+  if (body.locked !== undefined) meta.locked = !!body.locked;
+  meta.photos = cleanPhotos(meta.photos);
+  const patch = {
+    title: String(body.title || (existing && existing.title) || 'Photos').slice(0, 120),
+    body: String(body.body != null ? body.body : ((existing && existing.body) || '')).slice(0, 2000),
+    imageUrl: body.cover !== undefined ? safePhotoUrl(body.cover) : ((existing && existing.imageUrl) || ''),
+    status: 'approved',
+    meta,
+  };
+  if (existing) { await repo.updatePost(id, patch); return { ...existing, ...patch }; }
+  const post = { id, type: 'album', authorId: body.authorId || '', authorName: body.authorName || '', ...patch };
+  await repo.addPost(post);
+  return post;
+}
+router.post('/admin/albums', requireAdmin, async (req, res) => {
+  try {
+    const b = req.body || {};
+    if (!String(b.title || '').trim()) return res.status(400).json({ error: 'Give the album a name.' });
+    const id = 'alb-' + Date.now().toString(36);
+    const saved = await saveAlbum(id, { ...b, authorName: req.user.name || 'Chamber office' }, null);
+    res.json({ ok: true, album: albumOut(saved, true) });
+  } catch (e) { console.error('album create', e); res.status(500).json({ error: 'Could not create the album.' }); }
+});
+router.patch('/admin/albums/:id', requireAdmin, async (req, res) => {
+  try {
+    const existing = (await repo.listPosts({ type: 'album' })).find((x) => x.id === req.params.id);
+    if (!existing) return res.status(404).json({ error: 'Album not found.' });
+    const saved = await saveAlbum(req.params.id, req.body || {}, existing);
+    res.json({ ok: true, album: albumOut(saved, true) });
+  } catch (e) { console.error('album save', e); res.status(500).json({ error: 'Could not save the album.' }); }
+});
+router.delete('/admin/albums/:id', requireAdmin, async (req, res) => {
+  try { await repo.deletePost(req.params.id); res.json({ ok: true }); }
+  catch (e) { console.error('album delete', e); res.status(500).json({ error: 'Could not delete the album.' }); }
+});
+/* Members and group managers adding to an album. This is the whole point of
+   the feature per Diana — the people who were AT the mixer have the photos. */
+router.get('/me/albums', auth.requireAuth(), async (req, res) => {
+  try {
+    const mine = (await managedGroups(req.user.sub)).map((g) => String(g.slug).toLowerCase());
+    res.json({
+      ok: true,
+      canAdd: !!req.user.mid || mine.length > 0,
+      myGroups: mine,
+      albums: (await loadAlbums()).map((p) => albumOut(p, false)),
+    });
+  } catch (e) { console.error('me albums', e); res.json({ ok: true, canAdd: false, myGroups: [], albums: [] }); }
+});
+router.post('/me/albums/:id/photos', auth.requireAuth(), async (req, res) => {
+  try {
+    const existing = (await repo.listPosts({ type: 'album' })).find((x) => x.id === req.params.id);
+    if (!existing) return res.status(404).json({ error: 'Album not found.' });
+    const meta = existing.meta || {};
+    const managed = (await managedGroups(req.user.sub)).map((g) => String(g.slug).toLowerCase());
+    const managesThis = meta.groupSlug && managed.includes(String(meta.groupSlug).toLowerCase());
+    if (meta.locked && !managesThis) {
+      return res.status(403).json({ error: 'This album is closed to new photos — contact the Chamber office.' });
+    }
+    if (!req.user.mid && !managed.length) {
+      return res.status(403).json({ error: 'Only Chamber members can add photos.' });
+    }
+    const adding = cleanPhotos(req.body && req.body.photos);
+    if (!adding.length) return res.status(400).json({ error: 'Pick at least one photo.' });
+    const bad = flagContent(adding.map((p) => p.caption).join(' '));
+    if (bad) return res.status(400).json({ error: bad });
+    let who = req.user.name || req.user.sub;
+    try { who = (await loadMembersFull()).members.find((m) => m.id === req.user.mid)?.name || who; } catch (e) {}
+    const stamped = adding.map((p) => ({ ...p, by: p.by || who }));
+    const photos = cleanPhotos([...(meta.photos || []), ...stamped]);
+    if (photos.length > ALBUM_PHOTO_CAP) return res.status(400).json({ error: `An album holds up to ${ALBUM_PHOTO_CAP} photos.` });
+    await repo.updatePost(existing.id, { meta: { ...meta, photos } });
+    res.json({ ok: true, added: stamped.length, count: photos.length });
+  } catch (e) { console.error('album add photos', e); res.status(500).json({ error: 'Could not add the photos.' }); }
 });
 
 /* ══ Ambassador / volunteer tracker (Felicia, Jul 29 2026) ══
@@ -2902,9 +3126,52 @@ router.get('/admin/summary', requireAdmin, async (_req, res) => {
       // Declined attempts are visible in the Pay Log but never count as money.
       orders: orders.filter((o) => (o.status || 'paid') !== 'declined').length,
       revenue: orders.filter((o) => (o.status || 'paid') === 'paid').reduce((s, o) => s + (Number(o.amount) || 0), 0),
+      // ── At-a-glance detail for the dashboard cards (Michael, Jul 30 2026:
+      // "the top cards need more description and information at a glance").
+      // A bare number tells the office how much there is, never what it is —
+      // these are the one-line answers to "…of what?" for each card.
+      glance: await dashboardGlance({ members, leads, orders }),
     });
   } catch (e) { console.error(e); res.status(500).json({ error: 'summary failed' }); }
 });
+/* The second line on each dashboard card. Everything here is derived from data
+   the summary already loaded, plus the event list — no extra round trips. */
+async function dashboardGlance({ members, leads, orders }) {
+  const daysAgo = (n) => new Date(Date.now() - n * 864e5).toISOString();
+  const since7 = daysAgo(7);
+  const since30 = daysAgo(30);
+  const when = (x) => String((x && (x.created || x.date)) || '');
+  const paid = orders.filter((o) => (o.status || 'paid') === 'paid');
+  const money = (n) => '$' + Math.round(n).toLocaleString('en-US');
+  /* A bare 'YYYY-MM-DD' parses as UTC midnight, so formatting it in a US
+     timezone lands on the day BEFORE — an Aug 3 event read "Aug 2" on the
+     dashboard. Format date-only strings from their own parts and never involve
+     a timezone; full timestamps (orders) still convert normally. */
+  const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const dayLabel = (iso) => {
+    const s = String(iso || '');
+    const dateOnly = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (dateOnly) return `${MON[Number(dateOnly[2]) - 1]} ${Number(dateOnly[3])}`;
+    const d = new Date(s);
+    return isNaN(d) ? '' : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
+  let nextEvent = null;
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    nextEvent = (await loadEvents())
+      .filter((e) => e.confirmed && e.date && e.date >= today && (e.status || 'approved') === 'approved')
+      .sort((a, b) => String(a.date).localeCompare(String(b.date)))[0] || null;
+  } catch (e) { /* events unavailable → the card just omits its hint */ }
+  const lastPaid = paid.slice().sort((a, b) => when(b).localeCompare(when(a)))[0];
+  return {
+    membersPending: members.filter((m) => m.status === 'pending').length,
+    membersActive: members.filter((m) => (m.status || 'approved') === 'approved').length,
+    leads7: leads.filter((l) => when(l) >= since7).length,
+    revenue30: money(paid.filter((o) => when(o) >= since30).reduce((s, o) => s + (Number(o.amount) || 0), 0)),
+    lastPayment: lastPaid ? `${money(Number(lastPaid.amount) || 0)} on ${dayLabel(when(lastPaid))}` : '',
+    nextEvent: nextEvent ? { title: nextEvent.title, date: nextEvent.date, when: dayLabel(nextEvent.date), id: nextEvent.id } : null,
+  };
+}
 
 router.get('/admin/members', requireAdmin, async (req, res) => {
   try {

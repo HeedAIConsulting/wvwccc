@@ -43,6 +43,15 @@ body.admin { background: var(--cream-deep); }
 .stat-card { background: var(--paper); border: 1px solid var(--line); border-radius: var(--r-lg); padding: var(--s-5); }
 .stat-card .num { font-family: var(--display); font-size: 2.1rem; font-weight: 600; color: var(--green-deep); line-height: 1; }
 .stat-card .lbl { font-size: .82rem; color: var(--muted); margin-top: 6px; }
+/* The "…of what?" line (Michael, Jul 30 2026). Deliberately quieter than the
+   label so the row still scans as numbers first, detail second. */
+.stat-card .hint { font-size: .76rem; color: var(--muted); opacity: .82; margin-top: 5px;
+  line-height: 1.35; border-top: 1px solid var(--line); padding-top: 5px; }
+.stat-card.accent .hint { opacity: 1; color: var(--gold-deep); }
+/* Next event: a date reads better than a tally, so let it run wider. */
+.stat-card.wide { grid-column: span 2; }
+.stat-card.wide .num { font-size: 1.6rem; }
+@media (max-width: 700px) { .stat-card.wide { grid-column: span 1; } }
 .stat-card.accent .num { color: var(--gold-deep); }
 
 /* ── Panels & tables ── */

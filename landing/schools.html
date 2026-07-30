@@ -11,7 +11,7 @@
 <link rel="alternate" hreflang="x-default" href="https://www.woodlandhillscc.net/landing/schools.html" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link rel="stylesheet" href="../css/chamber.css?v=20260711a" />
+<link rel="stylesheet" href="../css/chamber.css?v=20260730a" />
 <style>
 .lp-hero{position:relative;overflow:hidden;background:var(--green-ink,#143C20);color:var(--cream,#FAF6EC);padding:var(--s-9) 0 var(--s-8);
   background-image:radial-gradient(ellipse at 85% -10%,rgba(201,162,39,.22),transparent 55%)}
@@ -109,11 +109,12 @@
 
 <div data-partial="footer"></div>
 <script src="../js/partials.js?v=20260729a"></script>
-<script src="../js/api-base.js?v=20260619a"></script>
+<script src="../js/api-base.js?v=20260729b"></script>
 <script>
 ChamberPartials.mount({ active: '', depth: 1, lang: 'en' });
 (function(){
   var form=document.getElementById('lpForm'), msg=document.getElementById('lpMsg');
+  if(window.ChamberAPI && ChamberAPI.mountTurnstile) ChamberAPI.mountTurnstile(form);
   form.addEventListener('submit', async function(e){
     e.preventDefault();
     if(form.querySelector('[name="_gotcha"]').value) return;
@@ -124,7 +125,9 @@ ChamberPartials.mount({ active: '', depth: 1, lang: 'en' });
       message:'INDUSTRY: '+(fd.get('industry')||'')+' (landing: schools/en)\n\n'+(fd.get('message')||'') };
     var btn=form.querySelector('button[type="submit"]'); btn.disabled=true; btn.textContent='Sending…';
     try{
+      payload['cf-turnstile-response']=(window.ChamberAPI?ChamberAPI.turnstileToken(form):'');
       var r=await fetch((window.ChamberAPI?ChamberAPI.url(''):'')+'/api/contact',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+      if(window.ChamberAPI) ChamberAPI.resetTurnstile(form);
       msg.hidden=false;
       if(r.ok){ form.querySelectorAll('input,select,textarea,button').forEach(function(el){el.disabled=true;});
         msg.style.borderColor='var(--green)'; msg.innerHTML='<strong>Thank you!</strong> Your request is in. A Chamber representative will reach out personally — usually within one business day.';

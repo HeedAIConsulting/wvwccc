@@ -11,6 +11,47 @@ window.Chamber = (function () {
     if (!res.ok) throw new Error(`${path} → ${res.status}`);
     return res.json();
   }
+  // Signed-in reads/writes (member photo uploads). `credentials: include` is
+  // explicit because RENDER_API_BASE can put the API on another origin, where
+  // fetch's same-origin default would silently drop the session cookie.
+  async function getAuthed(path) {
+    const res = await fetch(path, { cache: 'no-cache', credentials: 'include' });
+    if (!res.ok) throw new Error(`${path} → ${res.status}`);
+    return res.json();
+  }
+  async function postJSON(path, body) {
+    const res = await fetch(path, {
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `${path} → ${res.status}`);
+    return data;
+  }
+  /* Shrink a phone photo before upload. Straight off a camera these are 4-12MB
+     and bounce off the /api/me/asset cap — the same trap that made Felicia's
+     Canva flyers "not replace" in July. Longest edge 1800px, JPEG q0.85. */
+  function downscaleImage(file, maxDim = 1800, quality = 0.85) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error('Could not read that file.'));
+      reader.onload = () => {
+        const img = new Image();
+        img.onerror = () => reject(new Error('That file is not an image.'));
+        img.onload = () => {
+          const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+          const c = document.createElement('canvas');
+          c.width = Math.round(img.width * scale);
+          c.height = Math.round(img.height * scale);
+          c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+          resolve(c.toDataURL('image/jpeg', quality));
+        };
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
 
   // ── i18n ───────────────────────────────────────────────────
   // App pages under /es/ render the same data with Spanish UI microcopy.
@@ -126,17 +167,19 @@ window.Chamber = (function () {
 
   // Reusable share row: social + email + SMS + copy/native-share. Pure HTML;
   // the copy/native button is handled by one delegated listener (below).
-  function shareMenu(title, url) {
+  // `compact` drops Email/Text and the "Share" caption — used under each photo
+  // in an album, where a six-button row per image swamps the photos themselves.
+  function shareMenu(title, url, compact) {
     const t = encodeURIComponent(title || 'West Valley · Warner Center Chamber');
     const u = encodeURIComponent(url);
     const body = encodeURIComponent((title ? title + ' — ' : '') + url);
-    return `<div class="share-row" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;align-items:center">
-      <span class="member-tile__meta" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.04em">${tr('Share')}</span>
+    return `<div class="share-row${compact ? ' share-row--compact' : ''}" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;align-items:center">
+      ${compact ? '' : `<span class="member-tile__meta" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.04em">${tr('Share')}</span>`}
       <a class="chip" target="_blank" rel="noopener" href="https://www.facebook.com/sharer/sharer.php?u=${u}" aria-label="Share on Facebook">Facebook</a>
       <a class="chip" target="_blank" rel="noopener" href="https://twitter.com/intent/tweet?text=${t}&url=${u}" aria-label="Share on X">X</a>
       <a class="chip" target="_blank" rel="noopener" href="https://www.linkedin.com/sharing/share-offsite/?url=${u}" aria-label="Share on LinkedIn">LinkedIn</a>
-      <a class="chip" href="mailto:?subject=${t}&body=${body}" aria-label="Share by email">Email</a>
-      <a class="chip" href="sms:?&body=${body}" aria-label="Share by text message">Text</a>
+      ${compact ? '' : `<a class="chip" href="mailto:?subject=${t}&body=${body}" aria-label="Share by email">Email</a>
+      <a class="chip" href="sms:?&body=${body}" aria-label="Share by text message">Text</a>`}
       <button class="chip" type="button" data-share-copy="${esc(url)}" aria-label="Copy or share link">🔗 Copy</button>
     </div>`;
   }
@@ -292,6 +335,22 @@ window.Chamber = (function () {
   // standard translated label.
   const buyLabel = (ev, fallback) => (ev && ev.ctaLabel ? ev.ctaLabel : tr(fallback));
 
+  // ── Where the two event buttons land ───────────────────────────────────
+  // Tickets and RSVP share ONE checkout screen; `tier` decides which row it
+  // opens on. Felicia, Jul 30 2026: "when the guest goes directly [to] the
+  // Purchase tickets [button] … it is literally just a place to RSVP." Both
+  // buttons opened on the FIRST row, which on a mixer is the free member tier
+  // — so a guest never saw the $15 option or a card field. Purchase now opens
+  // the first PAID row, RSVP the first FREE one. Events with no priced rows
+  // still fall back to the general contact form.
+  const hasTiers = (ev) => Array.isArray(ev.ticketTypes)
+    && ev.ticketTypes.some((t) => t.available !== false && t.name);
+  const ticketHref = (ev, base, tier, grpQ = '') =>
+    `${base}checkout.html?type=ticket&event=${esc(ev.id)}${tier ? '&tier=' + tier : ''}${grpQ}`;
+  const rsvpHrefOf = (ev, base, grpQ = '') => (hasTiers(ev)
+    ? ticketHref(ev, base, 'free', grpQ)
+    : `${base}contact.html?event=${esc(ev.id)}${grpQ}`);
+
   // Full detail card for an event — used by the dedicated event page (and by
   // the legacy modal). Per the office, Jul 2026: events open on their OWN page
   // with room for sponsors, logos, and photo galleries.
@@ -307,7 +366,19 @@ window.Chamber = (function () {
     // event used to render the chamber logo at full 560px height, pushing the
     // date/venue/RSVP below the fold — `logoBar` is the compact alternative.
     const mode = ['auto', 'flyer', 'logo', 'both', 'none'].includes(ev.imageMode) ? ev.imageMode : 'auto';
-    const logoBar = `<div class="ev-card__logobar"><img src="${base}images/wvwccc-logo.png" alt="West Valley · Warner Center Chamber of Commerce" onerror="this.style.display='none'"></div>`;
+    // Felicia, Jul 30 2026: "The photo at the top is looking strange." A
+    // flyer-less event dropped one shrunken seal into an empty green box, which
+    // reads as a broken image — and the same seal was already sitting next to
+    // the title 40px above it. Make it a deliberate title card instead: the
+    // mark at a legible size, the Chamber wordmark, and the date.
+    const barWhen = (ev.confirmed && ev.day)
+      ? `${ev.month || ''} ${ev.day}${ev.time ? ' · ' + ev.time : ''}`.trim() : '';
+    const logoBar = `<div class="ev-card__logobar">
+            <img src="${base}images/wvwccc-logo.png" alt="" onerror="this.style.display='none'">
+            <div class="ev-card__logobar-txt">
+              <span class="ev-card__logobar-name">West Valley · Warner Center<b>Chamber of Commerce</b></span>
+              ${barWhen ? `<span class="ev-card__logobar-when">${esc(barWhen)}</span>` : ''}
+            </div></div>`;
     const heroImg = hero
       ? `<img class="ev-card__flyer" src="${esc(evImgSrc(hero, base))}" alt="${esc(ev.title)} flyer" onerror="this.onerror=null;this.src='${base}images/wvwccc-logo.png';this.classList.add('ev-card__flyer--ph')">`
       : '';
@@ -359,11 +430,8 @@ window.Chamber = (function () {
     // general contact form.
     // grpQ rides along either way, so a group's RSVP still notifies that
     // group's leaders (not just the office).
-    const rsvpHref = (Array.isArray(ev.ticketTypes) && ev.ticketTypes.some((t) => t.available !== false && t.name))
-      ? `${base}checkout.html?type=ticket&event=${esc(ev.id)}${grpQ}`
-      : `${base}contact.html?event=${esc(ev.id)}${grpQ}`;
-    const rsvpBtn = `<a class="btn btn--forest" href="${rsvpHref}">RSVP</a>`;
-    const buyBtn = `<a class="btn btn--gold" href="${base}checkout.html?type=ticket&event=${esc(ev.id)}">${esc(buyLabel(ev, 'Get tickets'))}</a>`;
+    const rsvpBtn = `<a class="btn btn--forest" href="${rsvpHrefOf(ev, base, grpQ)}">RSVP</a>`;
+    const buyBtn = `<a class="btn btn--gold" href="${ticketHref(ev, base, 'paid', grpQ)}">${esc(buyLabel(ev, 'Get tickets'))}</a>`;
     const cta = ev.soldOut ? soldOutBtn() : (ev.ticketed ? (ev.alsoRsvp ? rsvpBtn + ' ' + buyBtn : buyBtn) : rsvpBtn.replace('>RSVP<', '>RSVP / Notify me<'));
     const desc = ev.description || ev.summary || '';
     // Rich description (admin editor) renders as sanitized HTML; plain text is
@@ -394,6 +462,7 @@ window.Chamber = (function () {
           ${sponsorRow}
           ${links}
           ${docs}
+          <div id="evAlbums"></div>
           <div class="ev-card__foot">
             ${ev.confirmed ? calendarMenu(ev) : ''}
             ${shareMenu(ev.title, shareUrl)}
@@ -433,6 +502,10 @@ window.Chamber = (function () {
     _eventReg[ev.id] = ev;
     document.title = `${ev.title} — West Valley · Warner Center Chamber of Commerce`;
     el.innerHTML = eventDetailCard(ev, '../');
+    // Photos from this event (Diana, Jul 30 2026). Loaded after the card so a
+    // slow album fetch never delays the event details themselves.
+    const mount = document.getElementById('evAlbums');
+    if (mount) mount.innerHTML = await albumSection('event=' + encodeURIComponent(ev.id), 'Photos from this event');
   }
   if (typeof document !== 'undefined' && !window.__wvEventBound) {
     window.__wvEventBound = true;
@@ -464,9 +537,9 @@ window.Chamber = (function () {
     const when = confirmed ? `${esc(ev.month)} ${esc(ev.day)} · ${esc(ev.time || '')}` : 'Date to be announced';
     const cta = ev.soldOut ? soldOutBtn(true) : ev.ticketed
       ? (confirmed
-          ? `${ev.alsoRsvp ? `<a class="btn btn--ghost btn--sm" href="${base}contact.html?event=${esc(ev.id)}">RSVP</a> ` : ''}<a class="btn btn--gold btn--sm" href="${base}checkout.html?type=ticket&event=${esc(ev.id)}">${esc(buyLabel(ev, 'Get tickets'))}</a>`
+          ? `${ev.alsoRsvp ? `<a class="btn btn--ghost btn--sm" href="${rsvpHrefOf(ev, base)}">RSVP</a> ` : ''}<a class="btn btn--gold btn--sm" href="${ticketHref(ev, base, 'paid')}">${esc(buyLabel(ev, 'Get tickets'))}</a>`
           : `<a class="btn btn--ghost btn--sm" href="${base}contact.html?event=${esc(ev.id)}">Notify me</a>`)
-      : `<a class="btn btn--ghost btn--sm" href="${base}contact.html?event=${esc(ev.id)}">RSVP</a>`;
+      : `<a class="btn btn--ghost btn--sm" href="${rsvpHrefOf(ev, base)}">RSVP</a>`;
     const imgs = (ev.images && ev.images.length)
       ? `<div class="event-imgs" style="display:flex;gap:6px;margin:8px 0 0;flex-wrap:wrap">${ev.images.slice(0, 3).map((u) => `<img src="${esc(evImgSrc(evImgOf(u), base))}" alt="" loading="lazy" style="width:88px;height:64px;object-fit:cover;border-radius:8px">`).join('')}</div>`
       : '';
@@ -500,8 +573,8 @@ window.Chamber = (function () {
     const day = ev.day || (ev.date ? String(Number(ev.date.slice(8, 10))) : '');
     const dateUS = ev.date ? `${ev.date.slice(5, 7)}/${ev.date.slice(8, 10)}/${ev.date.slice(2, 4)}` : 'Date TBA';
     const cta = ev.soldOut ? soldOutBtn(true) : ev.ticketed
-      ? `${ev.alsoRsvp ? `<a class="btn btn--ghost btn--sm" href="${base}contact.html?event=${esc(ev.id)}">RSVP</a> ` : ''}<a class="btn btn--gold btn--sm" href="${base}checkout.html?type=ticket&event=${esc(ev.id)}">${esc(buyLabel(ev, 'Tickets'))}</a>`
-      : `<a class="btn btn--ghost btn--sm" href="${base}contact.html?event=${esc(ev.id)}">RSVP</a>`;
+      ? `${ev.alsoRsvp ? `<a class="btn btn--ghost btn--sm" href="${rsvpHrefOf(ev, base)}">RSVP</a> ` : ''}<a class="btn btn--gold btn--sm" href="${ticketHref(ev, base, 'paid')}">${esc(buyLabel(ev, 'Tickets'))}</a>`
+      : `<a class="btn btn--ghost btn--sm" href="${rsvpHrefOf(ev, base)}">RSVP</a>`;
     return `
       <div class="ev-quick" data-ev-detail="${esc(ev.id)}" style="display:flex;align-items:center;gap:14px;padding:11px 14px;border-bottom:1px solid var(--gold-soft,#e6dcbf);cursor:pointer">
         <div style="flex:0 0 64px;text-align:center;line-height:1.05">
@@ -536,8 +609,8 @@ window.Chamber = (function () {
     const sum = (sumRaw && sumRaw.toLowerCase() !== String(ev.venue || '').trim().toLowerCase()
       && sumRaw.toLowerCase() !== String(ev.neighborhood || '').trim().toLowerCase()) ? sumRaw : '';
     const cta = ev.soldOut ? soldOutBtn(true) : ev.ticketed
-      ? `${ev.alsoRsvp ? `<a class="btn btn--forest btn--sm" href="${base}contact.html?event=${esc(ev.id)}">RSVP</a> ` : ''}<a class="btn btn--gold btn--sm" href="${base}checkout.html?type=ticket&event=${esc(ev.id)}">${esc(buyLabel(ev, 'Buy tickets'))}</a>`
-      : `<a class="btn btn--forest btn--sm" href="${base}contact.html?event=${esc(ev.id)}">RSVP</a>`;
+      ? `${ev.alsoRsvp ? `<a class="btn btn--forest btn--sm" href="${rsvpHrefOf(ev, base)}">RSVP</a> ` : ''}<a class="btn btn--gold btn--sm" href="${ticketHref(ev, base, 'paid')}">${esc(buyLabel(ev, 'Buy tickets'))}</a>`
+      : `<a class="btn btn--forest btn--sm" href="${rsvpHrefOf(ev, base)}">RSVP</a>`;
     return `
       <article class="evp card--hover" id="${esc(ev.id)}" data-ev-detail="${esc(ev.id)}">
         ${media}
@@ -647,6 +720,11 @@ window.Chamber = (function () {
         return `<figure style="margin:0"><a href="/${esc(url)}" target="_blank" rel="noopener"><img src="/${esc(url)}" alt="${esc(g.name)} photo" loading="lazy"></a>${cap ? `<figcaption class="member-tile__meta" style="margin-top:4px">${esc(cap)}</figcaption>` : ''}</figure>`;
       }).join('');
     }
+    // Member/manager photo albums for this group (Diana, Jul 30 2026) — the
+    // whole reason albums carry a groupSlug: a group page that shows what the
+    // group actually did is what gets members posting.
+    const albMount = document.getElementById('gAlbums');
+    if (albMount) albMount.innerHTML = await albumSection('group=' + encodeURIComponent(g.slug), 'Photo albums');
     // upcoming events that match this group
     if (g.eventMatch) {
       try {
@@ -705,34 +783,180 @@ window.Chamber = (function () {
     }
   }
 
-  // ── Photo gallery (gallery.html) — grid + lightbox ───────
+  /* ── Photo albums (Diana, Jul 30 2026) ────────────────────────────────
+     Albums hang off an event, a group, or nothing at all (the Gala). Every
+     photo carries its own share row, because "all the images should be
+     shareable to social" — sharing one good shot from a mixer is what pulls
+     people back to the site, not sharing the gallery index. */
+  const albumUrl = (a) => `${location.origin}/albums/${encodeURIComponent(a.id)}`;
+  function albumCard(a) {
+    const cover = a.cover
+      ? `<img src="${esc(a.cover)}" alt="" loading="lazy">`
+      : `<div class="alb-card__ph"><img src="/images/wvwccc-logo.png" alt=""></div>`;
+    const n = a.count || 0;
+    return `<a class="alb-card" href="/albums/${encodeURIComponent(a.id)}">
+      <div class="alb-card__img">${cover}<span class="alb-card__count">${n} photo${n === 1 ? '' : 's'}</span></div>
+      <div class="alb-card__body">
+        <h3>${esc(a.title)}</h3>
+        ${a.body ? `<p>${esc(a.body)}</p>` : ''}
+      </div></a>`;
+  }
+  // One photo, with its own share row. shareMenu already handles Facebook / X /
+  // LinkedIn / email / text / copy, so a photo shares exactly like an event.
+  function photoFigure(p, i, album) {
+    const link = albumUrl(album) + '#p' + i;
+    const cap = p.caption || album.title;
+    return `<figure class="gallery-card" id="p${i}">
+      <a href="${esc(p.url)}" data-albumbox="${i}"><img src="${esc(p.url)}" alt="${esc(cap)}" loading="lazy"></a>
+      ${p.caption || p.by ? `<figcaption>${esc(p.caption || '')}${p.by ? `<span class="alb-by">📷 ${esc(p.by)}</span>` : ''}</figcaption>` : ''}
+      ${shareMenu(cap, link, true)}
+    </figure>`;
+  }
   async function initGallery() {
     const grid = document.getElementById('galleryGrid');
     if (!grid) return;
-    let posts = [];
-    try { posts = (await getJSON(ChamberAPI.url('/api/posts?type=gallery'))).posts || []; } catch (e) {}
-    const shots = posts.filter((p) => p.imageUrl);
-    if (!shots.length) { grid.innerHTML = '<p class="notice">Photos are on the way — check back after our next event!</p>'; return; }
-    grid.innerHTML = shots.map((p, i) => `
-      <figure class="gallery-card">
-        <a href="${esc(p.imageUrl)}" data-lightbox="${i}"><img src="${esc(p.imageUrl)}" alt="${esc(p.title || 'Chamber photo')}" loading="lazy"></a>
-        ${p.title ? `<figcaption>${esc(p.title)}</figcaption>` : ''}
-      </figure>`).join('');
-    // lightbox: click → full-size overlay with caption; Esc / click closes
+    let albums = [];
+    try { albums = (await getJSON(ChamberAPI.url('/api/albums'))).albums || []; } catch (e) {}
+    // Legacy loose gallery posts (pre-album) still show, as one "Chamber photos"
+    // album, so nothing that was already published disappears.
+    let loose = [];
+    try { loose = ((await getJSON(ChamberAPI.url('/api/posts?type=gallery'))).posts || []).filter((p) => p.imageUrl); } catch (e) {}
+    if (!albums.length && !loose.length) {
+      grid.className = '';
+      grid.innerHTML = `<p class="notice"><strong>No photo albums yet.</strong> Albums are how the Chamber shares
+        ribbon cuttings, mixers, and group activity. The office creates one in Admin → Photo Albums, and members
+        can add their own shots from the member portal.</p>`;
+      return;
+    }
+    grid.className = 'alb-grid';
+    grid.innerHTML = albums.map(albumCard).join('')
+      + (loose.length ? albumCard({ id: '_loose', title: 'Chamber photos', cover: loose[0].imageUrl, count: loose.length, body: '' }).replace(`href="/albums/_loose"`, 'href="/gallery.html?all=1"') : '');
+    // ?all=1 → the old flat wall of every loose photo.
+    if (new URLSearchParams(location.search).get('all')) {
+      grid.className = 'gallery-grid gallery-grid--lg';
+      const album = { id: '_loose', title: 'Chamber photos' };
+      grid.innerHTML = loose.map((p, i) => photoFigure({ url: p.imageUrl, caption: p.title || '' }, i, album)).join('');
+      bindLightbox(grid, loose.map((p) => ({ url: p.imageUrl, caption: p.title || '' })));
+    }
+  }
+  async function initAlbumView() {
+    const grid = document.getElementById('albumGrid');
+    const head = document.getElementById('albumHead');
+    if (!grid) return;
+    const id = (location.pathname.match(/\/albums\/([^/?#]+)/) || [])[1]
+      || new URLSearchParams(location.search).get('album') || '';
+    let album = null;
+    try { album = (await getJSON(ChamberAPI.url('/api/albums/' + encodeURIComponent(id)))).album; } catch (e) {}
+    if (!album) {
+      head.innerHTML = '<h1>Album not found</h1>';
+      grid.innerHTML = '<p class="notice">This album may have been removed. <a href="/gallery.html">See all albums →</a></p>';
+      return;
+    }
+    document.title = `${album.title} — West Valley · Warner Center Chamber of Commerce`;
+    head.innerHTML = `<span class="kicker">Photo album</span>
+      <h1>${esc(album.title)}</h1>
+      ${album.body ? `<p class="lead" style="max-width:62ch">${esc(album.body)}</p>` : ''}
+      <p class="member-tile__meta">${album.count} photo${album.count === 1 ? '' : 's'}</p>
+      ${shareMenu(album.title, albumUrl(album))}`;
+    grid.innerHTML = album.photos.length
+      ? album.photos.map((p, i) => photoFigure(p, i, album)).join('')
+      : '<p class="notice">No photos in this album yet.</p>';
+    bindLightbox(grid, album.photos);
+    mountAlbumUpload(album);
+    if (location.hash) { const t = document.querySelector(location.hash); if (t) t.scrollIntoView({ block: 'center' }); }
+  }
+  // Shared lightbox for album grids.
+  function bindLightbox(grid, photos) {
     grid.addEventListener('click', (e) => {
-      const a = e.target.closest('[data-lightbox]'); if (!a) return;
+      const a = e.target.closest('[data-albumbox]'); if (!a) return;
       e.preventDefault();
-      const p = shots[+a.dataset.lightbox];
+      let i = +a.dataset.albumbox;
       const ov = document.createElement('div');
-      ov.style.cssText = 'position:fixed;inset:0;background:rgba(14,42,22,.92);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;cursor:zoom-out';
-      ov.innerHTML = `<img src="${esc(p.imageUrl)}" alt="" style="max-width:94vw;max-height:84vh;border-radius:12px;box-shadow:0 30px 80px rgba(0,0,0,.5)">
-        ${p.title ? `<p style="color:rgba(255,255,255,.85);margin-top:14px;text-align:center;max-width:70ch">${esc(p.title)}</p>` : ''}`;
+      ov.style.cssText = 'position:fixed;inset:0;background:rgba(14,42,22,.94);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px';
+      const draw = () => {
+        const p = photos[i];
+        ov.innerHTML = `<img src="${esc(p.url)}" alt="" style="max-width:92vw;max-height:78vh;border-radius:12px;box-shadow:0 30px 80px rgba(0,0,0,.5)">
+          <p style="color:rgba(255,255,255,.88);margin-top:14px;text-align:center;max-width:70ch">${esc(p.caption || '')}${p.by ? ` <span style="opacity:.7">📷 ${esc(p.by)}</span>` : ''}</p>
+          <p style="color:rgba(255,255,255,.6);margin-top:4px;font-size:.85rem">${i + 1} of ${photos.length} · ← → to browse · Esc to close</p>
+          <div style="margin-top:10px;display:flex;gap:8px">
+            <button type="button" data-prev class="btn btn--ghost-light btn--sm">← Previous</button>
+            <a class="btn btn--gold btn--sm" href="${esc(p.url)}" target="_blank" rel="noopener">Open full size ↗</a>
+            <button type="button" data-next class="btn btn--ghost-light btn--sm">Next →</button>
+          </div>`;
+      };
       const close = () => { ov.remove(); document.removeEventListener('keydown', onKey); };
-      const onKey = (ev) => { if (ev.key === 'Escape') close(); };
-      ov.addEventListener('click', close);
+      const step = (d) => { i = (i + d + photos.length) % photos.length; draw(); };
+      const onKey = (ev) => {
+        if (ev.key === 'Escape') close();
+        if (ev.key === 'ArrowRight') step(1);
+        if (ev.key === 'ArrowLeft') step(-1);
+      };
+      ov.addEventListener('click', (ev) => {
+        if (ev.target.closest('[data-prev]')) return step(-1);
+        if (ev.target.closest('[data-next]')) return step(1);
+        if (ev.target === ov) close();
+      });
       document.addEventListener('keydown', onKey);
+      draw();
       document.body.appendChild(ov);
     });
+  }
+  /* Signed-in members add their own shots right on the album — the point of the
+     feature (Diana: "so that the members and group managers are encouraged to
+     share activity"). Photos go live immediately, so the confirmation says so. */
+  async function mountAlbumUpload(album) {
+    const wrap = document.getElementById('albumAdd');
+    if (!wrap) return;
+    let me = null;
+    try { me = await getAuthed(ChamberAPI.url('/api/me/albums')); } catch (e) { /* signed out */ }
+    if (!me || !me.canAdd) {
+      wrap.innerHTML = `<p class="notice mt-5">Chamber members can add their own photos to this album.
+        <a href="/auth/login.html">Sign in</a> to add yours.</p>`;
+      return;
+    }
+    if (album.locked && !(me.myGroups || []).includes(String(album.groupSlug || '').toLowerCase())) {
+      wrap.innerHTML = '<p class="notice mt-5">This album is closed to new photos.</p>';
+      return;
+    }
+    wrap.innerHTML = `<div class="card mt-6" style="border-left:4px solid var(--gold)">
+      <h3>Add your photos</h3>
+      <p class="member-tile__meta">Were you there? Add your shots — they appear on this page right away.</p>
+      <label class="btn btn--gold mt-3" style="cursor:pointer">＋ Choose photos<input type="file" accept="image/*" multiple hidden id="albUp"></label>
+      <div id="albQueue" class="mt-3"></div>
+      <p id="albMsg" class="notice mt-3" hidden></p></div>`;
+    const msg = document.getElementById('albMsg');
+    const say = (t, bad) => { msg.hidden = !t; msg.textContent = t || ''; msg.style.color = bad ? 'var(--red,#b00020)' : ''; };
+    document.getElementById('albUp').addEventListener('change', async (e) => {
+      const files = Array.from(e.target.files || []).slice(0, 20);
+      e.target.value = '';
+      if (!files.length) return;
+      say(`Uploading ${files.length} photo${files.length === 1 ? '' : 's'}…`);
+      const photos = [];
+      for (const f of files) {
+        try {
+          const dataUrl = await downscaleImage(f, 1800, 0.85);
+          const up = await postJSON(ChamberAPI.url('/api/me/asset'), { dataUrl });
+          if (up && up.url) photos.push({ url: up.url });
+        } catch (err) { /* skip the one that failed, keep the rest */ }
+      }
+      if (!photos.length) return say('None of those uploaded — try smaller image files.', true);
+      try {
+        const r = await postJSON(ChamberAPI.url(`/api/me/albums/${encodeURIComponent(album.id)}/photos`), { photos });
+        say(`Added ${r.added} photo${r.added === 1 ? '' : 's'} ✓ — they are live on this page now.`);
+        setTimeout(() => location.reload(), 900);
+      } catch (err) { say(err.message || 'Could not add the photos.', true); }
+    });
+  }
+  // An album section for an event or a group page.
+  async function albumSection(query, heading) {
+    let albums = [];
+    try { albums = (await getJSON(ChamberAPI.url('/api/albums?' + query))).albums || []; } catch (e) {}
+    const withPhotos = albums.filter((a) => a.count > 0 || a.cover);
+    if (!withPhotos.length) return '';
+    return `<div class="alb-section">
+      <h3>${esc(heading)}</h3>
+      <div class="alb-grid alb-grid--sm">${withPhotos.map(albumCard).join('')}</div>
+    </div>`;
   }
 
   function initGeoBanner() {
@@ -1317,8 +1541,13 @@ window.Chamber = (function () {
   function mountCommunityEventForm() {
     const form = document.getElementById('communityEventForm');
     if (!form) return;
-    mountTurnstile(form);
     const step1 = document.getElementById('ceStep1');
+    // Anchor to step 1: the captcha is checked by /api/public/event/verify, which
+    // fires from the step-1 "Email me a code" button. The default placement (before
+    // the submit button) would bury the widget inside the hidden #ceStep2, where it
+    // never renders — the visitor could never get a token and step 1 would always
+    // fail. Step 2 is gated by the emailed code instead, so it needs no captcha.
+    mountTurnstile(form, step1);
     const step2 = document.getElementById('ceStep2');
     const m1 = document.getElementById('ceMsg');
     const m2 = document.getElementById('ceMsg2');
@@ -1336,7 +1565,7 @@ window.Chamber = (function () {
       try {
         const r = await fetch(ChamberAPI.url('/api/public/event/verify'), {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: addr, 'cf-turnstile-response': (new FormData(form)).get('cf-turnstile-response') || '' }),
+          body: JSON.stringify({ email: addr, 'cf-turnstile-response': ChamberAPI.turnstileToken(form) }),
         });
         const d = await r.json().catch(() => ({}));
         if (!r.ok || d.ok === false) return say(msgEl, d.error || 'Could not send the code.', true);
@@ -1344,7 +1573,9 @@ window.Chamber = (function () {
         say(msgEl, `Code sent to ${addr}. Enter it below to finish — it expires in 30 minutes.`);
         form.querySelector('[name="code"]').focus();
       } catch (e) { say(msgEl, 'Could not reach the Chamber right now. Please try again.', true); }
-      finally { btn.disabled = false; btn.textContent = was; }
+      // The token is single-use and now spent — clear it so "Send a new code"
+      // (and any retry after an error) starts from a fresh challenge.
+      finally { btn.disabled = false; btn.textContent = was; resetTurnstile(form); }
     };
     document.getElementById('ceSendCode')?.addEventListener('click', (e) => sendCode(e.target, m1));
     document.getElementById('ceResend')?.addEventListener('click', (e) => sendCode(e.target, m2));
@@ -1414,6 +1645,11 @@ window.Chamber = (function () {
       // and a free RSVP has no card to run AVS against — so billing goes too.
       if (amountInput) amountInput.required = !freeMode;
       const form0 = document.getElementById('payForm');
+      // A free RSVP submits through /api/contact, which verifies Turnstile — so
+      // this path needs a widget or it fails the captcha outright. Paid orders go
+      // to /api/pay (card details are their own bot cost) and stay untouched.
+      // mountTurnstile is idempotent, so repeated toggles add only one widget.
+      if (freeMode && form0) mountTurnstile(form0, payBtnEl);
       const billing = document.getElementById('payBillingBlock');
       if (billing) billing.hidden = freeMode;
       ['address1', 'zip'].forEach((n) => {
@@ -1456,12 +1692,12 @@ window.Chamber = (function () {
           attendees.length ? 'Attendees:\n' + attendees.map((a, i) => `  ${i + 1}. ${a.name} · ${a.email} · ${a.phone}`).join('\n') : '',
         ].filter(Boolean).join('\n'),
       };
-      const tk = form.querySelector('[name="cf-turnstile-response"]');
-      if (tk && tk.value) payload['cf-turnstile-response'] = tk.value;
+      payload['cf-turnstile-response'] = ChamberAPI.turnstileToken(form);
       const r = await fetch(ChamberAPI.url('/api/contact'), {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
       });
       const data = await r.json().catch(() => ({}));
+      resetTurnstile(form); // single-use token — spent whether or not this succeeded
       if (!r.ok || data.ok === false) throw new Error(data.error || 'Could not record your RSVP.');
       form.hidden = true;
       const ok = document.getElementById('paySuccess');
@@ -1559,6 +1795,7 @@ window.Chamber = (function () {
           <div id="tixNames"></div>
           <div class="field" id="tixInvitedWrap" hidden style="margin-bottom:var(--s-2)"><label for="tixInvited">Invited by <span class="member-tile__meta">(which board member invited you?)</span></label>
             <input id="tixInvited" placeholder="Board member's name" /></div>
+          <p class="notice" id="tixOther" hidden style="margin:0 0 var(--s-2)"></p>
           <p class="member-tile__meta" id="tixCalc" style="text-align:right"></p>`;
         amountLabel.textContent = 'Total (USD)';
         amountInput.readOnly = true;
@@ -1619,14 +1856,46 @@ window.Chamber = (function () {
           // this same screen (with the event named at the top) instead of being
           // sent to a generic "contact the chamber" form (Felicia + Diana, Jul 29).
           setFreeMode(total <= 0);
+          // Mixers are mixed: members free, guests $15. Whichever row they are
+          // on, point at the other kind by name, so nobody registers free by
+          // accident or hunts for the paid option (Felicia, Jul 30 2026).
+          const other = document.getElementById('tixOther');
+          if (other) {
+            const alt = unit > 0
+              ? types.find((x) => !x.soldOut && priceOf(x) <= 0)
+              : types.find((x) => !x.soldOut && priceOf(x) > 0);
+            other.hidden = !alt;
+            if (alt) {
+              other.innerHTML = unit > 0
+                ? `Chamber member? <strong>${esc(alt.name)}</strong> is free — switch to it above.`
+                : `Not a member? Choose <strong>${esc(alt.name)}</strong> above — that one is $${priceOf(alt).toFixed(2)}.`;
+            }
+          }
           syncPayBtn();
         };
         typeSel.addEventListener('change', update);
         qtySel.addEventListener('change', update);
+        // Which row to open on. `&tier=paid` comes from the Purchase / Get
+        // tickets button, `&tier=free` from RSVP (Felicia, Jul 30 2026 — both
+        // buttons used to land on row 1, the free member tier, so Purchase
+        // looked "literally just a place to RSVP"). Also accepts an audience
+        // ('member' / 'guest') or a row number, for links the office writes by
+        // hand into an event description.
+        const want = String(params.get('tier') || '').trim().toLowerCase();
+        const buyable = (t) => !t.soldOut;
+        const wanted = (() => {
+          if (!want) return -1;
+          if (want === 'paid') return types.findIndex((t) => buyable(t) && priceOf(t) > 0);
+          if (want === 'free') return types.findIndex((t) => buyable(t) && priceOf(t) <= 0);
+          if (/^\d+$/.test(want)) return types[Number(want)] ? Number(want) : -1;
+          return types.findIndex((t) => buyable(t)
+            && (String(t.group || '').toLowerCase() === want || String(t.name || '').toLowerCase() === want));
+        })();
         // The browser preselects the first <option> even when it's disabled —
-        // start on the first price that is actually buyable (not sold out).
-        const firstBuyable = types.findIndex((t) => !t.soldOut);
-        if (firstBuyable > 0) typeSel.value = String(firstBuyable);
+        // fall back to the first price that is actually buyable (not sold out).
+        const firstBuyable = types.findIndex(buyable);
+        const startAt = wanted >= 0 ? wanted : firstBuyable;
+        if (startAt > 0) typeSel.value = String(startAt);
         update();
         // Free-only events read as a registration, not a sale.
         if (types.every((t) => priceOf(t) <= 0)) title.textContent = 'Event registration';
@@ -1786,23 +2055,10 @@ window.Chamber = (function () {
   // Cloudflare Turnstile captcha — added to a form when a site key is configured
   // (js/api-base.js). The widget injects a hidden cf-turnstile-response input that
   // FormData picks up; verified server-side. No-op until the key is set.
-  function mountTurnstile(form) {
-    const key = window.ChamberAPI && ChamberAPI.turnstileSiteKey;
-    if (!key || !form || form.querySelector('.cf-turnstile')) return;
-    if (!document.getElementById('cf-turnstile-script')) {
-      const s = document.createElement('script');
-      s.id = 'cf-turnstile-script';
-      s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
-      s.async = true; s.defer = true;
-      document.head.appendChild(s);
-    }
-    const div = document.createElement('div');
-    div.className = 'cf-turnstile';
-    div.setAttribute('data-sitekey', key);
-    div.style.margin = '16px 0';
-    const btn = form.querySelector('button[type="submit"]');
-    if (btn) form.insertBefore(div, btn); else form.appendChild(div);
-  }
+  // The implementation lives in api-base.js next to the key, so the landing pages
+  // (which do not load chamber.js) get the same widget from one definition.
+  function mountTurnstile(form, anchor) { return ChamberAPI.mountTurnstile(form, anchor); }
+  function resetTurnstile(form) { return ChamberAPI.resetTurnstile(form); }
 
   // Formspree project forms (the office set these to reach Felicia). Lead forms
   // dual-send: Formspree (emails the office) + /api/contact (durable admin log).
@@ -1882,7 +2138,7 @@ window.Chamber = (function () {
       } catch (err) {
         msg.hidden = false;
         msg.textContent = 'Could not send right now. Please call the office at (818) 347-4737.';
-      } finally { btn.disabled = false; btn.textContent = label; }
+      } finally { btn.disabled = false; btn.textContent = label; resetTurnstile(form); }
     });
   }
 
@@ -1956,7 +2212,7 @@ window.Chamber = (function () {
               title: fd.get('title'), company: fd.get('company'), email: fd.get('email'),
               body: fd.get('body'), applyUrl: fd.get('applyUrl'),
               meta: { jobType: fd.get('jobType'), location: fd.get('location'), payRange: fd.get('payRange') },
-              'cf-turnstile-response': fd.get('cf-turnstile-response') || '',
+              'cf-turnstile-response': ChamberAPI.turnstileToken(pjf),
             }),
           });
           const d = await r.json().catch(() => ({}));
@@ -1964,7 +2220,10 @@ window.Chamber = (function () {
           pjf.reset();
           say('Thank you — your posting is with Chamber staff for review. It appears on this page once approved, usually within a business day.');
         } catch (err) { say('Could not reach the Chamber right now. Please try again, or call (818) 347-4737.', true); }
-        finally { btn.disabled = false; btn.textContent = was; }
+        // Single-use token: a server-side field error (missing title, flagged
+        // wording) burns it, so without this a corrected resubmit would fail the
+        // captcha instead. pjf.reset() also wipes the input on success.
+        finally { btn.disabled = false; btn.textContent = was; resetTurnstile(pjf); }
       });
     }
   }
@@ -2521,5 +2780,5 @@ window.Chamber = (function () {
     render();
   }
 
-  return { initHome, initEventView, initDirectory, initProfile, initEvents, initCheckout, initLeadForm, initJobs, initDeals, initCommunity, initNews, initBizBuzz, initBoard, initLeaders, initDining, offerCard, postCard, newsCard, memberTile, eventCard, eventPreviewCard, initLeaderBanner, initGroups, initGroupView, initGallery, initFeaturedSlot, joinCtaHtml, mountJoinCta, initGuides, initGuideView, initRealEstate, getJSON, esc };
+  return { initHome, initEventView, initDirectory, initProfile, initEvents, initCheckout, initLeadForm, initJobs, initDeals, initCommunity, initNews, initBizBuzz, initBoard, initLeaders, initDining, offerCard, postCard, newsCard, memberTile, eventCard, eventPreviewCard, initLeaderBanner, initGroups, initGroupView, initGallery, initAlbumView, initFeaturedSlot, joinCtaHtml, mountJoinCta, initGuides, initGuideView, initRealEstate, getJSON, esc };
 })();

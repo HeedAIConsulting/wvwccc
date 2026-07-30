@@ -4,8 +4,8 @@
     {
       "name": "wvwccc",
       "runtimeExecutable": "node",
-      "runtimeArgs": ["server.js"],
-      "port": 5500
+      "runtimeArgs": ["local-dev.cjs"],
+      "port": 5511
     }
   ]
 }

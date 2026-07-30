@@ -104,6 +104,7 @@ window.MemberPortal = (function () {
             <li><a style="color:var(--gold-bright)" href="profile.html">› Update profile</a></li>
             <li><a style="color:var(--gold-bright)" href="post.html">› Post an offer / community</a></li>
             ${isLeader ? '<li><a style="color:var(--gold-bright)" href="event.html">› Add an event to the calendar</a></li>' : ''}
+            <li><a style="color:var(--gold-bright)" href="../gallery.html">› Add photos to an album</a></li>
             <li><a style="color:var(--gold-bright)" href="account.html">› Change password</a></li>
             <li><a style="color:var(--gold-bright)" href="../events/index.html">› Upcoming events</a></li>
             <li><a style="color:var(--gold-bright)" href="../donate.html">› Sponsor / donate</a></li>

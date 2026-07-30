@@ -58,6 +58,7 @@ window.Admin = (function () {
     { href: 'ambassadors.html', icon: '🏅', label: 'Ambassador Tracker', key: 'ambassadors' },
     { href: 'content.html', icon: '✎', label: 'Content', key: 'content' },
     { href: 'images.html', icon: '🖼', label: 'Image Library', key: 'images' },
+    { href: 'albums.html', icon: '📸', label: 'Photo Albums', key: 'albums' },
     { href: 'slides.html', icon: '▭', label: 'Homepage Management', key: 'slides' },
     { href: 'sponsorships.html', icon: '★', label: 'Sponsorships', key: 'sponsorships' },
     { href: 'ai-assistant.html', icon: '✦', label: 'AI Assistant', key: 'assistant' },
@@ -548,23 +549,65 @@ window.Admin = (function () {
     mountShell('dashboard');
     try {
       const s = await api('/api/admin/summary');
+      const g = s.glance || {};
+      // What each card is actually made of (Michael, Jul 30 2026 — "the top
+      // cards need more description and information at a glance"). The big
+      // number says how many; this line says of what, so nobody has to open a
+      // page to find out whether it needs them.
+      const KIND_WORD = {
+        member: 'member', job: 'job', post: 'post', event: 'event',
+        'community-event': 'community event', 'group-join': 'group join', ribbon: 'ribbon cutting',
+      };
+      const plural = (n, w) => `${n} ${w}${n === 1 ? '' : (w.endsWith('h') ? 'es' : 's')}`;
+      const waitingHint = () => {
+        const by = s.pendingByKind || {};
+        const parts = Object.keys(by).filter((k) => by[k]).map((k) => plural(by[k], KIND_WORD[k] || k));
+        return parts.length ? parts.slice(0, 3).join(' · ') : 'Nothing needs you right now';
+      };
+      const pendingAll = s.pendingAll != null ? s.pendingAll : s.pendingMembers;
       const cards = [
-        { num: s.members, lbl: 'Members', href: 'members.html' },
+        {
+          num: s.members, lbl: 'Members', href: 'members.html',
+          hint: g.membersPending ? `${g.membersActive} active · ${g.membersPending} awaiting approval` : `${g.membersActive || s.members} active listings`,
+        },
         // One number for EVERYTHING waiting on the office (Felicia, Jul 29) —
         // members, jobs, events, group joins, ribbon cuttings. Clicking it
         // opens the full list rather than one section's page.
-        { num: s.pendingAll != null ? s.pendingAll : s.pendingMembers, lbl: 'Waiting for you', accent: (s.pendingAll != null ? s.pendingAll : s.pendingMembers) > 0, detail: 'approvals' },
-        { num: s.leaders, lbl: 'Leaders / Board', href: 'members.html' },
-        { num: s.newLeads, lbl: 'New inquiries', accent: s.newLeads > 0, href: 'leads.html' },
-        { num: s.pendingPosts, lbl: 'Pending content', accent: s.pendingPosts > 0, href: 'content.html' },
-        { num: s.orders, lbl: 'Payments logged', detail: 'payments' },
-        { num: '$' + (s.revenue || 0).toLocaleString(), lbl: 'Revenue processed', detail: 'payments' },
+        { num: pendingAll, lbl: 'Waiting for you', accent: pendingAll > 0, detail: 'approvals', hint: waitingHint() },
+        { num: s.leaders, lbl: 'Leaders / Board', href: 'members.html', hint: 'Board, officers and sponsor leaders' },
+        {
+          num: s.newLeads, lbl: 'New inquiries', accent: s.newLeads > 0, href: 'leads.html',
+          hint: g.leads7 ? `${g.leads7} came in this week` : 'None in the last 7 days',
+        },
+        {
+          num: s.pendingPosts, lbl: 'Pending content', accent: s.pendingPosts > 0, href: 'content.html',
+          hint: s.pendingPosts ? 'Member offers and posts to review' : 'Nothing waiting to publish',
+        },
+        {
+          num: s.orders, lbl: 'Payments logged', detail: 'payments',
+          hint: g.lastPayment ? `Most recent: ${g.lastPayment}` : 'No payments recorded yet',
+        },
+        {
+          num: '$' + (s.revenue || 0).toLocaleString(), lbl: 'Revenue processed', detail: 'payments',
+          hint: (g.revenue30 && g.revenue30 !== '$0') ? `${g.revenue30} in the last 30 days` : 'All time, card payments only',
+        },
       ];
+      // Next event gets its own card — the office's most-asked question of the
+      // dashboard, and previously nowhere on it.
+      if (g.nextEvent) {
+        cards.push({
+          num: g.nextEvent.when, lbl: 'Next event', href: 'events.html?focus=' + encodeURIComponent(g.nextEvent.id),
+          hint: g.nextEvent.title, wide: true,
+        });
+      }
       // Every stat card is clickable (Diana): section cards jump to their page;
       // the money cards open an on-the-spot breakdown with payment dates.
-      document.getElementById('statRow').innerHTML = cards.map((c, i) => c.detail
-        ? `<button type="button" class="stat-card${c.accent ? ' accent' : ''}" data-stat-detail="${c.detail}" style="text-align:left;border:0;font:inherit;cursor:pointer"><div class="num">${esc(c.num)}</div><div class="lbl">${esc(c.lbl)} — see breakdown →</div></button>`
-        : `<a class="stat-card${c.accent ? ' accent' : ''}" href="${c.href}" style="text-decoration:none;color:inherit;cursor:pointer"><div class="num">${esc(c.num)}</div><div class="lbl">${esc(c.lbl)} →</div></a>`).join('');
+      const inner = (c, arrow) => `<div class="num">${esc(c.num)}</div>
+        <div class="lbl">${esc(c.lbl)} ${arrow}</div>
+        ${c.hint ? `<div class="hint">${esc(c.hint)}</div>` : ''}`;
+      document.getElementById('statRow').innerHTML = cards.map((c) => c.detail
+        ? `<button type="button" class="stat-card${c.accent ? ' accent' : ''}${c.wide ? ' wide' : ''}" data-stat-detail="${c.detail}" style="text-align:left;border:0;font:inherit;cursor:pointer">${inner(c, '— see breakdown →')}</button>`
+        : `<a class="stat-card${c.accent ? ' accent' : ''}${c.wide ? ' wide' : ''}" href="${c.href}" style="text-decoration:none;color:inherit;cursor:pointer">${inner(c, '→')}</a>`).join('');
       // "Waiting for you" → the whole approval queue in one place, each row
       // linking to where it gets approved (Felicia, Jul 29 2026).
       document.querySelectorAll('[data-stat-detail="approvals"]').forEach((btn) => btn.addEventListener('click', async () => {
@@ -1442,6 +1485,189 @@ window.Admin = (function () {
     }
   }
 
+  /* ── Photo Albums (Diana, Jul 30 2026) ──────────────────────────────────
+     "A photo gallery for events or whatever the admins want to create.
+     Especially to associate with the groups so that the members and group
+     managers are encouraged to share activity." Every photo slot here offers
+     the Image Library as well as an upload, because Michael's other half of the
+     ask was that a logo or a shot already on the site be reusable rather than
+     re-uploaded. */
+  async function initAlbums() {
+    mountShell('albums');
+    const listEl = document.getElementById('abList');
+    const listMsg = document.getElementById('abListMsg');
+    const msg = document.getElementById('abMsg');
+    const say = (el, t, bad) => { el.hidden = !t; el.textContent = t || ''; el.style.color = bad ? 'var(--red,#b00020)' : 'var(--green,#2b6b3f)'; };
+    let albums = [];
+    let events = [];
+    let groups = [];
+
+    // Attach-to dropdowns: an album is far more useful hanging off the event or
+    // group it documents, so make that a one-click choice, not an id to paste.
+    try { events = ((await api('/api/events')).events || []).slice().sort((a, b) => String(b.date || '').localeCompare(String(a.date || ''))).slice(0, 120); } catch (e) {}
+    try { groups = (await api('/api/groups')).groups || []; } catch (e) {}
+    const fillPickers = (evSel, grpSel) => {
+      if (evSel) evSel.innerHTML = '<option value="">— none —</option>'
+        + events.map((e) => `<option value="${esc(e.id)}">${esc(e.title)}${e.date ? ' · ' + esc(e.date) : ''}</option>`).join('');
+      if (grpSel) grpSel.innerHTML = '<option value="">— none —</option>'
+        + groups.map((g) => `<option value="${esc(g.slug)}">${esc(g.name)}</option>`).join('');
+    };
+    fillPickers(document.getElementById('abEvent'), document.getElementById('abGroup'));
+    bindLibraryBtn(document, 'abCover', (urls) => { document.getElementById('abCover').value = urls[0] || ''; },
+      { title: 'Choose a cover image' });
+
+    async function load() {
+      try { albums = (await api('/api/albums')).albums || []; }
+      catch (e) { return say(listMsg, 'Could not load the albums.', true); }
+      if (!albums.length) {
+        listEl.innerHTML = '<p class="sub">No albums yet. Create the first one above — a good starting point is your most recent event.</p>';
+        return;
+      }
+      const evTitle = (id) => (events.find((e) => e.id === id) || {}).title || '';
+      const grpName = (s) => (groups.find((g) => g.slug === s) || {}).name || '';
+      listEl.innerHTML = albums.map((a) => {
+        const tags = [
+          a.eventId ? `◆ ${esc(evTitle(a.eventId) || a.eventId)}` : '',
+          a.groupSlug ? `◎ ${esc(grpName(a.groupSlug) || a.groupSlug)}` : '',
+          a.locked ? '🔒 Closed to members' : '',
+        ].filter(Boolean).join(' · ');
+        return `<div class="panel" data-ab="${esc(a.id)}" style="margin:0 0 12px;padding:12px">
+          <div style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap">
+            <img src="${esc(a.cover || '../images/wvwccc-logo.png')}" alt="" style="width:104px;height:78px;object-fit:cover;border-radius:8px;border:1px solid var(--line,#ddd);background:var(--forest,#1E5631)">
+            <div style="flex:1;min-width:220px">
+              <input data-abf="title" value="${esc(a.title)}" style="width:100%;font-weight:700">
+              <p class="sub" style="margin:4px 0 0">${a.count} photo${a.count === 1 ? '' : 's'}${tags ? ' · ' + tags : ''}</p>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
+                <label class="btn btn--gold btn--sm" style="cursor:pointer">⬆ Upload photos<input type="file" accept="image/*" multiple hidden data-abup></label>
+                <button type="button" class="btn btn--ghost btn--sm" data-ablib>📁 Add from Image Library</button>
+                <button type="button" class="btn btn--ghost btn--sm" data-abmanage>🖼 Manage photos (${a.count})</button>
+                <a class="btn btn--ghost btn--sm" href="/albums/${encodeURIComponent(a.id)}" target="_blank" rel="noopener">↗ View page</a>
+                <button type="button" class="btn btn--ghost btn--sm" data-ablock>${a.locked ? '🔓 Let members add' : '🔒 Close to members'}</button>
+                <button type="button" class="btn btn--ghost btn--sm" data-abdel style="color:var(--red,#b00020)">Delete</button>
+              </div>
+            </div>
+          </div>
+          <div data-abphotos hidden style="margin-top:12px"></div>
+        </div>`;
+      }).join('');
+      bindRows();
+    }
+
+    // One PATCH helper — every edit is "send the album back whole", so the
+    // server never has to guess which half of `meta` changed.
+    const save = async (id, patch) => {
+      const full = await api('/api/albums/' + encodeURIComponent(id));
+      const a = full.album;
+      const body = {
+        title: a.title, body: a.body, cover: a.cover, eventId: a.eventId,
+        groupSlug: a.groupSlug, locked: a.locked, photos: a.photos, ...patch,
+      };
+      return api('/api/admin/albums/' + encodeURIComponent(id), { method: 'PATCH', body: JSON.stringify(body) });
+    };
+    const addPhotos = async (id, urls) => {
+      const full = await api('/api/albums/' + encodeURIComponent(id));
+      const photos = full.album.photos.concat(urls.map((u) => ({ url: u })));
+      await save(id, { photos });
+      say(listMsg, `Added ${urls.length} photo${urls.length === 1 ? '' : 's'} ✓ — live on the album page now.`);
+      load();
+    };
+
+    function bindRows() {
+      listEl.querySelectorAll('[data-ab]').forEach((row) => {
+        const id = row.dataset.ab;
+        row.querySelector('[data-abf="title"]').addEventListener('change', async (e) => {
+          try { await save(id, { title: e.target.value }); say(listMsg, 'Renamed ✓'); } catch (err) { say(listMsg, 'Could not rename.', true); }
+        });
+        row.querySelector('[data-abup]').addEventListener('change', async (e) => {
+          const files = Array.from(e.target.files || []).slice(0, 40);
+          e.target.value = '';
+          if (!files.length) return;
+          say(listMsg, `Uploading ${files.length} photo${files.length === 1 ? '' : 's'}…`);
+          const urls = [];
+          for (const f of files) {
+            try {
+              const dataUrl = await downscaleImage(f, 1800, 0.85);
+              const up = await api('/api/me/asset', { method: 'POST', body: JSON.stringify({ dataUrl }) });
+              if (up && up.url) urls.push(up.url);
+            } catch (err) { /* skip that one */ }
+          }
+          if (!urls.length) return say(listMsg, 'None of those uploaded — try smaller files.', true);
+          try { await addPhotos(id, urls); } catch (err) { say(listMsg, 'Could not add the photos.', true); }
+        });
+        row.querySelector('[data-ablib]').addEventListener('click', async () => {
+          const urls = await pickImage({ multiple: true, title: 'Add photos from the Image Library', max: 40 });
+          if (urls && urls.length) { try { await addPhotos(id, urls); } catch (e) { say(listMsg, 'Could not add the photos.', true); } }
+        });
+        row.querySelector('[data-ablock]').addEventListener('click', async () => {
+          const a = albums.find((x) => x.id === id);
+          try { await save(id, { locked: !a.locked }); load(); } catch (e) { say(listMsg, 'Could not change that.', true); }
+        });
+        row.querySelector('[data-abdel]').addEventListener('click', async () => {
+          const a = albums.find((x) => x.id === id);
+          if (!confirm(`Delete "${a.title}" and its ${a.count} photo${a.count === 1 ? '' : 's'}?\n\nThe album page stops working. The images themselves stay in your Image Library.`)) return;
+          try { await api('/api/admin/albums/' + encodeURIComponent(id), { method: 'DELETE' }); load(); }
+          catch (e) { say(listMsg, 'Could not delete the album.', true); }
+        });
+        row.querySelector('[data-abmanage]').addEventListener('click', async () => {
+          const box = row.querySelector('[data-abphotos]');
+          if (!box.hidden) { box.hidden = true; return; }
+          box.hidden = false;
+          box.innerHTML = '<p class="sub">Loading photos…</p>';
+          const a = (await api('/api/albums/' + encodeURIComponent(id))).album;
+          if (!a.photos.length) { box.innerHTML = '<p class="sub">No photos in this album yet.</p>'; return; }
+          box.innerHTML = `<p class="sub" style="margin:0 0 8px">Captions save when you click out. “Cover” sets the album's thumbnail.</p>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px">
+            ${a.photos.map((p, i) => `<div style="border:1px solid var(--line,#ddd);border-radius:8px;padding:7px">
+              <img src="${esc(p.url)}" alt="" style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:6px">
+              <input data-abcap="${i}" value="${esc(p.caption || '')}" placeholder="Caption (optional)" style="width:100%;margin-top:6px;font-size:.85rem">
+              ${p.by ? `<p class="sub" style="margin:3px 0 0">📷 ${esc(p.by)}</p>` : ''}
+              <div style="display:flex;gap:5px;margin-top:6px">
+                <button type="button" class="btn btn--ghost btn--sm" data-abcover="${i}" style="flex:1">Cover</button>
+                <button type="button" class="btn btn--ghost btn--sm" data-abrm="${i}" style="color:var(--red,#b00020)">×</button>
+              </div></div>`).join('')}</div>`;
+          box.querySelectorAll('[data-abcap]').forEach((inp) => inp.addEventListener('change', async () => {
+            const photos = a.photos.map((p, i) => (i === +inp.dataset.abcap ? { ...p, caption: inp.value } : p));
+            try { await save(id, { photos }); a.photos = photos; say(listMsg, 'Caption saved ✓'); }
+            catch (e) { say(listMsg, 'Could not save the caption.', true); }
+          }));
+          box.querySelectorAll('[data-abcover]').forEach((b) => b.addEventListener('click', async () => {
+            try { await save(id, { cover: a.photos[+b.dataset.abcover].url }); say(listMsg, 'Cover set ✓'); load(); }
+            catch (e) { say(listMsg, 'Could not set the cover.', true); }
+          }));
+          box.querySelectorAll('[data-abrm]').forEach((b) => b.addEventListener('click', async () => {
+            if (!confirm('Remove this photo from the album?')) return;
+            const photos = a.photos.filter((_, i) => i !== +b.dataset.abrm);
+            try { await save(id, { photos }); a.photos = photos; load(); }
+            catch (e) { say(listMsg, 'Could not remove the photo.', true); }
+          }));
+        });
+      });
+    }
+
+    document.getElementById('abCreate').addEventListener('click', async () => {
+      const title = document.getElementById('abTitle').value.trim();
+      if (!title) return say(msg, 'Give the album a name.', true);
+      try {
+        await api('/api/admin/albums', {
+          method: 'POST',
+          body: JSON.stringify({
+            title,
+            body: document.getElementById('abBody').value.trim(),
+            cover: document.getElementById('abCover').value.trim(),
+            eventId: document.getElementById('abEvent').value,
+            groupSlug: document.getElementById('abGroup').value,
+            photos: [],
+          }),
+        });
+        ['abTitle', 'abBody', 'abCover'].forEach((i) => { document.getElementById(i).value = ''; });
+        say(msg, 'Album created ✓ — add photos to it below.');
+        load();
+      } catch (e) { say(msg, 'Could not create the album.', true); }
+    });
+
+    load();
+  }
+
   async function initOrders() {
     mountShell('payments');
     initPaymentTools();
@@ -2077,25 +2303,104 @@ window.Admin = (function () {
       docWrap.querySelectorAll('[data-dlbl]').forEach((el) => el.addEventListener('input', () => { documents[+el.dataset.dlbl].label = el.value; }));
       docWrap.querySelectorAll('[data-rmdoc]').forEach((b) => b.addEventListener('click', () => { documents.splice(+b.dataset.rmdoc, 1); renderDocs(); }));
     }
+    /* ── Do the name and the amount agree? ────────────────────────────────
+       The office writes the price into the NAME, because that is how it reads
+       on the flyer ("Guests $15 with Pre-registration"). The Amount box is a
+       separate field, and leaving it blank quietly turned that $15 ticket into
+       a free RSVP — Felicia, Jul 30 2026: "In the drop down it says the word
+       Free after Guests $15 with Pre-registration. It is not free." Nothing on
+       the admin screen said so. Now it does, live, as she types. */
+    const tkNamedPrice = (name) => {
+      const m = String(name || '').match(/\$\s*(\d[\d,]*(?:\.\d{1,2})?)/);
+      return m ? Number(m[1].replace(/,/g, '')) : null;
+    };
+    const tkSaysFree = (name) => /\bfree\b/i.test(String(name || ''));
+    const tkPrice = (t) => Number(t.price) || 0;
+    const tkBlank = (t) => t.price === '' || t.price == null;
+    function tkProblem(t) {
+      const name = String(t.name || '').trim();
+      if (!name) return '';
+      const p = tkPrice(t);
+      const named = tkNamedPrice(name);
+      if (tkBlank(t) && !tkSaysFree(name)) {
+        return 'No amount — visitors see this as <b>Free</b> and are never asked to pay. Enter <b>0</b> if it really is free.';
+      }
+      if (named != null && Math.abs(named - p) >= 0.005) {
+        return `The name promises <b>$${named.toFixed(2)}</b> but this charges <b>${p > 0 ? '$' + p.toFixed(2) : 'nothing'}</b>.`;
+      }
+      if (tkSaysFree(name) && p > 0) return `The name says <b>free</b> but this charges <b>$${p.toFixed(2)}</b>.`;
+      return '';
+    }
+    // Exactly what the checkout dropdown renders for this row — kept in step
+    // with js/chamber.js, so the office proofreads the visitor's screen rather
+    // than a form full of boxes.
+    function tkPreviewLabel(t) {
+      const p = tkPrice(t);
+      const txt = t.soldOut ? 'SOLD OUT' : (p > 0 ? '$' + p.toFixed(2) : 'Free');
+      const spellsItOut = p <= 0 && tkSaysFree(t.name);
+      return String(t.name || '').trim() + (spellsItOut && !t.soldOut ? '' : ' — ' + txt);
+    }
+    const tkAudience = (g) => ({ member: 'Members', guest: 'Guests' }[String(g || '').toLowerCase()] || '');
+    // Live warnings + the visitor preview, refreshed on every keystroke without
+    // re-rendering the rows (that would steal focus mid-edit).
+    function refreshTicketHints() {
+      ticketTypes.forEach((t, i) => {
+        const el = tixWrap.querySelector(`[data-tkwarn="${i}"]`);
+        if (!el) return;
+        const p = tkProblem(t);
+        el.innerHTML = p ? `⚠ ${p}` : '';
+        el.hidden = !p;
+      });
+      const prev = document.getElementById('evTixPreview');
+      if (!prev) return;
+      const rows = ticketTypes.filter((t) => String(t.name || '').trim() && t.available !== false);
+      if (!rows.length) {
+        prev.innerHTML = '<p class="sub" style="margin:0">Add a price above and this will show exactly what a visitor sees.</p>';
+        return;
+      }
+      const groups = [];
+      rows.forEach((t) => {
+        const g = tkAudience(t.group);
+        let b = groups.find((x) => x.g === g);
+        if (!b) { b = { g, items: [] }; groups.push(b); }
+        b.items.push(t);
+      });
+      const paid = rows.filter((t) => tkPrice(t) > 0 && !t.soldOut).length;
+      const free = rows.filter((t) => tkPrice(t) <= 0 && !t.soldOut).length;
+      prev.innerHTML = `<p class="sub" style="margin:0 0 6px"><strong>What a visitor sees in the checkout drop-down</strong></p>
+        <div style="border:1px solid var(--line,#ddd);border-radius:8px;padding:8px 11px;background:#fff;font-size:.92rem">
+          ${groups.map((b) => `${b.g ? `<div style="font-weight:700;margin:3px 0 1px">${esc(b.g)}</div>` : ''}${b.items.map((t) => `<div style="padding:1px 0 1px ${b.g ? '15px' : '0'}">${esc(tkPreviewLabel(t))}</div>`).join('')}`).join('')}
+        </div>
+        <p class="sub" style="margin:6px 0 0">${paid && free
+          ? `Choosing a <b>free</b> option confirms an RSVP with no card. Choosing a <b>paid</b> option asks for a card and charges it.`
+          : (paid ? 'Every option asks for a card and charges it.' : 'Every option is free — the checkout confirms an RSVP and never asks for a card.')}</p>`;
+    }
     function renderTickets() {
       // Audience → the checkout groups prices, and buyers pick from a dropdown
       // when an event has several (Member price / Guest price / early bird…).
       const AUD = [['', 'Anyone'], ['member', 'Members'], ['guest', 'Guests']];
-      tixWrap.innerHTML = ticketTypes.map((t, i) => `<div style="display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap;align-items:center">
+      tixWrap.innerHTML = `<p class="sub" style="margin:0 0 6px">One row per choice in the checkout drop-down:
+        <b>who it's for</b> · <b>what it's called</b> · <b>the amount to charge</b> · how many are available ·
+        secret link key · status.</p>`
+        + ticketTypes.map((t, i) => `<div style="margin-bottom:8px">
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
         <select data-tk="${i}" data-f="group" class="admin-select" title="Who this price is for" style="max-width:110px">
           ${AUD.map(([v, l]) => `<option value="${v}" ${String(t.group || '') === v ? 'selected' : ''}>${l}</option>`).join('')}
         </select>
         <input data-tk="${i}" data-f="name" placeholder="Price name (e.g. Member breakfast)" value="${esc(t.name || '')}" style="flex:2;min-width:140px">
-        <input data-tk="${i}" data-f="price" type="number" min="0" step="0.01" placeholder="Price $" value="${t.price != null ? esc(t.price) : ''}" style="width:90px">
+        <span style="display:inline-flex;align-items:center;gap:3px" title="What the card is actually charged. Blank or 0 = free."><b style="color:var(--slate-mid,#667)">$</b><input data-tk="${i}" data-f="price" type="number" min="0" step="0.01" placeholder="0 = free" value="${t.price != null ? esc(t.price) : ''}" style="width:82px"></span>
         <input data-tk="${i}" data-f="qty" type="number" min="0" placeholder="Qty" value="${t.qty != null ? esc(t.qty) : ''}" style="width:70px" title="Leave blank for unlimited">
         <input data-tk="${i}" data-f="linkKey" placeholder="Link key" value="${esc(t.linkKey || '')}" style="width:90px" title="Secret price: only shows at checkout when the shared link ends with &key=THIS. Example: put 'board' here, then give board members the event's Buy Tickets link with &key=board added — everyone else never sees this price.">
         <select data-tk="${i}" data-f="status" class="admin-select" style="max-width:110px" title="Available = buyable · Sold out = still listed at checkout but greyed out as SOLD OUT · Hidden = not shown at all">
           ${[['available', 'Available'], ['soldout', 'Sold out'], ['hidden', 'Hidden']].map(([v, l]) => `<option value="${v}" ${(t.available === false ? 'hidden' : (t.soldOut ? 'soldout' : 'available')) === v ? 'selected' : ''}>${l}</option>`).join('')}
         </select>
         <button type="button" data-rmtk="${i}" class="btn btn--ghost btn--sm">×</button>
+        </div>
+        <p class="sub" data-tkwarn="${i}" hidden style="margin:3px 0 0;color:var(--red,#b00020);font-weight:600"></p>
       </div>`).join('')
         + `<button type="button" id="evAddTix" class="btn btn--ghost btn--sm">+ Add a price</button>
-           <button type="button" id="evAddMG" class="btn btn--ghost btn--sm" title="Adds a Member price and a Guest price in one click">+ Member &amp; Guest prices</button>`;
+           <button type="button" id="evAddMG" class="btn btn--ghost btn--sm" title="Adds a Member price and a Guest price in one click">+ Member &amp; Guest prices</button>
+           <div id="evTixPreview" style="margin-top:12px;padding:10px 12px;border:1px solid var(--line,#ddd);border-left:3px solid var(--gold,#C9A227);border-radius:8px;background:#faf8f3"></div>`;
       tixWrap.querySelector('#evAddTix').addEventListener('click', () => { ticketTypes.push({ name: '', price: 0, qty: null, available: true }); renderTickets(); });
       tixWrap.querySelector('#evAddMG').addEventListener('click', () => {
         ticketTypes.push({ name: 'Member', group: 'member', price: 0, qty: null, available: true });
@@ -2104,10 +2409,12 @@ window.Admin = (function () {
       });
       tixWrap.querySelectorAll('[data-tk]').forEach((el) => el.addEventListener('input', () => {
         const t = ticketTypes[+el.dataset.tk]; const f = el.dataset.f;
-        if (f === 'status') { t.available = el.value !== 'hidden'; t.soldOut = el.value === 'soldout'; return; }
-        t[f] = (f === 'price' ? el.value : (f === 'qty' ? (el.value === '' ? null : el.value) : el.value));
+        if (f === 'status') { t.available = el.value !== 'hidden'; t.soldOut = el.value === 'soldout'; }
+        else t[f] = (f === 'price' ? el.value : (f === 'qty' ? (el.value === '' ? null : el.value) : el.value));
+        refreshTicketHints();
       }));
       tixWrap.querySelectorAll('[data-rmtk]').forEach((b) => b.addEventListener('click', () => { ticketTypes.splice(+b.dataset.rmtk, 1); renderTickets(); }));
+      refreshTicketHints();
     }
 
     // Images may carry a click-through link (e.g. a sponsor logo → their site).
@@ -2516,6 +2823,14 @@ window.Admin = (function () {
       };
       if (body.ticketed && !body.ticketTypes.length) { msg.hidden = false; msg.textContent = 'The Buy tickets button needs at least one ticket price — add one under “Ticket prices” (or switch the action button to RSVP).'; return; }
       if (!body.title) { msg.hidden = false; msg.textContent = 'Title is required.'; return; }
+      // A price whose name and amount disagree is the costliest mistake on this
+      // form: it either charges nothing for a $15 ticket or charges for
+      // something the flyer calls free. Never let one save unnoticed.
+      const badPrices = body.ticketTypes.map((t) => ({ t, why: tkProblem(t) })).filter((x) => x.why);
+      if (badPrices.length && !confirm(
+        `Check ${badPrices.length === 1 ? 'this price' : 'these prices'} before saving:\n\n`
+        + badPrices.map((x) => `• ${x.t.name}\n   ${x.why.replace(/<\/?b>/g, '')}`).join('\n\n')
+        + '\n\nSave anyway?')) return;
       const btn = form.querySelector('button[type="submit"]'); btn.disabled = true;
       try {
         if (editingId) await api('/api/admin/events/' + encodeURIComponent(editingId), { method: 'PATCH', body: JSON.stringify(body) });
@@ -4186,5 +4501,5 @@ window.Admin = (function () {
     });
   }
 
-  return { mountShell, initDashboard, initMembers, initBoardManager, initApprovals, initOrders, initLeads, initRibbon, initEvents, initContent, initAssistant, initRenewals, initUsers, initGroups, initSponsorships, initSlides, initTools, initImages, initAmbassadors, initAbout, openHelp, pickImage, libraryBtn, bindLibraryBtn, api, esc };
+  return { mountShell, initDashboard, initMembers, initBoardManager, initApprovals, initOrders, initLeads, initRibbon, initEvents, initContent, initAssistant, initRenewals, initUsers, initGroups, initSponsorships, initSlides, initTools, initImages, initAlbums, initAmbassadors, initAbout, openHelp, pickImage, libraryBtn, bindLibraryBtn, api, esc };
 })();

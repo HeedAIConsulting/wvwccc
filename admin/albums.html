@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex" />
+  <title>Photo Albums — WVWCCC Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="../css/chamber.css" />
+  <link rel="stylesheet" href="admin.css?v=20260730a" />
+</head>
+<body class="admin">
+  <div class="admin-shell">
+    <aside class="admin-sidebar" data-admin-nav></aside>
+    <div class="admin-main">
+      <div class="admin-topbar"><h1>Photo Albums</h1></div>
+      <div class="admin-content">
+
+        <div class="panel">
+          <div class="panel__head"><h3>📸 New album</h3></div>
+          <div class="admin-form" style="padding:16px">
+            <p class="sub" style="margin:0 0 14px">
+              An album is a set of photos with its own page and share links — a gala, a mixer, a ribbon cutting,
+              a group's year. Attach it to an event or a group and it also appears on that page.
+              <strong>Members can add their own photos to any album</strong>, and those go live straight away.
+            </p>
+            <div class="grid grid-2" style="gap:12px">
+              <div class="field"><label for="abTitle">Album name</label>
+                <input id="abTitle" placeholder="Black, White &amp; Bold Gala 2026" /></div>
+              <div class="field"><label for="abCover">Cover image</label>
+                <div style="display:flex;gap:6px;align-items:center">
+                  <input id="abCover" placeholder="Pick from the Image Library →" style="flex:1" />
+                  <button type="button" class="btn btn--ghost btn--sm" data-lib="abCover">📁 Library</button>
+                </div></div>
+            </div>
+            <div class="field"><label for="abBody">Short description <span class="sub">(shows on the album page and in link previews)</span></label>
+              <textarea id="abBody" rows="2" placeholder="Photos from our 2026 installation gala at the Warner Center Marriott."></textarea></div>
+            <div class="grid grid-2" style="gap:12px">
+              <div class="field"><label for="abEvent">Attach to an event <span class="sub">(optional)</span></label>
+                <select id="abEvent" class="admin-select"><option value="">— none —</option></select></div>
+              <div class="field"><label for="abGroup">Attach to a group <span class="sub">(optional)</span></label>
+                <select id="abGroup" class="admin-select"><option value="">— none —</option></select></div>
+            </div>
+            <p id="abMsg" class="notice" hidden style="margin:0 0 10px"></p>
+            <button type="button" class="btn btn--gold" id="abCreate">Create album</button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel__head"><h3>🗂 Albums</h3></div>
+          <div class="admin-form" style="padding:16px">
+            <p id="abListMsg" class="notice" hidden style="margin:0 0 10px"></p>
+            <div id="abList"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+  <script src="../js/api-base.js"></script>
+  <script src="admin.js?v=20260730a"></script>
+  <script>Admin.initAlbums();</script>
+  <script defer src="/js/support.js?v=20260701a"></script>
+</body>
+</html>

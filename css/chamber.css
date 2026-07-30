@@ -695,6 +695,33 @@ html { scrollbar-color: var(--gold) var(--cream-deep); scrollbar-width: thin; }
 .gallery-grid--lg { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: var(--s-5); }
 .gallery-card { margin: 0; }
 .gallery-card a { display: block; border-radius: var(--r-lg); overflow: hidden; box-shadow: var(--sh-sm); cursor: zoom-in; }
+/* A photo's own share row sits under its caption — quieter than the event
+   share row so the photos stay the loudest thing on the page. */
+.gallery-card .share-row { margin-top: 6px; gap: 4px; }
+.gallery-card .share-row .chip { font-size: .72rem; padding: 2px 8px; }
+.alb-by { display: block; color: var(--slate-mid); font-size: .78rem; margin-top: 2px; }
+
+/* ── Photo albums (Diana, Jul 30 2026) ── */
+.alb-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--s-5); }
+.alb-grid--sm { grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: var(--s-4); }
+.alb-section { margin: var(--s-6) 0 0; }
+.alb-section h3 { margin: 0 0 var(--s-3); }
+.alb-card { display: block; text-decoration: none; color: inherit; border-radius: var(--r-lg);
+  overflow: hidden; background: var(--paper); border: 1px solid var(--gold-soft, #e6dcbf);
+  box-shadow: var(--sh-sm); transition: transform .2s ease, box-shadow .2s ease; }
+.alb-card:hover { transform: translateY(-3px); box-shadow: var(--sh-md, 0 12px 30px rgba(18,36,26,.16)); }
+.alb-card__img { position: relative; aspect-ratio: 4/3; overflow: hidden; background: var(--forest); }
+.alb-card__img img { width: 100%; height: 100%; object-fit: cover; }
+.alb-card__ph { display: grid; place-items: center; width: 100%; height: 100%;
+  background: linear-gradient(140deg, var(--forest), var(--green-ink)); }
+.alb-card__ph img { width: 84px; height: 84px; object-fit: contain; }
+.alb-card__count { position: absolute; right: 10px; bottom: 10px; background: rgba(18,36,26,.82);
+  color: #f3e8c8; font-size: .74rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+  padding: 4px 9px; border-radius: 999px; }
+.alb-card__body { padding: var(--s-3) var(--s-4) var(--s-4); }
+.alb-card__body h3 { margin: 0; font-size: 1.05rem; line-height: 1.25; }
+.alb-card__body p { margin: 5px 0 0; color: var(--slate-mid); font-size: .88rem;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
 /* ── Follow the Chamber (social section) ── */
 .social-grid { display: grid; grid-template-columns: 1.05fr .95fr; gap: var(--s-5); align-items: start; }
@@ -768,8 +795,20 @@ html { scrollbar-color: var(--gold) var(--cream-deep); scrollbar-width: thin; }
 /* Compact chamber-logo banner for events with no flyer (Felicia, Jul 29 2026).
    Same card structure and green identity as a flyer, a fraction of the height,
    so the date, venue and RSVP button stay above the fold. */
-.ev-card__logobar { display: flex; align-items: center; justify-content: center; border-radius: var(--r-lg);
+.ev-card__logobar { display: flex; align-items: center; justify-content: center; gap: 22px;
+  border-radius: var(--r-lg);
   background: linear-gradient(140deg, var(--forest), var(--green-ink)); border: 1px solid var(--line);
-  box-shadow: var(--sh-sm); margin: 0 0 16px; padding: 18px 22px; min-height: 104px; }
-.ev-card__logobar img { max-height: 68px; max-width: min(260px, 70%); width: auto; object-fit: contain; }
-@media (max-width: 560px) { .ev-card__logobar { min-height: 84px; padding: 14px 16px; } .ev-card__logobar img { max-height: 54px; } }
+  box-shadow: var(--sh-sm); margin: 0 0 16px; padding: 22px 26px; min-height: 128px; }
+.ev-card__logobar img { width: 92px; height: 92px; flex: none; object-fit: contain; border-radius: 50%;
+  background: #fff; padding: 5px; box-shadow: 0 0 0 2px var(--gold); }
+.ev-card__logobar-txt { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
+.ev-card__logobar-name { font-family: var(--display); font-weight: 600; color: #fff;
+  font-size: 1.12rem; line-height: 1.22; letter-spacing: .01em; }
+.ev-card__logobar-name b { display: block; font-weight: 600; }
+.ev-card__logobar-when { font-size: .82rem; font-weight: 700; letter-spacing: .09em; text-transform: uppercase;
+  color: var(--gold-bright); }
+@media (max-width: 560px) {
+  .ev-card__logobar { flex-direction: column; text-align: center; gap: 14px; padding: 20px 16px; min-height: 0; }
+  .ev-card__logobar img { width: 72px; height: 72px; }
+  .ev-card__logobar-name { font-size: 1rem; }
+}

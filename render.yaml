@@ -9,6 +9,11 @@ databases:
 
 services:
   - type: web
+    # NOTE (Jul 29 2026): the LIVE Render service is named `wvwccc-web`
+    # (wvwccc-web.onrender.com, fronted by woodlandhillscc.net via Cloudflare).
+    # `wvwccc-production` does not resolve, so this blueprint is not what is
+    # actually deployed — treat it as the spec, and set env vars marked
+    # `sync: false` in the wvwccc-web dashboard by hand.
     name: wvwccc-production
     runtime: node
     plan: standard            # NOT free — public site cannot tolerate cold starts
@@ -52,6 +57,16 @@ services:
         sync: false
       - key: AGMS_USERNAME
         value: woodlandhillscc
+      # ── Bot protection: Cloudflare Turnstile ──
+      # SECRET key from the Cloudflare dashboard (Turnstile → the
+      # woodlandhillscc.net widget → Settings). The matching SITE key is public
+      # and lives in js/api-base.js.
+      # IMPORTANT: backend/turnstile.js SKIPS verification entirely while this is
+      # unset, so every public write endpoint (/api/contact, /api/public/job,
+      # /api/public/event/verify) accepts unverified submissions until it is set.
+      # The server logs a startup warning when it is missing in production.
+      - key: TURNSTILE_SECRET
+        sync: false
       # ── AI image creation (Admin → Tools) via Higgsfield ──
       # Create a key pair at platform.higgsfield.ai and set both here.
       # Without them, the Tools image creator shows a friendly "not configured".

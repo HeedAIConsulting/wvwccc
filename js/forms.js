@@ -47,23 +47,11 @@ window.ChamberForms = (function () {
 
   // Cloudflare Turnstile — auto-added to a form when a site key is configured.
   // The widget injects a hidden `cf-turnstile-response` input that FormData picks
-  // up automatically, so no submit-handler change is needed.
-  function mountTurnstile(form) {
-    var key = window.ChamberAPI && ChamberAPI.turnstileSiteKey;
-    if (!key || !form || form.querySelector('.cf-turnstile')) return;
-    if (!document.getElementById('cf-turnstile-script')) {
-      var s = document.createElement('script');
-      s.id = 'cf-turnstile-script';
-      s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
-      s.async = true; s.defer = true;
-      document.head.appendChild(s);
-    }
-    var div = document.createElement('div');
-    div.className = 'cf-turnstile';
-    div.setAttribute('data-sitekey', key);
-    div.style.margin = '16px 0';
-    var btn = form.querySelector('button[type="submit"]');
-    if (btn) form.insertBefore(div, btn); else form.appendChild(div);
+  // up automatically, so no submit-handler change is needed. One implementation,
+  // in api-base.js next to the key; kept re-exported here for existing callers
+  // (ribbon-cutting.html calls ChamberForms.mountTurnstile).
+  function mountTurnstile(form, anchor) {
+    return window.ChamberAPI ? ChamberAPI.mountTurnstile(form, anchor) : null;
   }
 
   function initInquiry() {
@@ -95,6 +83,9 @@ window.ChamberForms = (function () {
       var btn = form.querySelector('button[type="submit"]');
       btn.disabled = true; btn.textContent = 'Sending…';
       var ok = await submitDual(t, data);
+      // Single-use token — spent by that attempt, so clear it or a retry after a
+      // rejection fails the captcha instead of the real problem.
+      if (window.ChamberAPI) ChamberAPI.resetTurnstile(form);
       msg.hidden = false;
       if (ok) {
         form.hidden = true;

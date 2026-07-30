@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- og:* tags below are rewritten server-side (server.js, /albums/:id) so a
+       shared album link previews with its own cover and name on Facebook,
+       LinkedIn and iMessage. The values here are the fallback. -->
+  <title>Photo album — West Valley · Warner Center Chamber of Commerce</title>
+  <meta name="description" content="Photos from West Valley · Warner Center Chamber of Commerce events, ribbon cuttings, and group activities." />
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="Photo album — West Valley · Warner Center Chamber of Commerce" />
+  <meta property="og:description" content="Photos from the West Valley · Warner Center Chamber of Commerce." />
+  <meta property="og:image" content="https://woodlandhillscc.net/images/wvwccc-logo.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="/css/chamber.css?v=20260730a" />
+</head>
+<body>
+  <div data-partial="header"></div>
+
+  <section class="section">
+    <div class="container">
+      <p><a href="/gallery.html" style="color:var(--green);font-weight:600">← All photo albums</a></p>
+      <div id="albumHead"></div>
+      <div class="gallery-grid gallery-grid--lg" id="albumGrid"><p class="member-tile__meta">Loading photos…</p></div>
+      <div id="albumAdd"></div>
+    </div>
+  </section>
+
+  <div data-partial="footer"></div>
+
+  <script src="/js/partials.js?v=20260729a"></script>
+  <script src="/js/api-base.js?v=20260729b"></script>
+  <script src="/js/chamber.js?v=20260730a"></script>
+  <script>
+    ChamberPartials.mount({ active: '', depth: 0, lang: 'en' });
+    Chamber.initAlbumView();
+  </script>
+</body>
+</html>

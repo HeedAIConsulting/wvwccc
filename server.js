@@ -55,6 +55,7 @@ app.get('/api/chamber', (_req, res) => res.json({ ok: true, live: true, service:
 
 // ── API routes (payments, concierge) ──────────────────────
 import chamberRoutes from './backend/chamber-routes.js';
+import * as repo from './backend/repo.js';   // album pages stamp their own og:* tags
 app.use('/api', chamberRoutes);
 app.get('/api/ping', (_req, res) => res.json({ ok: true, service: 'wvwccc' }));
 
@@ -123,6 +124,42 @@ app.get('/guides/:slug', (req, res, next) => {
 app.get('/es/guides/:slug', (req, res, next) => {
   if ((req.params.slug || '').includes('.')) return next();
   res.sendFile(path.join(__dirname, 'es', 'guides', 'view.html'), (err) => { if (err) next(); });
+});
+/* Pretty album URLs: /albums/<id> → the album renderer, with its og:* tags
+   rewritten from the album itself. Diana, Jul 30 2026: "all the images should
+   be shareable to social" — Facebook and LinkedIn never run our JavaScript, so
+   a client-rendered album would preview as a blank Chamber logo no matter how
+   good the page looked. The photos load client-side as usual; only the four
+   preview tags are stamped here. */
+app.get('/albums/:id', async (req, res, next) => {
+  const id = req.params.id || '';
+  if (id.includes('.')) return next();                       // a real file → static/404
+  const file = path.join(__dirname, 'albums', 'view.html');
+  try {
+    const html = await fs.promises.readFile(file, 'utf8');
+    const album = (await repo.listPosts({ type: 'album', status: 'approved' })).find((p) => p.id === id);
+    if (!album) return res.status(404).sendFile(path.join(__dirname, '404.html'), (e) => { if (e) next(); });
+    const photos = (album.meta && album.meta.photos) || [];
+    const origin = `${req.protocol}://${req.get('host')}`;
+    const abs = (u) => (/^https?:\/\//i.test(u) ? u : origin + (u.startsWith('/') ? u : '/' + u));
+    const esc = (s) => String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    const title = `${album.title || 'Photos'} — West Valley · Warner Center Chamber of Commerce`;
+    const desc = (album.body || '').trim()
+      || `${photos.length} photo${photos.length === 1 ? '' : 's'} from the West Valley · Warner Center Chamber of Commerce.`;
+    const cover = abs(album.imageUrl || (photos[0] && photos[0].url) || '/images/wvwccc-logo.png');
+    const out = html
+      .replace(/<title>[\s\S]*?<\/title>/, `<title>${esc(title)}</title>`)
+      .replace(/(<meta name="description" content=")[^"]*(")/, `$1${esc(desc)}$2`)
+      .replace(/(<meta property="og:title" content=")[^"]*(")/, `$1${esc(title)}$2`)
+      .replace(/(<meta property="og:description" content=")[^"]*(")/, `$1${esc(desc)}$2`)
+      .replace(/(<meta property="og:image" content=")[^"]*(")/, `$1${esc(cover)}$2`)
+      .replace('</head>', `  <meta property="og:url" content="${esc(origin)}/albums/${esc(id)}" />\n</head>`);
+    res.type('html').send(out);
+  } catch (e) {
+    console.error('album page', e);
+    res.sendFile(file, (err) => { if (err) next(); });        // still render, generic preview
+  }
 });
 
 // ── 404 fallback ───────────────────────────────────────────
