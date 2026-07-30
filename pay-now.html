@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pay the Chamber — West Valley · Warner Center Chamber of Commerce</title>
+  <meta name="description" content="Pay the West Valley · Warner Center Chamber of Commerce online. Choose what your payment is for, enter the amount, and pay securely by card." />
+  <link rel="canonical" href="https://woodlandhillscc.net/pay-now.html" />
+  <meta property="og:title" content="Pay the West Valley · Warner Center Chamber of Commerce" />
+  <meta property="og:description" content="Choose what your payment is for, enter the amount, and pay securely by card." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="css/chamber.css?v=20260730a" />
+</head>
+<body>
+  <div data-partial="header"></div>
+
+  <!-- Felicia, Jul 30 2026: a link she can send that lands someone straight on
+       the payment portal, with nothing above it. pay.html keeps the three
+       shortcut cards for people browsing; this page is the one to paste into an
+       invoice, a text, or a phone call. Same portal, no detours. -->
+  <section class="section">
+    <div class="container" style="max-width:720px">
+      <div class="card" id="customPay" style="border-left:4px solid var(--gold)">
+        <span class="kicker" style="color:var(--gold-deep)">Enter an amount</span>
+        <h1 style="margin:4px 0 8px">Pay the Chamber</h1>
+        <p class="member-tile__meta">Choose what your payment is for and enter the amount. For anything the office
+          quoted you — dues, a renewal, event tickets, a name badge, a plaque, program ads, or a bundle of items.
+          Add each one and we&rsquo;ll total it up.</p>
+
+        <div id="payItems" class="mt-5" style="display:flex;flex-direction:column;gap:10px"></div>
+        <button type="button" class="btn btn--ghost btn--sm mt-3" id="addItem">+ Add another item</button>
+
+        <div class="mt-5" style="display:flex;align-items:center;justify-content:space-between;border-top:2px solid var(--gold-soft);padding-top:14px">
+          <strong style="font-size:1.05rem">Total</strong>
+          <strong id="payTotal" style="font-size:1.5rem;color:var(--green-ink)">$0.00</strong>
+        </div>
+        <p id="payMsg" class="notice mt-3" hidden></p>
+        <div class="btn-row mt-4">
+          <button type="button" class="btn btn--gold btn--lg" id="payGo">Continue to secure checkout →</button>
+        </div>
+        <p class="member-tile__meta mt-3" style="font-size:.8rem">
+          Payments are processed securely — card details are entered on the next screen and never touch our servers.
+          Not sure of the amount? Call the office at <strong>(818) 347-4737</strong>.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <div data-partial="footer"></div>
+
+  <script src="js/partials.js?v=20260730b"></script>
+  <script src="js/api-base.js?v=20260729b"></script>
+  <script src="js/chamber.js?v=20260730b"></script>
+  <script>
+    ChamberPartials.mount({ active: 'pay', depth: 0, lang: 'en' });
+    Chamber.initPayPortal();
+  </script>
+</body>
+</html>

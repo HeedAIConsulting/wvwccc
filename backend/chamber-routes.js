@@ -1347,6 +1347,12 @@ function buildEvent(b, existing = {}) {
     // Sold out (per Felicia, Jul 24 2026): the event stays listed but every
     // RSVP/Buy button becomes a "Sold Out" notice and ticket checkout is closed.
     soldOut: b.soldOut !== undefined ? !!b.soldOut : (existing.soldOut ?? false),
+    // No button at all (Felicia, Jul 30 2026): plenty of events take neither an
+    // RSVP nor a payment — a ribbon cutting, a members-only briefing, or a
+    // ticketed event whose prices are not settled yet. Wins over every other
+    // CTA setting so the office can switch buttons off without clearing the
+    // ticket prices they have already entered.
+    hideCta: b.hideCta !== undefined ? !!b.hideCta : (existing.hideCta ?? false),
     ticketCap: b.ticketCap ?? existing.ticketCap ?? null,
     rsvpCutoff: b.rsvpCutoff ?? existing.rsvpCutoff ?? null,
     featured: b.featured !== undefined ? !!b.featured : (existing.featured ?? false),

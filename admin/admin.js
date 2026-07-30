@@ -2604,7 +2604,8 @@ window.Admin = (function () {
       }
       form.ticketCap.value = ev && ev.ticketCap != null ? ev.ticketCap : '';
       form.rsvpCutoff.value = v('rsvpCutoff'); form.status.value = v('status', 'approved');
-      form.ctaKind.value = (ev && ev.soldOut) ? 'soldout' : ((ev && ev.ticketed) ? (ev.alsoRsvp ? 'both' : 'buy') : 'rsvp');
+      form.ctaKind.value = (ev && ev.hideCta) ? 'none'
+        : ((ev && ev.soldOut) ? 'soldout' : ((ev && ev.ticketed) ? (ev.alsoRsvp ? 'both' : 'buy') : 'rsvp'));
       if (form.ctaLabel) form.ctaLabel.value = v('ctaLabel');
       if (form.imageMode) form.imageMode.value = (ev && ev.imageMode) || 'auto';
       form.featured.checked = !!(ev && ev.featured);
@@ -2804,6 +2805,11 @@ window.Admin = (function () {
         ticketed: form.ctaKind.value === 'buy' || form.ctaKind.value === 'both',
         alsoRsvp: form.ctaKind.value === 'both',
         soldOut: form.ctaKind.value === 'soldout',
+        // "None" = no button anywhere (Felicia, Jul 30 2026). Some events take
+        // neither RSVPs nor payments, and until now the only way to save was to
+        // pick one — she had to set the Oct 21 Food & Wine to RSVP, which they
+        // are not collecting, just to get past the form.
+        hideCta: form.ctaKind.value === 'none',
         // Custom wording for the action button (Felicia, Jul 29) — "Purchase",
         // "Buy an ad", "Order a name badge"… blank keeps the standard label.
         ctaLabel: form.ctaLabel ? form.ctaLabel.value.trim() : '',

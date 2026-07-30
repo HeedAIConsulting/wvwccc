@@ -125,6 +125,9 @@ app.get('/es/guides/:slug', (req, res, next) => {
   if ((req.params.slug || '').includes('.')) return next();
   res.sendFile(path.join(__dirname, 'es', 'guides', 'view.html'), (err) => { if (err) next(); });
 });
+/* Short link for the payment portal (Felicia, Jul 30 2026). She reads this one
+   down the phone and pastes it into invoices, so /paynow beats /pay-now.html. */
+app.get(['/paynow', '/pay-now'], (_req, res) => res.redirect(302, '/pay-now.html'));
 /* Pretty album URLs: /albums/<id> → the album renderer, with its og:* tags
    rewritten from the album itself. Diana, Jul 30 2026: "all the images should
    be shareable to social" — Facebook and LinkedIn never run our JavaScript, so

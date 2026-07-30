@@ -432,7 +432,10 @@ window.Chamber = (function () {
     // group's leaders (not just the office).
     const rsvpBtn = `<a class="btn btn--forest" href="${rsvpHrefOf(ev, base, grpQ)}">RSVP</a>`;
     const buyBtn = `<a class="btn btn--gold" href="${ticketHref(ev, base, 'paid', grpQ)}">${esc(buyLabel(ev, 'Get tickets'))}</a>`;
-    const cta = ev.soldOut ? soldOutBtn() : (ev.ticketed ? (ev.alsoRsvp ? rsvpBtn + ' ' + buyBtn : buyBtn) : rsvpBtn.replace('>RSVP<', '>RSVP / Notify me<'));
+    // hideCta = the office picked "None" — this event takes neither an RSVP
+    // nor a payment, so it shows no button anywhere (Felicia, Jul 30 2026).
+    const cta = ev.hideCta ? ''
+      : (ev.soldOut ? soldOutBtn() : (ev.ticketed ? (ev.alsoRsvp ? rsvpBtn + ' ' + buyBtn : buyBtn) : rsvpBtn.replace('>RSVP<', '>RSVP / Notify me<')));
     const desc = ev.description || ev.summary || '';
     // Rich description (admin editor) renders as sanitized HTML; plain text is
     // escaped + auto-linked so pasted URLs and "click here" links actually work.
@@ -535,7 +538,7 @@ window.Chamber = (function () {
       ? `<div class="event-date"><div class="event-date__mo">${esc(ev.month)}</div><div class="event-date__day">${esc(ev.day)}</div></div>`
       : `<div class="event-date"><div class="event-date__mo">${esc(ev.month || 'TBA')}</div><div class="event-date__day" style="font-size:1rem;padding-top:6px">·</div></div>`;
     const when = confirmed ? `${esc(ev.month)} ${esc(ev.day)} · ${esc(ev.time || '')}` : 'Date to be announced';
-    const cta = ev.soldOut ? soldOutBtn(true) : ev.ticketed
+    const cta = ev.hideCta ? '' : ev.soldOut ? soldOutBtn(true) : ev.ticketed
       ? (confirmed
           ? `${ev.alsoRsvp ? `<a class="btn btn--ghost btn--sm" href="${rsvpHrefOf(ev, base)}">RSVP</a> ` : ''}<a class="btn btn--gold btn--sm" href="${ticketHref(ev, base, 'paid')}">${esc(buyLabel(ev, 'Get tickets'))}</a>`
           : `<a class="btn btn--ghost btn--sm" href="${base}contact.html?event=${esc(ev.id)}">Notify me</a>`)
@@ -572,7 +575,7 @@ window.Chamber = (function () {
     const mo = ev.month || (ev.date ? MONTHS[Number(ev.date.slice(5, 7)) - 1] : 'TBA');
     const day = ev.day || (ev.date ? String(Number(ev.date.slice(8, 10))) : '');
     const dateUS = ev.date ? `${ev.date.slice(5, 7)}/${ev.date.slice(8, 10)}/${ev.date.slice(2, 4)}` : 'Date TBA';
-    const cta = ev.soldOut ? soldOutBtn(true) : ev.ticketed
+    const cta = ev.hideCta ? '' : ev.soldOut ? soldOutBtn(true) : ev.ticketed
       ? `${ev.alsoRsvp ? `<a class="btn btn--ghost btn--sm" href="${rsvpHrefOf(ev, base)}">RSVP</a> ` : ''}<a class="btn btn--gold btn--sm" href="${ticketHref(ev, base, 'paid')}">${esc(buyLabel(ev, 'Tickets'))}</a>`
       : `<a class="btn btn--ghost btn--sm" href="${rsvpHrefOf(ev, base)}">RSVP</a>`;
     return `
@@ -608,7 +611,7 @@ window.Chamber = (function () {
     const sumRaw = String(ev.summary || ev.description || '').trim();
     const sum = (sumRaw && sumRaw.toLowerCase() !== String(ev.venue || '').trim().toLowerCase()
       && sumRaw.toLowerCase() !== String(ev.neighborhood || '').trim().toLowerCase()) ? sumRaw : '';
-    const cta = ev.soldOut ? soldOutBtn(true) : ev.ticketed
+    const cta = ev.hideCta ? '' : ev.soldOut ? soldOutBtn(true) : ev.ticketed
       ? `${ev.alsoRsvp ? `<a class="btn btn--forest btn--sm" href="${rsvpHrefOf(ev, base)}">RSVP</a> ` : ''}<a class="btn btn--gold btn--sm" href="${ticketHref(ev, base, 'paid')}">${esc(buyLabel(ev, 'Buy tickets'))}</a>`
       : `<a class="btn btn--forest btn--sm" href="${rsvpHrefOf(ev, base)}">RSVP</a>`;
     return `
@@ -957,6 +960,112 @@ window.Chamber = (function () {
       <h3>${esc(heading)}</h3>
       <div class="alb-grid alb-grid--sm">${withPhotos.map(albumCard).join('')}</div>
     </div>`;
+  }
+
+  /* ── "Pay the Chamber any amount" portal ───────────────────────────────
+     Lives on pay.html (below the three shortcut cards) and on pay-now.html,
+     which is nothing but this — Felicia, Jul 30 2026: "a link that will take
+     someone directly to a clean page ... with just the Pay the Chamber any
+     amount on that page and nothing else above it." Same logic both places, so
+     the two can never drift; each page supplies the markup IDs below. */
+  async function initPayPortal() {
+    const wrap = document.getElementById('payItems');
+    const totalEl = document.getElementById('payTotal');
+    const msg = document.getElementById('payMsg');
+    if (!wrap) return;
+
+    // What people actually pay the Chamber for, from the office's own list.
+    // Picking from a menu beats typing a description and guessing an amount.
+    let CATALOG = [];
+
+    function row(desc, amt) {
+      const div = document.createElement('div');
+      div.className = 'pay-item';
+      div.style.cssText = 'display:grid;grid-template-columns:1fr 130px 34px;gap:8px;align-items:start';
+      div.innerHTML = `
+        <div>
+          <select class="pi-pick" style="width:100%;padding:10px 12px;border:1px solid var(--gold-soft);border-radius:8px;font:inherit;background:var(--paper)">
+            <option value="">What is this for?…</option>
+            ${CATALOG.map((c, i) => `<option value="${i}">${esc(c.label)}${c.amount != null ? ` — $${Number(c.amount).toFixed(2)}` : ''}</option>`).join('')}
+            <option value="other">Something else — I'll type it in</option>
+          </select>
+          <input type="text" class="pi-desc" placeholder="What is this for? (e.g., Name badge)" value="${esc(desc || '')}" hidden
+                 style="width:100%;margin-top:8px;padding:10px 12px;border:1px solid var(--gold-soft);border-radius:8px;font:inherit" />
+          <p class="pi-note member-tile__meta" style="margin:4px 0 0"></p>
+        </div>
+        <input type="number" class="pi-amt" placeholder="0.00" min="0" step="0.01" inputmode="decimal" value="${esc(amt || '')}" style="padding:10px 12px;border:1px solid var(--gold-soft);border-radius:8px;font:inherit" />
+        <button type="button" class="pi-x" aria-label="Remove item" style="background:none;border:1px solid var(--gold-soft);border-radius:8px;height:38px;cursor:pointer;color:var(--slate-mid)">×</button>`;
+      const pick = div.querySelector('.pi-pick');
+      const descEl = div.querySelector('.pi-desc');
+      const amtEl = div.querySelector('.pi-amt');
+      const noteEl = div.querySelector('.pi-note');
+      pick.addEventListener('change', () => {
+        msg.hidden = true;
+        if (pick.value === 'other') {
+          descEl.hidden = false; descEl.value = ''; noteEl.textContent = ''; descEl.focus();
+        } else if (pick.value === '') {
+          descEl.hidden = true; noteEl.textContent = '';
+        } else {
+          const c = CATALOG[Number(pick.value)];
+          descEl.hidden = true; descEl.value = c.label;
+          noteEl.textContent = c.note || '';
+          // A catalog price fills the amount; a blank one means "the office
+          // quoted you" — leave it for the payer to enter.
+          if (c.amount != null) amtEl.value = Number(c.amount).toFixed(2);
+          else { amtEl.value = ''; noteEl.textContent = (c.note ? c.note + ' — ' : '') + 'enter the amount the office gave you.'; }
+        }
+        total();
+      });
+      // A deep link (pay-now.html?for=…) arrives with a description already set.
+      if (desc) {
+        const hit = CATALOG.findIndex((c) => c.label.toLowerCase() === String(desc).toLowerCase());
+        if (hit >= 0) { pick.value = String(hit); pick.dispatchEvent(new Event('change')); if (amt) amtEl.value = amt; }
+        else { pick.value = 'other'; descEl.hidden = false; descEl.value = desc; }
+      }
+      div.querySelector('.pi-x').addEventListener('click', () => { div.remove(); if (!wrap.children.length) row(); total(); });
+      amtEl.addEventListener('input', total);
+      descEl.addEventListener('input', () => { msg.hidden = true; });
+      wrap.appendChild(div);
+      return div;
+    }
+
+    function items() {
+      return Array.from(wrap.querySelectorAll('.pay-item')).map((d) => ({
+        desc: d.querySelector('.pi-desc').value.trim(),
+        amt: parseFloat(d.querySelector('.pi-amt').value) || 0,
+      })).filter((i) => i.desc || i.amt > 0);
+    }
+    function total() {
+      const t = items().reduce((s, i) => s + i.amt, 0);
+      totalEl.textContent = '$' + t.toFixed(2);
+      msg.hidden = true;
+      return t;
+    }
+
+    document.getElementById('addItem').addEventListener('click', () => { row().querySelector('.pi-pick').focus(); });
+    document.getElementById('payGo').addEventListener('click', () => {
+      const list = items();
+      const t = total();
+      if (!t || t < 1) { msg.textContent = 'Please enter what you’re paying for and an amount of at least $1.'; msg.hidden = false; return; }
+      if (list.some((i) => !i.desc)) { msg.textContent = 'Please describe each item so it appears on your receipt.'; msg.hidden = false; return; }
+      const label = list.map((i) => `${i.desc} ($${i.amt.toFixed(2)})`).join(' + ');
+      const base = location.pathname.replace(/[^/]*$/, '');
+      location.href = `${base}checkout.html?type=payment&for=${encodeURIComponent(label)}&amount=${encodeURIComponent(t.toFixed(2))}`;
+    });
+
+    // Load the office's list first so the first row already has the menu, then
+    // fall back to a plain text box if the API is unreachable.
+    try {
+      const d = await getJSON(ChamberAPI.url('/api/pay-items'));
+      CATALOG = Array.isArray(d.items) ? d.items : [];
+    } catch (e) { CATALOG = []; }
+    const q = new URLSearchParams(location.search);
+    row(q.get('for') || '', q.get('amount') || '');
+    if (!CATALOG.length) {                      // no catalog → free text only
+      const d0 = wrap.querySelector('.pay-item');
+      if (d0) { d0.querySelector('.pi-pick').hidden = true; d0.querySelector('.pi-desc').hidden = false; }
+    }
+    total();
   }
 
   function initGeoBanner() {
@@ -2780,5 +2889,5 @@ window.Chamber = (function () {
     render();
   }
 
-  return { initHome, initEventView, initDirectory, initProfile, initEvents, initCheckout, initLeadForm, initJobs, initDeals, initCommunity, initNews, initBizBuzz, initBoard, initLeaders, initDining, offerCard, postCard, newsCard, memberTile, eventCard, eventPreviewCard, initLeaderBanner, initGroups, initGroupView, initGallery, initAlbumView, initFeaturedSlot, joinCtaHtml, mountJoinCta, initGuides, initGuideView, initRealEstate, getJSON, esc };
+  return { initHome, initEventView, initDirectory, initProfile, initEvents, initCheckout, initLeadForm, initJobs, initDeals, initCommunity, initNews, initBizBuzz, initBoard, initLeaders, initDining, offerCard, postCard, newsCard, memberTile, eventCard, eventPreviewCard, initLeaderBanner, initGroups, initGroupView, initGallery, initAlbumView, initPayPortal, initFeaturedSlot, joinCtaHtml, mountJoinCta, initGuides, initGuideView, initRealEstate, getJSON, esc };
 })();
