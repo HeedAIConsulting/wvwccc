@@ -1006,6 +1006,7 @@ let _confirmPublishedChecked = false;
 let _galaSoldOutChecked = false;
 let _mixerPricesChecked = false;
 let _galaAlbumChecked = false;
+let _galaPopupChecked = false;
 async function ensureEventsSeeded() {
   if (!(await repo.hasEvents())) {
     for (const e of readSeedEvents()) await repo.upsertEvent(buildEvent(e, e));
@@ -1195,6 +1196,31 @@ async function ensureEventsSeeded() {
         await repo.setSetting(KEY, `applied @ ${new Date().toISOString()}`);
       }
     } catch (e) { _galaAlbumChecked = false; console.error('gala album seed failed (will retry next boot)', e); }
+  }
+  /* One-time (Jul 30 2026, per Felicia — "the gala pop up program link is still
+     displayed on mobile device view"): the homepage popup was still pushing the
+     July 25 Gala program five days after the Gala, because it was saved with an
+     empty end date and nothing retires a popup on its own. Turn it off. It only
+     LOOKED like a mobile problem: the popup shows once per browser session, so
+     the office dismissed it on the desktop they work on and then met it again
+     on a phone. The admin now refuses to enable a popup with no end date, so
+     the next one retires itself. */
+  if (!_galaPopupChecked) {
+    _galaPopupChecked = true;
+    try {
+      const KEY = 'retireGalaPopup-20260730';
+      if (!(await repo.getSetting(KEY))) {
+        const raw = await repo.getSetting(POPUP_KEY);
+        const cur = raw ? JSON.parse(raw) : null;
+        // Only touch it if it is still the Gala one — never stomp a popup the
+        // office has since put up for something else.
+        if (cur && cur.enabled && /gala/i.test(`${cur.title || ''} ${cur.image || ''} ${cur.buttonLabel || ''}`)) {
+          await repo.setSetting(POPUP_KEY, JSON.stringify({ ...cur, enabled: false }));
+          console.log('[popup] one-time: retired the July 25 Gala homepage popup (Felicia, Jul 30)');
+        }
+        await repo.setSetting(KEY, `applied @ ${new Date().toISOString()}`);
+      }
+    } catch (e) { _galaPopupChecked = false; console.error('gala popup retire failed (will retry next boot)', e); }
   }
   // Store already populated (e.g. seeded before flyers existed). Once per boot,
   // backfill flyer images from the committed seed onto stored events that lack
@@ -1824,14 +1850,18 @@ router.post('/admin/home-spotlight', requireAdmin, async (req, res) => {
 // Editable from Admin → Sponsorships so the office can swap the image/text and
 // sell the placement, instead of it being hardcoded (Diana, Jul 16 2026).
 const POPUP_KEY = 'homePopup';
+/* Default = OFF. It used to default to the July 25 Gala, which meant a site
+   with no popup saved would interrupt every visitor with a past event (Felicia,
+   Jul 30 2026). The office turns one on in Admin → Homepage Management when
+   there is something to promote, and gives it an end date. */
 const POPUP_DEFAULT = {
-  enabled: true,
-  image: 'assets/events/gala-2026-black-white-bold.jpg', // current flyer w/ First Bank + Horvath (Diana, Jul 16)
-  title: 'Black, White & Bold Installation Gala',
-  subtitle: 'Saturday, July 25 · Woodland Hills Country Club',
-  buttonLabel: '🎟 Get tickets, sponsorships & program ads',
-  href: 'checkout.html?type=ticket&event=le-11209',
-  retireAt: '', // ISO date/datetime; blank = never auto-hide
+  enabled: false,
+  image: '',
+  title: '',
+  subtitle: '',
+  buttonLabel: '',
+  href: '',
+  retireAt: '', // ISO date; blank = never auto-hide (the admin warns about this)
 };
 async function loadPopup() {
   try { const raw = await repo.getSetting(POPUP_KEY); return raw ? { ...POPUP_DEFAULT, ...JSON.parse(raw) } : { ...POPUP_DEFAULT }; }

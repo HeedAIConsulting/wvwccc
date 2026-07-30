@@ -306,12 +306,22 @@
   <script>
     (function () {
       // Fallback mirrors the server default so the popup still works offline.
-      var FALLBACK = { enabled: true, image: 'assets/events/gala-2026-black-white-bold.jpg', title: 'Black, White & Bold Installation Gala', subtitle: 'Saturday, July 25 · Woodland Hills Country Club', buttonLabel: '🎟 Get tickets, sponsorships & program ads', href: 'checkout.html?type=ticket&event=le-11209', retireAt: '' };
+      // Offline fallback is OFF. It used to hard-code the July 25 Gala, so a
+      // slow or failed /api/home-popup call resurrected a past event's popup
+      // no matter what the office had saved (Felicia, Jul 30 2026).
+      var FALLBACK = { enabled: false };
       try { if (sessionStorage.getItem('wvGalaPop')) return; } catch (e) {}
       function show(cfg) {
         cfg = cfg || FALLBACK;
         if (!cfg.enabled || !cfg.image) return;
-        if (cfg.retireAt) { var t = Date.parse(cfg.retireAt); if (t && Date.now() > t) return; }
+        // "Stop showing after 2026-07-25" means through the END of the 25th.
+        // Date.parse() reads a bare date as UTC midnight, which would pull the
+        // popup at 5pm the day before in California.
+        if (cfg.retireAt) {
+          var d = /^(\d{4})-(\d{2})-(\d{2})$/.exec(cfg.retireAt);
+          var t = d ? new Date(+d[1], +d[2] - 1, +d[3], 23, 59, 59).getTime() : Date.parse(cfg.retireAt);
+          if (t && Date.now() > t) return;
+        }
         var pop = document.getElementById('galaPop'); if (!pop) return;
         document.getElementById('galaPopImg').src = cfg.image;
         document.getElementById('galaPopImg').alt = cfg.title || '';

@@ -3507,6 +3507,16 @@ window.Admin = (function () {
       imgInput.insertAdjacentElement('afterend', lb);
     }
     saveBtn?.addEventListener('click', async () => {
+      // An enabled popup with no end date runs forever. That is exactly how the
+      // July 25 Gala program was still interrupting visitors on Jul 30 — nobody
+      // remembers to come back and switch a popup off (Felicia, Jul 30 2026).
+      if (enabled.checked && !retire.value && !confirm(
+        'This popup has no end date, so it keeps showing to every visitor until someone turns it off by hand.\n\n'
+        + 'That is how the Gala popup was still running five days after the Gala.\n\n'
+        + 'Set a "Stop showing after" date, or click OK to run it indefinitely.')) {
+        retire.focus();
+        return;
+      }
       saveBtn.disabled = true;
       try {
         await api('/api/admin/home-popup', { method: 'POST', body: JSON.stringify({
