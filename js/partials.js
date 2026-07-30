@@ -469,7 +469,7 @@ window.ChamberPartials = (function () {
   function mountAnalytics() {
     if (window.__wvAnalytics || document.querySelector('script[src*="js/analytics.js"]')) return;
     var s = document.createElement('script');
-    s.src = '/js/analytics.js?v=20260730a'; s.async = true;
+    s.src = '/js/analytics.js?v=20260730b'; s.async = true;
     document.head.appendChild(s);
   }
 
