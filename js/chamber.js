@@ -1817,6 +1817,16 @@ window.Chamber = (function () {
         if (p) p.innerHTML = `We’ve got your RSVP for <strong>${esc(extra.eventTitle || 'the event')}</strong>. `
           + 'A confirmation is on its way to your email. See you there!';
       }
+      // A free RSVP is still a conversion — filling the room is the point of the
+      // event page, so it should show up next to paid tickets in GA4.
+      if (window.wvTrack) window.wvTrack('generate_lead', {
+        currency: 'USD',
+        value: 0,
+        lead_type: 'event_rsvp',
+        event_title: extra.eventTitle || '',
+        ticket_type: extra.ticketType || '',
+        quantity: Number(extra.quantity) || 1,
+      });
     }
 
     // Build the order context. A `sku` param (from join.html / donate.html) is
@@ -2140,6 +2150,24 @@ window.Chamber = (function () {
           form.hidden = true;
           document.getElementById('paySuccess').hidden = false;
           document.getElementById('txnId').textContent = data.transactionId || '—';
+          // GA4 ecommerce conversion. `amount` is the locked qty x price total,
+          // so the per-item price is that divided back out. wvTrack is a no-op
+          // when analytics.js is blocked — the receipt above already rendered.
+          const gaQty = Number(extra.quantity) || 1;
+          const gaTotal = Number(amountInput.value) || 0;
+          if (window.wvTrack) window.wvTrack('purchase', {
+            transaction_id: data.transactionId || '',
+            value: gaTotal,
+            currency: 'USD',
+            items: [{
+              item_id: sku,
+              item_name: extra.eventTitle || label,
+              item_category: kind,
+              item_variant: extra.ticketType || '',
+              price: gaQty ? gaTotal / gaQty : gaTotal,
+              quantity: gaQty,
+            }],
+          });
         } catch (e) { showErr('Could not complete payment. Please try again.'); }
       },
     });

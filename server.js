@@ -54,7 +54,7 @@ app.get('/healthz', (_req, res) => res.json({ ok: true, ts: Date.now() }));
 app.get('/api/chamber', (_req, res) => res.json({ ok: true, live: true, service: 'wvwccc' }));
 
 // ── API routes (payments, concierge) ──────────────────────
-import chamberRoutes from './backend/chamber-routes.js';
+import chamberRoutes, { sitemapEntries } from './backend/chamber-routes.js';
 import * as repo from './backend/repo.js';   // album pages stamp their own og:* tags
 app.use('/api', chamberRoutes);
 app.get('/api/ping', (_req, res) => res.json({ ok: true, service: 'wvwccc' }));
@@ -162,6 +162,75 @@ app.get('/albums/:id', async (req, res, next) => {
   } catch (e) {
     console.error('album page', e);
     res.sendFile(file, (err) => { if (err) next(); });        // still render, generic preview
+  }
+});
+
+/* ── SEO: /sitemap.xml ───────────────────────────────────────
+   Built per request, so a member approved this morning is listed without a
+   deploy. Two halves: a walk of the repo's own .html files (a page added later
+   is picked up automatically — nobody has to remember this file), and the
+   database-driven URLs from sitemapEntries(). A page is left out when it is
+   staff-only (admin/auth/member), when it carries its own `robots: noindex` —
+   the sitemap must never contradict the page itself — or when it is a template
+   that renders nothing without a slug (the various view.html), since the real
+   URLs behind those come from the database half. */
+const SITE_ORIGIN = process.env.SITE_ORIGIN || 'https://woodlandhillscc.net';
+const SITEMAP_SKIP_DIRS = new Set([
+  'admin', 'auth', 'member',                       // staff-only / signed-in
+  'node_modules', '.git', 'backend', 'scripts', 'docs',
+  'assets', 'images', 'css', 'js',                 // no public HTML lives here
+]);
+const SITEMAP_SKIP_FILES = new Set([
+  '404.html',
+  'members/profile.html',                          // template; real URLs are /members/<slug>
+  'newsletters/valley-biz-buzz-2026-06.html',      // saved Adobe viewer page, not chamber content
+]);
+
+function staticSitemapPaths() {
+  const out = [];
+  const walk = (dir, rel) => {
+    let entries;
+    try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return; }
+    for (const ent of entries) {
+      const relPath = rel ? `${rel}/${ent.name}` : ent.name;
+      if (ent.isDirectory()) {
+        if (ent.name.startsWith('.') || SITEMAP_SKIP_DIRS.has(ent.name)) continue;
+        walk(path.join(dir, ent.name), relPath);
+        continue;
+      }
+      if (!ent.name.endsWith('.html')) continue;
+      if (SITEMAP_SKIP_FILES.has(relPath)) continue;
+      if (/(^|\/)view\.html$/.test(relPath)) continue;
+      let html = '';
+      try { html = fs.readFileSync(path.join(dir, ent.name), 'utf8'); } catch { continue; }
+      if (/<meta[^>]+name=["']robots["'][^>]*noindex/i.test(html)) continue;
+      out.push(relPath === 'index.html' ? '/' : '/' + relPath.replace(/\/index\.html$/, '/'));
+    }
+  };
+  walk(__dirname, '');
+  return out.sort();
+}
+
+const xmlEsc = (s) => String(s).replace(/[<>&'"]/g, (c) =>
+  ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&apos;', '"': '&quot;' }[c]));
+
+app.get('/sitemap.xml', async (_req, res) => {
+  try {
+    let dynamic = [];
+    try { dynamic = await sitemapEntries(); }
+    catch (e) { console.error('sitemap: dynamic half failed —', e.message); }
+    const seen = new Set();
+    const urls = [...staticSitemapPaths(), ...dynamic]
+      .filter((p) => (seen.has(p) ? false : (seen.add(p), true)));
+    res.type('application/xml')
+      .set('Cache-Control', 'public, max-age=3600')
+      .send('<?xml version="1.0" encoding="UTF-8"?>\n'
+        + '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+        + urls.map((p) => `  <url><loc>${xmlEsc(SITE_ORIGIN + p)}</loc></url>`).join('\n')
+        + '\n</urlset>\n');
+  } catch (e) {
+    console.error('sitemap failed', e);
+    res.status(500).type('text/plain').send('sitemap unavailable');
   }
 });
 

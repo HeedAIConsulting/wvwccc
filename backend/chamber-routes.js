@@ -3974,5 +3974,62 @@ router.post('/admin/template-draft', requireAdmin, async (req, res) => {
   } catch (e) { console.error('template-draft', e); res.status(500).json({ error: 'Could not draft right now.' }); }
 });
 
+/* ── Sitemap feed ───────────────────────────────────────────────────────────
+   The database-driven half of /sitemap.xml; server.js owns the static half and
+   renders the XML. Every query below reuses the SAME filter as the matching
+   public endpoint above (approved members, approved+confirmed events, approved
+   groups, non-hidden pages), so the sitemap can never advertise a URL the site
+   would 404 or deliberately hide. Each source is wrapped on its own: if the
+   database is briefly unavailable we serve a smaller sitemap rather than a 500,
+   because an empty sitemap is a far worse signal to Google than a short one. */
+export async function sitemapEntries() {
+  const out = [];
+
+  try {
+    const { members } = await loadMembersPublic();
+    for (const m of members) if (m.slug) out.push(`/members/${m.slug}`);
+  } catch (e) { console.error('sitemap: members unavailable —', e.message); }
+
+  try {
+    /* Upcoming events, plus the last 12 months of history. The public calendar
+       deliberately hides past events, so listing every one ever held would hand
+       Google a few hundred pages nothing on the site links to — they get
+       crawled, not indexed, and clutter Search Console. A year back keeps the
+       recent write-ups (still reachable from albums and news) without the tail.
+       Dates are plain 'YYYY-MM-DD' and compared as strings on purpose: parsing
+       them makes a bare date UTC midnight, which reads as the day before in
+       California. */
+    const cutoff = new Date(Date.now() - 365 * 864e5).toISOString().slice(0, 10);
+    const events = (await loadEvents()).filter((e) =>
+      (e.status || 'approved') === 'approved' && e.confirmed && e.date && e.date >= cutoff);
+    for (const ev of events) out.push(`/events/view.html?id=${encodeURIComponent(ev.id)}`);
+  } catch (e) { console.error('sitemap: events unavailable —', e.message); }
+
+  try {
+    const groups = (await loadGroups()).filter((g) => g.status === 'approved');
+    for (const g of groups) if (g.slug) out.push(`/groups/${g.slug}`);
+  } catch (e) { console.error('sitemap: groups unavailable —', e.message); }
+
+  try {
+    let ov = {};
+    try { ov = await repo.getPageOverrides(); } catch { ov = {}; }
+    for (const p of readPages()) {
+      if (ov[p.slug] && ov[p.slug].hidden) continue;
+      out.push(`/p/${p.slug}`);
+      if (p.html_es) out.push(`/es/p/${p.slug}`);   // only when a translation exists
+    }
+  } catch (e) { console.error('sitemap: pages unavailable —', e.message); }
+
+  try {
+    for (const g of readGuides()) {
+      if (!g.slug) continue;
+      out.push(`/guides/${g.slug}`);
+      if (g.title_es) out.push(`/es/guides/${g.slug}`);
+    }
+  } catch (e) { console.error('sitemap: guides unavailable —', e.message); }
+
+  return out;
+}
+
 export { sanitizeProfile };
 export default router;

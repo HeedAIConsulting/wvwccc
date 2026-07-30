@@ -1,0 +1,21 @@
+# West Valley · Warner Center Chamber of Commerce
+# https://woodlandhillscc.net/robots.txt
+
+User-agent: *
+Allow: /
+
+# Staff console, sign-in screens and the signed-in member portal. Nothing here
+# is public and none of it should ever appear in search results.
+Disallow: /admin/
+Disallow: /auth/
+Disallow: /member/
+
+# JSON endpoints — no value in search, and crawling them wastes crawl budget.
+Disallow: /api/
+
+# Deliberately NOT disallowed: checkout.html, privacy.html and 404.html. Each
+# already carries <meta name="robots" content="noindex">, and a crawler has to
+# be allowed to fetch a page in order to see that tag. Blocking them here would
+# strand any copy already in the index.
+
+Sitemap: https://woodlandhillscc.net/sitemap.xml

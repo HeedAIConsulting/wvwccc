@@ -11,6 +11,21 @@
    place instead of being pasted into every standalone page.
    ============================================================ */
 (function () {
+  // Conversion helper. chamber.js calls this the moment a payment clears or an
+  // RSVP is recorded. Defined BEFORE any early return, and it swallows errors
+  // instead of throwing, because an ad blocker that eats gtag/clarity must
+  // never take the visitor's receipt screen down with it.
+  window.wvTrack = function (name, params) {
+    try {
+      if (typeof window.gtag === 'function') window.gtag('event', name, params || {});
+    } catch (e) { /* analytics is never worth breaking checkout over */ }
+    try {
+      // Tags the Clarity session so the office can filter recordings down to
+      // the people who actually bought or RSVP'd.
+      if (typeof window.clarity === 'function') window.clarity('set', 'wv_conversion', name);
+    } catch (e) { /* same */ }
+  };
+
   // Staff traffic would skew the chamber's numbers, so the console and the
   // login screens are never measured.
   if (/\/(admin|auth)\//.test(window.location.pathname)) return;
