@@ -29,6 +29,23 @@ const PROD = process.env.NODE_ENV === 'production';
 
 app.set('trust proxy', 1); // Render runs behind a proxy (secure cookies + real client IP)
 
+/* Canonical host: send www to the apex.
+   Both hostnames resolve to this service (the apex is an A record, www is a
+   CNAME to wvwccc-web.onrender.com) and both used to answer 200, so every page
+   existed at two addresses and Google had to guess which to index. The apex is
+   the canonical one — it is what the homepage's own <link rel="canonical"> and
+   hreflang tags declare, and now what every page declares.
+   Deliberately scoped to the exact www host, so the Render health check and the
+   *.onrender.com address are untouched. 301 because this is permanent; keep it
+   that way or browsers will have cached a redirect that no longer matches. */
+app.use((req, res, next) => {
+  const host = String(req.headers.host || '').toLowerCase();
+  if (host === 'www.woodlandhillscc.net') {
+    return res.redirect(301, 'https://woodlandhillscc.net' + req.originalUrl);
+  }
+  next();
+});
+
 // Security headers. CSP is disabled here because we load Google Fonts + the
 // AGMS Collect.js widget; a tuned CSP is a hardening follow-up.
 app.use(helmet({
