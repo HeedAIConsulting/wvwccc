@@ -32,7 +32,7 @@
         <div class="card" id="apply">
           <span class="kicker">Annual Membership</span>
           <h2>Apply for membership</h2>
-          <p class="member-tile__meta">Submit below and the Chamber office will personally confirm your level and dues and set up your membership — no online payment needed.</p>
+          <p class="member-tile__meta">Pick your level, submit, and you’ll go straight to our secure payment page with your dues amount already filled in. Not sure which level fits? Choose “Not sure yet” and the office will call you.</p>
           <form id="joinForm" class="mt-5">
             <div class="grid grid-2" style="gap:var(--s-3)">
               <div class="field"><label>Company</label><input name="company" required /></div>
@@ -52,7 +52,11 @@
             </div>
             <div class="grid grid-2" style="gap:var(--s-3)">
               <div class="field"><label>Type of business</label><input name="businessType" /></div>
-              <div class="field"><label>Membership level of interest</label><input id="joinLevel" name="level" placeholder="Optional — the office will help you choose" /></div>
+              <div class="field"><label>Membership level</label>
+                <select id="joinLevel" name="level">
+                  <option value="">Not sure yet — have the office help me choose</option>
+                </select>
+              </div>
             </div>
             <!-- Ribbon cuttings are requested HERE and only here (per the
                  Chamber office, Jul 2026) — the request files into the admin's
@@ -85,7 +89,7 @@
           <p style="color:rgba(255,255,255,.8);margin-top:var(--s-4)">Questions? Call the office at <strong>(818) 347-4737</strong>.</p>
         </aside>
       </div>
-      <p class="member-tile__meta mt-4">Dues scale with your business size — the office confirms your level and dues when you apply. Renewing or paying dues? <a href="pay.html" style="text-decoration:underline">Make a payment</a>.</p>
+      <p class="member-tile__meta mt-4">Dues shown are standard first-year rates — the office is happy to help you pick the right level at (818) 347-4737. Renewing or paying dues? <a href="pay.html" style="text-decoration:underline">Make a payment</a>.</p>
 
       <div class="grid grid-3" style="margin-top:var(--s-8)">
         <article class="card"><div class="card__icon">◎</div><h3>Get found</h3><p>A geo-aware directory listing puts you in front of neighbors searching for what you do.</p></article>
@@ -131,10 +135,44 @@
 
   <script src="js/partials.js?v=20260730b"></script>
   <script src="js/api-base.js?v=20260729b"></script>
-  <script src="js/chamber.js?v=20260730c"></script>
+  <script src="js/chamber.js?v=20260731a"></script>
   <script>
     ChamberPartials.mount({ active: '', depth: 0, lang: 'en' });
-    Chamber.initLeadForm('joinForm', 'joinMsg', 'membership-application');
+    // Membership levels + dues from the same catalog checkout charges against,
+    // so the payment page opens with the exact amount already set.
+    (async function () {
+      try {
+        var d = await (await fetch(ChamberAPI.url('/api/skus'))).json();
+        var sel = document.getElementById('joinLevel');
+        (d.memberships || []).forEach(function (m) {
+          if (m.amount == null) return;
+          var o = document.createElement('option');
+          o.value = m.label + ' — $' + m.amount + '/year';
+          o.textContent = m.label + ' — $' + m.amount + '/year' + (m.popular ? ' (most popular)' : '');
+          o.dataset.sku = m.sku;
+          sel.appendChild(o);
+        });
+      } catch (e) { /* levels unavailable — the office follows up either way */ }
+    })();
+    Chamber.initLeadForm('joinForm', 'joinMsg', 'membership-application', {
+      // Application in → straight to payment with the dues populated
+      // (Felicia, Jul 31 2026). No level picked = the office follows up.
+      onSuccess: function (payload) {
+        var sel = document.getElementById('joinLevel');
+        var opt = sel && Array.prototype.find.call(sel.options, function (o) { return o.value === payload.level; });
+        var sku = opt && opt.dataset ? opt.dataset.sku : '';
+        if (!sku) return;
+        try {
+          sessionStorage.setItem('wvJoinPrefill', JSON.stringify({
+            firstName: payload.firstName || '', lastName: payload.lastName || '',
+            email: payload.email || '', phone: payload.phone || '', company: payload.company || '',
+          }));
+        } catch (e) { /* checkout still works — they retype their details */ }
+        var msg = document.getElementById('joinMsg');
+        if (msg) { msg.hidden = false; msg.textContent = 'Application received — taking you to secure payment…'; }
+        setTimeout(function () { location.href = 'checkout.html?type=membership&sku=' + encodeURIComponent(sku); }, 900);
+      }
+    });
     document.getElementById('joinRibbon').addEventListener('change', function () {
       document.getElementById('joinRibbonDate').hidden = !this.checked;
     });

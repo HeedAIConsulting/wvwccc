@@ -1721,12 +1721,6 @@ window.Chamber = (function () {
   async function initCheckout() {
     const params = new URLSearchParams(location.search);
     const kind = params.get('type') || 'donation';
-    // Memberships are processed by the Chamber office only — no self-serve online
-    // payment. Send anyone who lands here for membership to the application form.
-    if (kind === 'membership') {
-      location.replace(/\/es\//.test(location.pathname) ? '/es/join.html#apply' : '/join.html#apply');
-      return;
-    }
     const summary = document.getElementById('orderSummary');
     const title = document.getElementById('coTitle');
     const amountInput = document.getElementById('amount');
@@ -2033,16 +2027,40 @@ window.Chamber = (function () {
         return;
       }
     } else if (kind === 'membership') {
+      // Reached from the Join application (Felicia, Jul 31 2026: "hit submit,
+      // it should take them to the payment portal and the amount of their
+      // membership should be populated"). The application stashes the contact
+      // details in sessionStorage so nobody types their name twice — read once,
+      // clear immediately.
       const item = findSku('memberships', skuParam);
       const tier = item ? item.tier : (params.get('tier') || 'membership');
       sku = item ? item.sku : `membership:${tier}`;
       title.textContent = 'Chamber membership';
       label = `Membership — ${item ? item.label : tier}`;
       if (item && item.amount != null && !presetAmount) presetAmount = String(item.amount);
-      summary.innerHTML = item
-        ? `<strong>${esc(item.label)}</strong><br><span class="member-tile__meta">Annual dues · $${esc(item.amount)}/year</span>${item.blurb ? `<p class="member-tile__meta mt-2">${esc(item.blurb)}</p>` : ''}<p class="notice mt-3">Billed annually. Confirm the amount below, or contact the office with questions.</p>`
-        : `<strong>Annual membership</strong><br><span class="member-tile__meta">${esc(tier)}</span><p class="notice mt-3">Dues are based on your tier — enter the amount, or contact the office.</p>`;
+      let fromApp = null;
+      try {
+        fromApp = JSON.parse(sessionStorage.getItem('wvJoinPrefill') || 'null');
+        sessionStorage.removeItem('wvJoinPrefill');
+      } catch (e) { /* no stash — a direct visit */ }
+      if (fromApp) {
+        const pf = document.getElementById('payForm');
+        ['firstName', 'lastName', 'email', 'phone', 'company'].forEach((n) => {
+          const el = pf && pf.querySelector(`[name="${n}"]`);
+          if (el && !el.value && fromApp[n]) el.value = String(fromApp[n]);
+        });
+      }
+      summary.innerHTML = (fromApp ? '<p class="notice" style="margin:0 0 var(--s-3)"><strong>✓ Application received.</strong> One last step — pay your first-year dues below and you’re in.</p>' : '')
+        + (item
+          ? `<strong>${esc(item.label)}</strong><br><span class="member-tile__meta">Annual dues · $${esc(item.amount)}</span>${item.blurb ? `<p class="member-tile__meta mt-2">${esc(item.blurb)}</p>` : ''}<p class="member-tile__meta mt-2">Charged once today for your first year — renewals are arranged by the Chamber office. Questions? Call (818) 347-4737.</p>`
+          : `<strong>Annual membership</strong><br><span class="member-tile__meta">${esc(tier)}</span><p class="notice mt-3">Dues are based on your tier — enter the amount the office gave you, or call (818) 347-4737.</p>`);
       amountLabel.textContent = 'Dues amount (USD)';
+      // A catalog level has one price — lock the box so a typo can't charge
+      // the wrong dues (the server refuses a mismatched amount regardless).
+      if (item && item.amount != null) {
+        amountInput.readOnly = true;
+        amountInput.style.background = 'var(--cream-deep, #f3ecda)';
+      }
     } else if (kind === 'payment') {
       // Office-directed payment link: the Chamber emails a URL like
       //   checkout.html?type=payment&for=2026%20Dues%20Renewal&amount=450
@@ -2141,7 +2159,9 @@ window.Chamber = (function () {
             description: label,
             ...extra,
           };
-          if (kind === 'membership') body.recurring = { monthFrequency: 12, dayOfMonth: 1, planPayments: 0 };
+          // Membership dues charge ONCE — no auto-recurring plan. Renewals are
+          // the office's call (they often quote a different rate), so nobody
+          // gets silently re-billed a year later.
           const r = await fetch(ChamberAPI.url('/api/pay'), {
             method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
           });
@@ -2207,11 +2227,21 @@ window.Chamber = (function () {
       ? 'https://formspree.io/p/' + LEAD_FS_PROJECT + '/f/' + LEAD_FS_KEY[kind]
       : 'https://formspree.io/f/' + LEAD_FS_GENERAL;
   }
-  function initLeadForm(formId, msgId, kind) {
+  function initLeadForm(formId, msgId, kind, opts) {
     const form = document.getElementById(formId);
     const msg = document.getElementById(msgId);
     if (!form) return;
     mountTurnstile(form);
+    // Honeypot — bots fill every box; humans never see this one. Formspree
+    // discards `_gotcha` submissions natively and /api/contact files them as
+    // spam, so both delivery channels stay clean (Felicia, Jul 31 2026).
+    if (!form.querySelector('[name="_gotcha"]')) {
+      const hp = document.createElement('input');
+      hp.type = 'text'; hp.name = '_gotcha'; hp.tabIndex = -1;
+      hp.autocomplete = 'off'; hp.setAttribute('aria-hidden', 'true');
+      hp.style.cssText = 'position:absolute;left:-9999px';
+      form.appendChild(hp);
+    }
     // prefill reason from ?reason= or ?event=
     const params = new URLSearchParams(location.search);
     const reason = form.querySelector('[name="reason"]');
@@ -2235,9 +2265,16 @@ window.Chamber = (function () {
     }
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
+      // A filled honeypot means a bot — pretend it worked and send nothing.
+      const hpEl = form.querySelector('[name="_gotcha"]');
+      if (hpEl && hpEl.value) {
+        msg.hidden = false;
+        msg.textContent = 'Thank you — your message has been sent. The Chamber will be in touch.';
+        return;
+      }
       if (!form.reportValidity()) return;
       const payload = { kind };
-      new FormData(form).forEach((v, k) => { payload[k] = v; });
+      new FormData(form).forEach((v, k) => { if (k !== '_gotcha') payload[k] = v; });
       if (params.get('event')) payload.event = eventLabel ? `${eventLabel} [${params.get('event')}]` : params.get('event');
       if (params.get('group')) payload.group = params.get('group');
       const btn = form.querySelector('button[type="submit"]');
@@ -2269,6 +2306,14 @@ window.Chamber = (function () {
           form.reset();
           msg.textContent = 'Thank you — your message has been sent. The Chamber will be in touch.';
           msg.style.borderColor = 'var(--green)';
+          // A membership application is a conversion (GA4 key event) — same
+          // signal the free-RSVP path sends.
+          if (kind === 'membership-application' && window.wvTrack) {
+            window.wvTrack('generate_lead', { lead_type: 'membership_application', currency: 'USD', value: 0 });
+          }
+          // Page-specific follow-through (join.html hands off to the payment
+          // page here, with the submitted fields still in hand post-reset).
+          if (opts && typeof opts.onSuccess === 'function') { try { opts.onSuccess(payload); } catch (err2) { /* thank-you already shown */ } }
         } else {
           msg.textContent = 'Something went wrong. Please call (818) 347-4737.';
         }

@@ -1721,9 +1721,16 @@ window.Admin = (function () {
   // Emails still go out, but everything is ALSO visible here: membership
   // applications, event RSVPs, job inquiries, group joins, and general messages.
   function leadSection(l) {
+    // Screened junk lands in Spam whatever kind the bot claimed.
+    if (String(l.status || '') === 'spam') return 'spam';
     const kind = String(l.kind || '').toLowerCase();
     const reason = String(l.reason || '').toLowerCase();
-    if (kind === 'membership-application' || reason.includes('membership')) return 'membership';
+    // Applications ONLY — so the pending-membership list is exactly the
+    // applications (Felicia, Jul 31 2026: they were mixed with everything
+    // else, and landing-page joins — kind 'membership-lead' — matched no rule
+    // at all and sank into General, which is how inquiries got missed).
+    if (kind === 'membership-application') return 'membership';
+    if (kind === 'membership-lead' || reason.includes('membership') || reason.includes('join inquiry')) return 'interest';
     // Before the l.event check — ribbon requests carry their preferred date in
     // l.event, which used to strand them in the RSVP section with no actions.
     if (kind === 'ribbon-cutting' || reason.includes('ribbon')) return 'ribbon';
@@ -1739,14 +1746,106 @@ window.Admin = (function () {
     // Deep link from the global quick search: leads.html?q=…
     if (searchEl) searchEl.value = new URLSearchParams(location.search).get('q') || '';
     const SECTIONS = [
-      ['membership', '◉ Membership applications', 'People who applied to join — the office confirms dues and sets up the membership.'],
+      ['membership', '◉ Membership applications', 'Completed applications from the Join page — click a name to read the full application, then ✓ Approve &amp; add sets up the membership.'],
+      ['interest', '☎ Membership interest', 'People who asked about joining — from an industry page or the contact form — but haven’t filled out the application yet. Call or email them back.'],
       ['ribbon', '🎀 Ribbon cutting requests', 'These now have their own workflow page — <a href="ribbon-cuttings.html">manage them under Ribbon Cuttings</a> (call → set date → flyer → publish). The quick-approve below still works for simple ones.'],
       ['rsvp', '◆ Event RSVPs', 'RSVPs sent from event pages. Per-event lists (with download) live on the Events page.'],
       ['jobs', '💼 Job inquiries', 'Messages about job postings and the jobs board.'],
       ['groups', '◎ Group join requests', 'Requests to join a group / Connection Circle (also visible on the Groups page).'],
       ['general', '✉ General inquiries', 'Everything else from the contact form.'],
+      ['spam', '🚫 Spam', 'Caught by the spam screen — kept here, never deleted. If something real landed here, mark it <strong>New</strong> and it returns to its section.'],
     ];
     let all = [];
+    const markOptions = (s) => ['new', 'read', 'done', 'spam']
+      .map((v) => `<option value="${v}"${s === v ? ' selected' : ''}>${v === 'spam' ? 'Spam' : v[0].toUpperCase() + v.slice(1)}</option>`).join('');
+    // "Send the application link" mailto for interest inquiries — one click
+    // opens the office's own mail with the join link already written.
+    const appLinkMailto = (l) => `mailto:${esc(l.email)}?subject=${encodeURIComponent('Joining the West Valley · Warner Center Chamber of Commerce')}&body=${encodeURIComponent(
+      `Hi ${l.name || 'there'},\n\nThank you for your interest in the West Valley · Warner Center Chamber of Commerce! Here is our membership application — it takes about two minutes, and you can pay your dues online right after you submit:\n\nhttps://woodlandhillscc.net/join.html\n\nQuestions? Call us at (818) 347-4737 — we're happy to help you pick the right level.\n\nWest Valley · Warner Center Chamber of Commerce`)}`;
+    async function markLead(l, status) {
+      await api(`/api/admin/leads/${encodeURIComponent(l.id)}`, { method: 'PATCH', body: JSON.stringify({ status }) });
+      l.status = status;
+      render();
+    }
+    // Membership application → live directory member in one click. Shared by
+    // the row button and the detail modal.
+    async function approveMemberLead(l, btn) {
+      const who = l.company || l.name || 'this applicant';
+      if (!confirm(`Approve ${who} and add them to the directory?\n\n• Their listing goes live as a New Member.\n${l.email ? `• A login is created for ${l.email} and they get a set-your-password email.` : '• No email on the application — add one later in Members to create their login.'}`)) return;
+      const label = btn ? btn.textContent : '';
+      if (btn) { btn.disabled = true; btn.textContent = 'Adding…'; }
+      try {
+        const r = await api(`/api/admin/leads/${encodeURIComponent(l.id)}/approve-member`, { method: 'POST' });
+        alert(`✓ ${who} is in the directory.\n${r.login || ''}\n\nOpening their row in Members so you can add category, address, and photos.`);
+        location.href = 'members.html?focus=' + encodeURIComponent(r.member.id);
+      } catch (err) {
+        if (btn) { btn.disabled = false; btn.textContent = label; }
+        alert('Could not approve: ' + (err.message || 'error'));
+      }
+    }
+    // Ribbon-cutting request → calendar event in one click.
+    async function approveEventLead(l, btn) {
+      const who = l.company || l.name || 'this request';
+      if (!confirm(`Schedule the ribbon cutting for ${who}?\n\n• A calendar event is created from the request.\n• With a date on the request it goes live immediately; without one it waits as Pending on the Events page.`)) return;
+      const label = btn ? btn.textContent : '';
+      if (btn) { btn.disabled = true; btn.textContent = 'Adding…'; }
+      try {
+        const r = await api(`/api/admin/leads/${encodeURIComponent(l.id)}/approve-event`, { method: 'POST' });
+        alert(`✓ On the calendar: ${r.event.title}\n${r.event.status === 'approved' ? 'It is live on the website now.' : 'It is Pending — confirm the date on the Events page, then hit ✓ Publish.'}`);
+        location.href = 'events.html';
+      } catch (err) {
+        if (btn) { btn.disabled = false; btn.textContent = label; }
+        alert('Could not approve: ' + (err.message || 'error'));
+      }
+    }
+    // Full detail view — Felicia, Jul 31 2026: "we are unable to click on the
+    // name to fully open the application." Clicking any name opens everything
+    // the inquiry carries, with the same actions as the row.
+    function openLead(l) {
+      const key = leadSection(l);
+      const ov = document.createElement('div');
+      ov.style.cssText = 'position:fixed;inset:0;background:rgba(14,42,22,.55);display:flex;align-items:flex-start;justify-content:center;padding:6vh 16px;z-index:9999;overflow-y:auto';
+      const item = (label, html) => (html ? `<div><div class="sub" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.06em">${label}</div><div style="margin-top:2px">${html}</div></div>` : '');
+      let recvd = String(l.received || '').slice(0, 10);
+      try { const d = new Date(l.received); if (!isNaN(d)) recvd = d.toLocaleString('en-US', { dateStyle: 'long', timeStyle: 'short' }); } catch (e) { /* keep the date slice */ }
+      const heading = key === 'membership' ? 'Membership application'
+        : key === 'interest' ? 'Membership interest'
+        : (l.reason || l.kind || 'Inquiry');
+      ov.innerHTML = `<div class="panel" role="dialog" aria-modal="true" style="max-width:680px;width:100%;background:#fff;border-radius:12px;padding:22px 26px">
+        <div style="display:flex;justify-content:space-between;gap:12px;align-items:baseline">
+          <h3 style="margin:0">${esc(heading)}</h3>
+          <button type="button" class="btn btn--ghost btn--sm" data-x aria-label="Close">✕ Close</button>
+        </div>
+        <p class="sub" style="margin:4px 0 14px">Received ${esc(recvd)} · ${statusPill(l.status)}</p>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
+          ${item('Name', esc(l.name || '—'))}
+          ${item('Company', l.company && esc(l.company))}
+          ${item('Email', l.email && `<a href="mailto:${esc(l.email)}">${esc(l.email)}</a>`)}
+          ${item('Phone', l.phone && `<a href="tel:${esc(l.phone)}">${esc(l.phone)}</a>`)}
+          ${item('Reason', l.reason && l.reason !== l.kind && esc(l.reason))}
+          ${item('Event', l.event && esc(l.event))}
+        </div>
+        ${l.chosePassword ? '<p class="sub" style="margin:12px 0 0">🔐 They chose their website password on the application — it activates when you approve.</p>' : ''}
+        ${l.message ? `<div style="margin-top:14px"><div class="sub" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.06em">${key === 'membership' ? 'Application details' : 'Message'}</div><div style="white-space:pre-wrap;margin-top:6px;border-left:3px solid var(--gold-soft,#e6dcbf);padding-left:12px">${esc(l.message)}</div></div>` : ''}
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:18px">
+          ${key === 'membership' && l.status !== 'done' ? '<button type="button" class="btn btn--forest btn--sm" data-m-approve>✓ Approve &amp; add to directory</button>' : ''}
+          ${key === 'ribbon' && l.status !== 'done' ? '<button type="button" class="btn btn--forest btn--sm" data-m-event>📅 Schedule on calendar</button>' : ''}
+          ${key === 'interest' && l.email ? `<a class="btn btn--sm" href="${appLinkMailto(l)}">✉ Send the application link</a>` : ''}
+          ${key === 'spam' ? '<button type="button" class="btn btn--sm" data-m-notspam>↩ Not spam — move it back</button>' : ''}
+          <label class="sub" style="margin-left:auto;display:flex;gap:6px;align-items:center">Mark:
+            <select class="admin-select" data-m-mark>${markOptions(l.status)}</select></label>
+        </div>
+      </div>`;
+      const close = () => ov.remove();
+      ov.addEventListener('click', (e) => { if (e.target === ov) close(); });
+      ov.querySelector('[data-x]').addEventListener('click', close);
+      document.addEventListener('keydown', function onEsc(e) { if (e.key === 'Escape') { close(); document.removeEventListener('keydown', onEsc); } });
+      ov.querySelector('[data-m-mark]')?.addEventListener('change', async (e) => { await markLead(l, e.target.value); close(); });
+      ov.querySelector('[data-m-notspam]')?.addEventListener('click', async () => { await markLead(l, 'new'); close(); });
+      ov.querySelector('[data-m-approve]')?.addEventListener('click', (e) => approveMemberLead(l, e.target));
+      ov.querySelector('[data-m-event]')?.addEventListener('click', (e) => approveEventLead(l, e.target));
+      document.body.appendChild(ov);
+    }
     function render() {
       const q = (searchEl?.value || '').trim().toLowerCase();
       const match = (l) => !q || [l.name, l.email, l.phone, l.company, l.reason, l.kind, l.message, l.event]
@@ -1757,11 +1856,11 @@ window.Admin = (function () {
         const rows = list.length ? list.map((l) => `
           <tr data-id="${esc(l.id)}">
             <td class="sub" style="white-space:nowrap">${esc(String(l.received || '').slice(0, 10))}</td>
-            <td><span class="name">${esc(l.name || '—')}</span><div class="sub">${esc(l.email || '')}${l.phone ? ' · ' + esc(l.phone) : ''}</div></td>
+            <td><a href="#" class="name" data-open title="Open the full ${key === 'membership' ? 'application' : 'inquiry'}" style="color:inherit;text-decoration:underline;text-decoration-color:var(--gold,#c9a227);text-underline-offset:3px">${esc(l.name || l.company || '(no name)')}</a><div class="sub">${esc(l.email || '')}${l.phone ? ' · ' + esc(l.phone) : ''}</div></td>
             <td>${esc(l.reason || l.kind || '')}${l.event ? `<div class="sub">Event: ${esc(l.event)}</div>` : ''}${l.company ? '<div class="sub">' + esc(l.company) + '</div>' : ''}</td>
             <td class="sub">${(l.message || '').length > 90 ? `<details><summary style="cursor:pointer">${esc(l.message.slice(0, 90))}…</summary><div style="white-space:pre-wrap;margin-top:6px">${esc(l.message)}</div></details>` : esc(l.message || '')}</td>
             <td>${statusPill(l.status)}</td>
-            <td style="white-space:nowrap">${key === 'membership' && l.status !== 'done' ? `<button class="btn btn--forest btn--sm" data-approve-member title="Creates their directory listing and emails them a set-your-password link — no manual re-entry">✓ Approve &amp; add</button> ` : ''}${key === 'ribbon' && l.status !== 'done' ? `<button class="btn btn--forest btn--sm" data-approve-event title="Creates the calendar event — dated requests go live immediately">📅 Schedule on calendar</button> ` : ''}<select class="admin-select" data-mark><option value="new" ${l.status === 'new' ? 'selected' : ''}>New</option><option value="read" ${l.status === 'read' ? 'selected' : ''}>Read</option><option value="done" ${l.status === 'done' ? 'selected' : ''}>Done</option></select></td>
+            <td style="white-space:nowrap">${key === 'membership' && l.status !== 'done' ? `<button class="btn btn--forest btn--sm" data-approve-member title="Creates their directory listing and emails them a set-your-password link — no manual re-entry">✓ Approve &amp; add</button> ` : ''}${key === 'ribbon' && l.status !== 'done' ? `<button class="btn btn--forest btn--sm" data-approve-event title="Creates the calendar event — dated requests go live immediately">📅 Schedule on calendar</button> ` : ''}${key === 'interest' && l.email ? `<a class="btn btn--sm" href="${appLinkMailto(l)}" title="Opens an email to them with the membership application link already written">✉ Application link</a> ` : ''}<select class="admin-select" data-mark>${markOptions(l.status)}</select></td>
           </tr>`).join('')
           : `<tr><td colspan="6" class="sub">${q ? 'No matches in this section.' : 'Nothing here yet.'}</td></tr>`;
         return `
@@ -1774,40 +1873,19 @@ window.Admin = (function () {
           </div>`;
       }).join('');
       host.querySelectorAll('tr[data-id]').forEach((tr) => {
+        const leadOf = () => all.find((x) => x.id === tr.dataset.id);
+        tr.querySelector('[data-open]')?.addEventListener('click', (e) => {
+          e.preventDefault();
+          const l = leadOf(); if (l) openLead(l);
+        });
         tr.querySelector('[data-mark]')?.addEventListener('change', async (e) => {
-          await api(`/api/admin/leads/${encodeURIComponent(tr.dataset.id)}`, { method: 'PATCH', body: JSON.stringify({ status: e.target.value }) });
-          const l = all.find((x) => x.id === tr.dataset.id); if (l) l.status = e.target.value;
-          render();
+          const l = leadOf(); if (l) await markLead(l, e.target.value);
         });
-        // Ribbon-cutting request → calendar event in one click.
-        tr.querySelector('[data-approve-event]')?.addEventListener('click', async (e) => {
-          const l = all.find((x) => x.id === tr.dataset.id); if (!l) return;
-          const who = l.company || l.name || 'this request';
-          if (!confirm(`Schedule the ribbon cutting for ${who}?\n\n• A calendar event is created from the request.\n• With a date on the request it goes live immediately; without one it waits as Pending on the Events page.`)) return;
-          e.target.disabled = true; e.target.textContent = 'Adding…';
-          try {
-            const r = await api(`/api/admin/leads/${encodeURIComponent(l.id)}/approve-event`, { method: 'POST' });
-            alert(`✓ On the calendar: ${r.event.title}\n${r.event.status === 'approved' ? 'It is live on the website now.' : 'It is Pending — confirm the date on the Events page, then hit ✓ Publish.'}`);
-            location.href = 'events.html';
-          } catch (err) {
-            e.target.disabled = false; e.target.textContent = '📅 Schedule on calendar';
-            alert('Could not approve: ' + (err.message || 'error'));
-          }
+        tr.querySelector('[data-approve-event]')?.addEventListener('click', (e) => {
+          const l = leadOf(); if (l) approveEventLead(l, e.target);
         });
-        // Membership application → live directory member in one click.
-        tr.querySelector('[data-approve-member]')?.addEventListener('click', async (e) => {
-          const l = all.find((x) => x.id === tr.dataset.id); if (!l) return;
-          const who = l.company || l.name || 'this applicant';
-          if (!confirm(`Approve ${who} and add them to the directory?\n\n• Their listing goes live as a New Member.\n${l.email ? `• A login is created for ${l.email} and they get a set-your-password email.` : '• No email on the application — add one later in Members to create their login.'}`)) return;
-          e.target.disabled = true; e.target.textContent = 'Adding…';
-          try {
-            const r = await api(`/api/admin/leads/${encodeURIComponent(l.id)}/approve-member`, { method: 'POST' });
-            alert(`✓ ${who} is in the directory.\n${r.login || ''}\n\nOpening their row in Members so you can add category, address, and photos.`);
-            location.href = 'members.html?focus=' + encodeURIComponent(r.member.id);
-          } catch (err) {
-            e.target.disabled = false; e.target.textContent = '✓ Approve & add';
-            alert('Could not approve: ' + (err.message || 'error'));
-          }
+        tr.querySelector('[data-approve-member]')?.addEventListener('click', (e) => {
+          const l = leadOf(); if (l) approveMemberLead(l, e.target);
         });
       });
     }

@@ -34,7 +34,7 @@
         <div class="card" id="apply">
           <span class="kicker">Membresía Anual</span>
           <h2>Solicitar membresía</h2>
-          <p class="member-tile__meta">Envíe abajo y la oficina de la Cámara confirmará personalmente su nivel y cuota y establecerá su membresía — sin pago en línea.</p>
+          <p class="member-tile__meta">Elija su nivel, envíe su solicitud y pasará directamente a nuestra página de pago seguro con su cuota ya completada. ¿No está seguro del nivel? Elija “No estoy seguro” y la oficina le llamará.</p>
           <form id="joinForm" class="mt-5">
             <div class="grid grid-2" style="gap:var(--s-3)">
               <div class="field"><label>Empresa</label><input name="company" required /></div>
@@ -54,7 +54,11 @@
             </div>
             <div class="grid grid-2" style="gap:var(--s-3)">
               <div class="field"><label>Tipo de negocio</label><input name="businessType" /></div>
-              <div class="field"><label>Nivel de membresía de interés</label><input id="joinLevel" name="level" placeholder="Opcional — la oficina le ayuda a decidir" /></div>
+              <div class="field"><label>Nivel de membresía</label>
+                <select id="joinLevel" name="level">
+                  <option value="">No estoy seguro — que la oficina me ayude a elegir</option>
+                </select>
+              </div>
             </div>
             <div class="field" style="margin-top:var(--s-2)">
               <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:600">
@@ -84,7 +88,7 @@
           <p style="color:rgba(255,255,255,.8);margin-top:var(--s-4)">¿Preguntas? Llame a la oficina al <strong>(818) 347-4737</strong>.</p>
         </aside>
       </div>
-      <p class="member-tile__meta mt-4">Las cuotas se ajustan al tamaño de su negocio — la oficina confirma su nivel y cuota cuando usted solicita. ¿Renovando o pagando cuotas? <a href="../pay.html" style="text-decoration:underline">Haga un pago</a>.</p>
+      <p class="member-tile__meta mt-4">Las cuotas mostradas son las tarifas estándar del primer año — la oficina le ayuda a elegir el nivel adecuado al (818) 347-4737. ¿Renovando o pagando cuotas? <a href="../pay.html" style="text-decoration:underline">Haga un pago</a>.</p>
 
       <div class="grid grid-3" style="margin-top:var(--s-8)">
         <article class="card"><div class="card__icon">◎</div><h3>Que lo encuentren</h3><p>Una ficha en el directorio lo pone frente a vecinos que buscan justo lo que usted hace.</p></article>
@@ -129,10 +133,44 @@
 
   <script src="../js/partials.js?v=20260730b"></script>
   <script src="../js/api-base.js?v=20260729b"></script>
-  <script src="../js/chamber.js?v=20260730c"></script>
+  <script src="../js/chamber.js?v=20260731a"></script>
   <script>
     ChamberPartials.mount({ active: '', depth: 1, lang: 'es' });
-    Chamber.initLeadForm('joinForm', 'joinMsg', 'membership-application');
+    // Niveles y cuotas del mismo catálogo que usa el pago — la página de pago
+    // abre con el monto exacto ya puesto.
+    (async function () {
+      try {
+        var d = await (await fetch(ChamberAPI.url('/api/skus'))).json();
+        var sel = document.getElementById('joinLevel');
+        (d.memberships || []).forEach(function (m) {
+          if (m.amount == null) return;
+          var o = document.createElement('option');
+          o.value = m.label + ' — $' + m.amount + '/año';
+          o.textContent = m.label + ' — $' + m.amount + '/año' + (m.popular ? ' (la más popular)' : '');
+          o.dataset.sku = m.sku;
+          sel.appendChild(o);
+        });
+      } catch (e) { /* sin niveles — la oficina da seguimiento igual */ }
+    })();
+    Chamber.initLeadForm('joinForm', 'joinMsg', 'membership-application', {
+      // Solicitud enviada → directo al pago con la cuota completada
+      // (Felicia, 31 jul 2026). Sin nivel elegido, la oficina da seguimiento.
+      onSuccess: function (payload) {
+        var sel = document.getElementById('joinLevel');
+        var opt = sel && Array.prototype.find.call(sel.options, function (o) { return o.value === payload.level; });
+        var sku = opt && opt.dataset ? opt.dataset.sku : '';
+        if (!sku) return;
+        try {
+          sessionStorage.setItem('wvJoinPrefill', JSON.stringify({
+            firstName: payload.firstName || '', lastName: payload.lastName || '',
+            email: payload.email || '', phone: payload.phone || '', company: payload.company || '',
+          }));
+        } catch (e) { /* el pago funciona igual — reescriben sus datos */ }
+        var msg = document.getElementById('joinMsg');
+        if (msg) { msg.hidden = false; msg.textContent = 'Solicitud recibida — llevándole al pago seguro…'; }
+        setTimeout(function () { location.href = '../checkout.html?type=membership&sku=' + encodeURIComponent(sku); }, 900);
+      }
+    });
     document.getElementById('joinRibbon').addEventListener('change', function () {
       document.getElementById('joinRibbonDate').hidden = !this.checked;
     });

@@ -2461,10 +2461,11 @@ router.post('/admin/payment-link', requireAdmin, async (req, res) => {
 
 // Pricing catalog (memberships, donation presets, ticket convention).
 let _skus = null;
-router.get('/skus', (_req, res) => {
+function readSkus() {
   if (!_skus) { try { _skus = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'skus.json'), 'utf8')); } catch { _skus = { memberships: [], donations: [] }; } }
-  res.json(_skus);
-});
+  return _skus;
+}
+router.get('/skus', (_req, res) => res.json(readSkus()));
 
 // Distinct category list (for the member category picker + facets).
 router.get('/categories', async (_req, res) => {
@@ -2589,6 +2590,20 @@ router.post('/pay', async (req, res) => {
           }
           amount = subtotal;
         }
+      }
+    }
+    // Membership dues follow the same rule as tickets: the price comes from the
+    // catalog (data/skus.json), never from the browser. An office-quoted custom
+    // amount still goes through when the sku is not in the catalog.
+    if (b.kind === 'membership') {
+      const item = (readSkus().memberships || []).find((x) => x.sku === String(b.sku || ''));
+      if (item && item.amount != null) {
+        subtotal = Number(item.amount);
+        if (Math.abs(Number(b.amount) - subtotal) > 0.005) {
+          return res.status(400).json({ ok: false,
+            error: `${item.label} dues are $${subtotal.toFixed(2)} — the page showed a different amount, so no charge was made. Refresh the page and try again.` });
+        }
+        amount = subtotal;
       }
     }
 
@@ -2722,6 +2737,24 @@ router.post('/pay', async (req, res) => {
 });
 
 // ── Contact / lead inquiries ────────────────────────────────
+// Spam screening (Felicia, Jul 31 2026: real membership applications were
+// drowning in junk). Turnstile is the real gate once its keys are set — this
+// layer works today. Suspect leads are STORED with status 'spam' (never
+// dropped) and skip the notification emails; the office rescues a real one
+// from Admin → Inquiries → Spam by marking it New.
+function leadSmellsLikeSpam(b, lead) {
+  // Honeypot: a visually hidden field humans never see. Bots fill every box.
+  if (String(b._gotcha || '').trim()) return true;
+  const text = [lead.name, lead.company, lead.message].join(' ');
+  const links = (text.match(/https?:\/\/|www\.[a-z0-9-]/gi) || []).length;
+  if (links >= 2) return true;
+  const pitch = /(backlinks?|link.?building|guest post|seo (ranking|service|package)|rank (on google|#?1)|page ?(one|1) of google|website traffic|mass (e-?mail|marketing)|buy followers|crypto(currency)?|bitcoin|forex|casino|viagra|cialis|escorts?|adult traffic|loan (offer|approval))/i;
+  if (links && pitch.test(text)) return true;
+  // The site is English/Spanish — a mostly-Cyrillic message is not a member.
+  if ((text.match(/[Ѐ-ӿ]/g) || []).length > 20) return true;
+  return false;
+}
+
 router.post('/contact', async (req, res) => {
   const b = req.body || {};
   // Bot protection — Cloudflare Turnstile (no-op until TURNSTILE_SECRET is set).
@@ -2757,6 +2790,7 @@ router.post('/contact', async (req, res) => {
     const pw = String(b.password);
     if (pw.length >= 8 && pw.length <= 100) lead.passwordHash = auth.hashPassword(pw);
   }
+  if (leadSmellsLikeSpam(b, lead)) lead.status = 'spam';
   // If the lead references an event by raw id (older pages / direct API), resolve
   // it to the event title so the admin panel + office email are self-explanatory.
   if (lead.event && /^(le|ev)-/.test(lead.event)) {
@@ -2806,7 +2840,7 @@ router.post('/contact', async (req, res) => {
     // Chamber office, Jul 2026 — the application is the only place that offers
     // it). File it as its own inquiry so it lands in the admin's pending
     // Ribbon Cutting queue with its one-click approve.
-    if (lead.kind === 'membership-application' && b.ribbonCutting) {
+    if (lead.kind === 'membership-application' && b.ribbonCutting && lead.status !== 'spam') {
       const rcDate = String(b.ribbonDate || '').slice(0, 40);
       try {
         await repo.addLead({
@@ -2831,7 +2865,9 @@ router.post('/contact', async (req, res) => {
     // inquiry emails switched on.
     const recipients = [...leaderTo];
     if (officeWantsEmail || leaderTo.length) recipients.push(notifyTo);
-    if (recipients.length) {
+    // Screened spam stays out of everyone's inbox — it waits in Admin →
+    // Inquiries → Spam instead.
+    if (recipients.length && lead.status !== 'spam') {
       const body = `New ${lead.reason || lead.kind} from the website\n\n`
         + `Name: ${lead.name || '—'}\nEmail: ${lead.email}\nPhone: ${lead.phone || '—'}\n`
         + `Company: ${lead.company || '—'}\nEvent: ${lead.event || '—'}${groupName ? `\nGroup: ${groupName}` : ''}\n\nMessage:\n${lead.message || '—'}\n`
@@ -3192,7 +3228,9 @@ async function dashboardGlance({ members, leads, orders }) {
   const daysAgo = (n) => new Date(Date.now() - n * 864e5).toISOString();
   const since7 = daysAgo(7);
   const since30 = daysAgo(30);
-  const when = (x) => String((x && (x.created || x.date)) || '');
+  // Leads stamp `received`, orders `created`, events `date` — without the
+  // received fallback the "came in this week" hint always read zero.
+  const when = (x) => String((x && (x.created || x.date || x.received)) || '');
   const paid = orders.filter((o) => (o.status || 'paid') === 'paid');
   const money = (n) => '$' + Math.round(n).toLocaleString('en-US');
   /* A bare 'YYYY-MM-DD' parses as UTC midnight, so formatting it in a US
@@ -3218,7 +3256,7 @@ async function dashboardGlance({ members, leads, orders }) {
   return {
     membersPending: members.filter((m) => m.status === 'pending').length,
     membersActive: members.filter((m) => (m.status || 'approved') === 'approved').length,
-    leads7: leads.filter((l) => when(l) >= since7).length,
+    leads7: leads.filter((l) => l.status !== 'spam' && when(l) >= since7).length,
     revenue30: money(paid.filter((o) => when(o) >= since30).reduce((s, o) => s + (Number(o.amount) || 0), 0)),
     lastPayment: lastPaid ? `${money(Number(lastPaid.amount) || 0)} on ${dayLabel(when(lastPaid))}` : '',
     nextEvent: nextEvent ? { title: nextEvent.title, date: nextEvent.date, when: dayLabel(nextEvent.date), id: nextEvent.id } : null,
@@ -3604,7 +3642,9 @@ router.get('/admin/leads', requireAdmin, async (_req, res) => {
 });
 
 router.patch('/admin/leads/:id', requireAdmin, async (req, res) => {
-  if (!['new', 'read', 'done'].includes(req.body.status)) return res.status(400).json({ error: 'bad status' });
+  // 'spam' both ways: the office can flag junk the screen missed, and rescue a
+  // real inquiry the screen caught (marking it New returns it to its section).
+  if (!['new', 'read', 'done', 'spam'].includes(req.body.status)) return res.status(400).json({ error: 'bad status' });
   try {
     const ok = await repo.setLeadStatus(req.params.id, req.body.status);
     if (!ok) return res.status(404).json({ error: 'not found' });
