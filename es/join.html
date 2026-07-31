@@ -34,7 +34,7 @@
         <div class="card" id="apply">
           <span class="kicker">Membresía Anual</span>
           <h2>Solicitar membresía</h2>
-          <p class="member-tile__meta">Elija su nivel, envíe su solicitud y pasará directamente a nuestra página de pago seguro con su cuota ya completada. ¿No está seguro del nivel? Elija “No estoy seguro” y la oficina le llamará.</p>
+          <p class="member-tile__meta">Envíe abajo y la oficina de la Cámara confirmará personalmente su nivel y cuota y establecerá su membresía.</p>
           <form id="joinForm" class="mt-5">
             <div class="grid grid-2" style="gap:var(--s-3)">
               <div class="field"><label>Empresa</label><input name="company" required /></div>
@@ -54,7 +54,9 @@
             </div>
             <div class="grid grid-2" style="gap:var(--s-3)">
               <div class="field"><label>Tipo de negocio</label><input name="businessType" /></div>
-              <div class="field"><label>Nivel de membresía</label>
+              <!-- Oculto hasta que data/skus.json tenga los niveles REALES de la
+                   Cámara (Diana, 31 jul 2026: los niveles borrador no eran reales). -->
+              <div class="field" id="joinLevelField" hidden><label>Nivel de membresía</label>
                 <select id="joinLevel" name="level">
                   <option value="">No estoy seguro — que la oficina me ayude a elegir</option>
                 </select>
@@ -88,7 +90,7 @@
           <p style="color:rgba(255,255,255,.8);margin-top:var(--s-4)">¿Preguntas? Llame a la oficina al <strong>(818) 347-4737</strong>.</p>
         </aside>
       </div>
-      <p class="member-tile__meta mt-4">Las cuotas mostradas son las tarifas estándar del primer año — la oficina le ayuda a elegir el nivel adecuado al (818) 347-4737. ¿Renovando o pagando cuotas? <a href="../pay.html" style="text-decoration:underline">Haga un pago</a>.</p>
+      <p class="member-tile__meta mt-4">Las cuotas se ajustan al tamaño de su negocio — la oficina confirma su nivel y cuota cuando usted solicita. ¿Renovando o pagando cuotas? <a href="../pay.html" style="text-decoration:underline">Haga un pago</a>.</p>
 
       <div class="grid grid-3" style="margin-top:var(--s-8)">
         <article class="card"><div class="card__icon">◎</div><h3>Que lo encuentren</h3><p>Una ficha en el directorio lo pone frente a vecinos que buscan justo lo que usted hace.</p></article>
@@ -142,6 +144,7 @@
       try {
         var d = await (await fetch(ChamberAPI.url('/api/skus'))).json();
         var sel = document.getElementById('joinLevel');
+        var added = 0;
         (d.memberships || []).forEach(function (m) {
           if (m.amount == null) return;
           var o = document.createElement('option');
@@ -149,7 +152,9 @@
           o.textContent = m.label + ' — $' + m.amount + '/año' + (m.popular ? ' (la más popular)' : '');
           o.dataset.sku = m.sku;
           sel.appendChild(o);
+          added++;
         });
+        if (added) document.getElementById('joinLevelField').hidden = false;
       } catch (e) { /* sin niveles — la oficina da seguimiento igual */ }
     })();
     Chamber.initLeadForm('joinForm', 'joinMsg', 'membership-application', {

@@ -32,7 +32,7 @@
         <div class="card" id="apply">
           <span class="kicker">Annual Membership</span>
           <h2>Apply for membership</h2>
-          <p class="member-tile__meta">Pick your level, submit, and you’ll go straight to our secure payment page with your dues amount already filled in. Not sure which level fits? Choose “Not sure yet” and the office will call you.</p>
+          <p class="member-tile__meta">Submit below and the Chamber office will personally confirm your level and dues and set up your membership.</p>
           <form id="joinForm" class="mt-5">
             <div class="grid grid-2" style="gap:var(--s-3)">
               <div class="field"><label>Company</label><input name="company" required /></div>
@@ -52,7 +52,11 @@
             </div>
             <div class="grid grid-2" style="gap:var(--s-3)">
               <div class="field"><label>Type of business</label><input name="businessType" /></div>
-              <div class="field"><label>Membership level</label>
+              <!-- Hidden until data/skus.json carries the Chamber's REAL levels
+                   (Diana, Jul 31 2026: the drafted tiers were not real). With
+                   priced entries present, this shows and Submit goes straight
+                   to checkout with the dues filled in. -->
+              <div class="field" id="joinLevelField" hidden><label>Membership level</label>
                 <select id="joinLevel" name="level">
                   <option value="">Not sure yet — have the office help me choose</option>
                 </select>
@@ -89,7 +93,7 @@
           <p style="color:rgba(255,255,255,.8);margin-top:var(--s-4)">Questions? Call the office at <strong>(818) 347-4737</strong>.</p>
         </aside>
       </div>
-      <p class="member-tile__meta mt-4">Dues shown are standard first-year rates — the office is happy to help you pick the right level at (818) 347-4737. Renewing or paying dues? <a href="pay.html" style="text-decoration:underline">Make a payment</a>.</p>
+      <p class="member-tile__meta mt-4">Dues scale with your business size — the office confirms your level and dues when you apply. Renewing or paying dues? <a href="pay.html" style="text-decoration:underline">Make a payment</a>.</p>
 
       <div class="grid grid-3" style="margin-top:var(--s-8)">
         <article class="card"><div class="card__icon">◎</div><h3>Get found</h3><p>A geo-aware directory listing puts you in front of neighbors searching for what you do.</p></article>
@@ -139,11 +143,14 @@
   <script>
     ChamberPartials.mount({ active: '', depth: 0, lang: 'en' });
     // Membership levels + dues from the same catalog checkout charges against,
-    // so the payment page opens with the exact amount already set.
+    // so the payment page opens with the exact amount already set. The field
+    // only appears when the catalog carries priced levels — it is EMPTY today
+    // (Diana, Jul 31 2026: the drafted tiers were not real).
     (async function () {
       try {
         var d = await (await fetch(ChamberAPI.url('/api/skus'))).json();
         var sel = document.getElementById('joinLevel');
+        var added = 0;
         (d.memberships || []).forEach(function (m) {
           if (m.amount == null) return;
           var o = document.createElement('option');
@@ -151,7 +158,9 @@
           o.textContent = m.label + ' — $' + m.amount + '/year' + (m.popular ? ' (most popular)' : '');
           o.dataset.sku = m.sku;
           sel.appendChild(o);
+          added++;
         });
+        if (added) document.getElementById('joinLevelField').hidden = false;
       } catch (e) { /* levels unavailable — the office follows up either way */ }
     })();
     Chamber.initLeadForm('joinForm', 'joinMsg', 'membership-application', {

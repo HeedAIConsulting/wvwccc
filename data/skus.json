@@ -1,16 +1,10 @@
 {
   "_meta": {
     "currency": "USD",
-    "source": "Amounts sourced from legacy ChamberWare transaction history (NC_payment_orders, 2018–2026). 'New Membership' dues clustered at $300 (most common), $350, and $450, with occasional $1,500 corporate; renewals commonly $275–$300. Donations actually received: $25/$50/$100/$150/$300. Tier NAMES below are descriptive labels — confirm final naming with the Chamber; the PRICES are real.",
-    "confirm": "Diana to confirm tier names + whether dues are flat per tier or an employee-based sliding scale."
+    "memberships_note": "EMPTY ON PURPOSE (2026-07-31): Diana confirmed the drafted tiers (Business $300 / Premier $350 / Executive $450 / Corporate $1,500, inferred from legacy ChamberWare history) are NOT real — 'please take those down.' With no priced entries here, the Join page hides its level dropdown and applications go to the office for a dues quote instead of straight to checkout. To turn instant application-payment back on, add entries shaped like {\"sku\": \"mem-…\", \"label\": \"…\", \"tier\": \"…\", \"amount\": 300, \"blurb\": \"…\", \"popular\": true} with the Chamber's REAL levels — everything else is already wired.",
+    "source": "Donation presets are amounts actually received in legacy transaction history (2018–2026)."
   },
-  "memberships": [
-    { "sku": "mem-business",   "label": "Business Membership",      "tier": "business",   "amount": 300,  "recurring": true, "interval": "annual", "blurb": "Most popular — full directory listing, events, and referrals.", "popular": true },
-    { "sku": "mem-premier",    "label": "Premier Membership",       "tier": "premier",    "amount": 350,  "recurring": true, "interval": "annual", "blurb": "Added visibility and priority event placement." },
-    { "sku": "mem-executive",  "label": "Executive Membership",     "tier": "executive",  "amount": 450,  "recurring": true, "interval": "annual", "blurb": "Premium presence for established businesses." },
-    { "sku": "mem-corporate",  "label": "Corporate / Platinum",     "tier": "corporate",  "amount": 1500, "recurring": true, "interval": "annual", "blurb": "Top-tier sponsorship and year-round recognition." }
-  ],
-  "membership_renewal": { "sku": "mem-renewal", "label": "Membership Renewal", "amount": 300, "note": "Standard renewal; office may apply a discounted rate (commonly $275)." },
+  "memberships": [],
   "donations": [
     { "sku": "don-25",     "label": "$25",           "amount": 25 },
     { "sku": "don-50",     "label": "$50",           "amount": 50 },
