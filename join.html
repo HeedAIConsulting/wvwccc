@@ -200,10 +200,11 @@
         var opt = Array.prototype.find.call(sel.options, function (o) { return o.dataset && o.dataset.sku === m.sku; });
         if (opt) sel.value = opt.value;
         dues.hidden = false;
-        dues.innerHTML = '<strong>Your first-year dues: ' + fmt(m.amount) + '</strong> — '
-          + fmt(m.dues != null ? m.dues : m.amount) + ' annual dues'
-          + (m.activation ? ' + a one-time ' + fmt(m.activation) + ' activation fee' : '') + '.'
+        dues.innerHTML = (m.activation
+            ? '<strong>Your first-year dues: ' + fmt(m.amount) + '</strong> — ' + fmt(m.dues != null ? m.dues : m.amount) + ' annual dues + a one-time ' + fmt(m.activation) + ' activation fee.'
+            : '<strong>Your annual dues: ' + fmt(m.amount) + '</strong>.')
           + (np.checked && !m.nonprofit ? '<br><span class="member-tile__meta">Non-profits with more than 50 employees follow the standard dues schedule.</span>' : '')
+          + (m.blurb ? '<br><span class="member-tile__meta">' + m.blurb + '</span>' : '')
           + '<br><span class="member-tile__meta">Submit your application below and you’ll go straight to secure payment for this amount.</span>';
       }
       emp.addEventListener('input', update);

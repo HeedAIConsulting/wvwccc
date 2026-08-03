@@ -198,10 +198,11 @@
         var opt = Array.prototype.find.call(sel.options, function (o) { return o.dataset && o.dataset.sku === m.sku; });
         if (opt) sel.value = opt.value;
         dues.hidden = false;
-        dues.innerHTML = '<strong>Su cuota del primer año: ' + fmt(m.amount) + '</strong> — '
-          + fmt(m.dues != null ? m.dues : m.amount) + ' de cuota anual'
-          + (m.activation ? ' + ' + fmt(m.activation) + ' de cuota de activación (una sola vez)' : '') + '.'
+        dues.innerHTML = (m.activation
+            ? '<strong>Su cuota del primer año: ' + fmt(m.amount) + '</strong> — ' + fmt(m.dues != null ? m.dues : m.amount) + ' de cuota anual + ' + fmt(m.activation) + ' de cuota de activación (una sola vez).'
+            : '<strong>Su cuota anual: ' + fmt(m.amount) + '</strong>.')
           + (np.checked && !m.nonprofit ? '<br><span class="member-tile__meta">Las organizaciones sin fines de lucro con más de 50 empleados siguen la tarifa estándar.</span>' : '')
+          + ((m.blurb_es || m.blurb) ? '<br><span class="member-tile__meta">' + (m.blurb_es || m.blurb) + '</span>' : '')
           + '<br><span class="member-tile__meta">Envíe su solicitud abajo y pasará directo al pago seguro por este monto.</span>';
       }
       emp.addEventListener('input', update);
