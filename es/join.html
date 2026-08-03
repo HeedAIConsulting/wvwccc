@@ -34,7 +34,7 @@
         <div class="card" id="apply">
           <span class="kicker">Membresía Anual</span>
           <h2>Solicitar membresía</h2>
-          <p class="member-tile__meta">Envíe abajo y la oficina de la Cámara confirmará personalmente su nivel y cuota y establecerá su membresía.</p>
+          <p class="member-tile__meta" id="joinIntro">Envíe abajo y la oficina de la Cámara confirmará personalmente su nivel y cuota y establecerá su membresía.</p>
           <form id="joinForm" class="mt-5">
             <div class="grid grid-2" style="gap:var(--s-3)">
               <div class="field"><label>Empresa</label><input name="company" required /></div>
@@ -54,9 +54,20 @@
             </div>
             <div class="grid grid-2" style="gap:var(--s-3)">
               <div class="field"><label>Tipo de negocio</label><input name="businessType" /></div>
-              <!-- Oculto hasta que data/skus.json tenga los niveles REALES de la
-                   Cámara (Diana, 31 jul 2026: los niveles borrador no eran reales). -->
-              <div class="field" id="joinLevelField" hidden><label>Nivel de membresía</label>
+              <!-- Visible cuando el catálogo tiene niveles con precio: la hoja
+                   de cuotas 2026 da a las organizaciones sin fines de lucro
+                   (50 empleados o menos) una tarifa con descuento. -->
+              <div class="field" id="joinNonprofitField" hidden>
+                <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:600;margin-top:26px">
+                  <input type="checkbox" name="nonprofit" value="yes" id="joinNonprofit" style="width:auto" />
+                  Somos una organización sin fines de lucro
+                </label>
+              </div>
+              <!-- Maquinaria, nunca visible: el número de empleados elige el
+                   nivel (Cuotas Anuales 2026 — Diana vía Felicia, 3 ago 2026)
+                   y este select lleva el nivel + sku por el flujo existente de
+                   solicitud → pago, sin cambios. -->
+              <div class="field" hidden><label>Nivel de membresía</label>
                 <select id="joinLevel" name="level">
                   <option value="">No estoy seguro — que la oficina me ayude a elegir</option>
                 </select>
@@ -72,6 +83,7 @@
                 <input name="ribbonDate" type="date" />
               </div>
             </div>
+            <p class="notice" id="joinDues" hidden style="border-color:var(--gold);background:var(--sand)"></p>
             <p id="joinMsg" class="notice" hidden></p>
             <div class="btn-row mt-3">
               <button class="btn btn--forest btn--lg" type="submit">Enviar solicitud</button>
@@ -90,7 +102,7 @@
           <p style="color:rgba(255,255,255,.8);margin-top:var(--s-4)">¿Preguntas? Llame a la oficina al <strong>(818) 347-4737</strong>.</p>
         </aside>
       </div>
-      <p class="member-tile__meta mt-4">Las cuotas se ajustan al tamaño de su negocio — la oficina confirma su nivel y cuota cuando usted solicita. ¿Renovando o pagando cuotas? <a href="../pay.html" style="text-decoration:underline">Haga un pago</a>.</p>
+      <p class="member-tile__meta mt-4"><span id="joinDuesMeta">Las cuotas se ajustan al tamaño de su negocio — la oficina confirma su nivel y cuota cuando usted solicita.</span> ¿Renovando o pagando cuotas? <a href="../pay.html" style="text-decoration:underline">Haga un pago</a>.</p>
 
       <div class="grid grid-3" style="margin-top:var(--s-8)">
         <article class="card"><div class="card__icon">◎</div><h3>Que lo encuentren</h3><p>Una ficha en el directorio lo pone frente a vecinos que buscan justo lo que usted hace.</p></article>
@@ -135,27 +147,66 @@
 
   <script src="../js/partials.js?v=20260730b"></script>
   <script src="../js/api-base.js?v=20260729b"></script>
-  <script src="../js/chamber.js?v=20260731a"></script>
+  <script src="../js/chamber.js?v=20260803a"></script>
   <script>
     ChamberPartials.mount({ active: '', depth: 1, lang: 'es' });
-    // Niveles y cuotas del mismo catálogo que usa el pago — la página de pago
-    // abre con el monto exacto ya puesto.
+    // Las cuotas se fijan por número de empleados (Cuotas Anuales 2026 — Diana
+    // vía Felicia, 3 ago 2026): escriba su cifra, aparece su cuota exacta del
+    // primer año, y Enviar pasa directo al pago con el monto fijado. Los
+    // precios vienen del mismo catálogo que cobra el servidor. Con el catálogo
+    // vacío la página vuelve a "la oficina confirma su cuota."
     (async function () {
+      var mems = [];
       try {
         var d = await (await fetch(ChamberAPI.url('/api/skus'))).json();
-        var sel = document.getElementById('joinLevel');
-        var added = 0;
-        (d.memberships || []).forEach(function (m) {
-          if (m.amount == null) return;
-          var o = document.createElement('option');
-          o.value = m.label + ' — $' + m.amount + '/año';
-          o.textContent = m.label + ' — $' + m.amount + '/año' + (m.popular ? ' (la más popular)' : '');
-          o.dataset.sku = m.sku;
-          sel.appendChild(o);
-          added++;
+        mems = (d.memberships || []).filter(function (m) { return m.amount != null; });
+      } catch (e) { /* sin catálogo — la oficina da seguimiento igual */ }
+      if (!mems.length) return;
+
+      var sel = document.getElementById('joinLevel');
+      mems.forEach(function (m) {
+        var o = document.createElement('option');
+        o.value = (m.label_es || m.label) + ' — $' + m.amount + ' primer año';
+        o.textContent = o.value;
+        o.dataset.sku = m.sku;
+        sel.appendChild(o);
+      });
+
+      var emp = document.querySelector('#joinForm [name="employees"]');
+      var np = document.getElementById('joinNonprofit');
+      var dues = document.getElementById('joinDues');
+      emp.required = true;
+      document.getElementById('joinNonprofitField').hidden = false;
+      document.getElementById('joinIntro').textContent = 'Las cuotas se fijan por su número de empleados — escriba su cifra abajo y aparecerá su cuota exacta. Envíe su solicitud y pague en línea en un solo paso.';
+      document.getElementById('joinDuesMeta').textContent = 'Las cuotas se ajustan al tamaño de su negocio — su cuota exacta aparece al escribir su número de empleados arriba.';
+
+      function bracketFor(n, nonprofit) {
+        if (!(n >= 1)) return null;
+        var pool = mems.filter(function (m) { return nonprofit ? m.nonprofit : !m.nonprofit; });
+        var hit = pool.find(function (m) {
+          return n >= (m.minEmployees || 1) && (m.maxEmployees == null || n <= m.maxEmployees);
         });
-        if (added) document.getElementById('joinLevelField').hidden = false;
-      } catch (e) { /* sin niveles — la oficina da seguimiento igual */ }
+        // Sin fines de lucro con más de 50 empleados: tarifa general (según la hoja).
+        return hit || (nonprofit ? bracketFor(n, false) : null);
+      }
+      function fmt(x) { return '$' + Number(x).toLocaleString('en-US'); }
+      function update() {
+        var n = parseInt(emp.value, 10);
+        var m = bracketFor(n, np.checked);
+        sel.value = '';
+        if (!m) { dues.hidden = true; return; }
+        var opt = Array.prototype.find.call(sel.options, function (o) { return o.dataset && o.dataset.sku === m.sku; });
+        if (opt) sel.value = opt.value;
+        dues.hidden = false;
+        dues.innerHTML = '<strong>Su cuota del primer año: ' + fmt(m.amount) + '</strong> — '
+          + fmt(m.dues != null ? m.dues : m.amount) + ' de cuota anual'
+          + (m.activation ? ' + ' + fmt(m.activation) + ' de cuota de activación (una sola vez)' : '') + '.'
+          + (np.checked && !m.nonprofit ? '<br><span class="member-tile__meta">Las organizaciones sin fines de lucro con más de 50 empleados siguen la tarifa estándar.</span>' : '')
+          + '<br><span class="member-tile__meta">Envíe su solicitud abajo y pasará directo al pago seguro por este monto.</span>';
+      }
+      emp.addEventListener('input', update);
+      np.addEventListener('change', update);
+      update();
     })();
     Chamber.initLeadForm('joinForm', 'joinMsg', 'membership-application', {
       // Solicitud enviada → directo al pago con la cuota completada

@@ -2050,11 +2050,17 @@ window.Chamber = (function () {
           if (el && !el.value && fromApp[n]) el.value = String(fromApp[n]);
         });
       }
+      // With a dues + activation breakdown on the sku (2026 dues sheet), the
+      // total is a first-year figure — calling it "Annual dues" would misstate
+      // what renews next year, so the line spells out both parts.
+      const firstYear = item && item.dues != null && item.activation;
       summary.innerHTML = (fromApp ? '<p class="notice" style="margin:0 0 var(--s-3)"><strong>✓ Application received.</strong> One last step — pay your first-year dues below and you’re in.</p>' : '')
         + (item
-          ? `<strong>${esc(item.label)}</strong><br><span class="member-tile__meta">Annual dues · $${esc(item.amount)}</span>${item.blurb ? `<p class="member-tile__meta mt-2">${esc(item.blurb)}</p>` : ''}<p class="member-tile__meta mt-2">Charged once today for your first year — renewals are arranged by the Chamber office. Questions? Call (818) 347-4737.</p>`
+          ? `<strong>${esc(item.label)}</strong><br><span class="member-tile__meta">${firstYear
+              ? `First year · $${esc(item.amount)} — $${esc(item.dues)} annual dues + a one-time $${esc(item.activation)} activation fee`
+              : `Annual dues · $${esc(item.amount)}`}</span>${item.blurb ? `<p class="member-tile__meta mt-2">${esc(item.blurb)}</p>` : ''}<p class="member-tile__meta mt-2">Charged once today for your first year — renewals are arranged by the Chamber office. Questions? Call (818) 347-4737.</p>`
           : `<strong>Annual membership</strong><br><span class="member-tile__meta">${esc(tier)}</span><p class="notice mt-3">Dues are based on your tier — enter the amount the office gave you, or call (818) 347-4737.</p>`);
-      amountLabel.textContent = 'Dues amount (USD)';
+      amountLabel.textContent = firstYear ? 'First-year total (USD)' : 'Dues amount (USD)';
       // A catalog level has one price — lock the box so a typo can't charge
       // the wrong dues (the server refuses a mismatched amount regardless).
       if (item && item.amount != null) {

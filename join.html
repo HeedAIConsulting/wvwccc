@@ -32,7 +32,7 @@
         <div class="card" id="apply">
           <span class="kicker">Annual Membership</span>
           <h2>Apply for membership</h2>
-          <p class="member-tile__meta">Submit below and the Chamber office will personally confirm your level and dues and set up your membership.</p>
+          <p class="member-tile__meta" id="joinIntro">Submit below and the Chamber office will personally confirm your level and dues and set up your membership.</p>
           <form id="joinForm" class="mt-5">
             <div class="grid grid-2" style="gap:var(--s-3)">
               <div class="field"><label>Company</label><input name="company" required /></div>
@@ -52,11 +52,20 @@
             </div>
             <div class="grid grid-2" style="gap:var(--s-3)">
               <div class="field"><label>Type of business</label><input name="businessType" /></div>
-              <!-- Hidden until data/skus.json carries the Chamber's REAL levels
-                   (Diana, Jul 31 2026: the drafted tiers were not real). With
-                   priced entries present, this shows and Submit goes straight
-                   to checkout with the dues filled in. -->
-              <div class="field" id="joinLevelField" hidden><label>Membership level</label>
+              <!-- Shown when the catalog carries priced levels: the 2026 dues
+                   sheet gives non-profits (50 or fewer employees) a discounted
+                   rate, so the applicant has to be able to tell us. -->
+              <div class="field" id="joinNonprofitField" hidden>
+                <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:600;margin-top:26px">
+                  <input type="checkbox" name="nonprofit" value="yes" id="joinNonprofit" style="width:auto" />
+                  We're a non-profit organization
+                </label>
+              </div>
+              <!-- Machinery, never shown: the employee count picks the level
+                   (2026 Annual Membership Dues — Diana via Felicia, Aug 3 2026)
+                   and this select carries the picked level + sku through the
+                   existing application → checkout flow unchanged. -->
+              <div class="field" hidden><label>Membership level</label>
                 <select id="joinLevel" name="level">
                   <option value="">Not sure yet — have the office help me choose</option>
                 </select>
@@ -75,6 +84,7 @@
                 <input name="ribbonDate" type="date" />
               </div>
             </div>
+            <p class="notice" id="joinDues" hidden style="border-color:var(--gold);background:var(--sand)"></p>
             <p id="joinMsg" class="notice" hidden></p>
             <div class="btn-row mt-3">
               <button class="btn btn--forest btn--lg" type="submit">Submit application</button>
@@ -93,7 +103,7 @@
           <p style="color:rgba(255,255,255,.8);margin-top:var(--s-4)">Questions? Call the office at <strong>(818) 347-4737</strong>.</p>
         </aside>
       </div>
-      <p class="member-tile__meta mt-4">Dues scale with your business size — the office confirms your level and dues when you apply. Renewing or paying dues? <a href="pay.html" style="text-decoration:underline">Make a payment</a>.</p>
+      <p class="member-tile__meta mt-4"><span id="joinDuesMeta">Dues scale with your business size — the office confirms your level and dues when you apply.</span> Renewing or paying dues? <a href="pay.html" style="text-decoration:underline">Make a payment</a>.</p>
 
       <div class="grid grid-3" style="margin-top:var(--s-8)">
         <article class="card"><div class="card__icon">◎</div><h3>Get found</h3><p>A geo-aware directory listing puts you in front of neighbors searching for what you do.</p></article>
@@ -139,29 +149,66 @@
 
   <script src="js/partials.js?v=20260730b"></script>
   <script src="js/api-base.js?v=20260729b"></script>
-  <script src="js/chamber.js?v=20260731a"></script>
+  <script src="js/chamber.js?v=20260803a"></script>
   <script>
     ChamberPartials.mount({ active: '', depth: 0, lang: 'en' });
-    // Membership levels + dues from the same catalog checkout charges against,
-    // so the payment page opens with the exact amount already set. The field
-    // only appears when the catalog carries priced levels — it is EMPTY today
-    // (Diana, Jul 31 2026: the drafted tiers were not real).
+    // Dues are set by employee count (2026 Annual Membership Dues — Diana via
+    // Felicia, Aug 3 2026): type your count, your exact first-year dues appear,
+    // and Submit goes straight to checkout with that amount locked. Prices come
+    // from the same catalog the server charges against. With the catalog empty
+    // the page degrades to "the office confirms your dues."
     (async function () {
+      var mems = [];
       try {
         var d = await (await fetch(ChamberAPI.url('/api/skus'))).json();
-        var sel = document.getElementById('joinLevel');
-        var added = 0;
-        (d.memberships || []).forEach(function (m) {
-          if (m.amount == null) return;
-          var o = document.createElement('option');
-          o.value = m.label + ' — $' + m.amount + '/year';
-          o.textContent = m.label + ' — $' + m.amount + '/year' + (m.popular ? ' (most popular)' : '');
-          o.dataset.sku = m.sku;
-          sel.appendChild(o);
-          added++;
+        mems = (d.memberships || []).filter(function (m) { return m.amount != null; });
+      } catch (e) { /* catalog unavailable — the office follows up either way */ }
+      if (!mems.length) return;
+
+      var sel = document.getElementById('joinLevel');
+      mems.forEach(function (m) {
+        var o = document.createElement('option');
+        o.value = m.label + ' — $' + m.amount + ' first year';
+        o.textContent = o.value;
+        o.dataset.sku = m.sku;
+        sel.appendChild(o);
+      });
+
+      var emp = document.querySelector('#joinForm [name="employees"]');
+      var np = document.getElementById('joinNonprofit');
+      var dues = document.getElementById('joinDues');
+      emp.required = true;
+      document.getElementById('joinNonprofitField').hidden = false;
+      document.getElementById('joinIntro').textContent = 'Dues are set by your number of employees — enter your count below and your exact dues appear. Submit your application and pay online in one step.';
+      document.getElementById('joinDuesMeta').textContent = 'Dues scale with your business size — your exact dues appear as you type your employee count above.';
+
+      function bracketFor(n, nonprofit) {
+        if (!(n >= 1)) return null;
+        var pool = mems.filter(function (m) { return nonprofit ? m.nonprofit : !m.nonprofit; });
+        var hit = pool.find(function (m) {
+          return n >= (m.minEmployees || 1) && (m.maxEmployees == null || n <= m.maxEmployees);
         });
-        if (added) document.getElementById('joinLevelField').hidden = false;
-      } catch (e) { /* levels unavailable — the office follows up either way */ }
+        // A non-profit over 50 employees follows the general schedule (per the sheet).
+        return hit || (nonprofit ? bracketFor(n, false) : null);
+      }
+      function fmt(x) { return '$' + Number(x).toLocaleString('en-US'); }
+      function update() {
+        var n = parseInt(emp.value, 10);
+        var m = bracketFor(n, np.checked);
+        sel.value = '';
+        if (!m) { dues.hidden = true; return; }
+        var opt = Array.prototype.find.call(sel.options, function (o) { return o.dataset && o.dataset.sku === m.sku; });
+        if (opt) sel.value = opt.value;
+        dues.hidden = false;
+        dues.innerHTML = '<strong>Your first-year dues: ' + fmt(m.amount) + '</strong> — '
+          + fmt(m.dues != null ? m.dues : m.amount) + ' annual dues'
+          + (m.activation ? ' + a one-time ' + fmt(m.activation) + ' activation fee' : '') + '.'
+          + (np.checked && !m.nonprofit ? '<br><span class="member-tile__meta">Non-profits with more than 50 employees follow the standard dues schedule.</span>' : '')
+          + '<br><span class="member-tile__meta">Submit your application below and you’ll go straight to secure payment for this amount.</span>';
+      }
+      emp.addEventListener('input', update);
+      np.addEventListener('change', update);
+      update();
     })();
     Chamber.initLeadForm('joinForm', 'joinMsg', 'membership-application', {
       // Application in → straight to payment with the dues populated
