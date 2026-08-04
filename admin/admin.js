@@ -1542,7 +1542,7 @@ window.Admin = (function () {
             <img src="${esc(a.cover || '../images/wvwccc-logo.png')}" alt="" style="width:104px;height:78px;object-fit:cover;border-radius:8px;border:1px solid var(--line,#ddd);background:var(--forest,#1E5631)">
             <div style="flex:1;min-width:220px">
               <input data-abf="title" value="${esc(a.title)}" style="width:100%;font-weight:700">
-              <p class="sub" style="margin:4px 0 0">${a.count} photo${a.count === 1 ? '' : 's'}${tags ? ' · ' + tags : ''}</p>
+              <p class="sub" style="margin:4px 0 0">${a.count} photo${a.count === 1 ? '' : 's'}${tags ? ' · ' + tags : ''} · drag photos onto this card to add them</p>
               <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
                 <label class="btn btn--gold btn--sm" style="cursor:pointer">⬆ Upload photos<input type="file" accept="image/*" multiple hidden data-abup></label>
                 <button type="button" class="btn btn--ghost btn--sm" data-ablib>📁 Add from Image Library</button>
@@ -1577,6 +1577,27 @@ window.Admin = (function () {
       say(listMsg, `Added ${urls.length} photo${urls.length === 1 ? '' : 's'} ✓ — live on the album page now.`);
       load();
     };
+    // One upload path for the file picker AND drag-and-drop. Diana dragged
+    // photos onto this page (Aug 3 2026, her "Drag and drop" video) and the
+    // browser just opened the image — nothing here accepted a drop.
+    const uploadFiles = async (id, files) => {
+      files = files.filter((f) => /^image\//.test(f.type || '')).slice(0, 40);
+      if (!files.length) return say(listMsg, 'Those weren’t image files — drop JPG or PNG photos.', true);
+      say(listMsg, `Uploading ${files.length} photo${files.length === 1 ? '' : 's'}…`);
+      const urls = [];
+      for (const f of files) {
+        try {
+          const dataUrl = await downscaleImage(f, 1800, 0.85);
+          const up = await api('/api/me/asset', { method: 'POST', body: JSON.stringify({ dataUrl }) });
+          if (up && up.url) urls.push(up.url);
+        } catch (err) { /* skip that one */ }
+      }
+      if (!urls.length) return say(listMsg, 'None of those uploaded — try smaller files.', true);
+      try { await addPhotos(id, urls); } catch (err) { say(listMsg, 'Could not add the photos.', true); }
+    };
+    // A drop that misses an album card must not navigate the tab to the image.
+    document.addEventListener('dragover', (e) => e.preventDefault());
+    document.addEventListener('drop', (e) => e.preventDefault());
 
     function bindRows() {
       listEl.querySelectorAll('[data-ab]').forEach((row) => {
@@ -1585,20 +1606,23 @@ window.Admin = (function () {
           try { await save(id, { title: e.target.value }); say(listMsg, 'Renamed ✓'); } catch (err) { say(listMsg, 'Could not rename.', true); }
         });
         row.querySelector('[data-abup]').addEventListener('change', async (e) => {
-          const files = Array.from(e.target.files || []).slice(0, 40);
+          const files = Array.from(e.target.files || []);
           e.target.value = '';
-          if (!files.length) return;
-          say(listMsg, `Uploading ${files.length} photo${files.length === 1 ? '' : 's'}…`);
-          const urls = [];
-          for (const f of files) {
-            try {
-              const dataUrl = await downscaleImage(f, 1800, 0.85);
-              const up = await api('/api/me/asset', { method: 'POST', body: JSON.stringify({ dataUrl }) });
-              if (up && up.url) urls.push(up.url);
-            } catch (err) { /* skip that one */ }
-          }
-          if (!urls.length) return say(listMsg, 'None of those uploaded — try smaller files.', true);
-          try { await addPhotos(id, urls); } catch (err) { say(listMsg, 'Could not add the photos.', true); }
+          if (files.length) await uploadFiles(id, files);
+        });
+        // Drag photos from a folder straight onto the album card.
+        ['dragenter', 'dragover'].forEach((t) => row.addEventListener(t, (e) => {
+          e.preventDefault();
+          row.style.outline = '2px dashed var(--gold,#C9A227)'; row.style.outlineOffset = '-2px';
+        }));
+        row.addEventListener('dragleave', (e) => {
+          if (row.contains(e.relatedTarget)) return;
+          row.style.outline = '';
+        });
+        row.addEventListener('drop', (e) => {
+          e.preventDefault(); row.style.outline = '';
+          const files = Array.from((e.dataTransfer && e.dataTransfer.files) || []);
+          if (files.length) uploadFiles(id, files);
         });
         row.querySelector('[data-ablib]').addEventListener('click', async () => {
           const urls = await pickImage({ multiple: true, title: 'Add photos from the Image Library', max: 40 });
