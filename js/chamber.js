@@ -64,6 +64,7 @@ window.Chamber = (function () {
     'Search': 'Buscar', 'All categories': 'Todas las categorías', 'All areas': 'Todas las áreas',
     'All': 'Todos', 'Clear ✕': 'Limpiar ✕', 'Clear filters': 'Limpiar filtros',
     'No members match those filters.': 'Ningún miembro coincide con esos filtros.',
+    'Chamber members attend free — use RSVP. Guests:': 'Los miembros de la Cámara asisten gratis — use RSVP. Invitados:',
     'Loading…': 'Cargando…', 'Loading member restaurants…': 'Cargando restaurantes miembros…',
     'Could not load right now.': 'No se pudo cargar ahora.',
     'member': 'miembro', 'members': 'miembros',
@@ -436,6 +437,19 @@ window.Chamber = (function () {
     // nor a payment, so it shows no button anywhere (Felicia, Jul 30 2026).
     const cta = ev.hideCta ? ''
       : (ev.soldOut ? soldOutBtn() : (ev.ticketed ? (ev.alsoRsvp ? rsvpBtn + ' ' + buyBtn : buyBtn) : rsvpBtn.replace('>RSVP<', '>RSVP / Notify me<')));
+    // A member paid $15 for a free-to-members mixer (Felicia + Diana, Aug 3
+    // 2026): with just "RSVP" and a gold "Purchase" side by side, nothing on
+    // THIS page says which button is whose — the first hint was a note at
+    // checkout, after the wrong click. When the tiers split free-member /
+    // paid-guest, say so right under the buttons.
+    const tkLive = (t) => t.available !== false && !t.soldOut;
+    const freeMemberTier = ev.ticketed && ev.alsoRsvp && Array.isArray(ev.ticketTypes)
+      && ev.ticketTypes.some((t) => tkLive(t) && String(t.group || '').toLowerCase() === 'member' && !(Number(t.price) > 0));
+    const paidGuestTier = freeMemberTier
+      && ev.ticketTypes.find((t) => tkLive(t) && String(t.group || '').toLowerCase() === 'guest' && Number(t.price) > 0);
+    const ctaHint = (!ev.hideCta && !ev.soldOut && paidGuestTier)
+      ? `<p class="member-tile__meta" style="margin:6px 0 0;text-align:right">${tr('Chamber members attend free — use RSVP. Guests:')} $${Number(paidGuestTier.price).toFixed(2)}.</p>`
+      : '';
     const desc = ev.description || ev.summary || '';
     // Rich description (admin editor) renders as sanitized HTML; plain text is
     // escaped + auto-linked so pasted URLs and "click here" links actually work.
@@ -469,7 +483,7 @@ window.Chamber = (function () {
           <div class="ev-card__foot">
             ${ev.confirmed ? calendarMenu(ev) : ''}
             ${shareMenu(ev.title, shareUrl)}
-            <div class="ev-card__cta">${cta}</div>
+            <div class="ev-card__cta">${cta}${ctaHint}</div>
           </div>
         </div>
       </div>`;
