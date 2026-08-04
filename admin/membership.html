@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="robots" content="noindex" />
-  <title>Inquiries — WVWCCC Admin</title>
+  <title>Membership — WVWCCC Admin</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="../css/chamber.css" />
@@ -14,21 +14,21 @@
   <div class="admin-shell">
     <aside class="admin-sidebar" data-admin-nav></aside>
     <div class="admin-main">
-      <div class="admin-topbar"><h1>Inquiries &amp; notifications</h1></div>
+      <div class="admin-topbar"><h1>Membership — applications &amp; interest</h1></div>
       <div class="admin-content">
         <p id="adminError" class="admin-notice" hidden></p>
-        <p class="admin-notice">Every inquiry from the website lands here — in its own section — so nothing lives only in email. Membership applications and interest now have <a href="membership.html">their own Membership tab</a>; screened junk waits at the bottom under Spam. Click any name to open the full message.</p>
+        <p class="admin-notice"><strong>Pending applications</strong> sit on top — anyone still listed there filled out the application but hasn&rsquo;t been approved yet, so it doubles as your follow-up call list. <strong>Membership interest</strong> (people who asked but haven&rsquo;t applied) is right below. Click any name to open everything they submitted. All other website messages live under <a href="leads.html">Inquiries</a>.</p>
         <div class="panel" style="padding:12px 16px;margin-bottom:14px">
-          <input id="leadSearch" type="search" placeholder="🔎 Search inquiries — name, email, event, message…" autocomplete="off"
+          <input id="leadSearch" type="search" placeholder="🔎 Search applications &amp; interest — name, email, company, message…" autocomplete="off"
                  style="width:100%;padding:10px 12px;border:1.5px solid var(--line,#d8d2bf);border-radius:10px;font:inherit" />
         </div>
-        <div id="leadSections"><!-- one panel per inquiry type, rendered by admin.js --></div>
+        <div id="leadSections"><!-- Membership applications + Membership interest, rendered by admin.js --></div>
       </div>
     </div>
   </div>
   <script src="../js/api-base.js"></script>
   <script src="admin.js?v=20260804a"></script>
-  <script>Admin.initLeads();</script>
+  <script>Admin.initLeads('membership');</script>
   <script defer src="/js/support.js?v=20260701a"></script>
 </body>
 </html>

@@ -1005,6 +1005,7 @@ let _urbrandPhotosChecked = false;
 let _confirmPublishedChecked = false;
 let _galaSoldOutChecked = false;
 let _mixerPricesChecked = false;
+let _foodWineButtonChecked = false;
 let _galaAlbumChecked = false;
 let _galaPopupChecked = false;
 async function ensureEventsSeeded() {
@@ -1169,6 +1170,30 @@ async function ensureEventsSeeded() {
         await repo.setSetting(KEY, `repaired ${fixed} event(s) @ ${new Date().toISOString()}`);
       }
     } catch (e) { _mixerPricesChecked = false; console.error('ticket price repair failed (will retry next boot)', e); }
+  }
+  /* One-time (Aug 3 2026, per Felicia + Diana's call): the Oct 21 Food & Wine
+     (le-11262) had four priced ticket rows and the custom button label
+     "Sponsor/Exhibit/Purchase" saved, but ticketed was still false — the office
+     set the prices and the wording without switching the Action button off
+     "RSVP", so the public page kept a plain RSVP button and the prices were
+     unreachable. Flip it to ticket sales. Narrow on purpose: only this event,
+     and only while it still has priced rows but no ticket button. The marker
+     means the office can change the button from Admin → Events later without a
+     redeploy flipping it back. */
+  if (!_foodWineButtonChecked) {
+    _foodWineButtonChecked = true;
+    try {
+      const KEY = 'foodWineTicketButton-20260804';
+      if (!(await repo.getSetting(KEY))) {
+        const fw = (await repo.listEventsStore()).find((e) => e.id === 'le-11262');
+        const priced = fw && Array.isArray(fw.ticketTypes) && fw.ticketTypes.some((t) => (Number(t.price) || 0) > 0);
+        if (fw && priced && !fw.ticketed && !fw.soldOut && !fw.hideCta) {
+          await repo.upsertEvent(buildEvent({ ticketed: true, alsoRsvp: false }, fw));
+          console.log('[events] one-time: Food & Wine (le-11262) switched to ticket sales — its saved prices and "Sponsor/Exhibit/Purchase" button now show');
+        }
+        await repo.setSetting(KEY, `applied @ ${new Date().toISOString()}`);
+      }
+    } catch (e) { _foodWineButtonChecked = false; console.error('food & wine ticket-button flip failed (will retry next boot)', e); }
   }
   /* One-time (Jul 30 2026): stand up the album Diana asked for by name — "a
      photo gallery for the Black and White Gala" — attached to the Gala event

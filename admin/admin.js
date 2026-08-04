@@ -49,6 +49,7 @@ window.Admin = (function () {
     { grp: 'Manage' },
     { href: 'index.html', icon: '▦', label: 'Dashboard', key: 'dashboard' },
     { href: 'members.html', icon: '◉', label: 'Members', key: 'members' },
+    { href: 'membership.html', icon: '📋', label: 'Membership', key: 'membership' },
     { href: 'board.html', icon: '★', label: 'Board & Officers', key: 'board' },
     { href: 'renewals.html', icon: '↻', label: 'Renewals', key: 'renewals' },
     { href: 'approvals.html', icon: '✓', label: 'Approvals', key: 'approvals' },
@@ -182,8 +183,12 @@ window.Admin = (function () {
         `<a style="${rowCss}" href="events.html?focus=${encodeURIComponent(e.id)}"><span>◆</span><span><b>${esc(e.title)}</b><br><span style="color:var(--slate-mid)">${esc(e.date || 'no date')} · ${esc(e.venue || '')}</span></span></a>`).join(''));
       if (O.length) out.push(`<div style="${grpCss}">Payments</div>` + O.map((o) =>
         `<a style="${rowCss}" href="payments.html?q=${encodeURIComponent(q)}"><span>$</span><span><b>$${Number(o.amount || 0).toFixed(2)} — ${esc(o.name || o.email || '')}</b><br><span style="color:var(--slate-mid)">${esc(o.kind || '')} · ${esc(dateOf(o))} · ${esc(o.status || '')}</span></span></a>`).join(''));
-      if (L.length) out.push(`<div style="${grpCss}">Inquiries</div>` + L.map((l) =>
-        `<a style="${rowCss}" href="leads.html?q=${encodeURIComponent(q)}"><span>✉</span><span><b>${esc(l.name || l.email || 'Inquiry')}</b><br><span style="color:var(--slate-mid)">${esc(l.reason || l.kind || '')} · ${esc(dateOf(l))}</span></span></a>`).join(''));
+      if (L.length) out.push(`<div style="${grpCss}">Inquiries</div>` + L.map((l) => {
+        // Membership applications/interest live on their own tab now.
+        const sec = leadSection(l);
+        const dest = (sec === 'membership' || sec === 'interest') ? 'membership.html' : 'leads.html';
+        return `<a style="${rowCss}" href="${dest}?q=${encodeURIComponent(q)}"><span>${sec === 'membership' || sec === 'interest' ? '📋' : '✉'}</span><span><b>${esc(l.name || l.email || 'Inquiry')}</b><br><span style="color:var(--slate-mid)">${esc(l.reason || l.kind || '')} · ${esc(dateOf(l))}</span></span></a>`;
+      }).join(''));
       panel.innerHTML = out.length ? out.join('') : '<div style="padding:12px;color:var(--slate-mid,#6b7a72)">No matches. Try a name, event title, amount, or email.</div>';
     }
     let deb;
@@ -218,7 +223,8 @@ window.Admin = (function () {
     { id: 'sponsors', t: 'Manage sponsors & featured placements', kw: 'sponsor sponsorship featured placement logo advertise', href: 'sponsorships.html', tip: 'Manage featured placements and sponsor logos.' },
     { id: 'users', t: 'Create a login / set staff roles', kw: 'user role staff admin login create account super', href: 'users.html', tip: 'Create logins; Super Admins can set roles and member expirations.' },
     { id: 'payments', t: 'See payments & receipts (and refund)', kw: 'payment pay log receipt dues ticket donation revenue order refund', href: 'payments.html', tip: 'Every payment through the site, with receipts and a Refund button on each paid order.' },
-    { id: 'inquiries', t: 'Read website inquiries (membership / jobs / general / RSVPs)', kw: 'inquiry contact message lead join request membership application rsvp job', href: 'leads.html', tip: 'Every form submission from the website, in separate sections — membership applications, event RSVPs, job inquiries, and general messages.' },
+    { id: 'membership-tab', t: 'See pending membership applications & interest', kw: 'membership pending application prospect interest applied approve join stalled call list', href: 'membership.html', tip: 'Applications waiting for approval sit on top — anyone still listed hasn’t been approved, so it doubles as your follow-up call list. People who only asked about joining are right below.' },
+    { id: 'inquiries', t: 'Read website inquiries (jobs / general / RSVPs)', kw: 'inquiry contact message lead request rsvp job general spam', href: 'leads.html', tip: 'Form submissions from the website in separate sections — event RSVPs, job inquiries, group joins, and general messages. Membership has its own tab now.' },
     { id: 'event-rsvps', t: 'See RSVPs & payments for an event (download list)', kw: 'event rsvp payment attendee list download csv per event', href: 'events.html', tip: 'On any event row, click "RSVPs / $" to see who RSVP\'d and paid — and download the list.' },
     { id: 'event-home', t: 'Pick which events show on the homepage (order 1–4)', kw: 'homepage event order featured pick home 1 2 3 4', href: 'events.html', tip: 'Edit an event → check "Show on homepage" and set Home order 1–4. Only picked events show, in your order.' },
     { id: 'directory-pdf', t: 'Create a PDF of the member directory', kw: 'directory pdf print export download roster book', href: 'members.html', sel: '#dirPdfBtn', tip: 'Click "Directory PDF" for a print-ready directory — use your browser\'s Save as PDF.' },
@@ -677,7 +683,7 @@ window.Admin = (function () {
       // (Roster is the imported live membership; no import-needed notice.)
       const leads = (await api('/api/admin/leads')).leads.slice(0, 5);
       document.getElementById('recentLeads').innerHTML = leads.length
-        ? leads.map((l) => `<tr><td class="sub" style="white-space:nowrap">${esc(String(l.received || '').slice(0, 10))}</td><td><a class="name" href="leads.html" title="Open inquiries">${esc(l.name || '—')}</a><div class="sub">${esc(l.email)}</div></td><td>${esc(l.reason || l.kind)}</td><td>${statusPill(l.status)}</td></tr>`).join('')
+        ? leads.map((l) => { const sec = leadSection(l); const dest = (sec === 'membership' || sec === 'interest') ? 'membership.html' : 'leads.html'; return `<tr><td class="sub" style="white-space:nowrap">${esc(String(l.received || '').slice(0, 10))}</td><td><a class="name" href="${dest}" title="Open ${sec === 'membership' || sec === 'interest' ? 'membership' : 'inquiries'}">${esc(l.name || '—')}</a><div class="sub">${esc(l.email)}</div></td><td>${esc(l.reason || l.kind)}</td><td>${statusPill(l.status)}</td></tr>`; }).join('')
         : '<tr><td colspan="4" class="sub">No inquiries yet.</td></tr>';
     } catch (e) { showAuthError(e); }
 
@@ -1739,14 +1745,18 @@ window.Admin = (function () {
     if (kind === 'group-join') return 'groups';
     return 'general';
   }
-  async function initLeads() {
-    mountShell('leads');
+  // One implementation, two tabs: Membership (applications + interest — its
+  // own top-nav page so pending applications never mix into the inquiry
+  // scroll; Felicia, Aug 3 2026) and Inquiries (everything else, incl. Spam).
+  async function initLeads(mode) {
+    const memberTab = mode === 'membership';
+    mountShell(memberTab ? 'membership' : 'leads');
     const host = document.getElementById('leadSections');
     const searchEl = document.getElementById('leadSearch');
-    // Deep link from the global quick search: leads.html?q=…
+    // Deep link from the global quick search: leads.html?q=… / membership.html?q=…
     if (searchEl) searchEl.value = new URLSearchParams(location.search).get('q') || '';
     const SECTIONS = [
-      ['membership', '◉ Membership applications', 'Completed applications from the Join page — click a name to read the full application, then ✓ Approve &amp; add sets up the membership.'],
+      ['membership', '◉ Membership applications', 'Completed applications from the Join page — click a name to read the full application, then ✓ Approve &amp; add sets up the membership. Anyone still here hasn’t been approved yet — if they stalled, this is your call list.'],
       ['interest', '☎ Membership interest', 'People who asked about joining — from an industry page or the contact form — but haven’t filled out the application yet. Call or email them back.'],
       ['ribbon', '🎀 Ribbon cutting requests', 'These now have their own workflow page — <a href="ribbon-cuttings.html">manage them under Ribbon Cuttings</a> (call → set date → flyer → publish). The quick-approve below still works for simple ones.'],
       ['rsvp', '◆ Event RSVPs', 'RSVPs sent from event pages. Per-event lists (with download) live on the Events page.'],
@@ -1754,7 +1764,7 @@ window.Admin = (function () {
       ['groups', '◎ Group join requests', 'Requests to join a group / Connection Circle (also visible on the Groups page).'],
       ['general', '✉ General inquiries', 'Everything else from the contact form.'],
       ['spam', '🚫 Spam', 'Caught by the spam screen — kept here, never deleted. If something real landed here, mark it <strong>New</strong> and it returns to its section.'],
-    ];
+    ].filter(([key]) => (key === 'membership' || key === 'interest') === memberTab);
     let all = [];
     const markOptions = (s) => ['new', 'read', 'done', 'spam']
       .map((v) => `<option value="${v}"${s === v ? ' selected' : ''}>${v === 'spam' ? 'Spam' : v[0].toUpperCase() + v.slice(1)}</option>`).join('');
@@ -1817,7 +1827,7 @@ window.Admin = (function () {
           <button type="button" class="btn btn--ghost btn--sm" data-x aria-label="Close">✕ Close</button>
         </div>
         <p class="sub" style="margin:4px 0 14px">Received ${esc(recvd)} · ${statusPill(l.status)}</p>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;overflow-wrap:anywhere">
           ${item('Name', esc(l.name || '—'))}
           ${item('Company', l.company && esc(l.company))}
           ${item('Email', l.email && `<a href="mailto:${esc(l.email)}">${esc(l.email)}</a>`)}
@@ -2445,7 +2455,17 @@ window.Admin = (function () {
       });
       const paid = rows.filter((t) => tkPrice(t) > 0 && !t.soldOut).length;
       const free = rows.filter((t) => tkPrice(t) <= 0 && !t.soldOut).length;
-      prev.innerHTML = `<p class="sub" style="margin:0 0 6px"><strong>What a visitor sees in the checkout drop-down</strong></p>
+      // No visitor can reach that drop-down while the Action button is "RSVP"
+      // (Felicia + Diana, Aug 3 2026: the Food & Wine's four prices were saved
+      // but the button never changed, so the office proofread a screen the
+      // public couldn't get to).
+      const ctaNow = form.ctaKind ? form.ctaKind.value : 'rsvp';
+      const ctaTyped = form.ctaLabel ? form.ctaLabel.value.trim() : '';
+      const unreachable = ctaNow === 'rsvp' && rows.some((t) => tkPrice(t) > 0 && !t.soldOut);
+      prev.innerHTML = (unreachable
+        ? `<p style="margin:0 0 8px;color:var(--red,#b00020);font-weight:600">⚠ These prices are not for sale yet — the Action button above is set to “RSVP (free)”, so visitors only get a free RSVP button and never see this drop-down${ctaTyped ? `, and the button reads “RSVP”, not “${esc(ctaTyped)}”` : ''}. Switch it to “Buy tickets” (or “Both”).</p>`
+        : '')
+        + `<p class="sub" style="margin:0 0 6px"><strong>What a visitor sees in the checkout drop-down</strong></p>
         <div style="border:1px solid var(--line,#ddd);border-radius:8px;padding:8px 11px;background:#fff;font-size:.92rem">
           ${groups.map((b) => `${b.g ? `<div style="font-weight:700;margin:3px 0 1px">${esc(b.g)}</div>` : ''}${b.items.map((t) => `<div style="padding:1px 0 1px ${b.g ? '15px' : '0'}">${esc(tkPreviewLabel(t))}</div>`).join('')}`).join('')}
         </div>
@@ -2494,6 +2514,10 @@ window.Admin = (function () {
       tixWrap.querySelectorAll('[data-rmtk]').forEach((b) => b.addEventListener('click', () => { ticketTypes.splice(+b.dataset.rmtk, 1); renderTickets(); }));
       refreshTicketHints();
     }
+    // The unreachable-prices warning depends on the Action button and the
+    // custom wording too, so those also refresh the hints.
+    if (form.ctaKind) form.ctaKind.addEventListener('change', refreshTicketHints);
+    if (form.ctaLabel) form.ctaLabel.addEventListener('input', refreshTicketHints);
 
     // Images may carry a click-through link (e.g. a sponsor logo → their site).
     const imgSrcOf = (it) => (typeof it === 'string' ? it : (it && it.src) || '');
@@ -2915,6 +2939,24 @@ window.Admin = (function () {
         + 'Until you add one under "Ticket prices", anyone clicking it sees '
         + '"Registration for this event isn\'t set up online yet" and is asked to call the office.\n\n'
         + 'Save anyway and add the prices later?')) return;
+      // The mirror image of the check above (Felicia + Diana, Aug 3 2026): the
+      // Oct 21 Food & Wine had four priced rows and the label
+      // "Sponsor/Exhibit/Purchase" typed in, but the Action button was still
+      // "RSVP" — so the public page kept a plain RSVP button, the prices were
+      // unreachable, and re-saving changed nothing. Offer the switch instead of
+      // silently saving a form that hides its own prices.
+      const pricedRows = body.ticketTypes.filter((t) => (Number(t.price) || 0) > 0 && t.available !== false);
+      if (!body.ticketed && !body.soldOut && !body.hideCta && pricedRows.length) {
+        if (confirm(
+          `You entered ${pricedRows.length === 1 ? 'a ticket price' : pricedRows.length + ' ticket prices'}, but the Action button is set to "RSVP (free)" — `
+          + 'visitors would only see a free RSVP button and could never reach the prices.'
+          + (body.ctaLabel ? `\n(The button would also say "RSVP", not "${body.ctaLabel}" — custom wording only applies to the ticket button.)` : '')
+          + '\n\nOK — switch the button to "Buy tickets" and save'
+          + '\nCancel — save as-is, RSVP only')) {
+          form.ctaKind.value = 'buy';
+          body.ticketed = true; body.alsoRsvp = false;
+        }
+      }
       if (!body.title) { msg.hidden = false; msg.textContent = 'Title is required.'; return; }
       // A price whose name and amount disagree is the costliest mistake on this
       // form: it either charges nothing for a $15 ticket or charges for
