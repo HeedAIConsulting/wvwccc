@@ -295,9 +295,11 @@ window.ChamberPartials = (function () {
     };
     if (!document.getElementById('wv-guidepromo-css')) {
       const st = document.createElement('style'); st.id = 'wv-guidepromo-css';
-      // Top of the bottom-left utility stack: Support (24) → ADA (84) → this card (152).
+      // Top of the bottom-left utility stack. Public site: ADA (24) → this card
+      // (92). Member portal, which still carries the Support pill: Support (24)
+      // → ADA (84) → this card (168), via the .wv-has-support rule below.
       // Keep offsets in sync with support.js + accessibility.js.
-      st.textContent = '.guide-promo{position:fixed;left:24px;bottom:168px;z-index:1200;max-width:340px;'
+      st.textContent = '.guide-promo{position:fixed;left:24px;bottom:92px;z-index:1200;max-width:340px;'
         + 'background:var(--green-ink,#1b3326);color:#fff;border-radius:14px;padding:18px 20px;'
         + 'box-shadow:0 18px 48px rgba(0,0,0,.32);border:1px solid rgba(201,162,39,.45);'
         + 'background-image:radial-gradient(ellipse at 90% 0%,rgba(201,162,39,.22),transparent 60%);'
@@ -310,7 +312,9 @@ window.ChamberPartials = (function () {
         + '.guide-promo__close{position:absolute;top:8px;right:10px;background:none;border:none;color:rgba(255,255,255,.6);font-size:1.1rem;cursor:pointer;line-height:1;padding:4px}'
         + '.guide-promo__close:hover{color:#fff}'
         + '.guide-promo__later{background:none;border:none;color:rgba(255,255,255,.62);font-size:.8rem;cursor:pointer;text-decoration:underline;padding:0}'
-        + '@media(max-width:560px){.guide-promo{left:12px;right:12px;max-width:none;bottom:168px}}';
+        + '.wv-has-support .guide-promo{bottom:168px}'
+        + '@media(max-width:560px){.guide-promo{left:12px;right:12px;max-width:none;bottom:92px}'
+          + '.wv-has-support .guide-promo{bottom:168px}}';
       document.head.appendChild(st);
     }
     const card = document.createElement('aside');
@@ -446,16 +450,22 @@ window.ChamberPartials = (function () {
     if (/\/admin\//.test(window.location.pathname)) return;
     if (document.querySelector('script[src*="accessibility.js"]')) return;
     var s = document.createElement('script');
-    s.src = p(depth, 'js/accessibility.js') + '?v=20260701a'; s.async = true;
+    s.src = p(depth, 'js/accessibility.js') + '?v=20260804c'; s.async = true;
     document.body.appendChild(s);
   }
 
   // Global "Support" widget (login/feature/website-issue reports + screenshot).
-  // Injected on every page that mounts partials; support.js self-guards a double load.
+  // Felicia, Aug 4 2026: "the ADA and support buttons are in the way on mobile
+  // — remove the support one and just leave the ADA." Removed from the PUBLIC
+  // site rather than only hidden on small screens, because that button opens a
+  // Heed support ticket: a visitor who clicked it was writing to us, not to the
+  // Chamber, when what they wanted was the Contact page. The office keeps it
+  // everywhere they actually work — every admin page and every member-portal
+  // page loads js/support.js from its own <script> tag, not from here.
   function mountSupport() {
     if (window.__wvSupport || document.querySelector('script[data-wv-support], script[src*="js/support.js"]')) return;
     const s = document.createElement('script');
-    s.src = '/js/support.js?v=20260701a'; s.defer = true; s.setAttribute('data-wv-support', '');
+    s.src = '/js/support.js?v=20260804c'; s.defer = true; s.setAttribute('data-wv-support', '');
     document.head.appendChild(s);
   }
 
@@ -568,7 +578,6 @@ window.ChamberPartials = (function () {
     mountAccessibility(depth);
     mountPageTransition(depth);
     mountGuidePromo(depth, lang);
-    mountSupport();
 
     // Sticky header lifts off the page once scrolled (soft shadow).
     const hdr = document.querySelector('.site-header');

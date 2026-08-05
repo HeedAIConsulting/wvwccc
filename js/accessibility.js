@@ -61,11 +61,15 @@
 
   // ── Inject styles ────────────────────────────────────────────
   var STYLES = '\
-  /* Floating button — sits ABOVE the Support pill (bottom:24) in the\
-     bottom-left utility stack (Support → ADA → guide promo). Keep offsets\
-     in sync with support.js + partials.js mountGuidePromo. */\
+  /* Floating button — bottom of the left-hand utility stack on the public\
+     site, where it is now the ONLY button (Felicia, Aug 4 2026: the Support\
+     pill was in the way on mobile). On the member portal the Support pill is\
+     still there, and support.js stamps .wv-has-support on <html> when it\
+     mounts one — that pushes this button up to clear it. Order-independent:\
+     the rule applies whenever the class lands. Keep offsets in sync with\
+     support.js + partials.js mountGuidePromo. */\
   .wv-a11y-btn {\
-    position: fixed; bottom: 84px; left: 24px; z-index: 99996;\
+    position: fixed; bottom: 24px; left: 24px; z-index: 99996;\
     width: 56px; height: 56px; border-radius: 50%;\
     background: #1E5631; color: #C9A227;\
     display: flex; align-items: center; justify-content: center;\
@@ -76,11 +80,12 @@
   }\
   .wv-a11y-btn:hover { transform: scale(1.07); box-shadow: 0 12px 32px rgba(0,0,0,0.35); }\
   .wv-a11y-btn:focus-visible { outline: 3px solid #C9A227; outline-offset: 4px; }\
+  .wv-has-support .wv-a11y-btn { bottom: 84px; }\
 \
   /* Panel */\
   .wv-a11y-panel {\
-    position: fixed; bottom: 152px; left: 24px; z-index: 99997;\
-    width: 360px; max-height: calc(100vh - 176px); overflow-y: auto;\
+    position: fixed; bottom: 92px; left: 24px; z-index: 99997;\
+    width: 360px; max-height: calc(100vh - 116px); overflow-y: auto;\
     background: #fff; color: #15202B;\
     border-radius: 14px; padding: 20px;\
     box-shadow: 0 24px 56px rgba(30,86,49,0.30);\
@@ -88,6 +93,7 @@
     display: none;\
   }\
   .wv-a11y-panel.is-open { display: block; }\
+  .wv-has-support .wv-a11y-panel { bottom: 152px; max-height: calc(100vh - 176px); }\
   .wv-a11y-panel__head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid #E5E0D2; }\
   .wv-a11y-panel__title { font-family: "Source Serif Pro", Cambria, Georgia, serif; font-weight: 700; font-size: 1.1rem; color: #1E5631; margin: 0; }\
   .wv-a11y-panel__close { background: none; border: none; font-size: 1.4rem; cursor: pointer; color: #6B7280; padding: 4px 8px; border-radius: 4px; }\

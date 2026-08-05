@@ -39,6 +39,11 @@
   var shot = null; // { dataUrl }
   function mountBtn() {
     if (document.querySelector('.wv-sup-btn')) return;
+    // Tell the rest of the left-hand stack a Support pill is here, so the ADA
+    // button and guide promo sit ABOVE it. Without this they default to the
+    // bottom, which is correct on the public site (no Support pill there since
+    // Aug 4 2026) and would overlap here.
+    document.documentElement.classList.add('wv-has-support');
     var b = document.createElement('button');
     b.className = 'wv-sup-btn'; b.type = 'button';
     b.setAttribute('aria-label', 'Get help or report a problem');
