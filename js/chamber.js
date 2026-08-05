@@ -65,6 +65,9 @@ window.Chamber = (function () {
     'All': 'Todos', 'Clear ✕': 'Limpiar ✕', 'Clear filters': 'Limpiar filtros',
     'No members match those filters.': 'Ningún miembro coincide con esos filtros.',
     'Chamber members attend free — use RSVP. Guests:': 'Los miembros de la Cámara asisten gratis — use RSVP. Invitados:',
+    'Play as a slideshow': 'Ver como presentación', 'Previous photo': 'Foto anterior', 'Next photo': 'Foto siguiente',
+    'Pause': 'Pausar', 'Play': 'Reproducir', 'Speed': 'Velocidad', 'Mute music': 'Silenciar música',
+    'Full screen': 'Pantalla completa', 'Close': 'Cerrar',
     'Loading…': 'Cargando…', 'Loading member restaurants…': 'Cargando restaurantes miembros…',
     'Could not load right now.': 'No se pudo cargar ahora.',
     'member': 'miembro', 'members': 'miembros',
@@ -877,14 +880,175 @@ window.Chamber = (function () {
       <h1>${esc(album.title)}</h1>
       ${album.body ? `<p class="lead" style="max-width:62ch">${esc(album.body)}</p>` : ''}
       <p class="member-tile__meta">${album.count} photo${album.count === 1 ? '' : 's'}</p>
-      ${shareMenu(album.title, albumUrl(album))}`;
+      <div class="btn-row mt-3">
+        ${album.photos.length ? `<button type="button" class="btn btn--gold" id="albPlay">▶ ${tr('Play as a slideshow')}</button>` : ''}
+        ${shareMenu(album.title, albumUrl(album))}
+      </div>`;
     grid.innerHTML = album.photos.length
       ? album.photos.map((p, i) => photoFigure(p, i, album)).join('')
       : '<p class="notice">No photos in this album yet.</p>';
     bindLightbox(grid, album.photos);
+    document.getElementById('albPlay')?.addEventListener('click', () => playSlideshow(album, 0));
     mountAlbumUpload(album);
     if (location.hash) { const t = document.querySelector(location.hash); if (t) t.scrollIntoView({ block: 'center' }); }
   }
+  /* "Play as a slideshow" — the album as a video without rendering one.
+     A 683-photo album is nobody's idea of a scroll, and an encoded MP4 would
+     be a huge file the office would have to re-make every time they add a
+     photo. This plays the same photos full-screen with crossfades and an
+     optional soundtrack, so it is always in step with the album.
+     Deliberate choices: full-size images (this is the "look at the photos"
+     mode, not the grid), only the next couple preloaded so a phone on data
+     never pulls the whole album, and the whole thing honours
+     prefers-reduced-motion by cutting instead of drifting. */
+  function playSlideshow(album, startAt) {
+    const photos = album.photos || [];
+    if (!photos.length) return;
+    const calm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let i = Math.max(0, Math.min(startAt || 0, photos.length - 1));
+    let playing = true;
+    let secs = 5;
+    let timer = null;
+
+    const ov = document.createElement('div');
+    ov.className = 'wv-show';
+    ov.setAttribute('role', 'dialog');
+    ov.setAttribute('aria-modal', 'true');
+    ov.setAttribute('aria-label', album.title + ' — slideshow');
+    ov.innerHTML = `
+      <div class="wv-show__stage">
+        <img class="wv-show__img" alt="">
+        <img class="wv-show__img wv-show__img--next" alt="" aria-hidden="true">
+      </div>
+      <div class="wv-show__bar" aria-hidden="true"><span class="wv-show__fill"></span></div>
+      <div class="wv-show__cap"></div>
+      <div class="wv-show__ui">
+        <button type="button" data-sh="prev" aria-label="${tr('Previous photo')}">‹</button>
+        <button type="button" data-sh="play" aria-label="${tr('Pause')}">❚❚</button>
+        <button type="button" data-sh="next" aria-label="${tr('Next photo')}">›</button>
+        <span class="wv-show__n" aria-live="polite"></span>
+        <label class="wv-show__spd">${tr('Speed')}
+          <select data-sh="speed">
+            <option value="3">3s</option><option value="5" selected>5s</option>
+            <option value="8">8s</option><option value="12">12s</option>
+          </select></label>
+        ${album.music ? `<button type="button" data-sh="mute" aria-label="${tr('Mute music')}">🔊</button>` : ''}
+        <button type="button" data-sh="full" aria-label="${tr('Full screen')}">⛶</button>
+        <button type="button" data-sh="x" aria-label="${tr('Close')}">✕ ${tr('Close')}</button>
+      </div>`;
+
+    const imgA = ov.querySelector('.wv-show__img:not(.wv-show__img--next)');
+    const imgB = ov.querySelector('.wv-show__img--next');
+    const fill = ov.querySelector('.wv-show__fill');
+    const capEl = ov.querySelector('.wv-show__cap');
+    const nEl = ov.querySelector('.wv-show__n');
+    const playBtn = ov.querySelector('[data-sh="play"]');
+    let front = imgA, back = imgB;
+
+    // The click that opened this counts as the gesture browsers require, so
+    // audio is allowed to start. It still may fail on some phones — never let
+    // that stop the pictures.
+    let audio = null;
+    if (album.music) {
+      audio = new Audio(album.music);
+      audio.loop = true;
+      audio.volume = 0.55;
+      audio.play().catch(() => {});
+    }
+
+    const preload = (n) => {
+      for (let k = 1; k <= 2; k++) {
+        const p = photos[(n + k) % photos.length];
+        if (p) { const im = new Image(); im.src = p.url; }
+      }
+    };
+
+    function show(n, instant) {
+      i = (n + photos.length) % photos.length;
+      const p = photos[i];
+      back.src = p.url;
+      const swap = () => {
+        back.classList.add('is-on');
+        front.classList.remove('is-on');
+        const t = front; front = back; back = t;
+        capEl.textContent = p.caption || '';
+        capEl.style.display = p.caption ? '' : 'none';
+        nEl.textContent = (i + 1) + ' / ' + photos.length;
+        preload(i);
+      };
+      if (instant || calm || back.complete) swap();
+      else back.onload = swap;
+      restart();
+    }
+
+    function restart() {
+      clearTimeout(timer);
+      fill.style.transition = 'none';
+      fill.style.width = '0%';
+      if (!playing) return;
+      // Next frame, so the reset above actually paints before the run starts.
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        fill.style.transition = `width ${secs}s linear`;
+        fill.style.width = '100%';
+      }));
+      timer = setTimeout(() => show(i + 1), secs * 1000);
+    }
+
+    const setPlaying = (on) => {
+      playing = on;
+      playBtn.textContent = on ? '❚❚' : '▶';
+      playBtn.setAttribute('aria-label', on ? tr('Pause') : tr('Play'));
+      if (audio) { if (on) audio.play().catch(() => {}); else audio.pause(); }
+      if (on) restart(); else { clearTimeout(timer); fill.style.transition = 'none'; }
+    };
+
+    const close = () => {
+      clearTimeout(timer);
+      if (audio) { audio.pause(); audio.src = ''; }
+      document.removeEventListener('keydown', onKey);
+      if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+      ov.remove();
+      document.body.style.overflow = '';
+    };
+
+    function onKey(e) {
+      if (e.key === 'Escape') return close();
+      if (e.key === 'ArrowRight') { setPlaying(false); show(i + 1, true); }
+      if (e.key === 'ArrowLeft') { setPlaying(false); show(i - 1, true); }
+      if (e.key === ' ') { e.preventDefault(); setPlaying(!playing); }
+      if (e.key.toLowerCase() === 'm' && audio) { audio.muted = !audio.muted; ov.querySelector('[data-sh="mute"]').textContent = audio.muted ? '🔇' : '🔊'; }
+    }
+
+    ov.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-sh]');
+      if (!b) return;
+      const a = b.dataset.sh;
+      if (a === 'x') return close();
+      if (a === 'prev') { setPlaying(false); show(i - 1, true); }
+      if (a === 'next') { setPlaying(false); show(i + 1, true); }
+      if (a === 'play') setPlaying(!playing);
+      if (a === 'mute' && audio) { audio.muted = !audio.muted; b.textContent = audio.muted ? '🔇' : '🔊'; }
+      if (a === 'full') {
+        if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+        else ov.requestFullscreen?.().catch(() => {});
+      }
+    });
+    ov.querySelector('[data-sh="speed"]').addEventListener('change', (e) => {
+      secs = Number(e.target.value) || 5; restart();
+    });
+    document.addEventListener('keydown', onKey);
+    document.body.appendChild(ov);
+    document.body.style.overflow = 'hidden';
+    show(i, true);
+    setPlaying(true);
+    if (album.musicCredit) {
+      const c = document.createElement('p');
+      c.className = 'wv-show__credit';
+      c.textContent = '♫ ' + album.musicCredit;
+      ov.appendChild(c);
+    }
+  }
+
   // Shared lightbox for album grids.
   function bindLightbox(grid, photos) {
     grid.addEventListener('click', (e) => {

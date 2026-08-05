@@ -822,3 +822,63 @@ html { scrollbar-color: var(--gold) var(--cream-deep); scrollbar-width: thin; }
   .ev-card__logobar img { width: 72px; height: 72px; }
   .ev-card__logobar-name { font-size: 1rem; }
 }
+
+/* ── Album slideshow ("Play as a slideshow") ────────────────────────────
+   The album as a video, without an encoded file that would go stale every
+   time the office adds a photo. Two stacked <img>s crossfade so there is no
+   flash of empty stage between shots. */
+.wv-show {
+  position: fixed; inset: 0; z-index: 10000;
+  background: #0c1710;
+  display: flex; flex-direction: column;
+}
+.wv-show__stage { position: relative; flex: 1; min-height: 0; overflow: hidden; }
+.wv-show__img {
+  position: absolute; inset: 0; margin: auto;
+  max-width: 100%; max-height: 100%;
+  object-fit: contain;
+  opacity: 0; transition: opacity 900ms ease;
+}
+.wv-show__img.is-on { opacity: 1; }
+/* A slow drift gives stills a sense of motion. Switched off entirely for
+   anyone who asked for reduced motion (see .wv-show--calm). */
+@keyframes wvShowDrift { from { transform: scale(1); } to { transform: scale(1.06); } }
+.wv-show__img.is-on { animation: wvShowDrift 14s ease-out forwards; }
+
+.wv-show__bar { height: 3px; background: rgba(255,255,255,.16); flex: none; }
+.wv-show__fill { display: block; height: 100%; width: 0; background: var(--gold, #C9A227); }
+
+.wv-show__cap {
+  flex: none; color: rgba(255,255,255,.9); text-align: center;
+  padding: 10px 20px 0; font-size: .95rem;
+}
+.wv-show__credit {
+  flex: none; margin: 0; padding: 0 20px 6px;
+  text-align: center; color: rgba(255,255,255,.5); font-size: .74rem;
+}
+.wv-show__ui {
+  flex: none; display: flex; gap: 10px; align-items: center; justify-content: center;
+  flex-wrap: wrap; padding: 14px 16px 20px;
+}
+.wv-show__ui button, .wv-show__spd select {
+  background: rgba(255,255,255,.1); color: #fff;
+  border: 1px solid rgba(255,255,255,.28); border-radius: 999px;
+  padding: 9px 16px; font: inherit; font-size: .92rem; cursor: pointer;
+  min-width: 46px; transition: background 150ms;
+}
+.wv-show__ui button:hover, .wv-show__ui button:focus-visible { background: rgba(201,162,39,.35); }
+.wv-show__ui button:focus-visible, .wv-show__spd select:focus-visible { outline: 2px solid var(--gold, #C9A227); outline-offset: 2px; }
+.wv-show__spd { color: rgba(255,255,255,.68); font-size: .8rem; display: inline-flex; align-items: center; gap: 6px; }
+.wv-show__spd select { padding: 7px 10px; min-width: 0; }
+.wv-show__n { color: rgba(255,255,255,.72); font-size: .85rem; min-width: 84px; text-align: center; }
+
+@media (prefers-reduced-motion: reduce) {
+  .wv-show__img { transition: none; }
+  .wv-show__img.is-on { animation: none; }
+}
+@media (max-width: 560px) {
+  .wv-show__ui { gap: 7px; padding: 10px 10px 16px; }
+  .wv-show__ui button, .wv-show__spd select { padding: 8px 12px; font-size: .86rem; }
+  .wv-show__spd { display: none; }        /* speed lives on the desktop UI */
+  .wv-show__cap { font-size: .85rem; }
+}

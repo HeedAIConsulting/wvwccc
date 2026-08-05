@@ -676,14 +676,22 @@ router.delete('/me/event/:id', auth.requireAuth(), async (req, res) => {
 // Image upload (data URL) → stored in Postgres, served at /api/assets/:id.
 router.post('/me/asset', auth.requireAuth(), async (req, res) => {
   const b = req.body || {};
-  // Accept images (logos/photos/flyers/thumbnails) and PDFs (event documents).
-  const m = /^data:(image\/(?:png|jpe?g|gif|webp)|application\/pdf);base64,([A-Za-z0-9+/=]+)$/.exec(b.dataUrl || '');
-  if (!m) return res.status(400).json({ error: 'Provide a PNG, JPG, GIF, or WebP image, or a PDF.' });
+  // Images (logos/photos/flyers/thumbnails), PDFs (event documents), and audio
+  // (album slideshow soundtracks — Aug 5 2026).
+  const m = /^data:(image\/(?:png|jpe?g|gif|webp)|application\/pdf|audio\/(?:mpeg|mp3|mp4|ogg|wav|x-m4a|aac));base64,([A-Za-z0-9+/=]+)$/.exec(b.dataUrl || '');
+  if (!m) return res.status(400).json({ error: 'Provide a PNG, JPG, GIF, or WebP image, a PDF, or an MP3/M4A audio file.' });
   const mime = m[1];
   const buffer = Buffer.from(m[2], 'base64');
-  const limit = mime === 'application/pdf' ? 20_000_000 : 2_500_000;
-  if (buffer.length > limit) return res.status(413).json({ error: mime === 'application/pdf' ? 'PDF too large (max ~20MB). Please compress/optimize the PDF and try again.' : 'Image too large (max ~2.5MB).' });
-  const kind = mime === 'application/pdf' ? 'doc' : (b.kind === 'logo' ? 'logo' : 'photo');
+  const isAudio = mime.startsWith('audio/');
+  const limit = mime === 'application/pdf' ? 20_000_000 : (isAudio ? 15_000_000 : 2_500_000);
+  if (buffer.length > limit) {
+    return res.status(413).json({
+      error: mime === 'application/pdf' ? 'PDF too large (max ~20MB). Please compress/optimize the PDF and try again.'
+        : isAudio ? 'Audio too large (max ~15MB). A 3–4 minute MP3 at 128kbps is about 3MB.'
+        : 'Image too large (max ~2.5MB).',
+    });
+  }
+  const kind = mime === 'application/pdf' ? 'doc' : (isAudio ? 'audio' : (b.kind === 'logo' ? 'logo' : 'photo'));
   const id = 'asset-' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36);
   try {
     // The original filename becomes the library name so the gallery is
@@ -2034,6 +2042,8 @@ function albumOut(p, full) {
     eventId: meta.eventId || '',
     groupSlug: meta.groupSlug || '',
     locked: !!meta.locked,
+    music: meta.music || '',
+    musicCredit: meta.musicCredit || '',
     created: p.created,
   };
   return full ? { ...base, photos } : base;
@@ -2065,6 +2075,11 @@ async function saveAlbum(id, body, existing) {
   if (body.eventId !== undefined) meta.eventId = String(body.eventId || '').slice(0, 60);
   if (body.groupSlug !== undefined) meta.groupSlug = String(body.groupSlug || '').slice(0, 80);
   if (body.locked !== undefined) meta.locked = !!body.locked;
+  // Optional soundtrack for the slideshow ("Play as a video"). Scheme-checked
+  // like a photo URL — it becomes an <audio src> on a public page. Office-only:
+  // the member photo-add route never reaches saveAlbum's music branch.
+  if (body.music !== undefined) meta.music = safePhotoUrl(body.music);
+  if (body.musicCredit !== undefined) meta.musicCredit = String(body.musicCredit || '').slice(0, 200);
   meta.photos = cleanPhotos(meta.photos);
   const patch = {
     title: String(body.title || (existing && existing.title) || 'Photos').slice(0, 120),

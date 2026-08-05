@@ -1547,6 +1547,8 @@ window.Admin = (function () {
                 <label class="btn btn--gold btn--sm" style="cursor:pointer">⬆ Upload photos<input type="file" accept="image/*" multiple hidden data-abup></label>
                 <button type="button" class="btn btn--ghost btn--sm" data-ablib>📁 Add from Image Library</button>
                 <button type="button" class="btn btn--ghost btn--sm" data-abmanage>🖼 Manage photos (${a.count})</button>
+                <label class="btn btn--ghost btn--sm" style="cursor:pointer" title="${a.music ? 'Change or remove the slideshow soundtrack' : 'Add music that plays when someone hits “Play as a slideshow”. Use a track you have the rights to.'}">${a.music ? '🎵 Music ✓' : '🎵 Add music'}<input type="file" accept="audio/*" hidden data-abmusic></label>
+                ${a.music ? `<button type="button" class="btn btn--ghost btn--sm" data-abmusicoff title="Remove the soundtrack">🔇</button>` : ''}
                 <a class="btn btn--ghost btn--sm" href="/albums/${encodeURIComponent(a.id)}" target="_blank" rel="noopener">↗ View page</a>
                 <button type="button" class="btn btn--ghost btn--sm" data-ablock>${a.locked ? '🔓 Let members add' : '🔒 Close to members'}</button>
                 <button type="button" class="btn btn--ghost btn--sm" data-abdel style="color:var(--red,#b00020)">Delete</button>
@@ -1637,6 +1639,30 @@ window.Admin = (function () {
           e.preventDefault(); row.style.outline = '';
           const files = Array.from((e.dataTransfer && e.dataTransfer.files) || []);
           if (files.length) uploadFiles(id, files);
+        });
+        // Slideshow soundtrack. Audio is uploaded whole (no canvas step — that
+        // is images only), so the 15MB server cap is the real limit.
+        row.querySelector('[data-abmusic]').addEventListener('change', async (e) => {
+          const f = e.target.files[0]; e.target.value = '';
+          if (!f) return;
+          if (f.size > 15_000_000) return say(listMsg, 'That track is over 15MB — a 3–4 minute MP3 is usually about 3MB.', true);
+          const credit = prompt('Track credit line (shown small under the slideshow).\n\nUse this to record the licence — e.g. "Sunrise by Artist — Pixabay Content Licence".\n\nOnly upload music the Chamber has the rights to use publicly.', '');
+          if (credit === null) return;
+          say(listMsg, 'Uploading the soundtrack…');
+          try {
+            const dataUrl = await new Promise((res, rej) => {
+              const fr = new FileReader(); fr.onload = () => res(fr.result); fr.onerror = rej; fr.readAsDataURL(f);
+            });
+            const up = await api('/api/me/asset', { method: 'POST', body: JSON.stringify({ dataUrl, name: f.name }) });
+            await save(id, { music: up.url, musicCredit: credit.trim() });
+            say(listMsg, 'Soundtrack added ✓ — it plays when someone hits “Play as a slideshow”.');
+            load();
+          } catch (err) { say(listMsg, 'Could not add that track: ' + (err.message || 'error'), true); }
+        });
+        row.querySelector('[data-abmusicoff]')?.addEventListener('click', async () => {
+          if (!confirm('Remove the soundtrack? The slideshow still plays, just silently.')) return;
+          try { await save(id, { music: '', musicCredit: '' }); load(); }
+          catch (e) { say(listMsg, 'Could not remove it.', true); }
         });
         row.querySelector('[data-ablib]').addEventListener('click', async () => {
           const urls = await pickImage({ multiple: true, title: 'Add photos from the Image Library', max: 40 });
