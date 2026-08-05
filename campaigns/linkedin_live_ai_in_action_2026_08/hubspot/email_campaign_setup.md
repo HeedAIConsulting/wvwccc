@@ -2,12 +2,19 @@
 
 ## The plan restriction that decides everything
 
-The portal's dynamic list "Contacts Eligible for Marketing Email" (list 59) currently holds **2 contacts**. Nearly the whole database sits in non marketing status, so a send scheduled today would reach almost nobody. Before Email 1:
+The portal's "Contacts Eligible for Marketing Email" list currently holds **2 contacts**. Nearly the whole database sits in non marketing status, so a send scheduled today would reach almost nobody.
 
-1. Open Contacts, filter by list membership for each target list below
-2. Select all, then Actions, then **Set as marketing contacts**
-3. Watch the marketing contacts usage meter in Account Settings. Stay inside the paid tier. If the tier is 1,000 marketing contacts, prioritize the lists in the order given below until the cap is reached, top priority first
-4. Status changes take effect immediately for sends
+**The selection is already done.** A ranked tranche of the top 1,000 contacts (by marketing email opens, across all target lists, unengaged excluded, 982 with email addresses) was pulled on August 4 and delivered to Michael as `marketing_flip_tranche_1.csv` in chat. It is deliberately NOT in this repo because it contains contact PII. An empty static list **123 · AI in Action Live Marketing Flip Tranche 1** is waiting in the portal.
+
+To execute the flip in one pass, about 3 minutes:
+
+1. Contacts, then Import, then **File from computer**, upload the CSV
+2. Choose **Update existing contacts only**, match by Email (Record ID column is included as backup)
+3. On the final import screen check **Set these contacts as marketing contacts**
+4. Also choose **Add to static list** and pick list 123, so the tranche stays auditable
+5. Status changes apply immediately, then confirm the eligible count moved from 2 to roughly 1,000
+
+Note: setting contacts to marketing is not freely reversible, a downgrade only takes effect at the next contract renewal, and exceeding the paid marketing contact tier bumps billing automatically. The 1,000 cap was chosen to stay at the first tier. Raise it only deliberately.
 
 ## Target lists, in priority order
 
@@ -30,9 +37,14 @@ Raw rows around 2,800. Expect meaningful overlap, the true unique audience is li
 
 ## Always suppress
 
-* List 48 · Unengaged contacts · 187 · protects sender reputation
-* List 35 · HubSpot Partner Invalid Data · 2,603 · never send here
+* Unengaged contacts (v3 list id 72, 187 contacts) · protects sender reputation
 * All unsubscribes and bounces, HubSpot enforces automatically
+
+Correction from the first draft: "HubSpot Partner Invalid Data" (2,604 contacts) is partner program registration metadata, not email validity. It overlaps most of the database and must NOT be used as a suppression list.
+
+## List id reference (v3 ids, used by API and list URLs)
+
+Target lists: WVWCCurrent 86 · ChatGPT Mastery 56 · LinkedIn Ads Match 18 · WVWCCOC 84 · Cleaned 30 · CA Business Brokers 71 · additional contacts 68 · filtered contacts 70 · SoCal Brokers 66 · MyCity 64 · 20 Chambers 33 · Wix Rebuild 88 · Food Consultants 81 · AI Decision Maker 14. Campaign lists: Registrants 121 · Attended 122 · Marketing Flip Tranche 1 123.
 
 ## Send plan
 

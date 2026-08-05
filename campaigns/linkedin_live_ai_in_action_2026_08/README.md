@@ -21,10 +21,17 @@ Campaign to fill and convert a LinkedIn LIVE session where Michael Bowers demons
 * `boost/boost_playbook.md`: the boost post, the exact audience spec, budget math, and the step list for the browser connect session
 * `images/`: five bright campaign images, generated with the no text rule, warm palette, zero blue backgrounds
 
-## What already exists in HubSpot (created by this session)
+## Confirmed decisions (August 5)
+
+* Brand routing: Heed AI. Copy renders the name as Heed AI Consulting to match heedconsulting.ai and existing assets.
+* Event time confirmed: Wednesday, August 12 at 11:00 AM Pacific.
+* Images regenerated to feature the audience personas: project managers, general contractors, construction professionals, CFOs, accountants, and business owners. Six finals in `images/`.
+
+## What already exists in HubSpot (created by these sessions)
 
 * List 121: AI in Action Live Registrants (static)
 * List 122: AI in Action Live Attended (static)
+* List 123: AI in Action Live Marketing Flip Tranche 1 (static, populated via the CSV import described in `hubspot/email_campaign_setup.md`)
 
 ## What still needs a human or a restored connection
 
