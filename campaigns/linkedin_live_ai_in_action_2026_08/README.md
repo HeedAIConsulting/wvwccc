@@ -31,7 +31,9 @@ Campaign to fill and convert a LinkedIn LIVE session where Michael Bowers demons
 
 * List 121: AI in Action Live Registrants (static)
 * List 122: AI in Action Live Attended (static)
-* List 123: AI in Action Live Marketing Flip Tranche 1 (static, populated via the CSV import described in `hubspot/email_campaign_setup.md`)
+* List 125: AI in Action Live marketing flip tranche 1 (static, 1,000 engagement ranked contacts, THE send audience, roughly 792 deliverable)
+* List 123: same name with capital letters, empty and redundant, delete in the UI
+* Resolved: the portal is not on marketing contacts pricing, so no flip was ever needed, see `hubspot/email_campaign_setup.md`
 
 ## What still needs a human or a restored connection
 

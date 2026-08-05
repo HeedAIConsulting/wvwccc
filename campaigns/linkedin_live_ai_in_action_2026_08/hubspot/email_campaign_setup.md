@@ -1,20 +1,22 @@
 # HubSpot Email Campaign Setup · AI in Action Live
 
-## The plan restriction that decides everything
+## Resolved August 5: no marketing contact flip is needed
 
-The portal's "Contacts Eligible for Marketing Email" list currently holds **2 contacts**. Nearly the whole database sits in non marketing status, so a send scheduled today would reach almost nobody.
+Investigation across the API and an in browser check settled it: **this portal is not on HubSpot's marketing contacts pricing model.** There is no marketing status field on contact records and no marketing contacts checkbox in the import flow. The "Contacts Eligible for Marketing Email" list that shows 2 contacts filters on `hs_marketable_status`, a template filter for the other pricing model, so its count was a red herring. On this portal, sendability is governed only by opt outs, hard bounces, and quarantine, all of which HubSpot enforces automatically at send time.
 
-**The selection is already done.** A ranked tranche of the top 1,000 contacts (by marketing email opens, across all target lists, unengaged excluded, 982 with email addresses) was pulled on August 4 and delivered to Michael as `marketing_flip_tranche_1.csv` in chat. It is deliberately NOT in this repo because it contains contact PII. An empty static list **123 · AI in Action Live Marketing Flip Tranche 1** is waiting in the portal.
+## The send audience
 
-To execute the flip in one pass, about 3 minutes:
+**List 125 · "AI in Action Live marketing flip tranche 1"** (created by the August 5 import) holds the selected top 1,000 contacts, ranked by marketing email opens across all target lists with the unengaged excluded. Verified composition:
 
-1. Contacts, then Import, then **File from computer**, upload the CSV
-2. Choose **Update existing contacts only**, match by Email (Record ID column is included as backup)
-3. On the final import screen check **Set these contacts as marketing contacts**
-4. Also choose **Add to static list** and pick list 123, so the tranche stays auditable
-5. Status changes apply immediately, then confirm the eligible count moved from 2 to roughly 1,000
+* 1,000 members, 982 with email addresses
+* 190 are blocked from marketing email (opt out, hard bounce, or quarantine union), auto suppressed at send
+* Roughly **792 genuinely deliverable** contacts
 
-Note: setting contacts to marketing is not freely reversible, a downgrade only takes effect at the next contract renewal, and exceeding the paid marketing contact tier bumps billing automatically. The 1,000 cap was chosen to stay at the first tier. Raise it only deliberately.
+Use list 125 for Emails 1 through 3. Sends to the broader raw lists are also possible, the same suppression applies, but list 125 is the engagement ranked core.
+
+Cleanup: **list 123** ("AI in Action Live Marketing Flip Tranche 1", capital letters, 0 members) is now redundant, delete it in the UI to avoid confusion. The import's consent attestation was recorded on import 78676227.
+
+Growth path: the eligible pool beyond list 125 holds roughly 855 more contacts. If Email 1 performs, a tranche 2 pull using the same ranking is a five minute job.
 
 ## Target lists, in priority order
 
