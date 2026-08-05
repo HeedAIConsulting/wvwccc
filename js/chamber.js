@@ -823,8 +823,11 @@ window.Chamber = (function () {
   function photoFigure(p, i, album) {
     const link = albumUrl(album) + '#p' + i;
     const cap = p.caption || album.title;
+    // The tile shows the thumbnail; the full-size photo is what the lightbox
+    // and "Open full size" use. Photos uploaded before thumbnails existed carry
+    // no `thumb` and fall back to the full image, exactly as before.
     return `<figure class="gallery-card" id="p${i}">
-      <a href="${esc(p.url)}" data-albumbox="${i}"><img src="${esc(p.url)}" alt="${esc(cap)}" loading="lazy"></a>
+      <a href="${esc(p.url)}" data-albumbox="${i}"><img src="${esc(p.thumb || p.url)}" alt="${esc(cap)}" loading="lazy" decoding="async"></a>
       ${p.caption || p.by ? `<figcaption>${esc(p.caption || '')}${p.by ? `<span class="alb-by">📷 ${esc(p.by)}</span>` : ''}</figcaption>` : ''}
       ${shareMenu(cap, link, true)}
     </figure>`;
@@ -951,9 +954,17 @@ window.Chamber = (function () {
       const photos = [];
       for (const f of files) {
         try {
+          // Full size for the lightbox + a 400px thumbnail for the grid, so a
+          // member's additions stay as light to browse as the office's.
           const dataUrl = await downscaleImage(f, 1800, 0.85);
           const up = await postJSON(ChamberAPI.url('/api/me/asset'), { dataUrl });
-          if (up && up.url) photos.push({ url: up.url });
+          if (!up || !up.url) continue;
+          let thumb = '';
+          try {
+            const tUp = await postJSON(ChamberAPI.url('/api/me/asset'), { dataUrl: await downscaleImage(f, 400, 0.82) });
+            thumb = (tUp && tUp.url) || '';
+          } catch (e) { /* no thumb just means the grid uses the full photo */ }
+          photos.push({ url: up.url, thumb });
         } catch (err) { /* skip the one that failed, keep the rest */ }
       }
       if (!photos.length) return say('None of those uploaded — try smaller image files.', true);

@@ -1572,7 +1572,10 @@ window.Admin = (function () {
     };
     const addPhotos = async (id, urls) => {
       const full = await api('/api/albums/' + encodeURIComponent(id));
-      const photos = full.album.photos.concat(urls.map((u) => ({ url: u })));
+      // Accepts either a bare URL (Image Library picks, which are already
+      // uploaded and have no separate thumbnail) or {url, thumb} from an upload.
+      const photos = full.album.photos.concat(urls.map((u) => (
+        typeof u === 'string' ? { url: u } : { url: u.url, thumb: u.thumb || '' })));
       await save(id, { photos });
       say(listMsg, `Added ${urls.length} photo${urls.length === 1 ? '' : 's'} ✓ — live on the album page now.`);
       load();
@@ -1587,9 +1590,20 @@ window.Admin = (function () {
       const urls = [];
       for (const f of files) {
         try {
+          // Two sizes per photo: the full one for the lightbox, and a 400px
+          // thumbnail for the album grid. Without the thumbnail every tile in
+          // the grid loads a full-size image — a big album cost a phone tens of
+          // megabytes just to scroll (Aug 5 2026).
           const dataUrl = await downscaleImage(f, 1800, 0.85);
           const up = await api('/api/me/asset', { method: 'POST', body: JSON.stringify({ dataUrl }) });
-          if (up && up.url) urls.push(up.url);
+          if (!up || !up.url) continue;
+          let thumb = '';
+          try {
+            const tData = await downscaleImage(f, 400, 0.82);
+            const tUp = await api('/api/me/asset', { method: 'POST', body: JSON.stringify({ dataUrl: tData }) });
+            thumb = (tUp && tUp.url) || '';
+          } catch (e) { /* a missing thumb just falls back to the full photo */ }
+          urls.push({ url: up.url, thumb });
         } catch (err) { /* skip that one */ }
       }
       if (!urls.length) return say(listMsg, 'None of those uploaded — try smaller files.', true);
@@ -1648,7 +1662,7 @@ window.Admin = (function () {
           box.innerHTML = `<p class="sub" style="margin:0 0 8px">Captions save when you click out. “Cover” sets the album's thumbnail.</p>
             <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px">
             ${a.photos.map((p, i) => `<div style="border:1px solid var(--line,#ddd);border-radius:8px;padding:7px">
-              <img src="${esc(p.url)}" alt="" style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:6px">
+              <img src="${esc(p.thumb || p.url)}" alt="" loading="lazy" decoding="async" style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:6px">
               <input data-abcap="${i}" value="${esc(p.caption || '')}" placeholder="Caption (optional)" style="width:100%;margin-top:6px;font-size:.85rem">
               ${p.by ? `<p class="sub" style="margin:3px 0 0">📷 ${esc(p.by)}</p>` : ''}
               <div style="display:flex;gap:5px;margin-top:6px">

@@ -2007,6 +2007,12 @@ function cleanPhotos(raw) {
     if (!url) return null;
     return {
       url,
+      // Grid thumbnail. The album page used to put the FULL-SIZE photo in every
+      // grid tile, so a 180-photo album pulled ~30MB on a phone before anyone
+      // clicked anything. Optional and back-compatible: photos saved before
+      // this have no thumb and simply fall back to `url` (Aug 5 2026, for the
+      // 683-photo Gala set).
+      thumb: safePhotoUrl(p && p.thumb) || '',
       caption: String((p && p.caption) || '').slice(0, 180),
       by: String((p && p.by) || '').slice(0, 80),
       at: (p && p.at) || new Date().toISOString(),
@@ -2021,7 +2027,9 @@ function albumOut(p, full) {
     title: p.title || 'Photos',
     body: p.body || '',
     // Cover falls back to the first photo, so an album is never a blank card.
-    cover: p.imageUrl || (photos[0] && photos[0].url) || '',
+    // Prefer its thumbnail: the gallery page shows every album's cover at card
+    // size, so full-size covers made that page heavy for no visible gain.
+    cover: p.imageUrl || (photos[0] && (photos[0].thumb || photos[0].url)) || '',
     count: photos.length,
     eventId: meta.eventId || '',
     groupSlug: meta.groupSlug || '',
