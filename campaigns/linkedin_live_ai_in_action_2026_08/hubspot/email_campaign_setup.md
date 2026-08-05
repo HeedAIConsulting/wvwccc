@@ -50,11 +50,11 @@ Target lists: WVWCCurrent 86 · ChatGPT Mastery 56 · LinkedIn Ads Match 18 · W
 
 ## Send plan
 
-* **Email 1, Thu Aug 6, 9:00 AM PT.** All target lists minus suppressions.
-* **Email 2, Mon Aug 10, 9:00 AM PT.** Same audience.
-* **Email 3, Tue Aug 11, 3:00 PM PT.** Same audience plus registrants. Frequency guard: if HubSpot flags fatigue, cut to Email 1 non openers plus registrants.
-* **Email 4, Wed Aug 12, 10:00 AM PT.** Registrants only.
-* **Email 5, Thu Aug 13, 9:00 AM PT.** Registrants only. Optional split: attendees (list 122) get "great seeing you," no shows get "here is what you missed," same body otherwise.
+* **Email 1, Thu Aug 6, 9:00 AM PT.** List 125.
+* **Email 2, Mon Aug 10, 9:00 AM PT.** List 125.
+* **Email 3, Tue Aug 11, 3:00 PM PT.** List 125 plus imported registrants (121). Frequency guard: if HubSpot flags fatigue, cut to Email 1 non openers plus registrants.
+* **Email 4, Wed Aug 12, 10:00 AM PT.** List 125 plus imported registrants (list 121), everyone gets the direct event link.
+* **Email 5, Thu Aug 13, 9:00 AM PT.** List 125 plus list 121. Optional split: attendees (list 122) get "great seeing you," no shows get "here is what you missed," same body otherwise.
 
 ## Registrant tracking wiring
 
@@ -63,12 +63,7 @@ Lists created by this session, both static Contacts lists:
 * **List 121 · AI in Action Live Registrants**
 * **List 122 · AI in Action Live Attended**
 
-Once the registration form exists (see the landing page build guide), auto populate registrations one of two ways:
-
-* If Workflows are available: form submitted, then add to list 121
-* Otherwise: create an active list filtered on "has filled out form: AI in Action Live Registration" and use that active list for Emails 4 and 5, keeping 121 as the manual backstop
-
-After the event, export the viewer list from the streaming tool, match by email, and add attendees to list 122.
+Registration lives on LinkedIn now. Populate list 121 by downloading the event registrant export and importing it, steps in `../linkedin/event_setup.md`. After the event, export the viewer list from the streaming tool, match by email, and add attendees to list 122.
 
 ## Compliance
 

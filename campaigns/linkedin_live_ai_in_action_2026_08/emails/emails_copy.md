@@ -27,7 +27,7 @@ No slides about the future. Working software, the before and after on each build
 
 Wednesday, August 12 at 11:00 AM Pacific.
 
-Save your seat: [LANDING PAGE URL]
+Save your seat: [LINKEDIN EVENT URL]
 
 Michael Bowers
 Heed AI Consulting
@@ -48,7 +48,7 @@ Minutes 35 to 45: open Q and A. Bring the process that eats your week.
 
 You leave with the scoring checklist we use to decide which process to automate first. Registrants get it whether or not they attend live, along with the replay.
 
-Not registered yet: [LANDING PAGE URL]
+Not registered yet: [LINKEDIN EVENT URL]
 
 See you Wednesday at 11:00 AM Pacific.
 
@@ -69,7 +69,7 @@ Wednesday, August 12 · 11:00 AM Pacific · LinkedIn LIVE
 
 If you have already registered, your join link arrives one hour before we start. If a colleague runs operations, quoting, or field work, forward this, the session was built for them.
 
-Registration stays open until we go live: [LANDING PAGE URL]
+Registration stays open until we go live: [LINKEDIN EVENT URL]
 
 Michael
 
@@ -83,7 +83,7 @@ Plain text:
 
 We go live at 11:00 AM Pacific, one hour from now.
 
-Join here: [LINKEDIN LIVE URL]
+Join here: [LINKEDIN EVENT URL]
 
 Bring one question about your own operation. The last ten minutes belong to the audience, and the specific questions always get the most useful answers.
 

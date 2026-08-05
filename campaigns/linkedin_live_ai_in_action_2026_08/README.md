@@ -12,7 +12,8 @@ Campaign to fill and convert a LinkedIn LIVE session where Michael Bowers demons
 
 * `brief/creative_brief.md`: positioning, angles, audience, and messaging rules
 * `schedule/campaign_schedule.md`: day by day run plan from today through August 13
-* `landing_page/ai_in_action_live.html`: complete bright landing page, ready to host or to rebuild in HubSpot
+* `linkedin/event_setup.md`: LinkedIn Event creation kit, registration lives on LinkedIn, includes the browser control prompt and the registrant export flow
+* `landing_page/ai_in_action_live.html`: complete bright landing page, fully static (no form, all CTAs point to the LinkedIn event), ready to host or to rebuild in HubSpot
 * `landing_page/hubspot_build_guide.md`: exact click path to recreate the page in HubSpot in about 15 minutes
 * `hubspot/email_campaign_setup.md`: list targeting within plan restrictions, marketing contact caps, send schedule
 * `hubspot/layout_sections_payload.json`: API ready page content for when the HubSpot MCP connection is restored

@@ -51,18 +51,19 @@ Body: `A construction team's tool that turns scattered site information into a s
 
 Bottom button: text `Save My Seat`, link `#register`.
 
-## Step 5 · Form section
+## Step 5 · Registration section (no form, LinkedIn handles registration)
 
 * Set the section's CSS id to `register` so the buttons anchor to it
-* Rich text above the form:
+* Delete the form module from the cloned page entirely
+* Rich text:
 
 Heading 2: `Save your seat`
 
-Paragraph: `Wednesday, August 12, 2026 · 11:00 AM Pacific · Streaming on LinkedIn LIVE. Registering adds you to the reminder list and the replay. Unsubscribe any time.`
+Paragraph: `Wednesday, August 12, 2026 · 11:00 AM Pacific · Streaming on LinkedIn LIVE. Registration is handled on LinkedIn. Click through, hit Attend, and LinkedIn will remind you the moment we go live.`
 
-* Create a new form **AI in Action Live Registration** with fields: First name (required), Last name (required), Work email (required), Company, Your role. Submit button: `Save My Seat`. Thank you message: `You are registered. Watch your inbox for the LinkedIn LIVE link and a calendar invite.`
-* Point the page's form module at this new form
-* Wire submissions to list 121 per `../hubspot/email_campaign_setup.md`
+* Add a button: text `Register on LinkedIn`, link to the LinkedIn event URL, open in new tab
+* Every other button on the page (banner and description bottom) also links to the LinkedIn event URL
+* Lead capture happens via the LinkedIn registrant export, see `../linkedin/event_setup.md`
 
 ## Step 6 · Footer
 

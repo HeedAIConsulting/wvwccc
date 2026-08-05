@@ -10,12 +10,11 @@ No spend moves without Michael's explicit go in the LinkedIn interface. This doc
 
 Post B in `social/linkedin_posts.md`, published on the **Heed AI Consulting company page** on Wednesday August 6 with `images/hero_16x9.png` attached. Boost the published post rather than creating a dark ad, so the engagement stays public on the page.
 
-Destination: the landing page with
-`?utm_source=linkedin&utm_medium=paid_social&utm_campaign=ai_in_action_live_2026_08&utm_content=boost`
+Destination: **the LinkedIn Event page** (LINKEDIN_EVENT_URL). Registration is native on LinkedIn, one tap from the boosted post to Attend.
 
 ## Objective
 
-Boost objective: **Get more leads or website visitors → Drive traffic to the registration page.** If the LinkedIn Event is created first (recommended), ALSO run the event attend option for a small slice, but the primary budget drives to the HubSpot page so every registrant enters the email sequence, not just a LinkedIn RSVP.
+Boost objective: **event attendance** (boost the event or the Post B that carries the event link, whichever the boost flow offers). Lead capture into HubSpot happens by downloading the event registrant list, see `../linkedin/event_setup.md`. Track boost performance in LinkedIn's boost analytics rather than UTMs, since registration never leaves LinkedIn.
 
 ## Audience spec (build exactly this, then save as "AI in Action Live 2026 08")
 

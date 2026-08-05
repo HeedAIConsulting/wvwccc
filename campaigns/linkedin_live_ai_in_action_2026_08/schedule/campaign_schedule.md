@@ -4,10 +4,11 @@ All times Pacific.
 
 ## Tuesday August 5 (prep day)
 
-* Confirm event time (working assumption 11:00 AM Wednesday August 12) and streaming tool (StreamYard or Restream connected to LinkedIn LIVE on both the profile and the company page)
-* Build the landing page in HubSpot from `landing_page/hubspot_build_guide.md`, publish it
-* Create the LinkedIn Event for the LIVE and attach it to the stream
-* Flip target lists to marketing contacts per `hubspot/email_campaign_setup.md`
+* Confirm the streaming tool (StreamYard or Restream connected to LinkedIn LIVE on the company page)
+* Create the LinkedIn Event FIRST per linkedin/event_setup.md, registration form ON, then replace LINKEDIN_EVENT_URL across the landing page, emails, posts, and boost playbook
+* Build the landing page from landing_page/hubspot_build_guide.md, publish it
+
+* Send audience is list 125, no marketing contact flip needed
 * Load Email 1 and Email 2 into HubSpot, schedule Email 1
 * Post organic Post A from Michael's profile
 * Drop real client metrics into all bracketed placeholders

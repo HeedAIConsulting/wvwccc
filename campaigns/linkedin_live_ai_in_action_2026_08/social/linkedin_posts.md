@@ -39,7 +39,7 @@ On Wednesday August 12 at 11:00 AM Pacific, Heed AI Consulting founder Michael B
 
 45 minutes. Three working systems. Your questions answered live.
 
-Save your seat: [landing page URL with utm_content=boost]
+Save your seat: [LINKEDIN EVENT URL]
 
 #AIforBusiness #LinkedInLive #SmallBusiness
 
