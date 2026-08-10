@@ -62,6 +62,7 @@ window.Chamber = (function () {
     'View profile →': 'Ver perfil →', 'View profile': 'Ver perfil', 'View details →': 'Ver detalles →',
     'Website': 'Sitio web', 'Directions': 'Cómo llegar', 'Call': 'Llamar', 'Email': 'Correo',
     'Search': 'Buscar', 'All categories': 'Todas las categorías', 'All areas': 'Todas las áreas',
+    'Type to filter…': 'Escriba para filtrar…', 'Filter the list': 'Filtrar la lista',
     'All': 'Todos', 'Clear ✕': 'Limpiar ✕', 'Clear filters': 'Limpiar filtros',
     'No members match those filters.': 'Ningún miembro coincide con esos filtros.',
     'Chamber members attend free — use RSVP. Guests:': 'Los miembros de la Cámara asisten gratis — use RSVP. Invitados:',
@@ -1461,10 +1462,16 @@ window.Chamber = (function () {
       }
     } catch (e) { console.error(e); }
 
-    const uniq = (arr) => [...new Set(arr.filter(Boolean))].sort();
-    // Facet on the ~20 indexed parent groups, not the 600+ raw categories.
-    const cats = uniq(members.map((m) => m.group || 'Other'));
+    const uniq = (arr) => [...new Set(arr.filter(Boolean))].sort((a, b) => a.localeCompare(b));
+    // The dropdown lists every real business category from the member records
+    // (the full list that came over from the old site — Merchant Services,
+    // CPA, Insurance Services, …), per the office, Aug 2026. The quick-pick
+    // chips stay on the ~20 broad parent groups, so a facet value can be
+    // either level — catMatch accepts both.
+    const cats = uniq(members.flatMap((m) => [m.category, ...(Array.isArray(m.categories) ? m.categories : [])]));
     const hoods = uniq(members.map((m) => m.neighborhood));
+    const catMatch = (m, v) => (m.group || 'Other') === v || m.category === v
+      || (Array.isArray(m.categories) && m.categories.includes(v));
 
     // Collapsed green dropdown: a button that opens a list of choices (Chamber feedback).
     function closeAllDD() {
@@ -1475,11 +1482,15 @@ window.Chamber = (function () {
       const el = document.getElementById(elId);
       if (!el) return;
       const cur = state[key];
+      // Long lists (the full ~230-category dropdown) get a type-to-filter box
+      // pinned to the top of the menu so nobody has to scroll the whole list.
+      const filterable = options.length > 24;
       el.innerHTML = `
         <button type="button" class="dd__btn${cur ? ' is-set' : ''}" aria-expanded="false" aria-haspopup="listbox">
           <span>${esc(cur || allLabel)}</span><span class="dd__caret" aria-hidden="true">▾</span>
         </button>
         <div class="dd__menu" role="listbox" hidden>
+          ${filterable ? `<div style="position:sticky;top:0;background:#fff;padding:8px;border-bottom:1px solid var(--line,#e2dcc9);z-index:1"><input type="search" class="dd__filter" placeholder="${esc(tr('Type to filter…'))}" aria-label="${esc(tr('Filter the list'))}" autocomplete="off" style="width:100%;padding:7px 10px;border:1px solid var(--line,#d8d2c0);border-radius:8px;font:inherit;font-size:.9rem" /></div>` : ''}
           <button type="button" class="dd__opt${!cur ? ' is-active' : ''}" data-val="" role="option">${esc(allLabel)}</button>
           ${options.map((o) => `<button type="button" class="dd__opt${cur === o ? ' is-active' : ''}" data-val="${esc(o)}" role="option">${esc(o)}</button>`).join('')}
         </div>`;
@@ -1488,7 +1499,20 @@ window.Chamber = (function () {
         e.stopPropagation();
         const willOpen = menu.hidden; closeAllDD();
         menu.hidden = !willOpen; btn.setAttribute('aria-expanded', String(willOpen));
+        if (willOpen) { const f = menu.querySelector('.dd__filter'); if (f) { f.value = ''; f.dispatchEvent(new Event('input')); f.focus(); } }
       });
+      const filter = menu.querySelector('.dd__filter');
+      if (filter) {
+        // Clicks/keys inside the filter box must not bubble to the document
+        // click-away handler (it would close the menu mid-typing).
+        filter.addEventListener('click', (e) => e.stopPropagation());
+        filter.addEventListener('input', () => {
+          const q = filter.value.trim().toLowerCase();
+          menu.querySelectorAll('.dd__opt').forEach((o) => {
+            o.hidden = !!q && !!o.dataset.val && !o.dataset.val.toLowerCase().includes(q);
+          });
+        });
+      }
       menu.querySelectorAll('.dd__opt').forEach((o) => o.addEventListener('click', () => {
         state[key] = o.dataset.val; closeAllDD(); render();
       }));
@@ -1524,7 +1548,7 @@ window.Chamber = (function () {
     // matches the "Health & Wellness" category; "&" and "and" are interchangeable.
     const STOP = new Set('a an and the of for in on at to or with near my our your find looking need want best top'.split(' '));
     function scoreOf(m) {
-      if (state.category && (m.group || 'Other') !== state.category) return -1;
+      if (state.category && !catMatch(m, state.category)) return -1;
       if (state.hood && m.neighborhood !== state.hood) return -1;
       if (!state.q) return 0;
       // Curated fields decide whether a business is a result. The free-text
@@ -2817,8 +2841,10 @@ window.Chamber = (function () {
     const base = depth ? '../' : '';
     // Sub-nav so visitors can jump to the Board or officers view.
     const tabs = [['', 'Everyone'], ['Staff', 'Staff'], ['Leader', 'Officers'], ['Board Member', 'Board of Directors']];
+    // Ambassadors live on their own page (Felicia, Aug 10 2026) — the last
+    // chip crosses over rather than filtering this one.
     const subnav = `<nav class="chips" style="justify-content:center;margin-bottom:var(--s-6)" aria-label="Leadership groups">${tabs.map(([g, l]) =>
-      `<a class="chip${only === g ? ' chip--gold' : ''}" href="${base}leadership.html${g ? ('?group=' + encodeURIComponent(g)) : ''}">${l}</a>`).join('')}</nav>`;
+      `<a class="chip${only === g ? ' chip--gold' : ''}" href="${base}leadership.html${g ? ('?group=' + encodeURIComponent(g)) : ''}">${l}</a>`).join('')}<a class="chip" href="${base}ambassadors.html">Ambassadors →</a></nav>`;
     const want = only && ORDER.includes(only) ? [only] : ORDER;
     // Officers rank by office, per Diana (Jul 13): President → President Elect
     // → VP → CFO → Secretary. Everyone else reads like a printed roster,
@@ -2864,6 +2890,25 @@ window.Chamber = (function () {
     // Single-group view: one section. Combined view: a section per group.
     const body = (only ? [only] : ORDER).filter((g) => groups[g]).map((g) => section(g, groups[g])).join('');
     el.innerHTML = subnav + body;
+  }
+
+  // ── Ambassadors page — its own page, separate from Board & Leadership and
+  // Chamber Leaders (Felicia, Aug 10 2026). Everyone designated Ambassador
+  // (primary status OR an extra designation), as a printed-roster gallery,
+  // alphabetical by last name.
+  async function initAmbassadors(depth = 0) {
+    const el = document.getElementById('ambassadorGrid'); if (!el) return;
+    ensureBoardCss();
+    let members = [];
+    try { members = (await getJSON(ChamberAPI.url('/api/members'))).members || []; }
+    catch (e) { el.innerHTML = '<p class="notice">Could not load the roster right now.</p>'; return; }
+    const list = members.filter((m) => m.leaderStatus === 'Ambassador'
+      || (Array.isArray(m.designations) && m.designations.includes('Ambassador')))
+      .sort((a, b) => lastNameOf(a).localeCompare(lastNameOf(b)));
+    if (!list.length) { el.innerHTML = '<p class="notice">This roster is being finalized — check back soon. (Admins: set a member\'s designation to Ambassador under Members.)</p>'; return; }
+    el.innerHTML = `
+      <div class="board-rule"><h2 style="margin:0;white-space:nowrap">${esc(LEADER_GROUP_LABEL.Ambassador)}</h2></div>
+      <div class="grid grid-4" style="gap:var(--s-6)">${list.map((m) => boardCard(m, depth)).join('')}</div>`;
   }
 
   // ── Chamber Leaders page — members in the leader marketing package ──
@@ -3157,5 +3202,5 @@ window.Chamber = (function () {
     render();
   }
 
-  return { initHome, initEventView, initDirectory, initProfile, initEvents, initCheckout, initLeadForm, initJobs, initDeals, initCommunity, initNews, initBizBuzz, initBoard, initLeaders, initDining, offerCard, postCard, newsCard, memberTile, eventCard, eventPreviewCard, initLeaderBanner, initGroups, initGroupView, initGallery, initAlbumView, initPayPortal, initFeaturedSlot, joinCtaHtml, mountJoinCta, initGuides, initGuideView, initRealEstate, getJSON, esc };
+  return { initHome, initEventView, initDirectory, initProfile, initEvents, initCheckout, initLeadForm, initJobs, initDeals, initCommunity, initNews, initBizBuzz, initBoard, initLeaders, initDining, offerCard, postCard, newsCard, memberTile, eventCard, eventPreviewCard, initLeaderBanner, initGroups, initGroupView, initGallery, initAlbumView, initPayPortal, initAmbassadors, initFeaturedSlot, joinCtaHtml, mountJoinCta, initGuides, initGuideView, initRealEstate, getJSON, esc };
 })();

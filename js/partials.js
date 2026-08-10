@@ -125,6 +125,7 @@ window.ChamberPartials = (function () {
             <a href="${nv('/about.html')}">${L?'Acerca de':'About Us'}</a>
             <a href="/leadership.html">${L?'Junta y Liderazgo':'Board & Leadership'}</a>
             <a href="/leaders.html">${L?'Líderes de la Cámara':'Chamber Leaders'}</a>
+            <a href="/ambassadors.html">${L?'Embajadores':'Ambassadors'}</a>
             <a href="/p/benefits-of-membership">${L?'Por qué unirse':'Why Join the Chamber'}</a>
             <a href="${nv('/resources.html')}">${L?'Más sobre la Cámara':'More Chamber pages'} →</a>
           </div>
@@ -205,6 +206,7 @@ window.ChamberPartials = (function () {
         <ul>
           <li><a href="${nv('/about.html')}">${t.chamber}</a></li>
           <li><a href="/leadership.html">${L?'Junta y Liderazgo':'Board & Leadership'}</a></li>
+          <li><a href="/ambassadors.html">${L?'Embajadores':'Ambassadors'}</a></li>
           <li><a href="/community/our-community.html">${L?'Nuestra Comunidad':'Our Community'}</a></li>
           <li><a href="/community/community-benefit-foundation.html">${L?'Fundación de Beneficio Comunitario':'Community Benefit Foundation'}</a></li>
           <li><a href="/community/grateful-hearts.html">Grateful Hearts</a></li>

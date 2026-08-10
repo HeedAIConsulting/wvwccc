@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" href="/favicon.ico" sizes="any" />
+  <link rel="icon" type="image/png" href="/images/favicon-32.png" sizes="32x32" />
+  <link rel="apple-touch-icon" href="/images/apple-touch-icon.png" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ambassadors — West Valley · Warner Center Chamber of Commerce</title>
+  <meta name="description" content="Meet the Ambassadors of the West Valley · Warner Center Chamber of Commerce — the members who welcome new businesses, greet guests at events, and help every member get connected." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="css/chamber.css?v=20260805b" />
+  <link rel="canonical" href="https://woodlandhillscc.net/ambassadors.html" />
+</head>
+<body>
+  <div data-partial="header"></div>
+  <section class="section-sm bg-forest">
+    <div class="container">
+      <span class="kicker">The Chamber · 2026</span>
+      <h1 style="color:#fff">Ambassadors</h1>
+      <p class="lead" style="color:rgba(255,255,255,.85);max-width:62ch">Our Ambassadors are the welcoming face of the Chamber — the members who greet you at breakfasts and mixers, check in on new businesses, and make sure every member gets connected.</p>
+    </div>
+  </section>
+  <section class="section">
+    <div class="container">
+      <div id="ambassadorGrid"><p class="member-tile__meta">Loading…</p></div>
+      <p style="text-align:center;margin-top:var(--s-7)">
+        <a class="btn btn--ghost btn--sm" href="leadership.html">Meet the Board &amp; Leadership →</a>
+      </p>
+    </div>
+  </section>
+  <div data-partial="footer"></div>
+  <script src="js/partials.js?v=20260810a"></script>
+  <script src="js/api-base.js?v=20260729b"></script>
+  <script src="js/chamber.js?v=20260810a"></script>
+  <script>ChamberPartials.mount({ active: 'about', depth: 0, lang: 'en' }); Chamber.initAmbassadors(0);</script>
+</body>
+</html>
