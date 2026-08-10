@@ -39,6 +39,30 @@ H.264 MP4 at 24fps, ~18s, silent.
 Type the `@` mention in the platform's native composer so it becomes a real tag —
 APIs cannot create clickable tags.
 
+## Avatar format (spoken + typed simultaneously)
+
+The `avatar/` folder holds the post pipeline for the spoken version. Production steps
+(Higgsfield ugc-flow):
+
+1. Generate a spokesperson once (`soul_2`, 3:4, 2k) and reuse the same image for every
+   board and clip — she quotes the client ("a five star client review, in their own
+   words"), never impersonates them.
+2. Two 8-beat storyboards (`gpt_image_2` 16:9 2k), each followed by the mandatory
+   `seedream_v5_pro` realism pass.
+3. Two lip-synced clips (`seedance_2_0`, 9:16, 1080p, 15s + 10s), speech rendered
+   natively, stitched with a stream-copy concat.
+4. Post: `faster-whisper` word timestamps clock the captions, the authored
+   `script.txt` supplies the exact spelling, `build_captions.py` writes the .ass
+   (word-pop bottom captions + the persistent ★★★★★ / FEEDBACK FRIDAY /
+   HEED AI SOLUTIONS header), then ffmpeg burns it.
+
+First finished video (MVP Law review, 25s):
+https://d2ol7oe51mr4n9.cloudfront.net/user_3D9iJ6Da3JSmvVXC5Uk2EMEO9UN/a450b12d-76f0-4124-969d-c8acf935b09c.mp4
+
+Source clips (unstitched, no captions):
+- https://d8j0ntlcm91z4.cloudfront.net/user_3D9iJ6Da3JSmvVXC5Uk2EMEO9UN/hf_20260810_173738_abbd6813-27da-489b-bdc7-ec0d3a943f87.mp4
+- https://d8j0ntlcm91z4.cloudfront.net/user_3D9iJ6Da3JSmvVXC5Uk2EMEO9UN/hf_20260810_173754_f2281735-40e0-44cb-895c-cbde674946b0.mp4
+
 ## Cadence
 
 Posts go out Fridays at 9:00 AM ET.
