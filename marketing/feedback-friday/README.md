@@ -39,29 +39,31 @@ H.264 MP4 at 24fps, ~18s, silent.
 Type the `@` mention in the platform's native composer so it becomes a real tag —
 APIs cannot create clickable tags.
 
-## Avatar format (spoken + typed simultaneously)
+## Audiogram format — the spoken standard
 
-The `avatar/` folder holds the post pipeline for the spoken version. Production steps
-(Higgsfield ugc-flow):
+The spoken version of every testimonial: no person on camera. A voice narrates the
+review as the client while an animated waveform pulses with the real audio and the
+words light up in sync under a bouncing gold dot — spoken for sound-on viewers,
+typed for silent scrollers. Rendered by `audiogram.py`:
 
-1. Generate a spokesperson once (`soul_2`, 3:4, 2k) and reuse the same image for every
-   board and clip — she quotes the client ("a five star client review, in their own
-   words"), never impersonates them.
-2. Two 8-beat storyboards (`gpt_image_2` 16:9 2k), each followed by the mandatory
-   `seedream_v5_pro` realism pass.
-3. Two lip-synced clips (`seedance_2_0`, 9:16, 1080p, 15s + 10s), speech rendered
-   natively, stitched with a stream-copy concat.
-4. Post: `faster-whisper` word timestamps clock the captions, the authored
-   `script.txt` supplies the exact spelling, `build_captions.py` writes the .ass
-   (word-pop bottom captions + the persistent ★★★★★ / FEEDBACK FRIDAY /
-   HEED AI SOLUTIONS header), then ffmpeg burns it.
+1. Voiceover: Higgsfield `generate_audio` (`seed_audio`, preset voice "Helena",
+   voice_id `3c2b83c0-2e0a-5ae8-998a-a5fe71b7eccd`) reads the review verbatim.
+2. `faster-whisper` word timestamps clock the word highlighting; zero-width
+   trailing words are hallucinations — drop them.
+3. `python3 audiogram.py vertical` (1080x1920) and `python3 audiogram.py feed`
+   (1080x1350) render everything else locally: the ★★★★★ / FEEDBACK FRIDAY /
+   HEED AI SOLUTIONS lockup, a scrolling waveform driven by the actual audio
+   envelope, word-synced text with the bouncing dot, and the client attribution.
+   Inputs it expects in the working directory: `tts_src.wav` (the voiceover),
+   `tts_16k.wav` (16 kHz mono copy for whisper), `tts_words.json` (word timings).
 
-First finished video (MVP Law review, 25s):
-https://d2ol7oe51mr4n9.cloudfront.net/user_3D9iJ6Da3JSmvVXC5Uk2EMEO9UN/a450b12d-76f0-4124-969d-c8acf935b09c.mp4
+First finished pair (MVP Law review, 27s):
+- 9:16 https://d2ol7oe51mr4n9.cloudfront.net/user_3D9iJ6Da3JSmvVXC5Uk2EMEO9UN/efb0b188-d96c-4dad-9a99-9f7c5d6c0b00.mp4
+- 4:5 https://d2ol7oe51mr4n9.cloudfront.net/user_3D9iJ6Da3JSmvVXC5Uk2EMEO9UN/9e5539e5-c816-4961-bb53-84f31ca6417d.mp4
 
-Source clips (unstitched, no captions):
-- https://d8j0ntlcm91z4.cloudfront.net/user_3D9iJ6Da3JSmvVXC5Uk2EMEO9UN/hf_20260810_173738_abbd6813-27da-489b-bdc7-ec0d3a943f87.mp4
-- https://d8j0ntlcm91z4.cloudfront.net/user_3D9iJ6Da3JSmvVXC5Uk2EMEO9UN/hf_20260810_173754_f2281735-40e0-44cb-895c-cbde674946b0.mp4
+The `avatar/` folder holds a retired talking-head variant (a generated spokesperson
+reading the review, https://d2ol7oe51mr4n9.cloudfront.net/user_3D9iJ6Da3JSmvVXC5Uk2EMEO9UN/a450b12d-76f0-4124-969d-c8acf935b09c.mp4)
+— not the standard; Michael prefers the client represented abstractly.
 
 ## Cadence
 
