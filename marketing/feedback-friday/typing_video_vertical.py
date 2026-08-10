@@ -13,6 +13,8 @@ GRAY = (155, 155, 162)
 FDIR = "/usr/share/fonts/truetype/liberation/"
 title_font = ImageFont.truetype(FDIR + "LiberationSans-Bold.ttf", 78)
 attr_font = ImageFont.truetype(FDIR + "LiberationSans-Bold.ttf", 42)
+brand_font = ImageFont.truetype(FDIR + "LiberationSans-Bold.ttf", 36)
+BRAND = "H E E D   A I   S O L U T I O N S"
 
 TITLE = "FEEDBACK FRIDAY"
 BODY = ('"So far we have had a great experience working with Mike. '
@@ -78,6 +80,10 @@ def star(draw, cx, cy, r, fill):
 def render(f):
     im = Image.new("RGB", (W, H), BG)
     d = ImageDraw.Draw(im)
+
+    # brand footer, centered, above the platform UI safe zone
+    bw = measurer.textlength(BRAND, font=brand_font)
+    d.text(((W - bw) / 2, H - 300), BRAND, font=brand_font, fill=GOLD)
 
     # stars
     n_stars = min(5, f // 5 + 1)
