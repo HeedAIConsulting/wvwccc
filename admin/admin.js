@@ -3406,6 +3406,35 @@ window.Admin = (function () {
         }));
       } catch (e) { nlRows.innerHTML = '<tr><td colspan="3" class="sub">Could not load newsletters.</td></tr>'; }
     }
+    // Paste-a-link import (Aug 2026): the office's Canva exports run 40-50MB —
+    // far past any upload cap — so they paste the Drive/Dropbox share link and
+    // the server downloads, shrinks, and publishes it. Long job → poll status.
+    document.getElementById('nlImport')?.addEventListener('click', async () => {
+      const title = (document.getElementById('nlTitle').value || '').trim();
+      const url = (document.getElementById('nlUrl').value || '').trim();
+      const out = document.getElementById('nlMsg');
+      const btn = document.getElementById('nlImport');
+      if (!title) { out.textContent = 'Give the issue a title first (e.g. "Valley Biz Connect — September 2026").'; return; }
+      if (!url) { out.textContent = 'Paste the newsletter link first.'; return; }
+      btn.disabled = true;
+      out.textContent = 'Starting…';
+      try {
+        const { jobId } = await api('/api/admin/newsletters/import', { method: 'POST', body: JSON.stringify({ title, url }) });
+        for (;;) {
+          await new Promise((r) => setTimeout(r, 2500));
+          const j = await api('/api/admin/newsletters/import/' + encodeURIComponent(jobId));
+          if (j.status === 'done') {
+            out.textContent = `✓ Published — ${j.result.pages} pages, shrunk ${j.result.originalMB}MB → ${j.result.finalMB}MB. It is live on the Valley Biz Connect page.`;
+            document.getElementById('nlTitle').value = ''; document.getElementById('nlUrl').value = '';
+            loadNewsletters();
+            break;
+          }
+          if (j.status === 'error') { out.textContent = '✗ ' + j.error; break; }
+          out.textContent = j.step + '…';
+        }
+      } catch (err) { out.textContent = '✗ ' + (err.message || 'Import failed.'); }
+      btn.disabled = false;
+    });
     document.getElementById('nlFile')?.addEventListener('change', (e) => {
       const f = e.target.files[0]; if (!f) return;
       const title = (document.getElementById('nlTitle').value || '').trim() || f.name.replace(/\.pdf$/i, '');

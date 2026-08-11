@@ -9,6 +9,24 @@
   },
   "posts": [
     {
+      "id": "nl-2026-08",
+      "type": "newsletter",
+      "authorId": "legacy-import",
+      "authorName": "WVWC Chamber",
+      "memberId": null,
+      "title": "August 2026",
+      "body": "",
+      "imageUrl": "/newsletters/valley-biz-connect-2026-08-cover.jpg",
+      "linkUrl": "/newsletters/valley-biz-connect-2026-08.pdf",
+      "ctaLabel": "",
+      "ctaUrl": "",
+      "code": "",
+      "status": "approved",
+      "featuredHome": false,
+      "expiresAt": null,
+      "created": "2026-08-01T09:00:00.000Z"
+    },
+    {
       "id": "nl-2026-07",
       "type": "newsletter",
       "authorId": "legacy-import",

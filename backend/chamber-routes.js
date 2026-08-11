@@ -15,6 +15,7 @@ import * as llm from './llm.js';
 import * as turnstile from './turnstile.js';
 import * as email from './email.js';
 import { SOCIAL_KEYS, sanitizePrimaryImage, sanitizeTeam, buildRewritePrompt, parseRewriteResponse } from './profile-helpers.js';
+import { registerNewsletterImport } from './newsletter-import.js';
 
 const router = express.Router();
 
@@ -3821,6 +3822,9 @@ router.post('/admin/posts', requireAdmin, async (req, res) => {
   try { await repo.addPost(post); res.json({ ok: true, id: post.id }); }
   catch (e) { console.error(e); res.status(500).json({ error: 'could not create' }); }
 });
+
+// Newsletter import-from-link (Diana/Felicia self-serve — see backend/newsletter-import.js).
+registerNewsletterImport(router, requireAdmin);
 
 router.patch('/admin/posts/:id', requireAdmin, async (req, res) => {
   const b = req.body || {};

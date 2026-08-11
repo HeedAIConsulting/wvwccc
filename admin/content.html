@@ -51,17 +51,24 @@
         </div>
 
         <!-- Newsletters (per the office, Jul 2026: "Where do we upload the
-             newsletters in admin?" — right here). Uploads a PDF and lists it
-             on the public Valley Biz Connect page instantly. -->
+             newsletters in admin?" — right here). Two ways in: paste a public
+             link (any size — the server downloads, shrinks, and makes the
+             cover automatically; Aug 2026, after the 49MB Canva export), or
+             upload a small PDF directly. Either way it lists on the public
+             Valley Biz Connect page instantly. -->
         <div class="panel">
           <div class="panel__head"><h3>📰 Newsletters <span class="sub">(Valley Biz Connect)</span></h3></div>
           <div style="padding:14px 16px">
+            <div class="field" style="margin:0 0 10px;max-width:340px"><label>Issue title</label><input id="nlTitle" maxlength="120" placeholder="Valley Biz Connect — September 2026" /></div>
             <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:end">
-              <div class="field" style="margin:0;min-width:260px"><label>Issue title</label><input id="nlTitle" maxlength="120" placeholder="Valley Biz Connect — June 2026" /></div>
-              <label class="btn btn--gold btn--sm" style="cursor:pointer">⬆ Upload newsletter PDF<input type="file" accept="application/pdf,.pdf" hidden id="nlFile"></label>
-              <span id="nlMsg" class="sub"></span>
+              <div class="field" style="margin:0;flex:1;min-width:280px"><label>Paste the newsletter link <span class="sub">(Google Drive, Dropbox, or a direct PDF link — any size)</span></label>
+                <input id="nlUrl" placeholder="https://drive.google.com/file/d/…/view" /></div>
+              <button type="button" class="btn btn--gold btn--sm" id="nlImport">Fetch &amp; publish</button>
             </div>
-            <p class="sub" style="margin:8px 0 0">The issue appears on the public <a href="../newsletters/valley-biz-connect.html" target="_blank">Valley Biz Connect page</a> the moment it uploads. Max ~6&nbsp;MB per PDF.</p>
+            <p class="sub" style="margin:8px 0 0">In Google Drive: Share → “Anyone with the link”, copy the link, paste it here. Big print-quality exports are fine — the website shrinks the PDF and makes the cover image automatically.
+              Or, for a small file (up to ~6&nbsp;MB): <label style="cursor:pointer;text-decoration:underline">upload the PDF directly<input type="file" accept="application/pdf,.pdf" hidden id="nlFile"></label>.</p>
+            <p id="nlMsg" class="sub" style="margin:8px 0 0"></p>
+            <p class="sub" style="margin:8px 0 0">The issue appears on the public <a href="../newsletters/valley-biz-connect.html" target="_blank">Valley Biz Connect page</a> the moment it publishes.</p>
             <table class="admin-table" style="margin-top:10px"><thead><tr><th>Issue</th><th>Added</th><th></th></tr></thead><tbody id="nlRows"><tr><td colspan="3" class="sub">Loading…</td></tr></tbody></table>
           </div>
         </div>
@@ -111,7 +118,7 @@
     </div>
   </div>
   <script src="../js/api-base.js"></script>
-  <script src="admin.js?v=20260805b"></script>
+  <script src="admin.js?v=20260811a"></script>
   <script>Admin.initContent();</script>
   <script defer src="/js/support.js?v=20260804c"></script>
 </body>
