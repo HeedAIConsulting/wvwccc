@@ -493,6 +493,11 @@ router.post('/public/event', async (req, res) => {
       address: String(b.address || '').slice(0, 200),
       summary: String(b.summary || '').slice(0, 600),
       category: 'Community',
+      // No action button (Felicia, Aug 12 2026). This form offers no CTA choice,
+      // so submissions used to publish with an RSVP button by default — the
+      // ribbon-cutting host who wanted RSVPs sent to her own address had guests
+      // clicking a button that filed nothing. The office adds a button on approval.
+      hideCta: true,
       // Pending until an admin approves; confirmed because a date is required.
       status: 'pending', confirmed: true, showOnCalendar: true,
       imageMode: 'logo',        // no flyer to show, so no giant placeholder
@@ -3657,6 +3662,10 @@ router.post('/admin/leads/:id/approve-event', requireAdmin, async (req, res) => 
       status: date ? 'approved' : 'pending',
       confirmed: !!date,
       showOnCalendar: true,
+      // No action button (Felicia, Aug 12 2026) — a ribbon cutting takes neither
+      // an RSVP nor a payment, so approving one no longer publishes a dead
+      // RSVP button. The office can switch one on from the event editor.
+      hideCta: true,
     });
     await repo.upsertEvent(ev);
     try { await repo.setLeadStatus(lead.id, 'done'); } catch (e) { /* non-fatal */ }

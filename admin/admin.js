@@ -2770,8 +2770,12 @@ window.Admin = (function () {
       }
       form.ticketCap.value = ev && ev.ticketCap != null ? ev.ticketCap : '';
       form.rsvpCutoff.value = v('rsvpCutoff'); form.status.value = v('status', 'approved');
-      form.ctaKind.value = (ev && ev.hideCta) ? 'none'
-        : ((ev && ev.soldOut) ? 'soldout' : ((ev && ev.ticketed) ? (ev.alsoRsvp ? 'both' : 'buy') : 'rsvp'));
+      // A NEW event starts with no button (Felicia, Aug 12 2026): RSVP used to be
+      // the default, so a host who never touched this menu published an RSVP
+      // button that collected nothing. The office picks a button on purpose now.
+      // Editing an existing event still shows whatever that event already has.
+      form.ctaKind.value = (!ev || ev.hideCta) ? 'none'
+        : (ev.soldOut ? 'soldout' : (ev.ticketed ? (ev.alsoRsvp ? 'both' : 'buy') : 'rsvp'));
       if (form.ctaLabel) form.ctaLabel.value = v('ctaLabel');
       if (form.imageMode) form.imageMode.value = (ev && ev.imageMode) || 'auto';
       form.featured.checked = !!(ev && ev.featured);
