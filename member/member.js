@@ -655,6 +655,19 @@ window.MemberPortal = (function () {
       if (untilField) untilField.hidden = !weekly;
     }));
 
+    // RSVP button is opt-in (Felicia, Aug 12 2026): events start with no
+    // button, and choosing RSVP opens the old site's "where do the RSVPs go"
+    // box. The address is required while the box is open — an RSVP button
+    // whose replies go nowhere is exactly the bug this replaces.
+    const rsvpField = document.getElementById('rsvpEmailField');
+    const rsvpInput = form.querySelector('[data-ev="rsvpEmail"]');
+    const syncRsvp = () => {
+      const on = (form.querySelector('input[name="actionButton"]:checked') || {}).value === 'rsvp';
+      if (rsvpField) rsvpField.hidden = !on;
+      if (rsvpInput) rsvpInput.required = on;
+    };
+    form.querySelectorAll('input[name="actionButton"]').forEach((r) => r.addEventListener('change', syncRsvp));
+
     let flyerUrl = '';
     const flyerPrev = document.getElementById('flyerPreview');
     const flyerInput = document.getElementById('eventFlyer');
@@ -672,6 +685,7 @@ window.MemberPortal = (function () {
       const body = {};
       form.querySelectorAll('[data-ev]').forEach((el) => { body[el.dataset.ev] = el.value.trim(); });
       body.recurrence = (form.querySelector('input[name="recurrence"]:checked') || {}).value || 'none';
+      body.actionButton = (form.querySelector('input[name="actionButton"]:checked') || {}).value || 'none';
       if (flyerUrl) body.flyer = flyerUrl;
       const btn = form.querySelector('button[type="submit"]'); btn.disabled = true; btn.textContent = 'Adding…';
       try {
@@ -681,7 +695,7 @@ window.MemberPortal = (function () {
         msg.textContent = r.published
           ? (r.count > 1 ? ('Added ' + r.count + ' weekly dates to the calendar.') : 'Added to the calendar.')
           : (many + ' — the Chamber office will review it and it will appear on the calendar shortly.');
-        form.reset(); if (flyerPrev) flyerPrev.innerHTML = ''; flyerUrl = ''; if (untilField) untilField.hidden = true;
+        form.reset(); if (flyerPrev) flyerPrev.innerHTML = ''; flyerUrl = ''; if (untilField) untilField.hidden = true; syncRsvp();
         const d = await api('/api/me/events'); renderMyEvents(d.events || []);
       } catch (err) {
         msg.hidden = false; msg.style.borderColor = 'var(--red)';

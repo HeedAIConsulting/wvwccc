@@ -56,6 +56,17 @@
           <div class="member-tile__meta">One entry will be added for each week from the date above through this date.</div>
         </div>
 
+        <h3 class="mt-5">RSVP button <span class="member-tile__meta">(optional)</span></h3>
+        <div class="field">
+          <label class="chip" style="margin-right:8px"><input type="radio" name="actionButton" value="none" checked style="margin-right:6px">No button — details only</label>
+          <label class="chip"><input type="radio" name="actionButton" value="rsvp" style="margin-right:6px">Add an RSVP button</label>
+        </div>
+        <div class="field" id="rsvpEmailField" hidden>
+          <label>Email RSVPs to</label>
+          <input data-ev="rsvpEmail" type="email" maxlength="160" placeholder="you@yourbusiness.com" />
+          <div class="member-tile__meta">Each RSVP is emailed to this address as it comes in — yours, or your assistant's. The Chamber office also keeps a copy.</div>
+        </div>
+
         <h3 class="mt-5">Flyer <span class="member-tile__meta">(optional)</span></h3>
         <div class="grid grid-2" style="gap:var(--s-4);align-items:center">
           <div class="field"><input id="eventFlyer" type="file" accept="image/*" /></div>
@@ -72,7 +83,7 @@
   <div data-partial="footer"></div>
   <script src="../js/partials.js?v=20260810a"></script>
   <script src="../js/api-base.js?v=20260729b"></script>
-  <script src="member.js?v=20260730b"></script>
+  <script src="member.js?v=20260814a"></script>
   <script>ChamberPartials.mount({ active: '', depth: 1, lang: 'en' }); MemberPortal.initEventForm();</script>
 </body>
 </html>

@@ -2582,6 +2582,15 @@ window.Admin = (function () {
     // custom wording too, so those also refresh the hints.
     if (form.ctaKind) form.ctaKind.addEventListener('change', refreshTicketHints);
     if (form.ctaLabel) form.ctaLabel.addEventListener('input', refreshTicketHints);
+    // "Email RSVPs to" only means something while an RSVP button is offered
+    // (Felicia, Aug 12 2026) — hide it for buy/soldout/none so the row stays
+    // readable. The saved address survives a temporary switch away and back.
+    const syncRsvpEmail = () => {
+      const wrap = document.getElementById('rsvpEmailWrap');
+      if (wrap && form.ctaKind) wrap.hidden = !/^(rsvp|both)$/.test(form.ctaKind.value);
+    };
+    if (form.ctaKind) form.ctaKind.addEventListener('change', syncRsvpEmail);
+    syncRsvpEmail();
 
     // Images may carry a click-through link (e.g. a sponsor logo → their site).
     const imgSrcOf = (it) => (typeof it === 'string' ? it : (it && it.src) || '');
@@ -2777,6 +2786,8 @@ window.Admin = (function () {
       form.ctaKind.value = (!ev || ev.hideCta) ? 'none'
         : (ev.soldOut ? 'soldout' : (ev.ticketed ? (ev.alsoRsvp ? 'both' : 'buy') : 'rsvp'));
       if (form.ctaLabel) form.ctaLabel.value = v('ctaLabel');
+      if (form.rsvpEmail) form.rsvpEmail.value = v('rsvpEmail');
+      syncRsvpEmail();
       if (form.imageMode) form.imageMode.value = (ev && ev.imageMode) || 'auto';
       form.featured.checked = !!(ev && ev.featured);
       form.showOnCalendar.checked = ev ? (ev.showOnCalendar !== false) : true;
@@ -2983,6 +2994,9 @@ window.Admin = (function () {
         // Custom wording for the action button (Felicia, Jul 29) — "Purchase",
         // "Buy an ad", "Order a name badge"… blank keeps the standard label.
         ctaLabel: form.ctaLabel ? form.ctaLabel.value.trim() : '',
+        // Where this event's RSVPs are emailed (Felicia, Aug 12) — the host or
+        // their assistant. Blank = the Chamber office only.
+        rsvpEmail: form.rsvpEmail ? form.rsvpEmail.value.trim() : '',
         imageMode: form.imageMode ? form.imageMode.value : 'auto',
         ticketCap: form.ticketCap.value ? Number(form.ticketCap.value) : null,
         rsvpCutoff: form.rsvpCutoff.value || null, featured: form.featured.checked, status: form.status.value,
