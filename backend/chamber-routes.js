@@ -636,6 +636,13 @@ router.post('/me/event', auth.requireAuth(), async (req, res) => {
     // confirmed, publishing makes it show on the calendar instead of staying
     // hidden (the bug Felicia hit: published events not populating).
     confirmed: true, status: immediate ? 'approved' : 'pending', showOnCalendar: true,
+    // Action button (Felicia, Aug 12 2026): a member event starts with NO
+    // button — the ribbon-cutting host published a default RSVP button that
+    // collected nothing. The poster opts into RSVP and names the address the
+    // RSVPs are emailed to (the box the old site opened). Ticket sales are
+    // still set up by the office, so RSVP is the only opt-in here.
+    hideCta: b.actionButton !== 'rsvp',
+    rsvpEmail: b.actionButton === 'rsvp' ? b.rsvpEmail : '',
   };
   // Optional weekly recurrence: one event per week through `until` (cap 52).
   const dates = [];
@@ -1426,6 +1433,14 @@ function buildEvent(b, existing = {}) {
     // is wrong when someone is buying an ad, a name badge or a sponsorship.
     // Blank = the standard label for whichever button kind is selected.
     ctaLabel: b.ctaLabel !== undefined ? String(b.ctaLabel || '').slice(0, 40) : (existing.ctaLabel ?? ''),
+    // Where this event's RSVPs are emailed (Felicia, Aug 12 2026 — the old
+    // site opened a box for this when a poster chose RSVP; usually the poster,
+    // sometimes their assistant). Blank = the Chamber office only. Anything
+    // that is not a plain email address is dropped rather than stored.
+    rsvpEmail: b.rsvpEmail !== undefined
+      ? (/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(b.rsvpEmail || '').trim())
+          ? String(b.rsvpEmail).trim().toLowerCase().slice(0, 160) : '')
+      : (existing.rsvpEmail ?? ''),
     // Sponsor logos — each optionally hyperlinked to the sponsor's site.
     sponsorLogos: Array.isArray(b.sponsorLogos)
       ? b.sponsorLogos.slice(0, 8).map((s) => {
@@ -1481,17 +1496,24 @@ function pick(b, existing, keys) {
 }
 
 // Public: approved events only.
+// Private contact addresses ride on the event record (where RSVPs are emailed,
+// who submitted a community event) but must not be scrapeable from the public
+// calendar API. The admin endpoint keeps the full record.
+function publicEvent(ev) {
+  const { rsvpEmail, communityEmail, ...pub } = ev;
+  return pub;
+}
 router.get('/events', async (_req, res) => {
   try {
     const all = await loadEvents();
-    res.json({ events: all.filter((e) => (e.status || 'approved') === 'approved') });
+    res.json({ events: all.filter((e) => (e.status || 'approved') === 'approved').map(publicEvent) });
   } catch (e) { console.error(e); res.status(500).json({ error: 'events unavailable' }); }
 });
 router.get('/events/:id', async (req, res) => {
   try {
     const ev = (await loadEvents()).find((e) => e.id === req.params.id);
     if (!ev || (ev.status || 'approved') !== 'approved') return res.status(404).json({ error: 'not found' });
-    res.json(ev);
+    res.json(publicEvent(ev));
   } catch (e) { res.status(500).json({ error: 'failed' }); }
 });
 
@@ -2847,11 +2869,24 @@ router.post('/contact', async (req, res) => {
   if (leadSmellsLikeSpam(b, lead)) lead.status = 'spam';
   // If the lead references an event by raw id (older pages / direct API), resolve
   // it to the event title so the admin panel + office email are self-explanatory.
-  if (lead.event && /^(le|ev)-/.test(lead.event)) {
+  if (lead.event && /^(le|ev|ce)-/.test(lead.event)) {
     try {
       const ev = (await loadEvents()).find((x) => x.id === lead.event);
       if (ev) lead.event = `${ev.title}${ev.date ? ` (${ev.date})` : ''} [${ev.id}]`;
     } catch (e) { /* keep the raw id */ }
+  }
+  // An event can name its own RSVP address (Felicia, Aug 12 2026 — the old
+  // site's "where should the RSVPs go" box). Resolve it from the event id the
+  // checkout page carries in brackets, e.g. "Summer Mixer (2026-08-26) [ev-x1]".
+  let rsvpTo = '';
+  if (lead.kind === 'rsvp') {
+    try {
+      const ref = String(lead.event || '');
+      const id = (/\[((?:le|ev|ce)-[a-z0-9]+)\]/i.exec(ref) || [])[1]
+        || (/^(?:le|ev|ce)-[a-z0-9]+$/i.test(ref) ? ref : '');
+      const ev = id && (await loadEvents()).find((x) => x.id === id);
+      if (ev && ev.rsvpEmail) rsvpTo = String(ev.rsvpEmail).trim().toLowerCase();
+    } catch (e) { /* the office copy still goes */ }
   }
   // If the inquiry came from a group page (e.g. a meeting RSVP), notify that
   // group's own leaders. Felicia, Jul 29 2026: the leaders were NOT getting
@@ -2917,8 +2952,14 @@ router.post('/contact', async (req, res) => {
     // Group leaders always get theirs. The Wendy inbox gets a copy whenever a
     // leader was notified (so it stays the complete log) or when the office has
     // inquiry emails switched on.
+    // RSVPs always email out (Felicia, Aug 11 2026: "those receipts/
+    // notifications need to be generated to me!"): the office gets every one —
+    // her July inquiries-off preference predates this and still applies to the
+    // other inquiry kinds — and an event that names its own RSVP address gets
+    // a copy there too (the poster or their assistant).
     const recipients = [...leaderTo];
-    if (officeWantsEmail || leaderTo.length) recipients.push(notifyTo);
+    if (rsvpTo) recipients.push(rsvpTo);
+    if (officeWantsEmail || leaderTo.length || lead.kind === 'rsvp') recipients.push(notifyTo);
     // Screened spam stays out of everyone's inbox — it waits in Admin →
     // Inquiries → Spam instead.
     if (recipients.length && lead.status !== 'spam') {
@@ -2926,7 +2967,11 @@ router.post('/contact', async (req, res) => {
         + `Name: ${lead.name || '—'}\nEmail: ${lead.email}\nPhone: ${lead.phone || '—'}\n`
         + `Company: ${lead.company || '—'}\nEvent: ${lead.event || '—'}${groupName ? `\nGroup: ${groupName}` : ''}\n\nMessage:\n${lead.message || '—'}\n`
         + `\n—\nAlso filed under Admin → Inquiries on the Chamber website.\n`;
-      const subject = `${groupName ? `[${groupName}] ` : ''}Website inquiry: ${lead.reason || lead.kind}${lead.company ? ' — ' + lead.company : ''}`;
+      // An RSVP notification should read like one in the inbox — the event and
+      // who's coming, not a generic "Website inquiry".
+      const subject = lead.kind === 'rsvp'
+        ? `${groupName ? `[${groupName}] ` : ''}New RSVP — ${String(lead.event || 'event').replace(/\s*\[[^\]]*\]\s*$/, '')}${lead.name ? ` (${lead.name})` : ''}`
+        : `${groupName ? `[${groupName}] ` : ''}Website inquiry: ${lead.reason || lead.kind}${lead.company ? ' — ' + lead.company : ''}`;
       // Individually addressed so leaders never see each other's addresses.
       for (const to of [...new Set(recipients)]) {
         email.send({ to, replyTo: lead.email, subject, text: body })
