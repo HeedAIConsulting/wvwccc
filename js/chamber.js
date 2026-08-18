@@ -1999,6 +1999,14 @@ window.Chamber = (function () {
         firstName: fd.get('firstName') || '', lastName: fd.get('lastName') || '',
         email: fd.get('email') || '', phone: fd.get('phone') || '', company: fd.get('company') || '',
         event: extra.eventTitle ? `${extra.eventTitle} [${params.get('event') || ''}]` : (params.get('event') || ''),
+        // The same details as structured fields (Felicia, Aug 18 2026). The
+        // office's notification is built from these, so it can read like the
+        // old site's RSVP confirmation instead of a wall of text with the raw
+        // event id in it. `message` stays as-is for Admin -> Inquiries.
+        eventTitle: extra.eventTitle || '',
+        ticketType: extra.ticketType || '',
+        quantity: Number(extra.quantity) || 1,
+        attendees,
         // Carried from a group page so the group's leaders get notified too.
         ...(params.get('group') ? { group: params.get('group') } : {}),
         message: [
