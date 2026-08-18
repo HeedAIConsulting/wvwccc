@@ -433,9 +433,27 @@ function flagContent(text) {
    spam speed-bump, not an account system. */
 const evCodes = new Map(); // email → { code, expires, tries }
 const EV_CODE_TTL = 30 * 60 * 1000;
+/* Abuse guards (Aug 2026). This route mails a code to WHATEVER address is in
+   the request body, so it is the one public endpoint that can send to a
+   stranger. The captcha above it fails open whenever TURNSTILE_SECRET is
+   unset, which leaves only the global 120-req/min limiter — enough to push
+   ~172k messages a day at one victim, out of the Chamber's sending domain.
+   The sibling magic-link route already carries a per-address cooldown; this
+   one now matches it, plus a per-IP cap on how many DIFFERENT addresses a
+   single source may mail in an hour (a cooldown alone does not stop someone
+   spraying thousands of distinct victims). Both are in-memory, like evCodes
+   itself — a speed bump that survives no restart, which is the right weight
+   for this, but the real fix is setting TURNSTILE_SECRET. */
+const evCodeCooldown = new Map(); // email → last-sent ms
+const evCodeByIp = new Map();     // ip → { hour, addrs:Set }
+const EV_CODE_COOLDOWN = 60 * 1000;
+const EV_CODE_IP_ADDRS_PER_HOUR = 8;
 function pruneEvCodes() {
   const now = Date.now();
   for (const [k, v] of evCodes) if (v.expires < now) evCodes.delete(k);
+  for (const [k, t] of evCodeCooldown) if (now - t > EV_CODE_COOLDOWN) evCodeCooldown.delete(k);
+  const hour = Math.floor(now / 3600000);
+  for (const [k, v] of evCodeByIp) if (v.hour !== hour) evCodeByIp.delete(k);
 }
 router.post('/public/event/verify', async (req, res) => {
   const b = req.body || {};
@@ -444,6 +462,21 @@ router.post('/public/event/verify', async (req, res) => {
   const to = String(b.email || '').trim().toLowerCase();
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)) return res.status(400).json({ error: 'Please enter a valid email address.' });
   pruneEvCodes();
+  // One code per address per minute. A visitor who genuinely missed the email
+  // waits a moment; a script pointed at someone else's inbox gets nowhere.
+  const now = Date.now();
+  if (now - (evCodeCooldown.get(to) || 0) < EV_CODE_COOLDOWN) {
+    return res.status(429).json({ error: 'A code was just sent to that address — please check your inbox (and spam folder), then try again in a minute.' });
+  }
+  // And one source may only mail a handful of DIFFERENT addresses per hour.
+  const hour = Math.floor(now / 3600000);
+  const ipKey = String(req.ip || 'unknown');
+  let seen = evCodeByIp.get(ipKey);
+  if (!seen || seen.hour !== hour) { seen = { hour, addrs: new Set() }; evCodeByIp.set(ipKey, seen); }
+  if (!seen.addrs.has(to) && seen.addrs.size >= EV_CODE_IP_ADDRS_PER_HOUR) {
+    console.warn('[event verify] per-IP address cap hit', ipKey);
+    return res.status(429).json({ error: 'Too many verification codes requested from this connection. Please try again later, or call the office at (818) 347-4737 and we will add your event for you.' });
+  }
   // 6 digits, generated server-side and never echoed in the response.
   const code = String(Math.floor(100000 + Math.random() * 900000));
   evCodes.set(to, { code, expires: Date.now() + EV_CODE_TTL, tries: 0 });
@@ -455,6 +488,11 @@ router.post('/public/event/verify', async (req, res) => {
     // `skipped` means no mail provider is configured — the visitor would never
     // receive the code, so never claim it was sent.
     if (!r || r.ok === false || r.skipped) throw new Error(r && r.skipped ? 'email not configured' : 'send failed');
+    // Count it only once a message actually went out: a provider outage must
+    // not lock a real visitor out of retrying, and a send that never happened
+    // is not abuse worth throttling.
+    evCodeCooldown.set(to, Date.now());
+    seen.addrs.add(to);
     res.json({ ok: true, sent: true });
   } catch (e) {
     evCodes.delete(to);

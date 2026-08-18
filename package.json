@@ -10,6 +10,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
+    "test": "node --experimental-test-module-mocks --test backend/test/*.test.mjs",
     "migrate": "node scripts/migrate.js",
     "create-staff": "node scripts/create-staff.js"
   },
