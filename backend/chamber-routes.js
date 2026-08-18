@@ -1067,6 +1067,7 @@ let _mixerPricesChecked = false;
 let _foodWineButtonChecked = false;
 let _galaAlbumChecked = false;
 let _galaPopupChecked = false;
+let _circleRsvpChecked = false;
 async function ensureEventsSeeded() {
   if (!(await repo.hasEvents())) {
     for (const e of readSeedEvents()) await repo.upsertEvent(buildEvent(e, e));
@@ -1253,6 +1254,55 @@ async function ensureEventsSeeded() {
         await repo.setSetting(KEY, `applied @ ${new Date().toISOString()}`);
       }
     } catch (e) { _foodWineButtonChecked = false; console.error('food & wine ticket-button flip failed (will retry next boot)', e); }
+  }
+  /* One-time (Aug 18 2026, per Felicia, Aug 11): strip the RSVP button off the
+     recurring connection-circle and group meetings. Lee Levy and the other
+     leaders posted a year of dates on the OLD site, where those listings had no
+     RSVP link; the import gave every one of them the default RSVP button, so
+     28 upcoming meetings were inviting RSVPs nobody collects. Her words: "The
+     connection circles do not take RSVPs because they are category specific."
+
+     The Aug 12 default-button change fixed only NEW events and deliberately
+     left the existing 234 alone, which is why these survived it.
+
+     Narrow on purpose, because the office DOES take RSVPs for real Chamber
+     events: matched by the circle's own recurring name, and only while the
+     event still shows a plain RSVP button (no tickets, no prices, not already
+     switched off). Chamber events are named with a date prefix — "October 17th
+     ~ LIGHT THE NIGHT Walk" — so none of them match. The marker means the
+     office can switch a button back on from Admin → Events without a redeploy
+     undoing it. */
+  if (!_circleRsvpChecked) {
+    _circleRsvpChecked = true;
+    try {
+      const KEY = 'circleRsvpButtonsOff-20260818';
+      if (!(await repo.getSetting(KEY))) {
+        // Leading-anchored so "Lee's Luncheon Connection Circle 9/9/2026" matches
+        // while a one-off event that merely mentions a circle does not.
+        const CIRCLES = [
+          "martin's connection circle",
+          "lee's luncheon connection circle",
+          'young professionals network',
+          'home improvement professionals network',
+          'health & wellness resource network',
+          'dynamic business networking',
+          'valley senior resource and network',
+          'board of directors monthly meeting',
+        ];
+        let off = 0;
+        for (const ev of await repo.listEventsStore()) {
+          const t = String(ev.title || '').trim().toLowerCase();
+          if (!CIRCLES.some((c) => t.startsWith(c))) continue;
+          // Only a plain, unpriced RSVP button — never touch ticketing.
+          if (ev.hideCta || ev.ticketed || ev.soldOut) continue;
+          if (Array.isArray(ev.ticketTypes) && ev.ticketTypes.length) continue;
+          await repo.upsertEvent(buildEvent({ hideCta: true }, ev));
+          off++;
+        }
+        await repo.setSetting(KEY, `applied @ ${new Date().toISOString()}`);
+        console.log(`[events] one-time: RSVP button removed from ${off} connection-circle/group meetings per Felicia (Aug 11)`);
+      }
+    } catch (e) { _circleRsvpChecked = false; console.error('circle RSVP-button cleanup failed (will retry next boot)', e); }
   }
   /* One-time (Jul 30 2026): stand up the album Diana asked for by name — "a
      photo gallery for the Black and White Gala" — attached to the Gala event
@@ -3020,9 +3070,64 @@ router.post('/contact', async (req, res) => {
       const subject = lead.kind === 'rsvp'
         ? `${groupName ? `[${groupName}] ` : ''}New RSVP — ${String(lead.event || 'event').replace(/\s*\[[^\]]*\]\s*$/, '')}${lead.name ? ` (${lead.name})` : ''}`
         : `${groupName ? `[${groupName}] ` : ''}Website inquiry: ${lead.reason || lead.kind}${lead.company ? ' — ' + lead.company : ''}`;
+      /* An RSVP notification is laid out like the old site's confirmation
+         (Felicia, Aug 18 2026: "We like the look of the old receipts"). Same
+         THANK YOU / GUEST INFO shape as the payment receipt above, so the two
+         look like they come from the same Chamber. The generic inquiry body is
+         kept for every other kind. The raw event id is stripped — it was
+         showing in her inbox as "[ev-mruu80zk6qp]". */
+      let html = '';
+      let text = body;
+      if (lead.kind === 'rsvp') {
+        const eh = (v) => String(v ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+        const row = (k, v) => (v ? `<tr><td style="padding:2px 16px 2px 0;font-weight:bold;vertical-align:top;white-space:nowrap">${k}:</td><td style="padding:2px 0">${eh(v)}</td></tr>` : '');
+        const evTitle = String(b.eventTitle || lead.event || '').replace(/\s*\[[^\]]*\]\s*$/, '');
+        const qty = Math.max(1, Math.min(50, parseInt(b.quantity, 10) || 1));
+        const tier = String(b.ticketType || '').slice(0, 120);
+        const guests = (Array.isArray(b.attendees) ? b.attendees : []).slice(0, 20).map((a) => ({
+          name: String((a && a.name) || '').slice(0, 120),
+          email: String((a && a.email) || '').slice(0, 160),
+          phone: String((a && a.phone) || '').slice(0, 40),
+        })).filter((a) => a.name || a.email || a.phone);
+        html = `
+        <div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#111;max-width:560px;border:1px solid #ccc;padding:20px 24px">
+          <img src="https://woodlandhillscc.net/images/wvwccc-logo.png" alt="WVWC Chamber of Commerce" width="72" style="display:block;margin:0 0 12px">
+          <p style="color:#188038;font-weight:bold;margin:0">THANK YOU</p>
+          <table style="border-collapse:collapse;font-size:14px;margin-top:10px">
+            ${row('Name', lead.name)}
+            ${row('Event', evTitle)}
+            ${row('Registration', tier)}
+            ${row('RSVP Qty', String(qty))}
+            ${groupName ? row('Group', groupName) : ''}
+          </table>
+          <p style="font-weight:bold;text-decoration:underline;margin:16px 0 4px">GUEST INFO</p>
+          <table style="border-collapse:collapse;font-size:14px">
+            ${row('Company', lead.company)}
+            ${row('Name', lead.name)}
+            ${row('Email', lead.email)}
+            ${row('Phone', lead.phone)}
+          </table>
+          ${guests.length ? guests.map((g) => `
+          <table style="border-collapse:collapse;font-size:14px;margin-top:10px">
+            ${row('Name', g.name)}
+            ${row('Email', g.email)}
+            ${row('Phone', g.phone)}
+          </table>`).join('') : ''}
+          <p style="margin:18px 0 0;font-style:italic">* This is an RSVP only. Please pay at the door.</p>
+          <p style="margin:14px 0 0;color:#666;font-size:12px">Also filed under Admin &rarr; Inquiries on the Chamber website.</p>
+        </div>`;
+        text = `THANK YOU\n\n`
+          + `Name: ${lead.name || '—'}\nEvent: ${evTitle || '—'}\n`
+          + `${tier ? `Registration: ${tier}\n` : ''}RSVP Qty: ${qty}\n${groupName ? `Group: ${groupName}\n` : ''}`
+          + `\nGUEST INFO\n`
+          + `Company: ${lead.company || '—'}\nName: ${lead.name || '—'}\nEmail: ${lead.email}\nPhone: ${lead.phone || '—'}\n`
+          + guests.map((g) => `\nName: ${g.name || '—'}\nEmail: ${g.email || '—'}\nPhone: ${g.phone || '—'}\n`).join('')
+          + `\n* This is an RSVP only. Please pay at the door.\n`
+          + `\n—\nAlso filed under Admin → Inquiries on the Chamber website.\n`;
+      }
       // Individually addressed so leaders never see each other's addresses.
       for (const to of [...new Set(recipients)]) {
-        email.send({ to, replyTo: lead.email, subject, text: body })
+        email.send({ to, replyTo: lead.email, subject, text, ...(html ? { html } : {}) })
           .catch((e) => console.error('notify email failed', to, e));
       }
     }
