@@ -1449,8 +1449,11 @@ window.Chamber = (function () {
       q: params.get('q') || '',
       category: params.get('c') || '',
       hood: params.get('n') || '',
+      circle: params.get('g') || '',
     };
     let members = [];
+    let circles = [];                 // [{ name, slug, ids:Set }]
+    const circlesOf = new Map();      // member id -> Set of group names
     try {
       const dir = await getJSON(ChamberAPI.url('/api/members'));
       // Chamber staff appear on the Board & Leadership page, not in the
@@ -1461,6 +1464,37 @@ window.Chamber = (function () {
           '<span class="badge badge--bronze">Preview roster</span>';
       }
     } catch (e) { console.error(e); }
+
+    /* Groups & connection circles (Diana, Aug 18 2026). Rosters are kept on the
+       group, not on the member, so the index is built here. Entries carry a
+       memberId when the office picked the member out of the directory, and only
+       a typed name/business when they did not — so fall back to matching those
+       against the listing name and contact name. A circle with nobody matched is
+       left out of the picker rather than offering a filter that finds nothing. */
+    try {
+      const gs = await getJSON(ChamberAPI.url('/api/groups'));
+      const list = (gs && (gs.groups || gs)) || [];
+      const norm = (v) => String(v || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+      const byId = new Map(members.map((m) => [String(m.id), m]));
+      const byName = new Map();
+      for (const m of members) {
+        for (const k of [m.name, m.contactName]) { const n = norm(k); if (n && !byName.has(n)) byName.set(n, m); }
+      }
+      circles = list.map((g) => {
+        const ids = new Set();
+        for (const gm of (g.members || [])) {
+          if (gm && gm.status === 'pending') continue;
+          const hit = (gm && gm.memberId && byId.get(String(gm.memberId)))
+            || byName.get(norm(gm && gm.business)) || byName.get(norm(gm && gm.name));
+          if (hit) ids.add(hit.id);
+        }
+        for (const id of ids) {
+          if (!circlesOf.has(id)) circlesOf.set(id, new Set());
+          circlesOf.get(id).add(g.name);
+        }
+        return { name: g.name, slug: g.slug, ids };
+      }).filter((c) => c.ids.size).sort((a, b) => a.name.localeCompare(b.name));
+    } catch (e) { /* the directory still works without the circle picker */ }
 
     const uniq = (arr) => [...new Set(arr.filter(Boolean))].sort((a, b) => a.localeCompare(b));
     // The dropdown lists every real business category from the member records
@@ -1521,7 +1555,26 @@ window.Chamber = (function () {
       buildDropdown('categoryDD', tr('All categories'), cats, 'category');
       buildDropdown('hoodDD', tr('All areas'), hoods, 'hood');
       const clr = document.getElementById('clearAll');
-      if (clr) clr.hidden = !(state.category || state.hood);
+      if (clr) clr.hidden = !(state.category || state.hood || state.circle);
+    }
+    // Real radio inputs, because that is what was asked for and what the old
+    // site had — one per group, plus "All members" to come back out of a circle.
+    function buildCircles() {
+      const wrap = document.getElementById('dirCircles');
+      const el = document.getElementById('dirCircleOpts');
+      if (!wrap || !el) return;
+      if (!circles.length) { wrap.hidden = true; return; }
+      wrap.hidden = false;
+      const opt = (val, label, count) => `
+        <label class="chip${state.circle === val ? ' active' : ''}" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px">
+          <input type="radio" name="dirCircle" value="${esc(val)}"${state.circle === val ? ' checked' : ''} style="margin:0">
+          <span>${esc(label)}${count != null ? ` (${count})` : ''}</span>
+        </label>`;
+      el.innerHTML = opt('', tr('All members'), null)
+        + circles.map((c) => opt(c.name, c.name, c.ids.size)).join('');
+      el.querySelectorAll('input[name="dirCircle"]').forEach((r) => r.addEventListener('change', () => {
+        state.circle = r.value; render();
+      }));
     }
     // Quick-pick buttons for the most-populated categories (Chamber feedback:
     // "both the field for the category AND choose from top categories buttons").
@@ -1550,6 +1603,7 @@ window.Chamber = (function () {
     function scoreOf(m) {
       if (state.category && !catMatch(m, state.category)) return -1;
       if (state.hood && m.neighborhood !== state.hood) return -1;
+      if (state.circle && !(circlesOf.get(m.id) || new Set()).has(state.circle)) return -1;
       if (!state.q) return 0;
       // Curated fields decide whether a business is a result. The free-text
       // description only *boosts ranking* — it can't qualify a listing on its
@@ -1586,6 +1640,7 @@ window.Chamber = (function () {
     function render() {
       buildFacets();
       buildTopCats();
+      buildCircles();
       const place = localStorage.getItem('wvwccc_place');
       let scored = members.map((m) => [m, scoreOf(m)]).filter(([, s]) => s >= 0);
       if (state.q) {
@@ -1598,7 +1653,8 @@ window.Chamber = (function () {
       document.getElementById('resultCount').textContent =
         `${list.length} ${list.length === 1 ? tr('member') : tr('members')}` +
         (state.category ? ` · ${state.category}` : '') +
-        (state.hood ? ` · ${state.hood}` : '');
+        (state.hood ? ` · ${state.hood}` : '') +
+        (state.circle ? ` · ${state.circle}` : '');
       document.getElementById('emptyState').hidden = list.length > 0;
     }
 
@@ -1607,11 +1663,11 @@ window.Chamber = (function () {
     input.value = state.q;
     form.addEventListener('submit', (e) => { e.preventDefault(); state.q = input.value.trim(); render(); });
     input.addEventListener('input', () => { state.q = input.value.trim(); render(); });
-    const reset = () => { state.q = ''; state.category = ''; state.hood = ''; input.value = ''; render(); };
+    const reset = () => { state.q = ''; state.category = ''; state.hood = ''; state.circle = ''; input.value = ''; render(); };
     const clear = document.getElementById('clearFilters');
     if (clear) clear.addEventListener('click', reset);
     const clearAll = document.getElementById('clearAll');
-    if (clearAll) clearAll.addEventListener('click', () => { state.category = ''; state.hood = ''; render(); });
+    if (clearAll) clearAll.addEventListener('click', () => { state.category = ''; state.hood = ''; state.circle = ''; render(); });
 
     render();
   }
