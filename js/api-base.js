@@ -16,7 +16,7 @@ window.ChamberAPI = (function () {
      Cloudflare's test keys, for local checks (never deploy these):
        always passes  1x00000000000000000000AA
        always blocks  2x00000000000000000000AB                                */
-  const TURNSTILE_SITE_KEY = '';
+  const TURNSTILE_SITE_KEY = '0x4AAAAAAEUWFepVQXt9XRM4';
 
   const isLocal = ['localhost', '127.0.0.1'].includes(location.hostname);
   const base = RENDER_API_BASE && !isLocal ? RENDER_API_BASE : '';

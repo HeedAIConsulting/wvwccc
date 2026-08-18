@@ -433,9 +433,27 @@ function flagContent(text) {
    spam speed-bump, not an account system. */
 const evCodes = new Map(); // email → { code, expires, tries }
 const EV_CODE_TTL = 30 * 60 * 1000;
+/* Abuse guards (Aug 2026). This route mails a code to WHATEVER address is in
+   the request body, so it is the one public endpoint that can send to a
+   stranger. The captcha above it fails open whenever TURNSTILE_SECRET is
+   unset, which leaves only the global 120-req/min limiter — enough to push
+   ~172k messages a day at one victim, out of the Chamber's sending domain.
+   The sibling magic-link route already carries a per-address cooldown; this
+   one now matches it, plus a per-IP cap on how many DIFFERENT addresses a
+   single source may mail in an hour (a cooldown alone does not stop someone
+   spraying thousands of distinct victims). Both are in-memory, like evCodes
+   itself — a speed bump that survives no restart, which is the right weight
+   for this, but the real fix is setting TURNSTILE_SECRET. */
+const evCodeCooldown = new Map(); // email → last-sent ms
+const evCodeByIp = new Map();     // ip → { hour, addrs:Set }
+const EV_CODE_COOLDOWN = 60 * 1000;
+const EV_CODE_IP_ADDRS_PER_HOUR = 8;
 function pruneEvCodes() {
   const now = Date.now();
   for (const [k, v] of evCodes) if (v.expires < now) evCodes.delete(k);
+  for (const [k, t] of evCodeCooldown) if (now - t > EV_CODE_COOLDOWN) evCodeCooldown.delete(k);
+  const hour = Math.floor(now / 3600000);
+  for (const [k, v] of evCodeByIp) if (v.hour !== hour) evCodeByIp.delete(k);
 }
 router.post('/public/event/verify', async (req, res) => {
   const b = req.body || {};
@@ -444,6 +462,21 @@ router.post('/public/event/verify', async (req, res) => {
   const to = String(b.email || '').trim().toLowerCase();
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)) return res.status(400).json({ error: 'Please enter a valid email address.' });
   pruneEvCodes();
+  // One code per address per minute. A visitor who genuinely missed the email
+  // waits a moment; a script pointed at someone else's inbox gets nowhere.
+  const now = Date.now();
+  if (now - (evCodeCooldown.get(to) || 0) < EV_CODE_COOLDOWN) {
+    return res.status(429).json({ error: 'A code was just sent to that address — please check your inbox (and spam folder), then try again in a minute.' });
+  }
+  // And one source may only mail a handful of DIFFERENT addresses per hour.
+  const hour = Math.floor(now / 3600000);
+  const ipKey = String(req.ip || 'unknown');
+  let seen = evCodeByIp.get(ipKey);
+  if (!seen || seen.hour !== hour) { seen = { hour, addrs: new Set() }; evCodeByIp.set(ipKey, seen); }
+  if (!seen.addrs.has(to) && seen.addrs.size >= EV_CODE_IP_ADDRS_PER_HOUR) {
+    console.warn('[event verify] per-IP address cap hit', ipKey);
+    return res.status(429).json({ error: 'Too many verification codes requested from this connection. Please try again later, or call the office at (818) 347-4737 and we will add your event for you.' });
+  }
   // 6 digits, generated server-side and never echoed in the response.
   const code = String(Math.floor(100000 + Math.random() * 900000));
   evCodes.set(to, { code, expires: Date.now() + EV_CODE_TTL, tries: 0 });
@@ -455,6 +488,11 @@ router.post('/public/event/verify', async (req, res) => {
     // `skipped` means no mail provider is configured — the visitor would never
     // receive the code, so never claim it was sent.
     if (!r || r.ok === false || r.skipped) throw new Error(r && r.skipped ? 'email not configured' : 'send failed');
+    // Count it only once a message actually went out: a provider outage must
+    // not lock a real visitor out of retrying, and a send that never happened
+    // is not abuse worth throttling.
+    evCodeCooldown.set(to, Date.now());
+    seen.addrs.add(to);
     res.json({ ok: true, sent: true });
   } catch (e) {
     evCodes.delete(to);
@@ -2839,14 +2877,24 @@ router.post('/contact', async (req, res) => {
   if (!b.email || !(b.message || b.company || b.name)) {
     return res.status(400).json({ ok: false, error: 'Please include your email and a message.' });
   }
+  // Length caps, like every other public write in this file. These values are
+  // stranger-supplied and end up in the office's inbox, in notification
+  // subjects, and (for an approved application) in the welcome email — so an
+  // uncapped field is both a mail-bomb payload and a wall of text in Inquiries.
+  const clip = (v, n) => String(v == null ? '' : v).slice(0, n);
   const lead = {
     id: 'lead-' + Date.now().toString(36),
-    kind: b.kind || 'contact',
-    name: [b.firstName, b.lastName].filter(Boolean).join(' ') || b.name || '',
-    email: b.email, phone: b.phone || '', company: b.company || '',
-    reason: b.reason || b.kind || '', event: b.event || '', message: b.message || '',
+    kind: clip(b.kind || 'contact', 40),
+    name: clip([b.firstName, b.lastName].filter(Boolean).join(' ') || b.name || '', 160),
+    email: clip(b.email, 160), phone: clip(b.phone, 40), company: clip(b.company, 160),
+    reason: clip(b.reason || b.kind || '', 120), event: clip(b.event, 200), message: clip(b.message, 5000),
     status: 'new', received: new Date().toISOString(),
   };
+  // The address is echoed into the notification's Reply-To, so it has to look
+  // like an address — the check above only asked that it be non-empty.
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(lead.email)) {
+    return res.status(400).json({ ok: false, error: 'Please enter a valid email address.' });
+  }
   // Membership applications carry extra fields (business type, employee count,
   // level of interest) — keep them in the message so the office sees the full
   // application and one-click approval loses nothing.
@@ -3075,7 +3123,7 @@ router.post('/admin/members/:id/send-welcome', requireAdmin, async (req, res) =>
       to: addr,
       subject: `Welcome to the West Valley · Warner Center Chamber of Commerce!`,
       text: `Welcome${hello}!\n\nLog in to your very own website profile on the Chamber of Commerce website — have your logo, headshot, and headline ready, and update often.\n\nSet your password and sign in here (link expires in 1 hour; after that use "Forgot password" on the sign-in page):\n${link}\n\nBe sure the Chamber office has all of your preferred contact information for publishing. You will be announced in our newsletter — if you would like a social media campaign to accompany that, it is only $50. Let us know!\n\nAnd join our WVWC Group on Facebook.\n\nBe Connected,\nWest Valley · Warner Center Chamber of Commerce\n(818) 347-4737 · www.woodlandhillscc.net`,
-      html: `<p>Welcome${hello}!</p>
+      html: `<p>Welcome${esc(hello)}!</p>
 <p>Log in to your very own website profile on the Chamber of Commerce website — have your logo, headshot, and headline ready, and update often.</p>
 <p><a href="${link}"><strong>Set your password &amp; sign in</strong></a> (link expires in 1 hour; after that use “Forgot password” on the <a href="${base}/auth/login.html">sign-in page</a>).</p>
 <p>Be sure the Chamber office has all of your preferred contact information for publishing. You will be announced in our newsletter — if you would like a social media campaign to accompany that, it is only <strong>$50</strong>. Let us know!</p>
@@ -3186,7 +3234,7 @@ router.post('/admin/members/:id/send-reset', requireAdmin, async (req, res) => {
       to: addr,
       subject: 'Set your West Valley · Warner Center Chamber password',
       text: `Hello${hello},\n\nHere is your link to set a new password for your Chamber account (${addr}). It expires in 1 hour:\n${link}\n\nIf the link expires, ask the Chamber office to send a new one, or use “Forgot password” on the sign-in page.\n\nWest Valley · Warner Center Chamber of Commerce\n(818) 347-4737`,
-      html: `<p>Hello${hello},</p><p>Here is your link to set a new password for your Chamber account (<strong>${addr}</strong>). It expires in 1 hour:</p><p><a href="${link}"><strong>Set your password</strong></a></p><p>If the link expires, ask the Chamber office to send a new one, or use “Forgot password” on the <a href="${base}/auth/login.html">sign-in page</a>.</p><p>West Valley · Warner Center Chamber of Commerce<br>(818) 347-4737</p>`,
+      html: `<p>Hello${esc(hello)},</p><p>Here is your link to set a new password for your Chamber account (<strong>${esc(addr)}</strong>). It expires in 1 hour:</p><p><a href="${link}"><strong>Set your password</strong></a></p><p>If the link expires, ask the Chamber office to send a new one, or use “Forgot password” on the <a href="${base}/auth/login.html">sign-in page</a>.</p><p>West Valley · Warner Center Chamber of Commerce<br>(818) 347-4737</p>`,
     });
     if (r && r.skipped) return res.status(500).json({ error: 'Email provider is not configured on the server.' });
     if (r && r.ok === false) return res.status(500).json({ error: 'Email could not be sent: ' + (r.error || 'provider error') });
@@ -3213,7 +3261,7 @@ router.post('/admin/members/:id/send-signin', requireAdmin, async (req, res) => 
       to: addr,
       subject: 'Your West Valley · Warner Center Chamber sign-in link',
       text: `Hello${hello},\n\nClick to sign straight in to your Chamber account (${addr}) — no password needed. This link expires in 20 minutes:\n${link}\n\nOnce you're in, you can set a password under your profile if you'd like.\n\nWest Valley · Warner Center Chamber of Commerce\n(818) 347-4737`,
-      html: `<p>Hello${hello},</p><p>Click to sign straight in to your Chamber account (<strong>${addr}</strong>) — no password needed. This link expires in 20 minutes:</p><p><a href="${link}"><strong>Sign in to the Chamber</strong></a></p><p>Once you're in, you can set a password under your profile if you'd like.</p><p>West Valley · Warner Center Chamber of Commerce<br>(818) 347-4737</p>`,
+      html: `<p>Hello${esc(hello)},</p><p>Click to sign straight in to your Chamber account (<strong>${esc(addr)}</strong>) — no password needed. This link expires in 20 minutes:</p><p><a href="${link}"><strong>Sign in to the Chamber</strong></a></p><p>Once you're in, you can set a password under your profile if you'd like.</p><p>West Valley · Warner Center Chamber of Commerce<br>(818) 347-4737</p>`,
     });
     if (r && r.skipped) return res.status(500).json({ error: 'Email provider is not configured on the server.' });
     if (r && r.ok === false) return res.status(500).json({ error: 'Email could not be sent: ' + (r.error || 'provider error') });
@@ -3475,7 +3523,7 @@ router.post('/admin/members', requireAdmin, async (req, res) => {
           to: m.email,
           subject: 'Welcome to the West Valley · Warner Center Chamber — set up your account',
           text: `Welcome${m.contactName ? ', ' + m.contactName : ''}!\n\nYour Chamber member listing for ${m.name} is set up. Create your password to manage your listing:\n${link}\n\n(This link expires in 1 hour — if it expires, just use "Forgot password" on the sign-in page.)\n\n— West Valley · Warner Center Chamber of Commerce`,
-          html: `<p>Welcome${m.contactName ? ', ' + m.contactName : ''}!</p><p>Your Chamber member listing for <strong>${m.name}</strong> is set up. Create your password to manage your listing:</p><p><a href="${link}">Set up your account</a> (link expires in 1 hour — otherwise use “Forgot password” on the sign-in page).</p><p>— West Valley · Warner Center Chamber of Commerce</p>`,
+          html: `<p>Welcome${m.contactName ? ', ' + esc(m.contactName) : ''}!</p><p>Your Chamber member listing for <strong>${esc(m.name)}</strong> is set up. Create your password to manage your listing:</p><p><a href="${link}">Set up your account</a> (link expires in 1 hour — otherwise use “Forgot password” on the sign-in page).</p><p>— West Valley · Warner Center Chamber of Commerce</p>`,
         });
         login = r && r.ok ? 'login created · welcome email sent' : 'login created · email pending (' + (r && r.error ? r.error : 'not configured') + ')';
       } catch (e) { console.error('member login/email', e); login = 'member added; login/email step failed'; }
@@ -3510,7 +3558,7 @@ async function attachLoginAndInvite(memberId, emailAddr, displayName, businessNa
     to: emailAddr,
     subject: 'Your member login for the Chamber website — set your password',
     text: `Hello${displayName ? ' ' + displayName : ''},\n\nYour member listing for ${businessName} is live on the West Valley · Warner Center Chamber website, and a member login has been created for this email address.\n\nSet your password here to manage your listing (photos, description, offers, and more):\n${link}\n\n(The link expires in 1 hour — if it expires, just use "Forgot password" on the sign-in page at ${base}/auth/login.html.)\n\n— West Valley · Warner Center Chamber of Commerce\n(818) 347-4737`,
-    html: `<p>Hello${displayName ? ' ' + displayName : ''},</p><p>Your member listing for <strong>${businessName}</strong> is live on the West Valley · Warner Center Chamber website, and a member login has been created for this email address.</p><p><a href="${link}">Set your password</a> to manage your listing — photos, description, offers, and more.</p><p>(The link expires in 1 hour — if it expires, just use “Forgot password” on the <a href="${base}/auth/login.html">sign-in page</a>.)</p><p>— West Valley · Warner Center Chamber of Commerce<br>(818) 347-4737</p>`,
+    html: `<p>Hello${displayName ? ' ' + esc(displayName) : ''},</p><p>Your member listing for <strong>${esc(businessName)}</strong> is live on the West Valley · Warner Center Chamber website, and a member login has been created for this email address.</p><p><a href="${link}">Set your password</a> to manage your listing — photos, description, offers, and more.</p><p>(The link expires in 1 hour — if it expires, just use “Forgot password” on the <a href="${base}/auth/login.html">sign-in page</a>.)</p><p>— West Valley · Warner Center Chamber of Commerce<br>(818) 347-4737</p>`,
   });
   return r && r.ok ? 'login created · set-password email sent' : 'login created · email pending (' + ((r && r.error) || 'not configured') + ')';
 }
@@ -3640,7 +3688,7 @@ router.post('/admin/leads/:id/approve-member', requireAdmin, async (req, res) =>
             to: m.email,
             subject: 'Your Chamber membership is approved — you can sign in now',
             text: `Welcome${m.contactName ? ', ' + m.contactName : ''}!\n\nYour membership for ${m.name} is approved and your listing is live. Sign in with the email address and the password you chose on your application:\n${base}/auth/login.html\n\n— West Valley · Warner Center Chamber of Commerce\n(818) 347-4737`,
-            html: `<p>Welcome${m.contactName ? ', ' + m.contactName : ''}!</p><p>Your membership for <strong>${m.name}</strong> is approved and your listing is live. <a href="${base}/auth/login.html">Sign in</a> with the email address and the password you chose on your application.</p><p>— West Valley · Warner Center Chamber of Commerce<br>(818) 347-4737</p>`,
+            html: `<p>Welcome${m.contactName ? ', ' + esc(m.contactName) : ''}!</p><p>Your membership for <strong>${esc(m.name)}</strong> is approved and your listing is live. <a href="${base}/auth/login.html">Sign in</a> with the email address and the password you chose on your application.</p><p>— West Valley · Warner Center Chamber of Commerce<br>(818) 347-4737</p>`,
           });
           login = r && r.ok ? 'login active with the password they chose · sign-in email sent' : 'login active with the password they chose · email pending';
         } else {
