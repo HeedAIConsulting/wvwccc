@@ -1068,6 +1068,7 @@ let _foodWineButtonChecked = false;
 let _galaAlbumChecked = false;
 let _galaPopupChecked = false;
 let _circleRsvpChecked = false;
+let _confirmDatedChecked = false;
 async function ensureEventsSeeded() {
   if (!(await repo.hasEvents())) {
     for (const e of readSeedEvents()) await repo.upsertEvent(buildEvent(e, e));
@@ -1304,6 +1305,32 @@ async function ensureEventsSeeded() {
       }
     } catch (e) { _circleRsvpChecked = false; console.error('circle RSVP-button cleanup failed (will retry next boot)', e); }
   }
+  /* One-time (Aug 19 2026, per Felicia): rescue any dated event left stuck at
+     confirmed:false by the ?? bug fixed in buildEvent above. Those events look
+     perfectly normal in Admin - approved, dated, showing on the list - but the
+     public calendar filters on `confirmed && date`, so they were invisible to
+     members with nothing on screen to explain why. Her Nov 18 mixer was one.
+     Only touches events that already have a real date and are approved; a
+     ribbon cutting still waiting on a date stays unconfirmed, which is what
+     that flag is actually for. */
+  if (!_confirmDatedChecked) {
+    _confirmDatedChecked = true;
+    try {
+      const KEY = 'confirmDatedEvents-20260819';
+      if (!(await repo.getSetting(KEY))) {
+        let fixed = 0;
+        for (const ev of await repo.listEventsStore()) {
+          if (ev.confirmed) continue;
+          if (!/^\d{4}-\d{2}-\d{2}$/.test(String(ev.date || ''))) continue;
+          if ((ev.status || 'approved') !== 'approved') continue;
+          await repo.upsertEvent(buildEvent({ confirmed: true }, ev));
+          fixed++;
+        }
+        await repo.setSetting(KEY, `applied @ ${new Date().toISOString()}`);
+        if (fixed) console.log(`[events] one-time: ${fixed} dated event(s) un-stuck from confirmed:false and now show on the calendar`);
+      }
+    } catch (e) { _confirmDatedChecked = false; console.error('confirmed-flag repair failed (will retry next boot)', e); }
+  }
   /* One-time (Jul 30 2026): stand up the album Diana asked for by name — "a
      photo gallery for the Black and White Gala" — attached to the Gala event
      and covered by its flyer, so the office only has to drop photos in. Empty
@@ -1434,7 +1461,7 @@ function sanitizeRichHtml(html) {
   return s;
 }
 
-function buildEvent(b, existing = {}) {
+export function buildEvent(b, existing = {}) {
   const date = b.date ?? existing.date ?? '';
   const d = date ? new Date(date + 'T12:00:00') : null;
   // Images may be plain URLs or {src, href, label} (hyperlinked image, e.g. a
@@ -1459,7 +1486,16 @@ function buildEvent(b, existing = {}) {
     id: existing.id || b.id || ('ev-' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36)),
     title: String(b.title ?? existing.title ?? '').slice(0, 200),
     category: String(b.category ?? existing.category ?? 'Event').slice(0, 40),
-    confirmed: b.confirmed !== undefined ? !!b.confirmed : (existing.confirmed ?? !!date),
+    /* A dated event is date-confirmed. `status` is the public gate, not this
+       (Felicia, Aug 19 2026: her Nov 18 mixer saved fine, showed in Admin, and
+       never appeared on the calendar). The old expression was
+       `existing.confirmed ?? !!date`, and ?? only falls through on null or
+       undefined - never on false. So an event first saved without a date stuck
+       at confirmed:false, and adding the date afterwards could not clear it:
+       the public list filters on `e.confirmed && e.date`, so it stayed
+       invisible forever. Now the date decides, unless a caller says otherwise
+       explicitly (the ribbon-cutting queue does, for a date not yet set). */
+    confirmed: b.confirmed !== undefined ? !!b.confirmed : (date ? true : (existing.confirmed ?? false)),
     date,
     month: d ? MONTHS3[d.getMonth()] : (b.month ?? existing.month ?? ''),
     day: d ? String(d.getDate()).padStart(2, '0') : (existing.day ?? ''),
