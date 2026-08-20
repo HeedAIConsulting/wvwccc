@@ -655,7 +655,12 @@ window.MemberPortal = (function () {
       renderMyEvents(data.events || []);
       return;
     }
-    if (gate && !data.isLeader) { gate.hidden = false; gate.style.background = 'var(--cream,#faf6ea)'; gate.innerHTML = '✓ You can add your events here. Because you\'re not a group leader, each one is quickly reviewed by the Chamber office before it appears on the public calendar.'; }
+    // Whether leader events skip review is the office's switch (Diana, Aug 20
+    // 2026 — approval required by default). Everyone gets an accurate note.
+    if (gate && !(data.isLeader && data.instantPublish)) {
+      gate.hidden = false; gate.style.background = 'var(--cream,#faf6ea)';
+      gate.innerHTML = '✓ You can add your events here. Each one gets a quick review by the Chamber office and then appears on the public calendar.';
+    }
     if (form) form.hidden = false;
 
     // "Posting as" — a chair chooses whether this event is on behalf of their

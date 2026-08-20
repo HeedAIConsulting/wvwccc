@@ -54,7 +54,7 @@ window.WVTour = (function () {
     // phoning the office because nobody had shown them where anything lives).
     leader: [
       { sel: '#groupManage a[href^="event.html?g="]', title: 'Post your group’s events 📅',
-        text: 'As the group leader, your events publish straight to the Chamber calendar — no waiting for approval. They show “Hosted by” your group and appear on your group’s public page.' },
+        text: 'One click sends your event to the Chamber office, and it appears on the calendar right after their quick approval — showing “Hosted by” your group, on your group’s public page.' },
       { sel: '#groupManage a[href*="recur=monthly"]', title: 'Meetings on a schedule ⟳',
         text: 'Meet the first Monday of every month? Set it once and create the next 3–12 months of meetings in one go. Every date stays its own event, so you can still change a venue or skip a holiday.' },
       { sel: '#groupManage [data-ev]', title: 'Edit, RSVPs & remove ✏️',
@@ -277,7 +277,7 @@ window.WVTour = (function () {
       + '<button class="wvt-modal__x" type="button" aria-label="Close">×</button>'
       + '<img class="wvt-modal__seal" src="/images/wvwccc-logo.png" alt="">'
       + '<h2>You run this group 🌿</h2>'
-      + '<p>This page is your group’s home base — post events (they publish straight to the calendar), see who RSVP’d, email everyone, and manage your member list. Want a 60-second look around?</p>'
+      + '<p>This page is your group’s home base — post events to the Chamber calendar, see who RSVP’d, email everyone, and manage your member list. Want a 60-second look around?</p>'
       + '<div class="wvt-modal__row">'
       + '<button class="wvt-btn wvt-btn--gold" type="button" data-show>Show me around</button>'
       + '<button class="wvt-btn wvt-btn--ghost" type="button" data-later>Maybe later</button>'
