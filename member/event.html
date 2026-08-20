@@ -16,10 +16,10 @@
   <div data-partial="header"></div>
   <section class="section">
     <div class="container container-narrow">
-      <p class="member-tile__meta"><a href="index.html">&larr; My Chamber</a></p>
+      <p class="member-tile__meta"><a href="index.html" data-back-link>&larr; My Chamber</a></p>
       <span class="kicker">Your events</span>
       <h1>Add an event to the calendar</h1>
-      <p class="lead">Group leaders and board members can post events straight to the Chamber calendar. Set it to repeat weekly for recurring events like a Saturday cleanup.</p>
+      <p class="lead">Group leaders and board members can post events straight to the Chamber calendar. Meetings on a schedule — like the first Monday of every month — can be created for the months ahead in one go.</p>
 
       <div id="eventGate" hidden class="notice mt-4"></div>
 
@@ -47,24 +47,41 @@
         <div class="field"><label>Address <span class="member-tile__meta">(optional)</span></label><input data-ev="address" maxlength="200" /></div>
         <div class="field"><label>Description</label><textarea data-ev="description" rows="4"></textarea></div>
 
-        <h3 class="mt-5">Repeats?</h3>
-        <div class="field">
-          <label class="chip" style="margin-right:8px"><input type="radio" name="recurrence" value="none" checked style="margin-right:6px">One time</label>
-          <label class="chip"><input type="radio" name="recurrence" value="weekly" style="margin-right:6px">Every week</label>
-        </div>
-        <div class="field" id="untilField" hidden><label>Repeat weekly until</label><input data-ev="until" type="date" />
-          <div class="member-tile__meta">One entry will be added for each week from the date above through this date.</div>
+        <div id="recurrenceBlock">
+          <h3 class="mt-5">Repeats?</h3>
+          <div class="field">
+            <label class="chip" style="margin-right:8px"><input type="radio" name="recurrence" value="none" checked style="margin-right:6px">One time</label>
+            <label class="chip" style="margin-right:8px"><input type="radio" name="recurrence" value="weekly" style="margin-right:6px">Every week</label>
+            <label class="chip"><input type="radio" name="recurrence" value="monthly" style="margin-right:6px">Monthly (e.g. first Monday)</label>
+          </div>
+          <div class="field" id="untilField" hidden><label>Repeat weekly until</label><input data-ev="until" type="date" />
+            <div class="member-tile__meta">One entry will be added for each week from the date above through this date.</div>
+          </div>
+          <div class="field" id="monthlyField" hidden>
+            <div id="monthlyLabel" style="margin-bottom:8px"></div>
+            <label>For the next
+              <select id="monthlyMonths" style="width:auto;display:inline-block;margin:0 4px">
+                <option value="3">3 months</option>
+                <option value="6" selected>6 months</option>
+                <option value="12">12 months</option>
+              </select>
+            </label>
+            <div class="member-tile__meta" style="margin:6px 0 8px">Confirm the dates below — uncheck any that shouldn't be created. Each one becomes its own event you can still edit later (venue changes, holidays, and so on).</div>
+            <div id="monthlyDates"></div>
+          </div>
         </div>
 
-        <h3 class="mt-5">RSVP button <span class="member-tile__meta">(optional)</span></h3>
-        <div class="field">
-          <label class="chip" style="margin-right:8px"><input type="radio" name="actionButton" value="none" checked style="margin-right:6px">No button — details only</label>
-          <label class="chip"><input type="radio" name="actionButton" value="rsvp" style="margin-right:6px">Add an RSVP button</label>
-        </div>
-        <div class="field" id="rsvpEmailField" hidden>
-          <label>Email RSVPs to</label>
-          <input data-ev="rsvpEmail" type="email" maxlength="160" placeholder="you@yourbusiness.com" />
-          <div class="member-tile__meta">Each RSVP is emailed to this address as it comes in — yours, or your assistant's. The Chamber office also keeps a copy.</div>
+        <div id="actionButtonBlock">
+          <h3 class="mt-5">RSVP button <span class="member-tile__meta">(optional)</span></h3>
+          <div class="field">
+            <label class="chip" style="margin-right:8px"><input type="radio" name="actionButton" value="none" checked style="margin-right:6px">No button — details only</label>
+            <label class="chip"><input type="radio" name="actionButton" value="rsvp" style="margin-right:6px">Add an RSVP button</label>
+          </div>
+          <div class="field" id="rsvpEmailField" hidden>
+            <label>Email RSVPs to</label>
+            <input data-ev="rsvpEmail" type="email" maxlength="160" placeholder="you@yourbusiness.com" />
+            <div class="member-tile__meta">Each RSVP is emailed to this address as it comes in — yours, or your assistant's. The Chamber office also keeps a copy.</div>
+          </div>
         </div>
 
         <h3 class="mt-5">Flyer <span class="member-tile__meta">(optional)</span></h3>
@@ -83,7 +100,8 @@
   <div data-partial="footer"></div>
   <script src="../js/partials.js?v=20260810a"></script>
   <script src="../js/api-base.js?v=20260818a"></script>
-  <script src="member.js?v=20260814a"></script>
+  <script src="member.js?v=20260820a"></script>
   <script>ChamberPartials.mount({ active: '', depth: 1, lang: 'en' }); MemberPortal.initEventForm();</script>
+  <script defer src="/js/support.js?v=20260804c"></script>
 </body>
 </html>

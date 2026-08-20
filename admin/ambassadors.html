@@ -7,7 +7,7 @@
   <link rel="apple-touch-icon" href="/images/apple-touch-icon.png" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="robots" content="noindex" />
-  <title>Ambassador Tracker — WVWCCC Admin</title>
+  <title>Ambassadors — WVWCCC Admin</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="../css/chamber.css" />
@@ -17,12 +17,30 @@
   <div class="admin-shell">
     <aside class="admin-sidebar" data-admin-nav></aside>
     <div class="admin-main">
-      <div class="admin-topbar"><h1>Ambassador Tracker</h1></div>
+      <div class="admin-topbar"><h1>Ambassadors</h1></div>
       <div class="admin-content">
         <p id="adminError" class="admin-notice" hidden></p>
-        <p class="admin-notice">Who volunteered for what, and how many points they've earned. Ambassadors sign themselves
-          up from the member portal — you can also add someone here when they volunteer by phone. Set the roles you need
-          covered on each event in <a href="events.html">Events</a>.</p>
+        <p class="admin-notice">Everyone with the Ambassador designation — they appear on the public
+          <a href="../ambassadors.html" target="_blank">Ambassadors page ↗</a>. Below that: who volunteered for what,
+          and their points. Set the roles you need covered on each event in <a href="events.html">Events</a>.</p>
+
+        <!-- Current ambassadors (Felicia, Aug 19 2026 call — "an admin page for
+             us… to look kind of like the board" with view-profile and remove). -->
+        <div class="panel">
+          <div class="panel__head" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <h3 style="margin-right:auto">Current ambassadors <span class="sub" id="ambCount"></span></h3>
+          </div>
+          <div class="admin-form" style="padding:0 16px 6px">
+            <div class="field" style="position:relative;margin:12px 0">
+              <label>Add an ambassador <span class="sub">(search the directory — sets their designation)</span></label>
+              <input id="ambSearch" autocomplete="off" placeholder="Search by business or contact name…" />
+              <div id="ambSuggest" class="sp-suggest" hidden></div>
+            </div>
+          </div>
+          <div id="ambRows" style="padding:0 16px 10px"><p class="sub">Loading…</p></div>
+          <p class="sub" style="padding:0 16px 12px;margin:0">📷 Photo tip for uniform cards: a square image, at least
+            400×400&nbsp;px. Wide rectangular logos get cropped — a headshot or a square logo always looks best.</p>
+        </div>
 
         <div class="panel">
           <div class="panel__head" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
@@ -107,7 +125,7 @@
     </div>
   </div>
   <script src="../js/api-base.js"></script>
-  <script src="admin.js?v=20260814a"></script>
+  <script src="admin.js?v=20260820a"></script>
   <script>Admin.initAmbassadors();</script>
   <script defer src="/js/support.js?v=20260804c"></script>
 </body>

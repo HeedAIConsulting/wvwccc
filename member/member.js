@@ -26,7 +26,9 @@ window.MemberPortal = (function () {
     // canPost = any member with a listing may add events (leaders publish
     // immediately; others go to the office queue) — restores member self-serve.
     let isLeader = false;
+    let myGroups = [];
     try { const il = await api('/api/me/is-leader'); isLeader = !!(il.canSubmit || il.leader); } catch (e) {}
+    try { myGroups = (await api('/api/me/my-groups')).groups || []; } catch (e) {}
     const bindLogout = () => document.querySelectorAll('[data-logout]').forEach((b) => b.addEventListener('click', (e) => { e.preventDefault(); logout(); }));
 
     document.getElementById('welcome').textContent = member ? member.name : user.email;
@@ -76,7 +78,27 @@ window.MemberPortal = (function () {
           <span class="member-tile__meta" style="align-self:center">Need help? Use the <strong>🛟 Support</strong> button (bottom-left).</span>
         </div>
       </div>`;
+    // Groups this login leads — management sits at the VERY TOP at login
+    // (Felicia call, Aug 19 2026: "they could see the events they have posted…
+    // edit, delete" without hunting for an events page).
+    const groupsLead = myGroups.length ? `
+      <div class="card" style="border-left:4px solid var(--green,#1E5631);margin-bottom:var(--s-6)">
+        <span class="kicker">Your group${myGroups.length === 1 ? '' : 's'}</span>
+        <h2 style="margin:4px 0 2px">Group management</h2>
+        <p class="member-tile__meta">Post and edit your group's events, see RSVPs, and manage the member list.</p>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-top:var(--s-4)">
+          ${myGroups.map((g) => `
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:var(--s-3);flex-wrap:wrap;border:1px solid var(--line,#eee);border-radius:var(--r-md,10px);padding:12px 14px">
+            <div>
+              <strong>${esc(g.name)}</strong>
+              <div class="member-tile__meta">${g.memberCount} member${g.memberCount === 1 ? '' : 's'}${g.pendingCount ? ` · <strong style="color:var(--gold,#b8893c)">${g.pendingCount} join request${g.pendingCount === 1 ? '' : 's'} waiting</strong>` : ''}</div>
+            </div>
+            <a class="btn btn--forest btn--sm" href="group.html?g=${encodeURIComponent(g.slug)}">Manage group →</a>
+          </div>`).join('')}
+        </div>
+      </div>` : '';
     wrap.innerHTML = `
+      ${groupsLead}
       ${gettingStarted}
       <div class="grid" style="grid-template-columns:1.4fr .9fr;gap:var(--s-6);align-items:start">
         <div class="card">
@@ -588,13 +610,16 @@ window.MemberPortal = (function () {
     });
   }
 
-  // ── Add an event (group leaders publish straight to the calendar) ──
+  // ── Add / edit an event (group leaders publish straight to the calendar) ──
   async function initEventForm() {
     let data; try { data = await api('/api/me/events'); } catch (e) { return; }
     const form = document.getElementById('eventForm');
     const gate = document.getElementById('eventGate');
     const msg = document.getElementById('eventMsg');
     const listEl = document.getElementById('myEvents');
+    const params = new URLSearchParams(location.search);
+    const editId = params.get('edit') || '';
+    const groupCtx = params.get('g') || params.get('group') || '';
 
     function renderMyEvents(events) {
       if (!listEl) return;
@@ -605,13 +630,16 @@ window.MemberPortal = (function () {
         if (seen.has(key)) continue; seen.add(key);
         const count = ev.seriesId ? events.filter((e) => e.seriesId === ev.seriesId).length : 1;
         const host = ev.hostName || ev.groupName || '';
-        rows.push(`<div class="card" style="padding:var(--s-4);margin-bottom:var(--s-3);display:flex;justify-content:space-between;align-items:center;gap:var(--s-3)">
-          <div><strong>${esc(ev.title)}</strong>${host ? ` <span class="badge badge--gold" style="font-size:.62rem;vertical-align:middle">${esc(host)}</span>` : ''}<div class="member-tile__meta">${esc(ev.date || '')}${ev.time ? ' · ' + esc(ev.time) : ''}${count > 1 ? ' · repeats weekly (' + count + ' dates)' : ''}${ev.venue ? ' · ' + esc(ev.venue) : ''}</div></div>
-          <button class="btn btn--ghost btn--sm" data-del="${esc(ev.id)}">Remove</button></div>`);
+        rows.push(`<div class="card" style="padding:var(--s-4);margin-bottom:var(--s-3);display:flex;justify-content:space-between;align-items:center;gap:var(--s-3);flex-wrap:wrap">
+          <div><strong>${esc(ev.title)}</strong>${host ? ` <span class="badge badge--gold" style="font-size:.62rem;vertical-align:middle">${esc(host)}</span>` : ''}<div class="member-tile__meta">${esc(ev.date || '')}${ev.time ? ' · ' + esc(ev.time) : ''}${count > 1 ? ' · repeats (' + count + ' dates)' : ''}${ev.venue ? ' · ' + esc(ev.venue) : ''}</div></div>
+          <div style="display:flex;gap:6px">
+            <a class="btn btn--ghost btn--sm" href="event.html?edit=${encodeURIComponent(ev.id)}">Edit</a>
+            <button class="btn btn--ghost btn--sm" data-del="${esc(ev.id)}" style="color:var(--red,#b00020)">Remove</button>
+          </div></div>`);
       }
       listEl.innerHTML = '<h3>Your events on the calendar</h3>' + rows.join('');
       listEl.querySelectorAll('[data-del]').forEach((b) => b.addEventListener('click', async () => {
-        if (!confirm('Remove this event (and all of its weekly repeat dates) from the calendar?')) return;
+        if (!confirm('Remove this event (and all of its repeat dates) from the calendar?')) return;
         b.disabled = true;
         try { await api('/api/me/event/' + encodeURIComponent(b.dataset.del), { method: 'DELETE' }); const d = await api('/api/me/events'); renderMyEvents(d.events || []); }
         catch (e) { b.disabled = false; alert('Could not remove the event.'); }
@@ -647,13 +675,82 @@ window.MemberPortal = (function () {
       };
       // Only worth showing the picker when there's an actual choice to make.
       if (identities.length > 1 && postAsField) { postAsField.hidden = false; drawHint(); postAsSelect.addEventListener('change', drawHint); }
+      // Arriving from a group's management page → post as that group.
+      if (groupCtx && identities.some((i) => i.key === groupCtx)) { postAsSelect.value = groupCtx; drawHint(); }
+    }
+    if (groupCtx) {
+      const back = document.querySelector('[data-back-link]');
+      if (back) { back.href = 'group.html?g=' + encodeURIComponent(groupCtx); back.textContent = '← Back to group management'; }
     }
 
+    /* Recurrence. Weekly keeps the old "until" date. Monthly (Felicia call,
+       Aug 19 2026 — "first Monday of every month… confirm the next three, six
+       months, and bam, they're created") derives the pattern from the chosen
+       date, then lists the generated dates as checkboxes so the leader
+       confirms exactly what goes on the calendar. Each created date is a
+       normal event they can still edit one by one. */
     const untilField = document.getElementById('untilField');
+    const monthlyField = document.getElementById('monthlyField');
+    const monthlyLabel = document.getElementById('monthlyLabel');
+    const monthlyMonths = document.getElementById('monthlyMonths');
+    const monthlyDates = document.getElementById('monthlyDates');
+    const dateInput = form.querySelector('[data-ev="date"]');
+    const WD = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const NTH = ['first', 'second', 'third', 'fourth', 'fifth'];
+    const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    function patternOf(dstr) {
+      const d = new Date(dstr + 'T12:00:00');
+      if (isNaN(d)) return null;
+      const nth = Math.ceil(d.getDate() / 7);
+      const daysInMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+      const isLast = d.getDate() + 7 > daysInMonth;
+      // "5th Tuesday" almost never repeats — treat 4th/5th-and-last as "last".
+      const useLast = isLast && nth >= 4;
+      return { weekday: d.getDay(), nth, useLast, base: d };
+    }
+    function nthWeekdayOf(year, month, weekday, nth, useLast) {
+      if (useLast) {
+        const last = new Date(year, month + 1, 0);
+        const back = (last.getDay() - weekday + 7) % 7;
+        return new Date(year, month, last.getDate() - back);
+      }
+      const first = new Date(year, month, 1);
+      const fwd = (weekday - first.getDay() + 7) % 7;
+      const day = 1 + fwd + (nth - 1) * 7;
+      if (day > new Date(year, month + 1, 0).getDate()) return null; // no 5th X this month
+      return new Date(year, month, day);
+    }
+    function drawMonthly() {
+      if (!monthlyField) return;
+      const on = (form.querySelector('input[name="recurrence"]:checked') || {}).value === 'monthly';
+      monthlyField.hidden = !on;
+      if (!on) return;
+      const dstr = (dateInput && dateInput.value) || '';
+      const p = dstr ? patternOf(dstr) : null;
+      if (!p) { monthlyLabel.textContent = 'Pick the first date above and the schedule fills in here.'; monthlyDates.innerHTML = ''; return; }
+      monthlyLabel.innerHTML = `Repeats on the <strong>${p.useLast ? 'last' : NTH[p.nth - 1]} ${WD[p.weekday]}</strong> of each month.`;
+      const months = Math.max(1, Math.min(12, parseInt(monthlyMonths && monthlyMonths.value, 10) || 6));
+      const out = [];
+      for (let i = 1; i <= months && out.length < 12; i++) {
+        const d = nthWeekdayOf(p.base.getFullYear(), p.base.getMonth() + i, p.weekday, p.nth, p.useLast);
+        if (d) out.push(iso(d));
+      }
+      monthlyDates.innerHTML = out.map((s) => {
+        const d = new Date(s + 'T12:00:00');
+        return `<label class="chip" style="margin:0 6px 6px 0"><input type="checkbox" data-mdate value="${s}" checked style="margin-right:6px">${d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</label>`;
+      }).join('') || '<span class="member-tile__meta">No matching dates found.</span>';
+    }
     form.querySelectorAll('input[name="recurrence"]').forEach((r) => r.addEventListener('change', () => {
-      const weekly = (form.querySelector('input[name="recurrence"]:checked') || {}).value === 'weekly';
-      if (untilField) untilField.hidden = !weekly;
+      const val = (form.querySelector('input[name="recurrence"]:checked') || {}).value;
+      if (untilField) untilField.hidden = val !== 'weekly';
+      drawMonthly();
     }));
+    if (dateInput) dateInput.addEventListener('change', drawMonthly);
+    if (monthlyMonths) monthlyMonths.addEventListener('change', drawMonthly);
+    if (params.get('recur') === 'monthly') {
+      const r = form.querySelector('input[name="recurrence"][value="monthly"]');
+      if (r) { r.checked = true; drawMonthly(); }
+    }
 
     // RSVP button is opt-in (Felicia, Aug 12 2026): events start with no
     // button, and choosing RSVP opens the old site's "where do the RSVPs go"
@@ -680,29 +777,338 @@ window.MemberPortal = (function () {
 
     renderMyEvents(data.events || []);
 
+    // ── Edit mode (?edit=<id>) — Felicia, Aug 19 2026: Edit next to Delete,
+    // like the old site. Prefills the form, saves with PATCH, leaves
+    // recurrence and "posting as" alone (those belong to creation).
+    let editing = null;
+    if (editId) {
+      try {
+        editing = (await api('/api/me/event/' + encodeURIComponent(editId))).event;
+      } catch (e) {
+        msg.hidden = false; msg.style.borderColor = 'var(--red)';
+        msg.textContent = 'Could not load that event — it may have been removed.';
+      }
+    }
+    const submitBtn = form.querySelector('button[type="submit"]');
+    if (editing) {
+      const h1 = document.querySelector('h1'); if (h1) h1.textContent = 'Edit event';
+      const setIf = (k, v) => { const el = form.querySelector(`[data-ev="${k}"]`); if (el) el.value = v || ''; };
+      setIf('title', editing.title); setIf('date', editing.date); setIf('time', editing.time);
+      setIf('endTime', editing.endTime); setIf('venue', editing.venue); setIf('address', editing.address);
+      setIf('description', editing.description);
+      const cat = form.querySelector('[data-ev="category"]');
+      if (cat && editing.category && ![...cat.options].some((o) => o.value === editing.category)) {
+        cat.insertAdjacentHTML('beforeend', `<option>${esc(editing.category)}</option>`);
+      }
+      if (cat) cat.value = editing.category || 'Community';
+      // The button choice mirrors what the event has now (ticketed events keep
+      // their office-managed buttons — the radios are hidden for those).
+      const rsvpWrap = document.getElementById('actionButtonBlock');
+      if (editing.ticketed) { if (rsvpWrap) rsvpWrap.hidden = true; }
+      else {
+        const want = editing.hideCta ? 'none' : 'rsvp';
+        const r = form.querySelector(`input[name="actionButton"][value="${want}"]`);
+        if (r) r.checked = true;
+        const re = form.querySelector('[data-ev="rsvpEmail"]'); if (re) re.value = editing.rsvpEmail || '';
+        syncRsvp();
+      }
+      const recurBlock = document.getElementById('recurrenceBlock');
+      if (recurBlock) recurBlock.hidden = true;
+      if (postAsField) postAsField.hidden = true;
+      if (editing.seriesId) {
+        msg.hidden = false; msg.style.borderColor = 'var(--gold,#b8893c)';
+        msg.textContent = 'This is one date of a repeating series — your changes apply to this date only.';
+      }
+      flyerUrl = editing.flyer || '';
+      if (flyerUrl && flyerPrev) flyerPrev.innerHTML = `<img src="${esc(flyerUrl)}" alt="" style="width:90px;height:90px;border-radius:10px;object-fit:cover">`;
+      if (submitBtn) submitBtn.textContent = 'Save changes';
+      if (editing.groupSlug) {
+        const back = document.querySelector('[data-back-link]');
+        if (back) { back.href = 'group.html?g=' + encodeURIComponent(editing.groupSlug); back.textContent = '← Back to group management'; }
+      }
+    }
+
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const body = {};
       form.querySelectorAll('[data-ev]').forEach((el) => { body[el.dataset.ev] = el.value.trim(); });
-      body.recurrence = (form.querySelector('input[name="recurrence"]:checked') || {}).value || 'none';
       body.actionButton = (form.querySelector('input[name="actionButton"]:checked') || {}).value || 'none';
       if (flyerUrl) body.flyer = flyerUrl;
-      const btn = form.querySelector('button[type="submit"]'); btn.disabled = true; btn.textContent = 'Adding…';
+      const btn = submitBtn; btn.disabled = true;
+      const wasLabel = btn.textContent;
+
+      if (editing) {
+        btn.textContent = 'Saving…';
+        try {
+          const r = await api('/api/me/event/' + encodeURIComponent(editing.id), { method: 'PATCH', body: JSON.stringify(body) });
+          msg.hidden = false; msg.style.borderColor = 'var(--green)';
+          msg.textContent = r.published
+            ? 'Saved — the calendar is updated.'
+            : 'Saved — your change goes to the Chamber office for a quick review, then updates on the calendar.';
+        } catch (err) {
+          msg.hidden = false; msg.style.borderColor = 'var(--red)';
+          msg.textContent = 'Could not save. Check the title and date, then try again.';
+        } finally { btn.disabled = false; btn.textContent = wasLabel; }
+        return;
+      }
+
+      body.recurrence = (form.querySelector('input[name="recurrence"]:checked') || {}).value || 'none';
+      if (body.recurrence === 'monthly') {
+        // The first date + every generated date still checked = the series.
+        const extra = [...form.querySelectorAll('[data-mdate]:checked')].map((c) => c.value);
+        body.dates = [body.date, ...extra];
+      }
+      btn.textContent = 'Adding…';
       try {
         const r = await api('/api/me/event', { method: 'POST', body: JSON.stringify(body) });
         msg.hidden = false; msg.style.borderColor = 'var(--green)';
         const many = r.count > 1 ? ('Your ' + r.count + ' dates were submitted') : 'Your event was submitted';
         msg.textContent = r.published
-          ? (r.count > 1 ? ('Added ' + r.count + ' weekly dates to the calendar.') : 'Added to the calendar.')
+          ? (r.count > 1 ? ('Added ' + r.count + ' dates to the calendar.') : 'Added to the calendar.')
           : (many + ' — the Chamber office will review it and it will appear on the calendar shortly.');
-        form.reset(); if (flyerPrev) flyerPrev.innerHTML = ''; flyerUrl = ''; if (untilField) untilField.hidden = true; syncRsvp();
+        form.reset(); if (flyerPrev) flyerPrev.innerHTML = ''; flyerUrl = '';
+        if (untilField) untilField.hidden = true;
+        if (monthlyField) monthlyField.hidden = true;
+        syncRsvp();
         const d = await api('/api/me/events'); renderMyEvents(d.events || []);
       } catch (err) {
         msg.hidden = false; msg.style.borderColor = 'var(--red)';
         msg.textContent = 'Could not add the event. Check the title and date, then try again.';
-      } finally { btn.disabled = false; btn.textContent = 'Add to calendar'; }
+      } finally { btn.disabled = false; btn.textContent = wasLabel; }
     });
   }
 
-  return { initDashboard, initProfile, initAccount, initPost, initEventForm, logout, esc };
+  /* ── Group management (Felicia call, Aug 19 2026) ──────────────────────
+     One page per group for its leader: upcoming events with Edit / RSVPs /
+     Remove, join requests to approve, the member roster, add-a-member, and a
+     recurring-meetings shortcut. Management first, no other groups listed. */
+  async function initGroupManage() {
+    const slug = new URLSearchParams(location.search).get('g') || '';
+    const wrap = document.getElementById('groupManage');
+    if (!wrap) return;
+    if (!slug) { location.replace('index.html'); return; }
+    let data;
+    try { data = await api('/api/me/group/' + encodeURIComponent(slug)); }
+    catch (e) {
+      wrap.innerHTML = `<div class="notice">This page is for the group's leader. If you lead this group and can't get in, call the Chamber office at (818) 347-4737.</div>`;
+      return;
+    }
+    const g = data.group;
+    const fmtD = (s) => { const d = s ? new Date(s + 'T12:00:00') : null; return d && !isNaN(d) ? d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : (s || 'no date'); };
+    let members = (g.members || []).slice();
+
+    // Roster changes write through immediately (like the admin page since
+    // Jul 29) — an approval that only changed the screen came back as pending.
+    async function saveRoster() {
+      try {
+        const r = await api('/api/me/group/' + encodeURIComponent(g.slug) + '/members', { method: 'POST', body: JSON.stringify({ members }) });
+        members = r.members || members;
+        return true;
+      } catch (e) { say('Could not save that — please try again.', true); return false; }
+    }
+    const sayEl = () => document.getElementById('gmMsg');
+    function say(t, bad) {
+      const el = sayEl(); if (!el) return;
+      el.hidden = !t; el.textContent = t || '';
+      el.style.borderColor = bad ? 'var(--red,#b00020)' : 'var(--green,#1E5631)';
+    }
+
+    function render() {
+      const pending = members.filter((m) => m.status === 'pending');
+      const active = members.filter((m) => m.status !== 'pending');
+      const events = data.events || [];
+      wrap.innerHTML = `
+        <div class="card" style="border-left:4px solid var(--green,#1E5631)">
+          <span class="kicker">Group management</span>
+          <h1 style="margin:4px 0 2px">${esc(g.name)}</h1>
+          <p class="member-tile__meta">${esc(g.meetingSchedule || '')}${g.meetingSchedule ? ' · ' : ''}You lead this group.</p>
+          <div class="btn-row mt-4">
+            <a class="btn btn--forest" href="event.html?g=${encodeURIComponent(g.slug)}">＋ Add an event</a>
+            <a class="btn btn--gold" href="event.html?g=${encodeURIComponent(g.slug)}&recur=monthly">⟳ Set up recurring meetings</a>
+            <button type="button" class="btn btn--ghost" id="gmAnnounce">📣 Email the group</button>
+            <a class="btn btn--ghost" href="../groups/${encodeURIComponent(g.slug)}" target="_blank">View public page ↗</a>
+            <button type="button" class="btn btn--ghost btn--sm" onclick="if(window.WVTour)WVTour.start('leader')" style="align-self:center">Take a quick tour</button>
+          </div>
+          <p class="member-tile__meta" style="margin:10px 0 0">Need help with any of this? Use the <strong>🛟 Support</strong> button (bottom-left) — your note goes straight to the team that runs this website.</p>
+        </div>
+
+        ${pending.length ? `
+        <div class="card mt-5" style="border-left:4px solid var(--gold,#b8893c)">
+          <h3 style="margin:0 0 4px">Join requests <span class="member-tile__meta">(${pending.length} waiting)</span></h3>
+          ${pending.map((m) => `
+          <div data-pend="${esc(m.id)}" style="display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid var(--line,#eee);flex-wrap:wrap">
+            <span style="flex:1;min-width:200px"><strong>${esc(m.name)}</strong>${m.business ? ` · ${esc(m.business)}` : ''}${m.email ? `<div class="member-tile__meta">${esc(m.email)}</div>` : ''}${m.message ? `<div class="member-tile__meta">“${esc(m.message)}”</div>` : ''}</span>
+            <button type="button" class="btn btn--forest btn--sm" data-approve>Approve</button>
+            <button type="button" class="btn btn--ghost btn--sm" data-decline style="color:var(--red,#b00020)">Decline</button>
+          </div>`).join('')}
+        </div>` : ''}
+
+        <div class="card mt-5">
+          <h3 style="margin:0 0 4px">Upcoming events</h3>
+          <p class="member-tile__meta" style="margin:0 0 10px">Everything on the calendar for ${esc(g.name)} — however it was posted.</p>
+          ${events.length ? events.map((ev) => `
+          <div data-ev="${esc(ev.id)}" style="border:1px solid var(--line,#eee);border-radius:var(--r-md,10px);padding:12px 14px;margin-bottom:10px">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+              <div style="flex:1;min-width:220px">
+                <strong>${esc(ev.title)}</strong>
+                ${ev.status === 'pending' ? ' <span class="badge" style="font-size:.62rem;vertical-align:middle;background:var(--gold-soft,#f7efd5)">awaiting office review</span>' : ''}
+                <div class="member-tile__meta">${esc(fmtD(ev.date))}${ev.time ? ' · ' + esc(ev.time) : ''}${ev.venue ? ' · ' + esc(ev.venue) : ''}${ev.seriesId ? ' · part of a series' : ''}</div>
+              </div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap">
+                ${ev.rsvpCount ? `<button type="button" class="btn btn--gold btn--sm" data-rsvps>RSVPs · ${ev.rsvpAttending} attending</button>` : '<span class="member-tile__meta" style="align-self:center">No RSVPs yet</span>'}
+                <a class="btn btn--ghost btn--sm" href="event.html?edit=${encodeURIComponent(ev.id)}">Edit</a>
+                <button type="button" class="btn btn--ghost btn--sm" data-del style="color:var(--red,#b00020)">Remove</button>
+              </div>
+            </div>
+            <div data-rsvplist hidden style="margin-top:10px;border-top:1px solid var(--line,#eee);padding-top:8px"></div>
+          </div>`).join('') : '<p class="member-tile__meta">Nothing on the calendar yet — use <strong>＋ Add an event</strong> above.</p>'}
+        </div>
+
+        <div class="card mt-5">
+          <h3 style="margin:0 0 4px">Members <span class="member-tile__meta">(${active.length})</span></h3>
+          <div id="gmRoster">
+            ${active.length ? active.map((m) => `
+            <div data-mid="${esc(m.id)}" style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line,#eee);flex-wrap:wrap">
+              <span style="flex:1;min-width:200px"><strong>${esc(m.name)}</strong>${m.business ? ` <span class="member-tile__meta">· ${esc(m.business)}</span>` : ''}${(m.role && m.role !== 'Member') ? ` <span class="badge badge--gold" style="font-size:.62rem;vertical-align:middle">${esc(m.role)}</span>` : ''}</span>
+              <button type="button" class="btn btn--ghost btn--sm" data-remove style="color:var(--red,#b00020)">Remove</button>
+            </div>`).join('') : '<p class="member-tile__meta">No members on the list yet — add them below.</p>'}
+          </div>
+          <div class="field" style="position:relative;margin:14px 0 0">
+            <label>Add a Chamber member <span class="member-tile__meta">(from the directory)</span></label>
+            <input id="gmSearch" autocomplete="off" placeholder="Search by business name or category…" />
+            <div id="gmSuggest" class="sp-suggest" hidden style="position:absolute;z-index:30;left:0;right:0;background:#fff;border:1px solid var(--line,#ddd);border-radius:10px;box-shadow:0 10px 24px rgba(0,0,0,.12);max-height:280px;overflow:auto"></div>
+          </div>
+          <details style="margin-top:8px">
+            <summary class="member-tile__meta" style="cursor:pointer">＋ Add someone who isn't in the directory</summary>
+            <div class="grid grid-2" style="gap:10px;margin-top:8px">
+              <div class="field" style="margin:0"><label>Name *</label><input id="gmManualName" maxlength="160" /></div>
+              <div class="field" style="margin:0"><label>Business</label><input id="gmManualBiz" maxlength="160" /></div>
+              <div class="field" style="margin:0"><label>Email</label><input id="gmManualEmail" type="email" maxlength="160" /></div>
+              <div class="field" style="margin:0;align-self:end"><button type="button" class="btn btn--ghost btn--sm" id="gmManualAdd">Add to group</button></div>
+            </div>
+          </details>
+        </div>
+        <p id="gmMsg" class="notice mt-4" hidden></p>`;
+      bind();
+    }
+
+    function bind() {
+      // Join requests
+      wrap.querySelectorAll('[data-pend]').forEach((row) => {
+        const m = members.find((x) => x.id === row.dataset.pend);
+        row.querySelector('[data-approve]')?.addEventListener('click', async () => {
+          const prev = m.status; m.status = 'active';
+          if (await saveRoster()) { render(); say(`${m.name} approved ✓ — they're on the group page now.`); }
+          else { m.status = prev; }
+        });
+        row.querySelector('[data-decline]')?.addEventListener('click', async () => {
+          if (!confirm(`Decline ${m.name}'s request to join?`)) return;
+          const before = members.slice();
+          members = members.filter((x) => x.id !== m.id);
+          if (await saveRoster()) { render(); say(`${m.name}'s request declined.`); }
+          else { members = before; }
+        });
+      });
+      // Events: RSVP quick view + remove
+      wrap.querySelectorAll('[data-ev]').forEach((card) => {
+        const ev = (data.events || []).find((x) => x.id === card.dataset.ev);
+        card.querySelector('[data-rsvps]')?.addEventListener('click', () => {
+          const box = card.querySelector('[data-rsvplist]');
+          if (!box.hidden) { box.hidden = true; return; }
+          const list = (data.rsvps || {})[ev.id] || [];
+          box.innerHTML = list.length ? `
+            <table style="width:100%;border-collapse:collapse;font-size:.9rem">
+              <thead><tr style="text-align:left"><th style="padding:4px 8px 4px 0">Name</th><th style="padding:4px 8px 4px 0">Attending</th><th style="padding:4px 8px 4px 0">Contact</th><th style="padding:4px 0">Received</th></tr></thead>
+              <tbody>${list.map((r) => `<tr style="border-top:1px solid var(--line,#eee)">
+                <td style="padding:6px 8px 6px 0"><strong>${esc(r.name || '—')}</strong>${r.company ? `<div class="member-tile__meta">${esc(r.company)}</div>` : ''}</td>
+                <td style="padding:6px 8px 6px 0">${r.qty}</td>
+                <td style="padding:6px 8px 6px 0">${r.email ? `<a href="mailto:${esc(r.email)}">${esc(r.email)}</a>` : '—'}${r.phone ? `<div class="member-tile__meta"><a href="tel:${esc(r.phone)}">${esc(r.phone)}</a></div>` : ''}</td>
+                <td style="padding:6px 0" class="member-tile__meta">${r.received ? new Date(r.received).toLocaleDateString() : '—'}</td>
+              </tr>`).join('')}</tbody>
+            </table>` : '<p class="member-tile__meta">No RSVPs yet.</p>';
+          box.hidden = false;
+        });
+        card.querySelector('[data-del]')?.addEventListener('click', async () => {
+          if (!confirm(`Remove "${ev.title}"${ev.seriesId ? ' and the rest of its series' : ''} from the calendar?`)) return;
+          try {
+            await api('/api/me/event/' + encodeURIComponent(ev.id), { method: 'DELETE' });
+            data = await api('/api/me/group/' + encodeURIComponent(g.slug));
+            members = (data.group.members || []).slice();
+            render(); say('Removed ✓');
+          } catch (e) { say('Could not remove the event.', true); }
+        });
+      });
+      // 📣 Announce
+      document.getElementById('gmAnnounce')?.addEventListener('click', async () => {
+        const activeCount = members.filter((m) => m.status !== 'pending').length;
+        if (!activeCount) { say('Add members first — there is nobody to email yet.', true); return; }
+        const subject = prompt(`Email all ${activeCount} members of ${g.name}.\n\nSubject:`, '');
+        if (!subject || !subject.trim()) return;
+        const message = prompt('Message (plain text — meeting time, agenda, announcement):', '');
+        if (!message || !message.trim()) return;
+        if (!confirm(`Send "${subject.trim()}" to the group now?`)) return;
+        try {
+          const r = await api('/api/me/group/' + encodeURIComponent(g.slug) + '/announce', { method: 'POST', body: JSON.stringify({ subject: subject.trim(), message: message.trim() }) });
+          say(`✓ Sent to ${r.sent} member${r.sent === 1 ? '' : 's'}${r.skipped ? ` — ${r.skipped} had no email on file` : ''}.`);
+        } catch (e) { say('Could not send the email — please try again.', true); }
+      });
+      // Roster: remove
+      wrap.querySelectorAll('#gmRoster [data-mid]').forEach((row) => {
+        const m = members.find((x) => x.id === row.dataset.mid);
+        row.querySelector('[data-remove]')?.addEventListener('click', async () => {
+          if (!confirm(`Take ${m.name} off the group's member list?`)) return;
+          const before = members.slice();
+          members = members.filter((x) => x.id !== m.id);
+          if (await saveRoster()) { render(); say(`${m.name} removed.`); }
+          else { members = before; }
+        });
+      });
+      // Roster: add from the public directory (memberId only — their email
+      // resolves from the Chamber roster when the group is emailed).
+      let dir = null;
+      const searchEl = document.getElementById('gmSearch');
+      const suggEl = document.getElementById('gmSuggest');
+      if (searchEl && suggEl) {
+        searchEl.addEventListener('input', async () => {
+          const q = searchEl.value.trim().toLowerCase();
+          if (q.length < 2) { suggEl.hidden = true; return; }
+          if (!dir) { try { dir = (await api('/api/members')).members || []; } catch (e) { dir = []; } }
+          const list = dir.filter((m) => [m.name, m.category, m.neighborhood, m.contactName].filter(Boolean).join(' ').toLowerCase().includes(q)).slice(0, 8);
+          suggEl.innerHTML = list.length
+            ? list.map((m) => `<button type="button" data-add="${esc(m.id)}" style="display:block;width:100%;text-align:left;padding:9px 12px;border:0;background:none;cursor:pointer"><b>${esc(m.name)}</b><span class="member-tile__meta" style="display:block">${esc(m.category || '')}${m.neighborhood ? ' · ' + esc(m.neighborhood) : ''}</span></button>`).join('')
+            : '<div class="member-tile__meta" style="padding:9px 12px">No matches</div>';
+          suggEl.hidden = false;
+          suggEl.querySelectorAll('[data-add]').forEach((b) => b.addEventListener('click', async () => {
+            const m = dir.find((x) => x.id === b.dataset.add); if (!m) return;
+            if (members.some((x) => x.memberId === m.id)) { say('That member is already in the group.', true); suggEl.hidden = true; return; }
+            members.push({ id: 'gm-' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36), memberId: m.id, name: m.name, business: m.category || '', role: 'Member', status: 'active', source: 'manual' });
+            searchEl.value = ''; suggEl.hidden = true;
+            if (await saveRoster()) { render(); say(`${m.name} added ✓`); }
+            else { members = members.filter((x) => x.memberId !== m.id); }
+          }));
+        });
+        document.addEventListener('click', (e) => { if (!e.target.closest('#gmSearch,#gmSuggest')) suggEl.hidden = true; });
+      }
+      // Roster: manual add
+      document.getElementById('gmManualAdd')?.addEventListener('click', async () => {
+        const nm = document.getElementById('gmManualName');
+        if (!nm.value.trim()) { say('Enter a name to add.', true); return; }
+        const entry = {
+          id: 'gm-' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36),
+          memberId: null, name: nm.value.trim(),
+          business: document.getElementById('gmManualBiz').value.trim(),
+          email: document.getElementById('gmManualEmail').value.trim(),
+          role: 'Member', status: 'active', source: 'manual',
+        };
+        members.push(entry);
+        if (await saveRoster()) { render(); say(`${entry.name} added ✓`); }
+        else { members = members.filter((x) => x.id !== entry.id); }
+      });
+    }
+
+    render();
+    document.querySelectorAll('[data-logout]').forEach((b) => b.addEventListener('click', (e) => { e.preventDefault(); logout(); }));
+  }
+
+  return { initDashboard, initProfile, initAccount, initPost, initEventForm, initGroupManage, logout, esc };
 })();

@@ -610,6 +610,26 @@ async function managedGroups(email) {
   try { return (await loadGroups()).filter((g) => g && g.manager && String(g.manager.email || '').toLowerCase() === e); }
   catch { return []; }
 }
+// The groups this LOGIN leads: the named manager (by login email), or a roster
+// entry with a leadership role — Leader / Chair / Co-Chair — matched by the
+// roster email or by the member listing linked to the login. Needed because
+// most groups name the office as manager (felicia@), so a chair like Priscilla
+// has to count as the leader of her own group without an office email swap
+// (Felicia call, Aug 19 2026).
+async function groupsLedBy(user) {
+  const e = String((user && user.sub) || '').toLowerCase();
+  const mid = (user && user.mid) || null;
+  if (!e && !mid) return [];
+  try {
+    return (await loadGroups()).filter((g) => {
+      if (!g) return false;
+      if (e && g.manager && String(g.manager.email || '').toLowerCase() === e) return true;
+      return (g.members || []).some((m) => m && m.status !== 'pending'
+        && /^(leader|chair|co-chair)$/i.test(String(m.role || ''))
+        && ((e && String(m.email || '').toLowerCase() === e) || (mid && m.memberId === mid)));
+    });
+  } catch { return []; }
+}
 
 // The identities a member can post an event "as" (per Diana/Felicia, Jul 15 —
 // this replaces the old two-logins setup: one login, but a chair chooses
@@ -620,13 +640,13 @@ async function postingIdentities(user) {
   const out = [];
   const m = await myMember(user.mid);
   if (m) out.push({ key: 'business', kind: 'business', name: m.name, memberId: m.id });
-  for (const g of await managedGroups(user.sub)) out.push({ key: g.slug, kind: 'group', name: g.name, slug: g.slug });
+  for (const g of await groupsLedBy(user)) out.push({ key: g.slug, kind: 'group', name: g.name, slug: g.slug });
   return out;
 }
 
 router.get('/me/is-leader', auth.requireAuth(), async (req, res) => {
   try {
-    const m = await myMember(req.user.mid); const g = await managedGroups(req.user.sub);
+    const m = await myMember(req.user.mid); const g = await groupsLedBy(req.user);
     res.json({ leader: memberIsLeader(m) || g.length > 0, canSubmit: !!req.user.mid, name: m ? m.name : null, groups: g.map((x) => x.name), identities: await postingIdentities(req.user) });
   } catch (e) { res.json({ leader: false }); }
 });
@@ -648,7 +668,7 @@ router.post('/me/event', auth.requireAuth(), async (req, res) => {
   const mid = req.user.mid;
   if (!mid) return res.status(400).json({ error: 'No member listing is linked to this account.' });
   const member = await myMember(mid);
-  const lead = await managedGroups(req.user.sub);
+  const lead = await groupsLedBy(req.user);
   const b = req.body || {};
   if (!b.title || !/^\d{4}-\d{2}-\d{2}$/.test(String(b.date || ''))) {
     return res.status(400).json({ error: 'An event title and a valid date are required.' });
@@ -682,9 +702,14 @@ router.post('/me/event', auth.requireAuth(), async (req, res) => {
     hideCta: b.actionButton !== 'rsvp',
     rsvpEmail: b.actionButton === 'rsvp' ? b.rsvpEmail : '',
   };
-  // Optional weekly recurrence: one event per week through `until` (cap 52).
-  const dates = [];
-  if (b.recurrence === 'weekly' && /^\d{4}-\d{2}-\d{2}$/.test(String(b.until || ''))) {
+  // Recurrence. Either an explicit, member-confirmed list of dates (the
+  // monthly "first Monday of the next N months" wizard sends exactly the dates
+  // the leader checked — Felicia call, Aug 19 2026), or the older weekly
+  // repeat: one event per week through `until` (cap 52).
+  let dates = [];
+  if (Array.isArray(b.dates) && b.dates.length) {
+    dates = [...new Set(b.dates.slice(0, 24).map((s) => String(s || '')).filter((s) => /^\d{4}-\d{2}-\d{2}$/.test(s)))].sort();
+  } else if (b.recurrence === 'weekly' && /^\d{4}-\d{2}-\d{2}$/.test(String(b.until || ''))) {
     let cur = new Date(b.date + 'T12:00:00'); const until = new Date(b.until + 'T12:00:00'); let guard = 0;
     while (cur <= until && guard < 52) { dates.push(cur.toISOString().slice(0, 10)); cur.setDate(cur.getDate() + 7); guard++; }
   }
@@ -712,16 +737,203 @@ router.post('/me/event', auth.requireAuth(), async (req, res) => {
   } catch (e) { console.error('me/event', e); res.status(500).json({ error: 'Could not add the event. Please try again.' }); }
 });
 
+// Can this login touch this event? Their own submission — or any event that
+// belongs to a group they lead, however it got there (posted by the office,
+// imported from the old site, or added by another leader). That is exactly
+// Felicia's Aug 19 ask: leaders manage their group's postings, not just the
+// ones they personally typed in.
+async function canManageEvent(user, ev) {
+  if (!ev) return false;
+  if (user.mid && ev.submittedBy === user.mid) return true;
+  if (!ev.groupSlug) return false;
+  return (await groupsLedBy(user)).some((g) => g.slug === ev.groupSlug);
+}
+
+router.get('/me/event/:id', auth.requireAuth(), async (req, res) => {
+  try {
+    const ev = (await loadEvents()).find((e) => e.id === req.params.id);
+    if (!(await canManageEvent(req.user, ev))) return res.status(404).json({ error: 'Event not found.' });
+    // Only the plain fields the member form edits — never ticketing/admin state.
+    const { id, title, date, time, endTime, venue, address, category, description,
+      summary, flyer, hideCta, rsvpEmail, status, seriesId, groupSlug, groupName, hostKind, hostName } = ev;
+    res.json({ ok: true, event: { id, title, date, time, endTime, venue, address, category, description: description || '', summary: summary || '', flyer: flyer || '', hideCta: !!hideCta, rsvpEmail: rsvpEmail || '', status, seriesId: seriesId || null, groupSlug: groupSlug || '', groupName: groupName || '', hostKind: hostKind || '', hostName: hostName || '' } });
+  } catch (e) { console.error('me/event get', e); res.status(500).json({ error: 'Could not load the event.' }); }
+});
+
+// Edit an event (Felicia, Aug 19 2026 — the old site had Edit next to Delete;
+// here leaders could only remove and re-type). A leader's edit goes straight
+// to the live calendar; a regular member's goes back through office review,
+// the same way an edited post does.
+router.patch('/me/event/:id', auth.requireAuth(), async (req, res) => {
+  const b = req.body || {};
+  try {
+    const all = await loadEvents();
+    const ev = all.find((e) => e.id === req.params.id);
+    if (!(await canManageEvent(req.user, ev))) return res.status(404).json({ error: 'Event not found.' });
+    if (b.date !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(String(b.date || ''))) {
+      return res.status(400).json({ error: 'Use a valid date (YYYY-MM-DD).' });
+    }
+    if (b.title !== undefined && !String(b.title).trim()) {
+      return res.status(400).json({ error: 'The event needs a title.' });
+    }
+    // Only the plain details the member form carries — ticketing, images,
+    // featured placement, and everything else admin-side stays exactly put.
+    const patch = {};
+    for (const k of ['title', 'date', 'time', 'endTime', 'venue', 'address', 'category', 'description', 'summary', 'flyer']) {
+      if (b[k] !== undefined) patch[k] = b[k];
+    }
+    // RSVP button opt-in/out follows the same rules as posting (Aug 12 2026) —
+    // but never on a ticketed event, whose buttons the office controls.
+    if (b.actionButton !== undefined && !ev.ticketed) {
+      patch.hideCta = b.actionButton !== 'rsvp';
+      patch.rsvpEmail = b.actionButton === 'rsvp' ? (b.rsvpEmail || ev.rsvpEmail || '') : '';
+    }
+    const leaderNow = memberIsLeader(await myMember(req.user.mid)) || (await groupsLedBy(req.user)).length > 0;
+    if (!leaderNow) patch.status = 'pending';
+    const next = buildEvent(patch, ev);
+    await repo.upsertEvent(next);
+    res.json({ ok: true, published: next.status === 'approved' });
+  } catch (e) { console.error('me/event patch', e); res.status(500).json({ error: 'Could not save the event.' }); }
+});
+
 router.delete('/me/event/:id', auth.requireAuth(), async (req, res) => {
   const mid = req.user.mid;
   try {
     const all = await loadEvents();
     const ev = all.find((e) => e.id === req.params.id);
-    if (!ev || ev.submittedBy !== mid) return res.status(404).json({ error: 'Event not found.' });
-    const toDelete = ev.seriesId ? all.filter((e) => e.seriesId === ev.seriesId && e.submittedBy === mid) : [ev];
+    if (!(await canManageEvent(req.user, ev))) return res.status(404).json({ error: 'Event not found.' });
+    const own = mid && ev.submittedBy === mid;
+    // A series comes off together — scoped to what this login controls (their
+    // own submissions, or their group's dates when acting as its leader).
+    const toDelete = ev.seriesId
+      ? all.filter((e) => e.seriesId === ev.seriesId && (own ? e.submittedBy === mid : e.groupSlug === ev.groupSlug))
+      : [ev];
     for (const e of toDelete) await repo.deleteEvent(e.id);
     res.json({ ok: true, deleted: toDelete.length });
   } catch (e) { console.error('me/event delete', e); res.status(500).json({ error: 'Could not remove the event.' }); }
+});
+
+/* ── Group management for leaders (Felicia call, Aug 19 2026) ──
+   "They were able to log into their group profile and see the events they have
+   posted… edit, delete." One page per group: its upcoming events (with the
+   RSVPs), the roster with join requests to approve, and add-a-member — the
+   same jobs the office does in Admin → Groups, scoped to the one group this
+   login leads. */
+
+// Which events belong to a group — the same match the public group page uses:
+// a groupSlug tag when a leader posted "as the group", else the group's
+// eventMatch text appearing in the title or category (imported meetings).
+function eventsOfGroup(g, evs) {
+  const mm = String(g.eventMatch || '').toLowerCase();
+  return evs.filter((e) => e.groupSlug === g.slug
+    || (mm && ((e.title || '').toLowerCase().includes(mm) || (e.category || '').toLowerCase().includes(mm))));
+}
+
+// RSVP leads for one event. Recent leads carry the event id in brackets
+// ("Summer Mixer (2026-08-26) [ev-x1]") — exact. Older, title-only leads fall
+// back to title (+ the bracketed date when there is one), so a monthly series
+// never soaks up every same-titled RSVP.
+function rsvpsForEvent(ev, rsvpLeads) {
+  const id = String(ev.id).toLowerCase();
+  const title = String(ev.title || '').toLowerCase().slice(0, 40);
+  return rsvpLeads.filter((l) => {
+    const le = String(l.event || '').toLowerCase();
+    if (!le) return false;
+    const br = /\[((?:le|ev|ce)-[a-z0-9]+)\]/.exec(le);
+    if (br) return br[1] === id;
+    if (le === id) return true;
+    if (!title || !le.includes(title)) return false;
+    const d = /\((\d{4}-\d{2}-\d{2})\)/.exec(le);
+    return d ? d[1] === ev.date : true;
+  });
+}
+// Head count for one RSVP — the public form writes "Attending: N" into the
+// message; a lead without it is one person.
+const rsvpQty = (l) => { const m = /attending:\s*(\d+)/i.exec(String(l.message || '')); return m ? Math.max(1, Math.min(50, parseInt(m[1], 10))) : 1; };
+
+// Resolve :slug to a group the caller leads — or answer 404/403 and return null.
+async function ledGroupOr403(req, res) {
+  const g = (await loadGroups()).find((x) => x.slug === req.params.slug || x.id === req.params.slug);
+  if (!g) { res.status(404).json({ error: 'That group no longer exists.' }); return null; }
+  const led = await groupsLedBy(req.user);
+  if (!led.some((x) => x.id === g.id)) { res.status(403).json({ error: 'You are not a leader of this group.' }); return null; }
+  return g;
+}
+
+// The groups this login leads — drives the "Groups you lead" card on the
+// member dashboard, so management sits at the very top at login.
+router.get('/me/my-groups', auth.requireAuth(), async (req, res) => {
+  try {
+    const led = await groupsLedBy(req.user);
+    res.json({ ok: true, groups: led.map((g) => ({
+      slug: g.slug, name: g.name,
+      memberCount: (g.members || []).filter((m) => m.status !== 'pending').length,
+      pendingCount: (g.members || []).filter((m) => m.status === 'pending').length,
+    })) });
+  } catch (e) { res.json({ ok: true, groups: [] }); }
+});
+
+// Everything the management page needs in one call: the group, its roster
+// (join requests included), its upcoming events, and each event's RSVPs.
+router.get('/me/group/:slug', auth.requireAuth(), async (req, res) => {
+  try {
+    const g = await ledGroupOr403(req, res); if (!g) return;
+    const today = new Date().toISOString().slice(0, 10);
+    const all = await loadEvents();
+    const mine = eventsOfGroup(g, all)
+      .filter((e) => (e.date && e.date >= today) || e.status === 'pending')
+      .sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')))
+      .slice(0, 30);
+    let rsvpLeads = [];
+    try { rsvpLeads = (await repo.listLeads()).filter((l) => l.kind === 'rsvp' && l.status !== 'spam'); } catch (e) {}
+    const rsvps = {};
+    const events = mine.map((e) => {
+      const list = rsvpsForEvent(e, rsvpLeads).map((l) => ({
+        name: l.name || '', company: l.company || '', email: l.email || '', phone: l.phone || '',
+        qty: rsvpQty(l), received: l.received || '',
+      }));
+      if (list.length) rsvps[e.id] = list;
+      return {
+        id: e.id, title: e.title, date: e.date, time: e.time || '', endTime: e.endTime || '',
+        venue: e.venue || '', address: e.address || '', status: e.status, seriesId: e.seriesId || null,
+        groupSlug: e.groupSlug || '', hostName: e.hostName || '', flyer: e.flyer || '',
+        hideCta: !!e.hideCta, ticketed: !!e.ticketed, rsvpEmail: e.rsvpEmail || '',
+        rsvpCount: list.length, rsvpAttending: list.reduce((t, r) => t + r.qty, 0),
+      };
+    });
+    res.json({ ok: true,
+      group: {
+        id: g.id, slug: g.slug, name: g.name, tagline: g.tagline || '',
+        meetingSchedule: g.meetingSchedule || '', meetingNotes: g.meetingNotes || '',
+        heroImage: g.heroImage || '',
+        manager: { name: (g.manager && g.manager.name) || '', email: (g.manager && g.manager.email) || '' },
+        members: g.members || [],
+      },
+      events, rsvps });
+  } catch (e) { console.error('me/group', e); res.status(500).json({ error: 'Could not load the group.' }); }
+});
+
+// Roster save for a leader — approve/decline join requests, add from the
+// directory or by hand, change roles, remove. Writes ONLY `members`, exactly
+// like the admin roster-only save, so nothing else about the group can move.
+router.post('/me/group/:slug/members', auth.requireAuth(), async (req, res) => {
+  try {
+    const g = await ledGroupOr403(req, res); if (!g) return;
+    const next = buildGroup({ ...g, members: Array.isArray(req.body && req.body.members) ? req.body.members : [] }, g);
+    await repo.upsertGroup(next);
+    res.json({ ok: true, members: next.members || [] });
+  } catch (e) { console.error('me group members', e); res.status(500).json({ error: 'Could not save the roster.' }); }
+});
+
+// 📣 A leader emails their own group — same machinery as the admin announce.
+router.post('/me/group/:slug/announce', auth.requireAuth(), async (req, res) => {
+  const subject = String((req.body && req.body.subject) || '').trim().slice(0, 160);
+  const message = String((req.body && req.body.message) || '').trim().slice(0, 5000);
+  if (!subject || !message) return res.status(400).json({ error: 'Subject and message are required.' });
+  try {
+    const g = await ledGroupOr403(req, res); if (!g) return;
+    res.json({ ok: true, ...(await sendGroupAnnouncement(g, subject, message, req)) });
+  } catch (e) { console.error('me group announce', e); res.status(500).json({ error: 'could not send' }); }
 });
 
 // Image upload (data URL) → stored in Postgres, served at /api/assets/:id.
@@ -1836,6 +2048,26 @@ router.delete('/admin/groups/:id', requireAdmin, async (req, res) => {
 // 📣 Email every active member of a group (meeting reminders, agendas,
 // announcements). Roster entries added from the directory carry only a
 // memberId — their email resolves from the member roster/login at send time.
+// Shared by the admin route and the group leader's own announce.
+async function sendGroupAnnouncement(g, subject, message, req) {
+  const { members: dir } = await loadMembersFull();
+  const emailById = new Map(dir.filter((m) => m.email).map((m) => [m.id, m.email]));
+  const roster = (g.members || []).filter((m) => m.status !== 'pending');
+  const targets = new Map(); // email → name (dedup)
+  for (const m of roster) {
+    const addr = String(m.email || emailById.get(m.memberId) || '').toLowerCase();
+    if (/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(addr) && !targets.has(addr)) targets.set(addr, m.name || '');
+  }
+  const groupUrl = `${process.env.SITE_URL || `${req.protocol}://${req.get('host')}`}/groups/${g.slug}`;
+  const text = `${message}\n\n—\n${g.name} · West Valley · Warner Center Chamber of Commerce\n${g.meetingSchedule ? `Meets: ${g.meetingSchedule}\n` : ''}${groupUrl}`;
+  let sent = 0;
+  for (const [addr] of targets) {
+    // Individually addressed (never expose the roster in To/CC); best-effort per recipient.
+    const r = await email.send({ to: addr, subject: `[${g.name}] ${subject}`, text, replyTo: (g.manager && g.manager.email) || undefined }).catch(() => null);
+    if (r && r.ok) sent++;
+  }
+  return { sent, skipped: roster.length - targets.size, total: roster.length };
+}
 router.post('/admin/groups/:id/announce', requireAdmin, async (req, res) => {
   const subject = String((req.body && req.body.subject) || '').trim().slice(0, 160);
   const message = String((req.body && req.body.message) || '').trim().slice(0, 5000);
@@ -1843,23 +2075,7 @@ router.post('/admin/groups/:id/announce', requireAdmin, async (req, res) => {
   try {
     const g = (await loadGroups()).find((x) => x.id === req.params.id || x.slug === req.params.id);
     if (!g) return res.status(404).json({ error: 'group not found' });
-    const { members: dir } = await loadMembersFull();
-    const emailById = new Map(dir.filter((m) => m.email).map((m) => [m.id, m.email]));
-    const roster = (g.members || []).filter((m) => m.status !== 'pending');
-    const targets = new Map(); // email → name (dedup)
-    for (const m of roster) {
-      const addr = String(m.email || emailById.get(m.memberId) || '').toLowerCase();
-      if (/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(addr) && !targets.has(addr)) targets.set(addr, m.name || '');
-    }
-    const groupUrl = `${process.env.SITE_URL || `${req.protocol}://${req.get('host')}`}/groups/${g.slug}`;
-    const text = `${message}\n\n—\n${g.name} · West Valley · Warner Center Chamber of Commerce\n${g.meetingSchedule ? `Meets: ${g.meetingSchedule}\n` : ''}${groupUrl}`;
-    let sent = 0;
-    for (const [addr] of targets) {
-      // Individually addressed (never expose the roster in To/CC); best-effort per recipient.
-      const r = await email.send({ to: addr, subject: `[${g.name}] ${subject}`, text, replyTo: (g.manager && g.manager.email) || undefined }).catch(() => null);
-      if (r && r.ok) sent++;
-    }
-    res.json({ ok: true, sent, skipped: roster.length - targets.size, total: roster.length });
+    res.json({ ok: true, ...(await sendGroupAnnouncement(g, subject, message, req)) });
   } catch (e) { console.error('group announce', e); res.status(500).json({ error: 'could not send' }); }
 });
 
