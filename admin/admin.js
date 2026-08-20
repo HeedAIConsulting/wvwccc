@@ -550,6 +550,47 @@ window.Admin = (function () {
 
   function statusPill(s) { s = s || 'approved'; return `<span class="pill pill--${s}">${esc(s)}</span>`; }
 
+  /* ── "See their view" (Felicia, Aug 20 2026) ──────────────────────────
+     The office walks group leaders through their own page by phone. This
+     mints a 20-minute sign-in link for that member and explains, in three
+     numbered steps on screen, how to open it without signing the office out
+     of admin. Shared by Members rows and the Groups → Manage panel, because
+     that is where she looked for it first. */
+  async function openMemberView(memberIdOrEmail, whoLabel) {
+    try {
+      const byEmail = String(memberIdOrEmail || '').includes('@');
+      const r = await api(byEmail
+        ? `/api/admin/login-link-by-email?email=${encodeURIComponent(memberIdOrEmail)}`
+        : `/api/admin/members/${encodeURIComponent(memberIdOrEmail)}/login-link`)
+        .catch((e2) => { throw e2; });
+      const copied = navigator.clipboard ? await navigator.clipboard.writeText(r.link).then(() => true).catch(() => false) : false;
+      document.querySelector('[data-mv-modal]')?.remove();
+      const ov = document.createElement('div');
+      ov.className = 'chat-modal'; ov.setAttribute('data-mv-modal', '');
+      const kbd = 'background:#f0ede4;border:1px solid #ccc;border-radius:4px;padding:1px 6px;font-family:inherit';
+      ov.innerHTML = `<div class="chat-modal__box" style="max-width:540px">
+        <button class="chat-modal__x" data-x aria-label="Close" type="button">×</button>
+        <h2 style="margin:0 0 4px">See ${esc(whoLabel || r.email)}'s view of the website</h2>
+        <p class="sub" style="margin:0 0 14px">Three steps. This window stays signed in as <strong>you</strong> the whole time.</p>
+        <ol style="margin:0 0 14px;padding-left:22px;line-height:1.95">
+          <li><strong>The link is ${copied ? 'copied ✓' : 'below'}</strong>${copied ? ' — nothing to do here.' : ':'}
+            ${copied ? '' : `<div style="margin:6px 0"><input readonly value="${esc(r.link)}" style="width:100%;font-size:.78rem" onclick="this.select()"></div>`}
+            <button type="button" class="btn btn--ghost btn--sm" data-mv-copy style="margin-top:4px">${copied ? '📋 Copy it again' : '📋 Copy the link'}</button></li>
+          <li><strong>Open a private window</strong> — hold <kbd style="${kbd}">Ctrl</kbd> + <kbd style="${kbd}">Shift</kbd> + <kbd style="${kbd}">N</kbd> together (on a Mac: <kbd style="${kbd}">⌘</kbd> + <kbd style="${kbd}">Shift</kbd> + <kbd style="${kbd}">N</kbd>). A new dark window opens.</li>
+          <li><strong>Paste the link</strong> into that window's address bar and press Enter. You are now looking at their screen — click along with them on the phone.</li>
+        </ol>
+        <p class="sub" style="margin:0">The private window is what keeps you signed in here as yourself. The link works for 20 minutes, and you can also email it to them if they are locked out.</p>
+      </div>`;
+      const close = () => ov.remove();
+      ov.addEventListener('click', (e2) => { if (e2.target === ov || e2.target.closest('[data-x]')) close(); });
+      ov.querySelector('[data-mv-copy]')?.addEventListener('click', async (e2) => {
+        try { await navigator.clipboard.writeText(r.link); e2.target.textContent = '✓ Copied'; }
+        catch (err) { window.prompt('Copy this link:', r.link); }
+      });
+      document.body.appendChild(ov);
+    } catch (err) { alert('Could not open that member view: ' + (err.message || '')); }
+  }
+
   // ── Dashboard ──
   async function initDashboard() {
     mountShell('dashboard');
@@ -843,10 +884,15 @@ window.Admin = (function () {
            <button type="button" data-sendsignin="${id}" title="Email them a one-click sign-in link (no password needed) — sent by the website, expires in 20 min" style="cursor:pointer;background:none;border:1px solid var(--gold,#C9A227);border-radius:6px;padding:3px 8px;font-size:.8rem;font-weight:600">✉ Sign-in link</button>
            <button type="button" data-sendreset="${id}" title="Email them a set-a-password link — sent by the website (not from your Outlook), expires in 1 hour" style="cursor:pointer;background:none;border:1px solid var(--line,#d7d2c6);border-radius:6px;padding:3px 8px;font-size:.8rem">✉ Reset link</button>
            <button type="button" data-resetlink="${esc(m.email)}" title="Copy the reset link to paste somewhere yourself (most of the time, use ✉ Reset link instead so the website sends it)" style="cursor:pointer;background:none;border:1px solid var(--line,#d7d2c6);border-radius:6px;padding:3px 8px;font-size:.8rem">Copy link</button>
-           <button type="button" data-loginlink title="Open this member's portal view to assist them (opens a 20-min sign-in link — use a private window to keep your admin session)" style="cursor:pointer;background:none;border:1px solid var(--line,#d7d2c6);border-radius:6px;padding:3px 8px;font-size:.8rem">Member view</button>`
+           <button type="button" data-resetlink2 hidden></button>`
         : `<button type="button" data-createlogin title="This member has no website login yet — create one and email them a set-your-password link" style="cursor:pointer;background:var(--gold,#C9A227);color:var(--green-ink,#143c20);border:none;border-radius:6px;padding:4px 10px;font-size:.8rem;font-weight:700">➕ Create login</button>`;
       return `<tr data-id="${id}">
-        <td><button type="button" data-editname title="Edit this member" style="background:none;border:none;padding:0;font:inherit;font-weight:600;color:var(--green-deep,#1E5631);cursor:pointer;text-align:left">${esc(m.name)}</button>${m.contactName ? `<div style="font-weight:600;color:var(--green-ink,#1b3326);font-size:.85rem">👤 ${esc(m.contactName)}</div>` : ''}<div class="sub">${esc(m.category || '')}${m.neighborhood ? ' · ' + esc(m.neighborhood) : ''}</div>${emailLine}</td>
+        <td><button type="button" data-editname title="Edit this member" style="background:none;border:none;padding:0;font:inherit;font-weight:600;color:var(--green-deep,#1E5631);cursor:pointer;text-align:left">${esc(m.name)}</button>${m.contactName ? `<div style="font-weight:600;color:var(--green-ink,#1b3326);font-size:.85rem">👤 ${esc(m.contactName)}</div>` : ''}<div class="sub">${esc(m.category || '')}${m.neighborhood ? ' · ' + esc(m.neighborhood) : ''}</div>${emailLine}
+          <!-- Lives in the FIRST column on purpose: this table is wider than
+               the screen, so anything in the last column is off the right edge
+               until you scroll sideways — which is why Felicia reported the
+               button as missing entirely (Aug 20 2026). -->
+          ${m.email ? `<button type="button" data-loginlink title="See the website exactly as this member sees it — for walking a group leader through their page by phone" style="margin-top:6px;cursor:pointer;background:var(--green-deep,#1E5631);color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:.78rem;font-weight:700">👁 See their view</button>` : ''}</td>
         <td><select class="admin-select" data-field="tier">${tiers.map((t) => `<option ${((m.tier || 'member') === t) ? 'selected' : ''}>${t}</option>`).join('')}</select></td>
         <td><select class="admin-select" data-field="status">${opts.statusOptions.map((s) => `<option ${((m.status || 'approved') === s) ? 'selected' : ''}>${s}</option>`).join('')}</select></td>
         <td><div class="radio-group" data-field="leaderStatus">${radios}</div>
@@ -858,12 +904,18 @@ window.Admin = (function () {
           </details>
         </td>
         <td><label class="toggle"><input type="checkbox" data-field="featured" ${m.featured ? 'checked' : ''}><span class="track"></span></label></td>
-        <td style="white-space:nowrap">
-          <button type="button" data-save title="Save the tier / status / designation / featured changes for this member" style="cursor:pointer;background:var(--gold,#C9A227);color:var(--green-ink,#143c20);border:none;border-radius:6px;padding:4px 12px;font-size:.8rem;font-weight:700;margin-right:6px;opacity:.45" disabled>Save</button>
-          <button type="button" data-edit title="Edit this member's public profile" style="cursor:pointer;background:var(--green-deep,#1E5631);color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:.8rem;margin-right:6px">Edit profile</button>
-          <a href="../members/profile.html?id=${id}" target="_blank" title="View public profile" style="text-decoration:none;margin-right:6px">View ↗</a>
+        <td>
+          <!-- WRAPS. It used to be white-space:nowrap, which pushed the last
+               buttons (including "Member view") off the right edge of the
+               screen — Felicia reported the button as missing because she
+               literally could not see it (Aug 20 2026). -->
+          <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">
+          <button type="button" data-save title="Save the tier / status / designation / featured changes for this member" style="cursor:pointer;background:var(--gold,#C9A227);color:var(--green-ink,#143c20);border:none;border-radius:6px;padding:4px 12px;font-size:.8rem;font-weight:700;opacity:.45" disabled>Save</button>
+          <button type="button" data-edit title="Edit this member's public profile" style="cursor:pointer;background:var(--green-deep,#1E5631);color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:.8rem">Edit profile</button>
+          <a href="../members/profile.html?id=${id}" target="_blank" title="View public profile" style="text-decoration:none">View ↗</a>
           ${pwActions}
           <span class="saved-flash" data-flash>saved ✓</span>
+          </div>
         </td>
       </tr>`;
     }
@@ -950,34 +1002,7 @@ window.Admin = (function () {
         // A real step-by-step dialog, not a window.prompt — Felicia (Aug 20
         // 2026) couldn't follow the one-line version, and she's the one who
         // uses this to walk group leaders through their pages by phone.
-        tr.querySelector('[data-loginlink]')?.addEventListener('click', async () => {
-          try {
-            const r = await api(`/api/admin/members/${encodeURIComponent(id)}/login-link`);
-            const copied = navigator.clipboard ? await navigator.clipboard.writeText(r.link).then(() => true).catch(() => false) : false;
-            document.querySelector('[data-mv-modal]')?.remove();
-            const ov = document.createElement('div');
-            ov.className = 'chat-modal'; ov.setAttribute('data-mv-modal', '');
-            ov.innerHTML = `<div class="chat-modal__box" style="max-width:520px">
-              <button class="chat-modal__x" data-x aria-label="Close" type="button">×</button>
-              <h2 style="margin:0 0 4px">See ${esc(r.email)}'s member view</h2>
-              <p class="sub" style="margin:0 0 14px">Three steps — you stay signed in as yourself in THIS window the whole time.</p>
-              <ol style="margin:0 0 14px;padding-left:22px;line-height:1.9">
-                <li><strong>Copy the link</strong>${copied ? ' — ✓ already copied for you.' : ':'}
-                  ${copied ? '' : `<div style="margin:6px 0"><input readonly value="${esc(r.link)}" style="width:100%;font-size:.8rem" onclick="this.select()"></div>`}
-                  <button type="button" class="btn btn--ghost btn--sm" data-mv-copy>${copied ? 'Copy again' : '📋 Copy link'}</button></li>
-                <li><strong>Open a private window:</strong> press <kbd style="background:#f0ede4;border:1px solid #ccc;border-radius:4px;padding:1px 6px">Ctrl</kbd>+<kbd style="background:#f0ede4;border:1px solid #ccc;border-radius:4px;padding:1px 6px">Shift</kbd>+<kbd style="background:#f0ede4;border:1px solid #ccc;border-radius:4px;padding:1px 6px">N</kbd> (on a Mac: ⌘+Shift+N).</li>
-                <li><strong>Paste the link</strong> in that window's address bar and press Enter — you're now looking at exactly what they see.</li>
-              </ol>
-              <p class="sub" style="margin:0">Why the private window? So this one stays signed in as <em>you</em>. The link works for 20 minutes and you can also email it to the member if they're locked out.</p>
-            </div>`;
-            const close = () => ov.remove();
-            ov.addEventListener('click', (e2) => { if (e2.target === ov || e2.target.closest('[data-x]')) close(); });
-            ov.querySelector('[data-mv-copy]')?.addEventListener('click', async (e2) => {
-              try { await navigator.clipboard.writeText(r.link); e2.target.textContent = '✓ Copied'; } catch (err) { window.prompt('Copy this link:', r.link); }
-            });
-            document.body.appendChild(ov);
-          } catch (err) { alert('Could not create a member-view link: ' + (err.message || '')); }
-        });
+        tr.querySelector('[data-loginlink]')?.addEventListener('click', () => openMemberView(id));
         tr.querySelector('[data-reset]')?.addEventListener('click', async () => {
           if (!confirm('Force this member to set a new password at next login? Their current password will stop working.')) return;
           try {
@@ -4594,6 +4619,28 @@ window.Admin = (function () {
     // ✉ Locked-out group leader → email them a password-reset link. Uses the
     // public forgot-password flow, so it works whether or not their login was
     // ever set up ("no account" is reported instead of silently doing nothing).
+    // 👁 See the leader's view — same dialog as Members, reachable from where
+    // the office actually starts (Groups → Manage). Resolves the manager's
+    // email to their member record; falls back to any roster Leader who has one.
+    document.getElementById('grpLeaderView')?.addEventListener('click', async (e) => {
+      const out = document.getElementById('grpMgrResetMsg');
+      const addr = (document.getElementById('grpMgrEmail').value || '').trim().toLowerCase();
+      const mgrName = (document.getElementById('grpMgrName').value || '').trim();
+      if (!addr) { if (out) out.textContent = 'Add the manager email above first (or use Members → 👁 See their view).'; return; }
+      e.target.disabled = true; const lbl = e.target.textContent; e.target.textContent = 'Opening…';
+      try {
+        if (out) out.textContent = '';
+        await openMemberView(addr, mgrName || addr);
+      } catch (err) {
+        if (out) {
+          out.innerHTML = /no-login|404/.test(err.message || '')
+            ? `<strong>${esc(addr)}</strong> has no website login yet, so there's no view to open. Use <strong>✉ Send password-reset email</strong> above (or Members → ➕ Create login) to set one up first.`
+            : 'Could not open that view — please try again.';
+        }
+      }
+      e.target.disabled = false; e.target.textContent = lbl;
+    });
+
     document.getElementById('grpMgrReset')?.addEventListener('click', async (e) => {
       const addr = (document.getElementById('grpMgrEmail').value || '').trim();
       const out = document.getElementById('grpMgrResetMsg');

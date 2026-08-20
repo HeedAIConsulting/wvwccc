@@ -3809,6 +3809,23 @@ router.get('/admin/members/:id/login-link', requireAdmin, async (req, res) => {
   } catch (e) { console.error('login-link', e); res.status(500).json({ error: 'could not generate link' }); }
 });
 
+// Same 20-minute view link, resolved by EMAIL instead of member id (Felicia,
+// Aug 20 2026 — she starts from Groups → Manage, where the group manager's
+// LOGIN address is what's on file; it often differs from the address on their
+// directory listing, so a listing lookup would come up empty).
+router.get('/admin/login-link-by-email', requireAdmin, async (req, res) => {
+  try {
+    const em = String(req.query.email || '').trim().toLowerCase();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) return res.status(400).json({ error: 'Provide a valid email address.' });
+    const list = await users.listUsers();
+    const u = (list || []).find((x) => String(x.email || '').toLowerCase() === em) || null;
+    if (!u) return res.status(404).json({ error: 'no-login' });
+    const token = auth.signMagicToken(u.email);
+    const base = process.env.SITE_URL || `${req.protocol}://${req.get('host')}`;
+    res.json({ ok: true, email: u.email, link: `${base}/api/auth/magic/verify?token=${encodeURIComponent(token)}`, expiresInMinutes: 20 });
+  } catch (e) { console.error('login-link-by-email', e); res.status(500).json({ error: 'could not generate link' }); }
+});
+
 // Admin generates a password-reset LINK for a login — useful while transactional
 // email isn't configured yet: staff can copy the link and send it to the member.
 router.get('/admin/users/:email/reset-link', requireAdmin, async (req, res) => {

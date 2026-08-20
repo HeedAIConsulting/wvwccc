@@ -69,9 +69,14 @@
               <!-- Leader locked out? One click emails them a reset link (per
                    Felicia, Jul 2026 — there was no reset action anywhere here). -->
               <div style="display:flex;gap:10px;align-items:center;margin-top:10px;flex-wrap:wrap">
+                <!-- "I should be able to go into Groups, click Manage, and
+                     assist from there" (Felicia, Aug 20 2026) — so the
+                     see-their-view button lives here too, not only in Members. -->
+                <button type="button" class="btn btn--forest btn--sm" id="grpLeaderView" title="See the website exactly as this group's leader sees it — for walking them through their page">👁 See the leader's view</button>
                 <button type="button" class="btn btn--ghost btn--sm" id="grpMgrReset" title="Emails the manager a set-a-new-password link (expires in 1 hour)">✉ Send password-reset email</button>
                 <span class="sub" id="grpMgrResetMsg"></span>
               </div>
+              <p class="sub" style="margin:8px 0 0">Use <strong>👁 See the leader's view</strong> to walk a leader through their page over the phone — it shows you their screen without signing you out of here.</p>
             </div>
             <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-top:12px">
               <label class="btn btn--gold btn--sm" style="cursor:pointer">Upload banner photo<input type="file" accept="image/*" hidden id="grpHero"></label>
@@ -117,7 +122,7 @@
     </div>
   </div>
   <script src="../js/api-base.js"></script>
-  <script src="admin.js?v=20260820d"></script>
+  <script src="admin.js?v=20260820e"></script>
   <script>Admin.initGroups();</script>
   <script defer src="/js/support.js?v=20260804c"></script>
 </body>
