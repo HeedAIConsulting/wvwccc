@@ -947,11 +947,35 @@ window.Admin = (function () {
           }
         });
         // Open the member's portal view (magic sign-in link, 20 minutes).
+        // A real step-by-step dialog, not a window.prompt — Felicia (Aug 20
+        // 2026) couldn't follow the one-line version, and she's the one who
+        // uses this to walk group leaders through their pages by phone.
         tr.querySelector('[data-loginlink]')?.addEventListener('click', async () => {
           try {
             const r = await api(`/api/admin/members/${encodeURIComponent(id)}/login-link`);
             const copied = navigator.clipboard ? await navigator.clipboard.writeText(r.link).then(() => true).catch(() => false) : false;
-            window.prompt((copied ? 'Sign-in link copied. ' : '') + `Open this in a PRIVATE/incognito window to see ${r.email}'s member view (keeps you signed in as admin here). Expires in 20 minutes. You can also send it to the member:`, r.link);
+            document.querySelector('[data-mv-modal]')?.remove();
+            const ov = document.createElement('div');
+            ov.className = 'chat-modal'; ov.setAttribute('data-mv-modal', '');
+            ov.innerHTML = `<div class="chat-modal__box" style="max-width:520px">
+              <button class="chat-modal__x" data-x aria-label="Close" type="button">×</button>
+              <h2 style="margin:0 0 4px">See ${esc(r.email)}'s member view</h2>
+              <p class="sub" style="margin:0 0 14px">Three steps — you stay signed in as yourself in THIS window the whole time.</p>
+              <ol style="margin:0 0 14px;padding-left:22px;line-height:1.9">
+                <li><strong>Copy the link</strong>${copied ? ' — ✓ already copied for you.' : ':'}
+                  ${copied ? '' : `<div style="margin:6px 0"><input readonly value="${esc(r.link)}" style="width:100%;font-size:.8rem" onclick="this.select()"></div>`}
+                  <button type="button" class="btn btn--ghost btn--sm" data-mv-copy>${copied ? 'Copy again' : '📋 Copy link'}</button></li>
+                <li><strong>Open a private window:</strong> press <kbd style="background:#f0ede4;border:1px solid #ccc;border-radius:4px;padding:1px 6px">Ctrl</kbd>+<kbd style="background:#f0ede4;border:1px solid #ccc;border-radius:4px;padding:1px 6px">Shift</kbd>+<kbd style="background:#f0ede4;border:1px solid #ccc;border-radius:4px;padding:1px 6px">N</kbd> (on a Mac: ⌘+Shift+N).</li>
+                <li><strong>Paste the link</strong> in that window's address bar and press Enter — you're now looking at exactly what they see.</li>
+              </ol>
+              <p class="sub" style="margin:0">Why the private window? So this one stays signed in as <em>you</em>. The link works for 20 minutes and you can also email it to the member if they're locked out.</p>
+            </div>`;
+            const close = () => ov.remove();
+            ov.addEventListener('click', (e2) => { if (e2.target === ov || e2.target.closest('[data-x]')) close(); });
+            ov.querySelector('[data-mv-copy]')?.addEventListener('click', async (e2) => {
+              try { await navigator.clipboard.writeText(r.link); e2.target.textContent = '✓ Copied'; } catch (err) { window.prompt('Copy this link:', r.link); }
+            });
+            document.body.appendChild(ov);
           } catch (err) { alert('Could not create a member-view link: ' + (err.message || '')); }
         });
         tr.querySelector('[data-reset]')?.addEventListener('click', async () => {
