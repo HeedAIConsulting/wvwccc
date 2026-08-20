@@ -2166,6 +2166,19 @@ window.Admin = (function () {
     let flyerUrl = '';
     let thumbnail = '';
 
+    // ── The Diana switch (Aug 20 2026): leader events wait for approval
+    // unless the office flips this on. Saves on change, right on the page.
+    const liToggle = document.getElementById('evLeaderInstant');
+    if (liToggle) {
+      api('/api/admin/event-settings').then((s) => { liToggle.checked = !!s.leaderInstantPublish; }).catch(() => {});
+      liToggle.addEventListener('change', async () => {
+        const on = liToggle.checked;
+        if (on && !confirm('Let group leaders publish events instantly, with no office review?\n\nOK — leaders skip the Needs publish queue\nCancel — keep approval required')) { liToggle.checked = false; return; }
+        try { await api('/api/admin/event-settings', { method: 'POST', body: JSON.stringify({ leaderInstantPublish: on }) }); }
+        catch (e) { liToggle.checked = !on; alert('Could not save that setting.'); }
+      });
+    }
+
     // ── Host group (Felicia call, Aug 19 2026): the office can create an
     // event on a leader's behalf and associate it with their group — it shows
     // "Hosted by <group>" and lands on that group's page, exactly like a

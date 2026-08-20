@@ -657,11 +657,27 @@ router.get('/me/events', auth.requireAuth(), async (req, res) => {
     const mine = (await loadEvents()).filter((e) => e.submittedBy && e.submittedBy === mid)
       .sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')));
     const identities = await postingIdentities(req.user);
-    // canSubmit = any member with a listing may add an event (leaders publish
-    // immediately; others go to the office's approval queue). isLeader is kept
-    // for the immediate-publish path and the "posting as" chooser.
-    res.json({ events: mine, canSubmit: !!mid, isLeader: memberIsLeader(await myMember(mid)) || identities.some((i) => i.kind === 'group'), identities });
+    // canSubmit = any member with a listing may add an event. isLeader drives
+    // the "posting as" chooser; instantPublish tells the form whether leader
+    // events skip the office queue (the Diana switch, Aug 20 2026).
+    let leaderInstant = false;
+    try { leaderInstant = (await repo.getSetting('leaderInstantPublish')) === 'on'; } catch (e) {}
+    res.json({ events: mine, canSubmit: !!mid, isLeader: memberIsLeader(await myMember(mid)) || identities.some((i) => i.kind === 'group'), instantPublish: leaderInstant, identities });
   } catch (e) { res.status(500).json({ error: 'failed' }); }
+});
+
+// The Diana switch (Aug 20 2026): do group-leader events publish instantly,
+// or wait in "Needs publish" like everyone else's? Office-controlled from the
+// admin Events page. Default OFF — approval required.
+router.get('/admin/event-settings', requireAdmin, async (_req, res) => {
+  try { res.json({ ok: true, leaderInstantPublish: (await repo.getSetting('leaderInstantPublish')) === 'on' }); }
+  catch (e) { res.json({ ok: true, leaderInstantPublish: false }); }
+});
+router.post('/admin/event-settings', requireAdmin, async (req, res) => {
+  try {
+    await repo.setSetting('leaderInstantPublish', req.body && req.body.leaderInstantPublish ? 'on' : 'off');
+    res.json({ ok: true, leaderInstantPublish: !!(req.body && req.body.leaderInstantPublish) });
+  } catch (e) { res.status(500).json({ error: 'could not save' }); }
 });
 
 router.post('/me/event', auth.requireAuth(), async (req, res) => {
@@ -674,10 +690,15 @@ router.post('/me/event', auth.requireAuth(), async (req, res) => {
     return res.status(400).json({ error: 'An event title and a valid date are required.' });
   }
   // ANY member with a listing can submit an event (matching the old site, per
-  // the office, Jul 16). Leaders/board/chairs publish immediately; a regular
-  // member's event goes to the office's "Needs publish" queue for one-click
-  // approval, so nothing hits the public calendar unreviewed.
-  const immediate = memberIsLeader(member) || lead.length > 0;
+  // the office, Jul 16). Whether group leaders/board publish IMMEDIATELY is an
+  // office switch: Diana (Aug 20 2026, via Felicia) wants leader events
+  // approved before publishing, reversing the office's own Jul 16 preference —
+  // so it's a setting, default OFF, instead of another code flip-flop.
+  // Everyone else always goes to the "Needs publish" queue.
+  const isLeaderSubmitter = memberIsLeader(member) || lead.length > 0;
+  let leaderInstant = false;
+  try { leaderInstant = (await repo.getSetting('leaderInstantPublish')) === 'on'; } catch (e) {}
+  const immediate = isLeaderSubmitter && leaderInstant;
   // Which identity are they posting as (their business, or a group they lead)?
   // Only identities they actually hold are accepted; default = business first,
   // else their first group (per Diana/Felicia, Jul 15).
