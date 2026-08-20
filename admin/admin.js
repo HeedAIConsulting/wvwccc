@@ -56,7 +56,7 @@ window.Admin = (function () {
     { href: 'events.html', icon: '◆', label: 'Events', key: 'events' },
     { href: 'ribbon-cuttings.html', icon: '✂', label: 'Ribbon Cuttings', key: 'ribbon' },
     { href: 'groups.html', icon: '◎', label: 'Groups', key: 'groups' },
-    { href: 'ambassadors.html', icon: '🏅', label: 'Ambassador Tracker', key: 'ambassadors' },
+    { href: 'ambassadors.html', icon: '🏅', label: 'Ambassadors', key: 'ambassadors' },
     { href: 'content.html', icon: '✎', label: 'Content', key: 'content' },
     { href: 'images.html', icon: '🖼', label: 'Image Library', key: 'images' },
     { href: 'albums.html', icon: '📸', label: 'Photo Albums', key: 'albums' },
@@ -2134,6 +2134,31 @@ window.Admin = (function () {
     let flyerUrl = '';
     let thumbnail = '';
 
+    // ── Host group (Felicia call, Aug 19 2026): the office can create an
+    // event on a leader's behalf and associate it with their group — it shows
+    // "Hosted by <group>" and lands on that group's page, exactly like a
+    // leader posting "as the group" from the member portal.
+    const hostSel = form.hostGroup;
+    let hostLoaded = '';        // what fillForm loaded — untouched select never rewrites attribution
+    let hostCurrentEv = null;
+    let evGroups = [];
+    function syncHostGroup(ev) {
+      hostCurrentEv = ev;
+      if (!hostSel) return;
+      // A member- or community-hosted event keeps its own attribution unless
+      // the office actively changes it — shown as its own locked-in option.
+      const keep = !!(ev && (ev.hostKind === 'business' || ev.hostKind === 'community') && !ev.groupSlug);
+      hostLoaded = keep ? '__keep' : ((ev && ev.groupSlug) || '');
+      hostSel.innerHTML = (keep ? `<option value="__keep">Hosted by ${esc(ev.hostName || 'the poster')} (as posted)</option>` : '')
+        + '<option value="">— Chamber event (no group)</option>'
+        + evGroups.map((g) => `<option value="${esc(g.slug)}">${esc(g.name)}</option>`).join('');
+      hostSel.value = [...hostSel.options].some((o) => o.value === hostLoaded) ? hostLoaded : '';
+    }
+    (async () => {
+      try { evGroups = (await api('/api/admin/groups')).groups || []; } catch (e) { evGroups = []; }
+      syncHostGroup(hostCurrentEv);
+    })();
+
     // ── Rich-text toolbar (Full details) — font / size / color / align / links ──
     const richBar = document.getElementById('evRichBar');
     if (richBar && rich) {
@@ -2789,6 +2814,7 @@ window.Admin = (function () {
       if (form.rsvpEmail) form.rsvpEmail.value = v('rsvpEmail');
       syncRsvpEmail();
       if (form.imageMode) form.imageMode.value = (ev && ev.imageMode) || 'auto';
+      syncHostGroup(ev);
       form.featured.checked = !!(ev && ev.featured);
       form.showOnCalendar.checked = ev ? (ev.showOnCalendar !== false) : true;
       form.homeOrder.value = ev && ev.homeOrder != null ? ev.homeOrder : '';
@@ -3011,6 +3037,16 @@ window.Admin = (function () {
           .map((r) => ({ role: r.role, points: Number(r.points) || 0, needed: Number(r.needed) || 1 })),
         images, links: links.filter((l) => l.url),
       };
+      // Host group — only written when the office actually changed the
+      // dropdown, so an ordinary edit never strips a member's "Hosted by" line.
+      if (hostSel && hostSel.value !== hostLoaded && hostSel.value !== '__keep') {
+        if (hostSel.value === '') {
+          Object.assign(body, { hostKind: '', hostName: '', hostSlug: '', groupName: '', groupSlug: '' });
+        } else {
+          const hg = evGroups.find((x) => x.slug === hostSel.value);
+          if (hg) Object.assign(body, { hostKind: 'group', hostName: hg.name, hostSlug: hg.slug, groupName: hg.name, groupSlug: hg.slug });
+        }
+      }
       // Felicia, Jul 29 2026 ("Event Fix Please"): this used to be a hard block,
       // which stranded her on the Oct 21 Food & Wine event — she was selling
       // tickets but did not have the prices yet, so she could not save the rest
@@ -3207,6 +3243,96 @@ window.Admin = (function () {
     const leaderRows = document.getElementById('leaderRows');
     const volRows = document.getElementById('volRows');
     if (!leaderRows) return;
+
+    /* ── Current ambassadors (Felicia, Aug 19 2026 call): the roster itself,
+       board-manager style — photo, name, view profile, remove — plus
+       add-from-directory. An ambassador is anyone whose primary designation
+       is Ambassador OR who carries it as an extra designation (a board member
+       can be both). Removing clears only the Ambassador designation; the
+       member stays in the directory and keeps any other designation. ── */
+    const ambRows = document.getElementById('ambRows');
+    const ambCount = document.getElementById('ambCount');
+    let ambAll = [];
+    const isAmb = (m) => m.leaderStatus === 'Ambassador' || (Array.isArray(m.designations) && m.designations.includes('Ambassador'));
+    function ambRow(m) {
+      const face = m.pageImage || m.logo;
+      const thumb = face
+        ? `<img src="${esc(face)}" alt="" style="width:56px;height:56px;border-radius:50%;object-fit:cover;box-shadow:0 0 0 2px var(--gold,#C9A227);flex:none" onerror="this.style.visibility='hidden'">`
+        : `<div style="width:56px;height:56px;border-radius:50%;background:var(--green-deep,#1E5631);color:var(--gold-bright,#e3c55f);display:flex;align-items:center;justify-content:center;font-weight:700;flex:none">${esc((m.contactName || m.name || '?')[0].toUpperCase())}</div>`;
+      return `<div data-amb="${esc(m.id)}" style="display:flex;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line,#eee);flex-wrap:wrap">
+        ${thumb}
+        <div style="flex:1;min-width:180px">
+          <div class="name">${esc(m.contactName || m.name)}</div>
+          <div class="sub">${esc(m.name)}${m.leaderStatus && m.leaderStatus !== 'Ambassador' ? ` · also ${esc(m.leaderStatus)}` : ''}${m.pageImage ? '' : ' · <span title="Using the company logo — upload a square headshot for a nicer card">no headshot yet</span>'}</div>
+        </div>
+        <a class="btn btn--ghost btn--sm" href="../members/profile.html?id=${encodeURIComponent(m.id)}" target="_blank">View profile ↗</a>
+        <label class="btn btn--ghost btn--sm" style="cursor:pointer" title="Upload their photo — square, at least 400×400px">📷 Photo<input type="file" accept="image/*" hidden data-amb-photo></label>
+        <button type="button" class="btn btn--ghost btn--sm" data-amb-off style="color:var(--red)" title="Take them off the Ambassadors page (they stay in the directory)">Remove</button>
+      </div>`;
+    }
+    async function ambPatch(m, body) {
+      await api(`/api/admin/members/${encodeURIComponent(m.id)}`, { method: 'PATCH', body: JSON.stringify(body) });
+    }
+    function ambRender() {
+      if (!ambRows) return;
+      const list = ambAll.filter(isAmb);
+      const lastName = (m) => { const p = String(m.contactName || m.name).trim().split(/\s+/); return p[p.length - 1]; };
+      list.sort((a, b) => lastName(a).localeCompare(lastName(b)));
+      if (ambCount) ambCount.textContent = `(${list.length})`;
+      ambRows.innerHTML = list.length ? list.map(ambRow).join('')
+        : '<p class="sub">Nobody carries the Ambassador designation yet — use the search above to add the first one.</p>';
+      ambRows.querySelectorAll('[data-amb]').forEach((div) => {
+        const m = ambAll.find((x) => x.id === div.dataset.amb);
+        div.querySelector('[data-amb-off]')?.addEventListener('click', async () => {
+          if (!confirm(`Take ${m.contactName || m.name} off the Ambassadors page?\n\nThey stay in the directory — only the Ambassador designation is cleared.`)) return;
+          try {
+            if (m.leaderStatus === 'Ambassador') await ambPatch(m, { leaderStatus: '' });
+            if (Array.isArray(m.designations) && m.designations.includes('Ambassador')) {
+              await ambPatch(m, { designations: m.designations.filter((d) => d !== 'Ambassador') });
+            }
+            await ambLoad();
+          } catch (e) { alert('Could not remove: ' + (e.message || 'error')); }
+        });
+        div.querySelector('[data-amb-photo]')?.addEventListener('change', (e) => {
+          const f = e.target.files[0]; if (!f) return;
+          const r = new FileReader();
+          r.onload = async () => {
+            try {
+              const up = await api('/api/me/asset', { method: 'POST', body: JSON.stringify({ kind: 'headshot', dataUrl: r.result }) });
+              await api(`/api/admin/members/${encodeURIComponent(m.id)}/profile`, { method: 'PATCH', body: JSON.stringify({ pageImage: up.url }) });
+              await ambLoad();
+            } catch (err) { alert('Photo upload failed (PNG/JPG, ≤2.5 MB).'); }
+          };
+          r.readAsDataURL(f);
+        });
+      });
+    }
+    async function ambLoad() {
+      try { ambAll = (await api('/api/admin/members')).members || []; ambRender(); }
+      catch (e) { showAuthError(e); }
+    }
+    const ambSearch = document.getElementById('ambSearch');
+    const ambSuggest = document.getElementById('ambSuggest');
+    ambSearch?.addEventListener('input', () => {
+      const q = ambSearch.value.trim().toLowerCase();
+      if (q.length < 2) { ambSuggest.hidden = true; return; }
+      const list = ambAll.filter((m) => !isAmb(m) && [m.name, m.contactName, m.category].filter(Boolean).join(' ').toLowerCase().includes(q)).slice(0, 8);
+      ambSuggest.innerHTML = list.length ? list.map((m) => `<button type="button" data-add="${esc(m.id)}"><b>${esc(m.contactName || m.name)}</b><span>${esc(m.name)}</span></button>`).join('') : '<button type="button" disabled><span>No matches</span></button>';
+      ambSuggest.hidden = false;
+      ambSuggest.querySelectorAll('[data-add]').forEach((b) => b.addEventListener('click', async () => {
+        const m = ambAll.find((x) => x.id === b.dataset.add); if (!m) return;
+        try {
+          // A member with another primary designation (say Board Member) keeps
+          // it and gains Ambassador as an extra; otherwise it becomes primary.
+          if (m.leaderStatus) await ambPatch(m, { designations: [...new Set([...(m.designations || []), 'Ambassador'])] });
+          else await ambPatch(m, { leaderStatus: 'Ambassador' });
+          ambSearch.value = ''; ambSuggest.hidden = true;
+          await ambLoad();
+        } catch (e) { alert('Could not add: ' + (e.message || 'error')); }
+      }));
+    });
+    document.addEventListener('click', (e) => { if (!e.target.closest('#ambSearch,#ambSuggest')) ambSuggest && (ambSuggest.hidden = true); });
+    ambLoad();
     const volMsg = document.getElementById('volMsg');
     const say = (el, t, bad) => { if (!el) return; el.hidden = !t; el.textContent = t || ''; el.style.color = bad ? 'var(--red,#b00020)' : 'var(--green,#2b6b3f)'; };
     const STATUS = [['signed-up', 'Signed up'], ['confirmed', 'Confirmed'], ['no-show', 'No-show']];
@@ -4358,7 +4484,7 @@ window.Admin = (function () {
     }
 
     const fill = (g) => {
-      title.textContent = g ? `Edit — ${g.name}` : 'New group';
+      title.textContent = g ? `Manage — ${g.name}` : 'New group';
       form.id_ = g ? g.id : '';
       form.querySelector('[name="id"]').value = g ? g.id : '';
       ['name', 'tagline', 'meetingSchedule', 'contactEmail', 'eventMatch', 'status', 'description', 'meetingNotes']
@@ -4372,9 +4498,22 @@ window.Admin = (function () {
       renderRoster();
       renderPhotos();
       document.getElementById('grpHeroPrev').textContent = heroUrl ? '✓ hero set' : '';
-      // The list sits ABOVE the editor now — jump to the editor when managing.
-      document.getElementById('grpEditorPanel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      // Managing ONE group: the all-groups list hides and the management panel
+      // takes the top of the page (Michael, Aug 19 call — "bring the
+      // management to the very top… no need to list the other groups").
+      const listPanel = document.getElementById('grpListPanel');
+      const editor = document.getElementById('grpEditorPanel');
+      if (listPanel) listPanel.hidden = true;
+      if (editor) { editor.hidden = false; editor.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
     };
+    const backToList = () => {
+      const listPanel = document.getElementById('grpListPanel');
+      const editor = document.getElementById('grpEditorPanel');
+      if (editor) editor.hidden = true;
+      if (listPanel) { listPanel.hidden = false; listPanel.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+      loadList();
+    };
+    document.getElementById('grpBackBtn')?.addEventListener('click', backToList);
     document.getElementById('grpReset').addEventListener('click', () => fill(null));
     document.getElementById('grpNewBtn')?.addEventListener('click', () => fill(null));
 
@@ -4454,7 +4593,7 @@ window.Admin = (function () {
       const btn = form.querySelector('[type="submit"]'); btn.disabled = true;
       try {
         await api('/api/admin/groups', { method: 'POST', body: JSON.stringify(body) });
-        note('Saved ✓', true); fill(null); loadList();
+        note('Saved ✓', true); backToList();
       } catch (err) { note('Save failed — check required fields.'); }
       finally { btn.disabled = false; }
     });

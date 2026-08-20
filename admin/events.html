@@ -50,6 +50,8 @@
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
               <div class="field" style="grid-column:1 / -1"><label>Title *</label><input name="title" required maxlength="200" placeholder="Annual Gala — Black, White & Bold!" /></div>
               <div class="field"><label>Category</label><input name="category" maxlength="40" placeholder="Signature / Networking / Mixer …" /></div>
+              <div class="field"><label>Host group <span class="sub">(optional — shows “Hosted by” and puts the event on that group's page)</span></label>
+                <select name="hostGroup" class="admin-select"><option value="">— Chamber event (no group)</option></select></div>
               <div class="field"><label>Status</label><select name="status" class="admin-select"><option value="approved">Published</option><option value="draft">Draft (hidden)</option><option value="pending">Pending review</option></select></div>
               <div class="field"><label>Date</label><input name="date" type="date" /></div>
               <div class="field"><label>Time</label><input name="time" maxlength="40" placeholder="6:00 PM" /></div>
@@ -178,7 +180,7 @@
     </div>
   </div>
   <script src="../js/api-base.js"></script>
-  <script src="admin.js?v=20260814a"></script>
+  <script src="admin.js?v=20260820a"></script>
   <script>Admin.initEvents();</script>
   <script defer src="/js/support.js?v=20260804c"></script>
 </body>

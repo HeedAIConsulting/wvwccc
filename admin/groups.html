@@ -22,8 +22,11 @@
 
         <div class="admin-notice">Groups appear at <strong>/groups/</strong> on the site. Click <strong>Manage</strong> on any group to approve join requests, add members, email the roster, and edit the page.</div>
 
-        <!-- Groups list FIRST (per the office — the groups were buried under the form) -->
-        <div class="panel">
+        <!-- Groups list FIRST (per the office — the groups were buried under the
+             form). While a group is open for managing, this list hides so the
+             one group's management sits at the very top (Michael, Aug 19 call:
+             "no need to list the other groups when you're in a group"). -->
+        <div class="panel" id="grpListPanel">
           <div class="panel__head" style="display:flex;justify-content:space-between;align-items:center">
             <h3>All groups</h3>
             <button type="button" class="btn btn--gold btn--sm" id="grpNewBtn">+ New group</button>
@@ -34,8 +37,11 @@
           </table>
         </div>
 
-        <div class="panel" id="grpEditorPanel">
-          <div class="panel__head"><h3 id="grpFormTitle">New group</h3></div>
+        <div class="panel" id="grpEditorPanel" hidden>
+          <div class="panel__head" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+            <h3 id="grpFormTitle" style="margin:0">New group</h3>
+            <button type="button" class="btn btn--ghost btn--sm" id="grpBackBtn">← All groups</button>
+          </div>
           <form id="groupForm" class="admin-form" style="padding:16px">
             <input type="hidden" name="id" />
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
@@ -111,7 +117,7 @@
     </div>
   </div>
   <script src="../js/api-base.js"></script>
-  <script src="admin.js?v=20260814a"></script>
+  <script src="admin.js?v=20260820a"></script>
   <script>Admin.initGroups();</script>
   <script defer src="/js/support.js?v=20260804c"></script>
 </body>

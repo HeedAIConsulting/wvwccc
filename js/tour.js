@@ -50,6 +50,22 @@ window.WVTour = (function () {
       { sel: '[data-logout]', title: 'Sign out 👋',
         text: 'When you’re done, sign out here. That’s the tour — welcome aboard!' },
     ],
+    // Group leaders' management page (Felicia call, Aug 19 2026 — leaders kept
+    // phoning the office because nobody had shown them where anything lives).
+    leader: [
+      { sel: '#groupManage a[href^="event.html?g="]', title: 'Post your group’s events 📅',
+        text: 'As the group leader, your events publish straight to the Chamber calendar — no waiting for approval. They show “Hosted by” your group and appear on your group’s public page.' },
+      { sel: '#groupManage a[href*="recur=monthly"]', title: 'Meetings on a schedule ⟳',
+        text: 'Meet the first Monday of every month? Set it once and create the next 3–12 months of meetings in one go. Every date stays its own event, so you can still change a venue or skip a holiday.' },
+      { sel: '#groupManage [data-ev]', title: 'Edit, RSVPs & remove ✏️',
+        text: 'Every upcoming event for your group is listed here — however it was posted. Edit fixes a date or typo, RSVPs shows exactly who’s coming and how many they’re bringing, and Remove takes it off the calendar.' },
+      { sel: '#gmAnnounce', title: 'Email the whole group 📣',
+        text: 'One message to every member on your roster — meeting reminders, agendas, announcements. Everyone is emailed individually, so addresses are never exposed.' },
+      { sel: '#gmSearch', title: 'Manage your members 👥',
+        text: 'Approve join requests, add members from the Chamber directory (or by hand), and remove people who’ve moved on. What you see here is what shows on your group’s public page.' },
+      { sel: '.wv-sup-btn', title: 'Stuck? We’re right here 🛟',
+        text: 'The Support button (bottom-left of every page) reaches the team that runs this website. Send a note about what you’re trying to do and we’ll walk you through it — that’s the tour!' },
+    ],
   };
 
   // ── Styles (injected once) ──────────────────────────────────
@@ -120,7 +136,10 @@ window.WVTour = (function () {
     var parts = sel.split(',');
     for (var i = 0; i < parts.length; i++) {
       var el = document.querySelector(parts[i].trim());
-      if (el && el.offsetParent !== null) return el; // visible only
+      // visible only — offsetParent is null for BOTH hidden elements and
+      // position:fixed ones (the 🛟 Support pill), so check fixed explicitly
+      // or the Support step silently vanishes from every tour.
+      if (el && (el.offsetParent !== null || getComputedStyle(el).position === 'fixed')) return el;
     }
     return null;
   }
@@ -241,6 +260,32 @@ window.WVTour = (function () {
     }
   }
 
+  // ── Welcome (group leader modal, first visit to the management page) ──
+  var KEY_LEADER = 'wvwccc_welcome_leader';
+  function startWelcomeLeader(force) {
+    if (!force && seen(KEY_LEADER)) return;
+    if (document.querySelector('.wvt-ov[data-welcome-leader]')) return;
+    injectCss();
+    var ov = document.createElement('div');
+    ov.className = 'wvt-ov'; ov.setAttribute('data-welcome-leader', '');
+    ov.innerHTML =
+      '<div class="wvt-modal" role="dialog" aria-modal="true" aria-label="Welcome to group management">'
+      + '<button class="wvt-modal__x" type="button" aria-label="Close">×</button>'
+      + '<img class="wvt-modal__seal" src="/images/wvwccc-logo.png" alt="">'
+      + '<h2>You run this group 🌿</h2>'
+      + '<p>This page is your group’s home base — post events (they publish straight to the calendar), see who RSVP’d, email everyone, and manage your member list. Want a 60-second look around?</p>'
+      + '<div class="wvt-modal__row">'
+      + '<button class="wvt-btn wvt-btn--gold" type="button" data-show>Show me around</button>'
+      + '<button class="wvt-btn wvt-btn--ghost" type="button" data-later>Maybe later</button>'
+      + '</div></div>';
+    var close = function () { mark(KEY_LEADER); ov.remove(); };
+    ov.querySelector('.wvt-modal__x').addEventListener('click', close);
+    ov.querySelector('[data-later]').addEventListener('click', close);
+    ov.querySelector('[data-show]').addEventListener('click', function () { close(); start('leader'); });
+    ov.addEventListener('click', function (e) { if (e.target === ov) close(); });
+    document.body.appendChild(ov);
+  }
+
   // ── Welcome (member portal modal) ───────────────────────────
   function startWelcomeMember(force) {
     if (!force && seen(KEY_MEMBER)) return;
@@ -281,9 +326,11 @@ window.WVTour = (function () {
       else startWelcomeHome(false);
     } else if (context === 'member') {
       whenReady('#memberBody a[href="profile.html"], #memberBody .btn', function () { startWelcomeMember(false); });
+    } else if (context === 'leader') {
+      whenReady('#groupManage .btn-row a', function () { startWelcomeLeader(false); });
     }
   }
 
-  window.__wvTour = { boot: boot, start: start, startWelcome: function (n, f) { n === 'member' ? startWelcomeMember(f !== false) : startWelcomeHome(f !== false); }, end: endTour };
+  window.__wvTour = { boot: boot, start: start, startWelcome: function (n, f) { n === 'member' ? startWelcomeMember(f !== false) : (n === 'leader' ? startWelcomeLeader(f !== false) : startWelcomeHome(f !== false)); }, end: endTour };
   return window.__wvTour;
 })();
