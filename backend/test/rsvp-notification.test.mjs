@@ -36,7 +36,9 @@ before(async () => {
       firstName: 'Odelia', lastName: 'Samya',
       email: 'odelia@zoloins.com', phone: '818-389-8659',
       company: 'Zolo Insurance Services, Inc.',
-      event: 'August 26th Networking Mixer [ev-mruu80zk6qp]',
+      // le-11343 is a real approved seed event — the guest confirmation only
+      // goes out when the RSVP resolves to a real event (Aug 20 2026 review).
+      event: 'August 26th Networking Mixer [le-11343]',
       eventTitle: 'August 26th Networking Mixer',
       ticketType: 'Member Free With Pre-registration',
       quantity: 4,
@@ -67,7 +69,38 @@ test('it is laid out like the old confirmation, not a wall of text', () => {
   }
   assert.ok(html, 'an HTML version should be sent so it renders like the receipt');
   assert.ok(html.includes('THANK YOU') && html.includes('GUEST INFO'));
-  assert.match(text, /\* This is an RSVP only\. Please pay at the door\./);
+});
+
+test('the "pay at the door" line is GONE (Felicia, Aug 19 2026 — members who attend free were told to pay)', () => {
+  const { text, html } = note();
+  assert.ok(!/pay at the door/i.test(text), 'plain text still tells people to pay at the door');
+  assert.ok(!/pay at the door/i.test(html), 'html still tells people to pay at the door');
+});
+
+test('the person who RSVPd gets their own confirmation copy (Aug 20 2026)', () => {
+  const guest = sent.find((m) => m.to === 'odelia@zoloins.com' && /Your RSVP is confirmed/.test(m.subject || ''));
+  assert.ok(guest, 'the RSVP submitter should receive a confirmation email');
+  // The subject comes from OUR event record, never submitter-typed text — the
+  // route must not be usable as a chamber-branded relay for arbitrary content.
+  assert.match(guest.subject, /^Your RSVP is confirmed — Martin's Connection Circle \(\d{4}-\d{2}-\d{2}\)$/);
+  assert.ok(guest.text.includes('THANK YOU'), 'the guest copy keeps the receipt layout');
+  assert.ok(!/pay at the door/i.test(guest.text));
+  assert.ok(!/Admin/.test(guest.text), 'the guest copy must not carry the admin footer');
+  assert.ok(!guest.text.includes('le-11343'), 'the guest copy leaked the internal event id');
+});
+
+test('no guest confirmation when the RSVP does not reference a real event (relay guard)', async () => {
+  const before3 = sent.length;
+  await fetch(`${base}/api/contact`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      kind: 'rsvp', name: 'Mallory', email: 'victim@example.com',
+      event: 'Click here to claim your prize [ev-doesnotexist1]', eventTitle: 'Fake', quantity: 1,
+    }),
+  });
+  await new Promise((r) => setTimeout(r, 200));
+  const guest = sent.slice(before3).find((m) => m.to === 'victim@example.com');
+  assert.equal(guest, undefined, 'an unresolvable event must never trigger a submitter-addressed email');
 });
 
 test('every attendee is listed with their own contact details', () => {
@@ -79,8 +112,8 @@ test('every attendee is listed with their own contact details', () => {
 
 test('the raw event id never reaches the inbox', () => {
   const { text, html } = note();
-  assert.ok(!text.includes('ev-mruu80zk6qp'), 'plain text leaked the internal event id');
-  assert.ok(!html.includes('ev-mruu80zk6qp'), 'html leaked the internal event id');
+  assert.ok(!text.includes('le-11343'), 'plain text leaked the internal event id');
+  assert.ok(!html.includes('le-11343'), 'html leaked the internal event id');
 });
 
 test('a non-RSVP inquiry keeps the plain generic body', async () => {

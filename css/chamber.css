@@ -882,3 +882,32 @@ html { scrollbar-color: var(--gold) var(--cream-deep); scrollbar-width: thin; }
   .wv-show__spd { display: none; }        /* speed lives on the desktop UI */
   .wv-show__cap { font-size: .85rem; }
 }
+
+/* ── Mobile pass (Felicia, Aug 19 2026 call — "audit the whole site from a
+   mobile perspective"). Appended late so these win the cascade. ─────────── */
+
+/* Long event descriptions and pasted URLs wrap instead of clipping. */
+.ev-card__desc { overflow-wrap: anywhere; }
+
+/* Card grids sized with a fixed minimum overflowed a 320px phone —
+   min(…,100%) lets the track shrink to the container instead. */
+.group-grid { grid-template-columns: repeat(auto-fill, minmax(min(310px, 100%), 1fr)); }
+.alb-grid { grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr)); }
+
+/* The member dashboard's two columns come from an inline style, so this
+   mirrors the #groupCols fix: stack them on anything phone/tablet-narrow. */
+@media (max-width: 880px) {
+  .member-cols { grid-template-columns: 1fr !important; }
+}
+
+@media (max-width: 640px) {
+  /* 96px of section padding is a desktop luxury — phones get the content. */
+  .section { padding: var(--s-7) 0; }
+}
+
+@media (max-width: 560px) {
+  /* Full-width buttons used to CLIP long office-typed labels ("Sponsor/
+     Exhibit/Purchase") because .btn is nowrap and .ev-card is
+     overflow:hidden. On phones, labels wrap instead. */
+  .btn { white-space: normal; line-height: 1.25; }
+}

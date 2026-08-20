@@ -83,11 +83,26 @@
             slides, the banner shows the solid green background.
           </p>
         </div>
+
+        <!-- Featured events (Felicia, Aug 19 2026 call: "the homepage will
+             just be our top four featured events that we've chosen", in HER
+             order — and nothing auto-fills when none are chosen). -->
+        <div class="panel">
+          <div class="panel__head"><h3>⭐ Featured events on the homepage <span class="sub" id="feCount"></span></h3></div>
+          <div style="padding:0 16px 6px">
+            <p class="sub" style="margin:10px 0">The homepage's "Upcoming Chamber events" section shows <strong>only the events you feature here</strong>, top to bottom in the order you set (up to 4 show). Feature none and the section disappears from the homepage. Everything else stays on the full <a href="events.html">Events</a> calendar.</p>
+          </div>
+          <table class="admin-table">
+            <thead><tr><th>Order</th><th>Event</th><th>Date</th><th>On the homepage?</th></tr></thead>
+            <tbody id="feRows"><tr><td colspan="4" class="sub">Loading…</td></tr></tbody>
+          </table>
+          <p class="sub" id="feMsg" style="padding:0 16px 14px"></p>
+        </div>
       </div>
     </div>
   </div>
   <script src="../js/api-base.js"></script>
-  <script src="admin.js?v=20260820a"></script>
+  <script src="admin.js?v=20260820b"></script>
   <script>Admin.initSlides();</script>
   <script defer src="/js/support.js?v=20260804c"></script>
 </body>

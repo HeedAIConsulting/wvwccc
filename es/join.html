@@ -14,7 +14,7 @@
   <link rel="alternate" hreflang="x-default" href="https://woodlandhillscc.net/join.html" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="stylesheet" href="../css/chamber.css?v=20260805b" />
+  <link rel="stylesheet" href="../css/chamber.css?v=20260820b" />
 </head>
 <body>
   <div data-partial="header"></div>
@@ -52,6 +52,12 @@
               <div class="field"><label>Correo electrónico <span class="member-tile__meta">(será su acceso al sitio)</span></label><input name="email" type="email" required /></div>
               <div class="field"><label>Teléfono</label><input name="phone" type="tel" /></div>
             </div>
+            <!-- Dirección del negocio (Felicia, llamada del 19 ago 2026). -->
+            <div class="field"><label>Dirección del negocio</label><input name="address" maxlength="200" autocomplete="street-address" /></div>
+            <div class="grid grid-2" style="gap:var(--s-3)">
+              <div class="field"><label>Ciudad</label><input name="city" maxlength="80" autocomplete="address-level2" /></div>
+              <div class="field"><label>Código postal</label><input name="zip" maxlength="20" inputmode="numeric" autocomplete="postal-code" /></div>
+            </div>
             <div class="field">
               <label>Cree su contraseña del sitio <span class="member-tile__meta">(opcional — 8+ caracteres; activa al aprobarse su membresía)</span></label>
               <input name="password" type="password" minlength="8" maxlength="100" autocomplete="new-password" placeholder="Déjelo en blanco para recibir un enlace por correo" />
@@ -77,6 +83,21 @@
                 </select>
               </div>
             </div>
+            <!-- Hasta 4 representantes adicionales (Felicia, 19 ago 2026). -->
+            <details class="mt-2" style="margin-bottom:var(--s-3)">
+              <summary style="cursor:pointer;font-weight:600">＋ Representantes adicionales <span class="member-tile__meta">(opcional — hasta 4 personas de su negocio)</span></summary>
+              <p class="member-tile__meta" style="margin:8px 0 4px">Quedan registrados con su membresía para recibir invitaciones y avisos de la Cámara.</p>
+              <div class="grid grid-2" style="gap:var(--s-3)">
+                <div class="field"><label>Rep. 1 — nombre</label><input name="rep1Name" maxlength="120" /></div>
+                <div class="field"><label>Rep. 1 — correo</label><input name="rep1Email" type="email" maxlength="160" /></div>
+                <div class="field"><label>Rep. 2 — nombre</label><input name="rep2Name" maxlength="120" /></div>
+                <div class="field"><label>Rep. 2 — correo</label><input name="rep2Email" type="email" maxlength="160" /></div>
+                <div class="field"><label>Rep. 3 — nombre</label><input name="rep3Name" maxlength="120" /></div>
+                <div class="field"><label>Rep. 3 — correo</label><input name="rep3Email" type="email" maxlength="160" /></div>
+                <div class="field"><label>Rep. 4 — nombre</label><input name="rep4Name" maxlength="120" /></div>
+                <div class="field"><label>Rep. 4 — correo</label><input name="rep4Email" type="email" maxlength="160" /></div>
+              </div>
+            </details>
             <div class="field" style="margin-top:var(--s-2)">
               <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:600">
                 <input type="checkbox" name="ribbonCutting" value="yes" id="joinRibbon" style="width:auto" />
@@ -149,9 +170,9 @@
 
   <div data-partial="footer"></div>
 
-  <script src="../js/partials.js?v=20260810a"></script>
+  <script src="../js/partials.js?v=20260820b"></script>
   <script src="../js/api-base.js?v=20260818a"></script>
-  <script src="../js/chamber.js?v=20260818c"></script>
+  <script src="../js/chamber.js?v=20260820b"></script>
   <script>
     ChamberPartials.mount({ active: '', depth: 1, lang: 'es' });
     // Las cuotas se fijan por número de empleados (Cuotas Anuales 2026 — Diana

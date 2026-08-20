@@ -1747,20 +1747,49 @@ window.Admin = (function () {
       // Quick-search deep link (?q=) from the global search box filters the log.
       const q = (new URLSearchParams(location.search).get('q') || '').toLowerCase();
       const shown = q ? orders.filter((o) =>
-        [o.name, o.email, o.sku, o.kind, o.transactionId, String(o.amount)].some((v) => String(v || '').toLowerCase().includes(q))) : orders;
+        [o.name, o.email, o.phone, o.company, o.memo, o.sku, o.kind, o.transactionId, String(o.amount)].some((v) => String(v || '').toLowerCase().includes(q))) : orders;
       // Every non-refunded order gets a button: a gateway refund when we have a
       // transaction id, otherwise "Mark refunded" (record-only) so the log can
       // always be squared away — per Felicia, the button must never vanish.
+      // The payer's name opens the full receipt view (Felicia, Aug 19 2026 —
+      // "Caroline paid… there's nothing here that gives me her phone number").
       rows.innerHTML = shown.length ? shown.map((o) => `
         <tr data-id="${esc(o.id)}" data-txn="${o.transactionId ? '1' : ''}"><td>${esc(new Date(o.created).toLocaleDateString())}</td>
-        <td><span class="name">${esc(o.name || o.email || '—')}</span><div class="sub">${esc(o.email || '')}</div></td>
-        <td>${esc(o.kind)}${o.sku ? ' · ' + esc(o.sku) : ''}</td>
+        <td><a href="#" class="name" data-open title="Open the full receipt — contact info and what it was for">${esc(o.name || o.email || '—')}</a><div class="sub">${esc(o.email || '')}${o.phone ? ' · ' + esc(o.phone) : ''}</div></td>
+        <td>${o.memo ? esc(o.memo) : esc(o.kind) + (o.sku ? ' · ' + esc(o.sku) : '')}</td>
         <td>$${Number(o.amount || 0).toFixed(2)}</td>
         <td>${statusPill(o.status || 'paid')}</td>
         <td><span class="sub">${esc(o.transactionId || '')}</span></td>
         <td>${(o.status || 'paid') === 'paid' ? `<button class="btn btn--ghost btn--sm" data-refund>${o.transactionId ? 'Refund' : 'Mark refunded'}</button>` : (o.status === 'declined' ? '<span class="sub" title="The card was never charged — any bank hold drops off on its own in a few days.">no charge</span>' : '')}</td></tr>`).join('')
         : `<tr><td colspan="7" class="sub">${q ? 'No payments match “' + esc(q) + '” — <a href="payments.html">show all</a>.' : 'No payments yet. Transactions appear here once AGMS checkout is live.'}</td></tr>`;
+      // Receipt view — everything on file for one payment, in one card.
+      function openOrder(o) {
+        if (document.querySelector('[data-order-view]')) return;
+        const ov = document.createElement('div');
+        ov.className = 'chat-modal'; ov.setAttribute('data-order-view', '');
+        const item = (label, html) => (html ? `<div style="margin:0 0 8px"><span class="sub" style="display:block;font-weight:700">${label}</span>${html}</div>` : '');
+        ov.innerHTML = `<div class="chat-modal__box" style="max-width:560px">
+          <button class="chat-modal__x" data-x aria-label="Close" type="button">×</button>
+          <h2 style="margin:0 0 2px">Payment — $${Number(o.amount || 0).toFixed(2)}</h2>
+          <p class="sub" style="margin:0 0 12px">${esc(new Date(o.created).toLocaleString())} · ${statusPill(o.status || 'paid')}</p>
+          ${item('Payer', esc(o.name || '—'))}
+          ${item('Company', o.company && esc(o.company))}
+          ${item('Email', o.email && `<a href="mailto:${esc(o.email)}">${esc(o.email)}</a>`)}
+          ${item('Phone', o.phone && `<a href="tel:${esc(o.phone)}">${esc(o.phone)}</a>`)}
+          ${item('For', esc(o.memo || [o.kind, o.sku].filter(Boolean).join(' · ') || '—'))}
+          ${item('Transaction', o.transactionId && `<span class="sub">${esc(o.transactionId)}</span>`)}
+          ${(!o.phone && !o.memo) ? '<p class="sub" style="margin-top:6px">Older payments (before Aug 2026) carry no phone or description — those lived only in the receipt email. New payments record both.</p>' : ''}
+        </div>`;
+        const close = () => ov.remove();
+        ov.addEventListener('click', (e) => { if (e.target === ov || e.target.closest('[data-x]')) close(); });
+        document.body.appendChild(ov);
+      }
       rows.querySelectorAll('tr[data-id]').forEach((tr) => {
+        tr.querySelector('[data-open]')?.addEventListener('click', (e) => {
+          e.preventDefault();
+          const o = orders.find((x) => x.id === tr.dataset.id);
+          if (o) openOrder(o);
+        });
         tr.querySelector('[data-refund]')?.addEventListener('click', async (e) => {
           const amt = tr.children[3].textContent;
           const who = tr.querySelector('.name')?.textContent || 'this payer';
@@ -1896,6 +1925,9 @@ window.Admin = (function () {
           ${item('Company', l.company && esc(l.company))}
           ${item('Email', l.email && `<a href="mailto:${esc(l.email)}">${esc(l.email)}</a>`)}
           ${item('Phone', l.phone && `<a href="tel:${esc(l.phone)}">${esc(l.phone)}</a>`)}
+          ${item('Business address', [l.address, l.city, l.zip].filter(Boolean).length ? esc([l.address, l.city, l.zip].filter(Boolean).join(', ')) : '')}
+          ${item('Representatives', Array.isArray(l.reps) && l.reps.length
+            ? l.reps.map((r) => `${esc(r.name || '—')}${r.email ? ` — <a href="mailto:${esc(r.email)}">${esc(r.email)}</a>` : ''}`).join('<br>') : '')}
           ${item('Reason', l.reason && l.reason !== l.kind && esc(l.reason))}
           ${item('Event', l.event && esc(l.event))}
         </div>
@@ -2910,14 +2942,19 @@ window.Admin = (function () {
           return le && (le === String(ev.id).toLowerCase() || le === title || le.includes(title.slice(0, 40)));
         });
         const paidTotal = orders.filter((o) => (o.status || 'paid') === 'paid').reduce((t, o) => t + Number(o.amount || 0), 0);
+        // Head count per RSVP (Felicia, Aug 19 2026 — "Martin RSVP'd for two
+        // people but it doesn't show"): the public form writes "Attending: N"
+        // into the message; no line = one person.
+        const qtyOf = (l) => { const m = /attending:\s*(\d+)/i.exec(String(l.message || '')); return m ? Math.max(1, Math.min(50, parseInt(m[1], 10))) : 1; };
+        const attending = rsvps.reduce((t, l) => t + qtyOf(l), 0);
         ov.querySelector('[data-body]').innerHTML = `
           <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
-            <h3 style="margin:0">RSVPs (${rsvps.length})</h3>
+            <h3 style="margin:0">RSVPs (${rsvps.length})${attending > rsvps.length ? ` · <span style="color:var(--green,#1E5631)">${attending} attending</span>` : ''}</h3>
             <button type="button" class="btn btn--ghost btn--sm" data-dl-rsvp ${rsvps.length ? '' : 'disabled'}>⬇ Download RSVP list</button>
           </div>
           <div style="overflow-x:auto;max-height:30vh;overflow-y:auto">
-          <table class="admin-table"><thead><tr><th>Date</th><th>Name</th><th>Email / phone</th><th>Message</th></tr></thead><tbody>
-            ${rsvps.length ? rsvps.map((l) => `<tr><td class="sub" style="white-space:nowrap">${esc(String(l.received || '').slice(0, 10))}</td><td><span class="name">${esc(l.name || '—')}</span></td><td class="sub">${esc(l.email || '')}${l.phone ? ' · ' + esc(l.phone) : ''}</td><td class="sub">${esc((l.message || '').slice(0, 90))}</td></tr>`).join('') : '<tr><td colspan="4" class="sub">No RSVPs yet.</td></tr>'}
+          <table class="admin-table"><thead><tr><th>Date</th><th>Name</th><th title="How many people this RSVP covers">Attending</th><th>Email / phone</th><th>Details</th></tr></thead><tbody>
+            ${rsvps.length ? rsvps.map((l) => `<tr><td class="sub" style="white-space:nowrap">${esc(String(l.received || '').slice(0, 10))}</td><td><span class="name">${esc(l.name || '—')}</span>${l.company ? `<div class="sub">${esc(l.company)}</div>` : ''}</td><td><strong>${qtyOf(l)}</strong></td><td class="sub">${esc(l.email || '')}${l.phone ? ' · ' + esc(l.phone) : ''}</td><td class="sub">${(l.message || '').length > 90 ? `<details><summary style="cursor:pointer">${esc((l.message || '').slice(0, 90))}…</summary><div style="white-space:pre-wrap;margin-top:4px">${esc(l.message || '')}</div></details>` : esc(l.message || '')}</td></tr>`).join('') : '<tr><td colspan="5" class="sub">No RSVPs yet.</td></tr>'}
           </tbody></table></div>
           <div style="display:flex;gap:10px;align-items:center;margin:16px 0 10px;flex-wrap:wrap">
             <h3 style="margin:0">Payments (${orders.length}) — $${paidTotal.toFixed(2)}</h3>
@@ -2929,8 +2966,8 @@ window.Admin = (function () {
           </tbody></table></div>`;
         const slug = String(ev.title || ev.id).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 50);
         ov.querySelector('[data-dl-rsvp]')?.addEventListener('click', () =>
-          dlCsv(`rsvps-${slug}.csv`, [['Date', 'Name', 'Email', 'Phone', 'Company', 'Message']]
-            .concat(rsvps.map((l) => [String(l.received || '').slice(0, 10), l.name, l.email, l.phone, l.company, l.message]))));
+          dlCsv(`rsvps-${slug}.csv`, [['Date', 'Name', 'Attending', 'Email', 'Phone', 'Company', 'Message']]
+            .concat(rsvps.map((l) => [String(l.received || '').slice(0, 10), l.name, qtyOf(l), l.email, l.phone, l.company, l.message]))));
         ov.querySelector('[data-dl-pay]')?.addEventListener('click', () =>
           dlCsv(`payments-${slug}.csv`, [['Date', 'Name', 'Email', 'Tickets', 'Amount', 'Status', 'Transaction']]
             .concat(orders.map((o) => [new Date(o.created).toLocaleDateString(), o.name, o.email, String(o.sku || '').split(':').slice(2).join(':'), Number(o.amount || 0).toFixed(2), o.status || 'paid', o.transactionId]))));
@@ -4602,9 +4639,90 @@ window.Admin = (function () {
   }
 
   // ── Hero slider manager (add / delete / reorder) ──
+  /* ── Featured events on the homepage (Felicia, Aug 19 2026 call) ──
+     The homepage shows ONLY the events featured here, in this order (up to 4).
+     Rendered on the Homepage Management page under the banner slides. Order
+     writes homeOrder 1..n via partial PATCHes; the checkbox flips `featured`. */
+  async function initFeaturedEvents() {
+    const tbody = document.getElementById('feRows');
+    if (!tbody) return;
+    const msg = document.getElementById('feMsg');
+    const cnt = document.getElementById('feCount');
+    const say2 = (t) => { if (msg) msg.textContent = t || ''; };
+    let events = [];
+    const todayISO = new Date().toISOString().slice(0, 10);
+    async function load() {
+      try { events = ((await api('/api/admin/events')).events || []).filter((e) => (e.status || 'approved') === 'approved' && e.date && e.date >= todayISO); }
+      catch (e) { showAuthError(e); return; }
+      render();
+    }
+    const ord = (e) => { const n = Number(e.homeOrder); return Number.isFinite(n) && n > 0 ? n : 1e9; };
+    async function persistOrder(list) {
+      for (let i = 0; i < list.length; i++) {
+        try { await api('/api/admin/events/' + encodeURIComponent(list[i].id), { method: 'PATCH', body: JSON.stringify({ homeOrder: i + 1 }) }); }
+        catch (e) { say2('Could not save the order — please try again.'); return; }
+        list[i].homeOrder = i + 1;
+      }
+      say2('Order saved ✓');
+    }
+    function render() {
+      const feat = events.filter((e) => e.featured).sort((a, b) => ord(a) - ord(b) || a.date.localeCompare(b.date));
+      const rest = events.filter((e) => !e.featured).sort((a, b) => a.date.localeCompare(b.date));
+      if (cnt) cnt.textContent = feat.length ? `(${Math.min(feat.length, 4)} showing${feat.length > 4 ? ` of ${feat.length} featured` : ''})` : '(none — the homepage section is hidden)';
+      const row = (e, i, isFeat) => `
+        <tr data-id="${esc(e.id)}">
+          <td style="white-space:nowrap">${isFeat ? `
+            <button type="button" class="btn btn--ghost btn--sm" data-up ${i === 0 ? 'disabled' : ''}>↑</button>
+            <button type="button" class="btn btn--ghost btn--sm" data-down ${i === feat.length - 1 ? 'disabled' : ''}>↓</button>
+            ${i < 4 ? `<strong style="margin-left:6px">#${i + 1}</strong>` : '<span class="sub" style="margin-left:6px" title="Only the top 4 show on the homepage">—</span>'}` : ''}</td>
+          <td><span class="name">${esc(e.title)}</span></td>
+          <td class="sub" style="white-space:nowrap">${esc(e.date)}${e.time ? ' · ' + esc(e.time) : ''}</td>
+          <td><label style="display:inline-flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" data-feat ${isFeat ? 'checked' : ''}> ${isFeat ? 'Featured' : 'Add to homepage'}</label></td>
+        </tr>`;
+      tbody.innerHTML = (feat.length || rest.length)
+        ? feat.map((e, i) => row(e, i, true)).join('')
+          + (rest.length ? `<tr><td colspan="4" class="sub" style="padding-top:14px">All other upcoming events — tick one to feature it:</td></tr>` + rest.map((e) => row(e, 0, false)).join('') : '')
+        : '<tr><td colspan="4" class="sub">No upcoming events on the calendar yet — create one under Events first.</td></tr>';
+      tbody.querySelectorAll('tr[data-id]').forEach((tr) => {
+        const e = events.find((x) => x.id === tr.dataset.id);
+        const i = feat.indexOf(e);
+        tr.querySelector('[data-feat]')?.addEventListener('change', async (ev2) => {
+          const on = ev2.target.checked;
+          ev2.target.disabled = true; // one write at a time — a double-click raced to duplicate orders
+          try {
+            if (on) {
+              // Append after the HIGHEST existing order, not feat.length+1 —
+              // gaps left by earlier unchecks made new picks collide with or
+              // jump above the office's chosen order (Aug 20 2026 review).
+              const nextOrd = feat.reduce((mx, x) => { const n = Number(x.homeOrder); return Math.max(mx, Number.isFinite(n) && n > 0 && n < 1e9 ? n : 0); }, 0) + 1;
+              await api('/api/admin/events/' + encodeURIComponent(e.id), { method: 'PATCH', body: JSON.stringify({ featured: true, homeOrder: nextOrd }) });
+              e.featured = true; e.homeOrder = nextOrd;
+              say2(`"${e.title}" is on the homepage ✓`);
+            } else {
+              await api('/api/admin/events/' + encodeURIComponent(e.id), { method: 'PATCH', body: JSON.stringify({ featured: false, homeOrder: null }) });
+              e.featured = false; e.homeOrder = null;
+              // Close the gap so the survivors stay a clean 1..n.
+              await persistOrder(feat.filter((x) => x !== e));
+              say2(`"${e.title}" removed from the homepage.`);
+            }
+            render();
+          } catch (err) { ev2.target.checked = !on; ev2.target.disabled = false; say2('Could not save that — please try again.'); }
+        });
+        tr.querySelector('[data-up]')?.addEventListener('click', async () => {
+          if (i <= 0) return; [feat[i - 1], feat[i]] = [feat[i], feat[i - 1]]; await persistOrder(feat); render();
+        });
+        tr.querySelector('[data-down]')?.addEventListener('click', async () => {
+          if (i < 0 || i >= feat.length - 1) return; [feat[i + 1], feat[i]] = [feat[i], feat[i + 1]]; await persistOrder(feat); render();
+        });
+      });
+    }
+    load();
+  }
+
   async function initSlides() {
     mountShell('slides');
     initHomePopup(); // the homepage popup editor lives on this page now (per Diana, Jul 16)
+    initFeaturedEvents(); // featured-events picker (Felicia, Aug 19 2026)
     const form = document.getElementById('slideForm');
     const msg = document.getElementById('slideMsg');
     const tbody = document.getElementById('slideRows');

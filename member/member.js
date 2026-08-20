@@ -100,7 +100,7 @@ window.MemberPortal = (function () {
     wrap.innerHTML = `
       ${groupsLead}
       ${gettingStarted}
-      <div class="grid" style="grid-template-columns:1.4fr .9fr;gap:var(--s-6);align-items:start">
+      <div class="grid member-cols" style="grid-template-columns:1.4fr .9fr;gap:var(--s-6);align-items:start">
         <div class="card">
           <div style="display:flex;justify-content:space-between;align-items:start;gap:var(--s-4);flex-wrap:wrap">
             <div>
@@ -899,13 +899,20 @@ window.MemberPortal = (function () {
 
     // Roster changes write through immediately (like the admin page since
     // Jul 29) — an approval that only changed the screen came back as pending.
+    let lastWelcome = null; // { welcomed, noEmail } from the last roster save
     async function saveRoster() {
       try {
         const r = await api('/api/me/group/' + encodeURIComponent(g.slug) + '/members', { method: 'POST', body: JSON.stringify({ members }) });
         members = r.members || members;
+        lastWelcome = r.welcome || null;
         return true;
       } catch (e) { say('Could not save that — please try again.', true); return false; }
     }
+    // What actually happened with the welcome email — never let a leader
+    // believe one went out when the person has no address on file.
+    const welcomeNote = () => !lastWelcome ? ''
+      : (lastWelcome.welcomed ? ' A welcome email is on its way to them.'
+        : (lastWelcome.noEmail ? ' They have no email on file, so no welcome email could go out — add their email and re-add them if you want one sent.' : ''));
     const sayEl = () => document.getElementById('gmMsg');
     function say(t, bad) {
       const el = sayEl(); if (!el) return;
@@ -928,8 +935,20 @@ window.MemberPortal = (function () {
             <button type="button" class="btn btn--ghost" id="gmAnnounce">📣 Email the group</button>
             <a class="btn btn--ghost" href="../groups/${encodeURIComponent(g.slug)}" target="_blank">View public page ↗</a>
             <button type="button" class="btn btn--ghost btn--sm" onclick="if(window.WVTour)WVTour.start('leader')" style="align-self:center">Take a quick tour</button>
+            <a class="btn btn--ghost btn--sm" href="leader-guide.html" style="align-self:center">📖 Leader guide</a>
           </div>
           <p class="member-tile__meta" style="margin:10px 0 0">Need help with any of this? Use the <strong>🛟 Support</strong> button (bottom-left) — your note goes straight to the team that runs this website.</p>
+          <div id="gmComposeWrap" hidden style="margin-top:14px;border-top:1px solid var(--line,#eee);padding-top:12px">
+            <h3 style="margin:0 0 4px">📣 Message the group</h3>
+            <p class="member-tile__meta" style="margin:0 0 10px">Goes to every member on your list by email. Everyone is emailed individually — addresses are never shared.</p>
+            <div class="field"><label>Subject</label><input id="gmSubject" maxlength="160" placeholder="This week's meeting" /></div>
+            <div class="field"><label>Message</label><textarea id="gmMessage" rows="5" placeholder="Hi everyone —"></textarea></div>
+            ${(data.events || []).length ? `<label class="member-tile__meta" style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;margin:0 0 10px"><input type="checkbox" id="gmIncludeNext" checked style="margin-top:3px"> <span>Add the next meeting's details to the bottom automatically<br><span style="opacity:.8">${esc((data.events[0] || {}).title || '')} — ${esc(fmtD((data.events[0] || {}).date))}${(data.events[0] || {}).time ? ' · ' + esc(data.events[0].time) : ''}${(data.events[0] || {}).venue ? ' · ' + esc(data.events[0].venue) : ''}</span></span></label>` : ''}
+            <div class="btn-row">
+              <button type="button" class="btn btn--forest btn--sm" id="gmSendMsg">Send to ${active.length} member${active.length === 1 ? '' : 's'}</button>
+              <button type="button" class="btn btn--ghost btn--sm" id="gmCancelMsg">Cancel</button>
+            </div>
+          </div>
         </div>
 
         ${pending.length ? `
@@ -962,6 +981,21 @@ window.MemberPortal = (function () {
             </div>
             <div data-rsvplist hidden style="margin-top:10px;border-top:1px solid var(--line,#eee);padding-top:8px"></div>
           </div>`).join('') : '<p class="member-tile__meta">Nothing on the calendar yet — use <strong>＋ Add an event</strong> above.</p>'}
+        </div>
+
+        <div class="card mt-5">
+          <h3 style="margin:0 0 4px">Meeting notes</h3>
+          <p class="member-tile__meta" style="margin:0 0 10px">Shown on your group's public page — agendas, recaps, announcements from past meetings. Newest at the top works best.</p>
+          <textarea id="gmNotes" rows="6" style="width:100%">${esc(g.meetingNotes || '')}</textarea>
+          <div class="btn-row mt-3">
+            <button type="button" class="btn btn--forest btn--sm" id="gmSaveNotes">Save notes</button>
+            <a class="btn btn--ghost btn--sm" href="../groups/${encodeURIComponent(g.slug)}" target="_blank">See them on the page ↗</a>
+          </div>
+        </div>
+
+        <div class="card mt-5" id="gmPhotosCard">
+          <h3 style="margin:0 0 4px">Photo albums</h3>
+          <div id="gmAlbums"><p class="member-tile__meta">Loading albums…</p></div>
         </div>
 
         <div class="card mt-5">
@@ -998,7 +1032,7 @@ window.MemberPortal = (function () {
         const m = members.find((x) => x.id === row.dataset.pend);
         row.querySelector('[data-approve]')?.addEventListener('click', async () => {
           const prev = m.status; m.status = 'active';
-          if (await saveRoster()) { render(); say(`${m.name} approved ✓ — they're on the group page now.`); }
+          if (await saveRoster()) { render(); say(`${m.name} approved ✓ — they're on the group page now.${welcomeNote()}`); }
           else { m.status = prev; }
         });
         row.querySelector('[data-decline]')?.addEventListener('click', async () => {
@@ -1038,19 +1072,52 @@ window.MemberPortal = (function () {
           } catch (e) { say('Could not remove the event.', true); }
         });
       });
-      // 📣 Announce
-      document.getElementById('gmAnnounce')?.addEventListener('click', async () => {
+      // 📣 Message the group — a real compose box instead of prompt() popups
+      // (Michael, Aug 20 2026: "make it easy for the leaders to message the
+      // members updates"). Optionally appends the next meeting's details.
+      const composeWrap = document.getElementById('gmComposeWrap');
+      document.getElementById('gmAnnounce')?.addEventListener('click', () => {
         const activeCount = members.filter((m) => m.status !== 'pending').length;
         if (!activeCount) { say('Add members first — there is nobody to email yet.', true); return; }
-        const subject = prompt(`Email all ${activeCount} members of ${g.name}.\n\nSubject:`, '');
-        if (!subject || !subject.trim()) return;
-        const message = prompt('Message (plain text — meeting time, agenda, announcement):', '');
-        if (!message || !message.trim()) return;
-        if (!confirm(`Send "${subject.trim()}" to the group now?`)) return;
+        if (composeWrap) {
+          composeWrap.hidden = !composeWrap.hidden;
+          if (!composeWrap.hidden) document.getElementById('gmSubject')?.focus();
+        }
+      });
+      document.getElementById('gmCancelMsg')?.addEventListener('click', () => { if (composeWrap) composeWrap.hidden = true; });
+      // Meeting notes → the group's public page
+      document.getElementById('gmSaveNotes')?.addEventListener('click', async (e) => {
+        const notes = document.getElementById('gmNotes')?.value ?? '';
+        e.target.disabled = true;
         try {
-          const r = await api('/api/me/group/' + encodeURIComponent(g.slug) + '/announce', { method: 'POST', body: JSON.stringify({ subject: subject.trim(), message: message.trim() }) });
+          await api('/api/me/group/' + encodeURIComponent(g.slug), { method: 'PATCH', body: JSON.stringify({ meetingNotes: notes }) });
+          g.meetingNotes = notes;
+          say('✓ Meeting notes saved — they show on the group page now.');
+        } catch (err) { say('Could not save the notes — please try again.', true); }
+        finally { e.target.disabled = false; }
+      });
+      mountGroupAlbums();
+      document.getElementById('gmSendMsg')?.addEventListener('click', async (e) => {
+        const subject = (document.getElementById('gmSubject')?.value || '').trim();
+        let message = (document.getElementById('gmMessage')?.value || '').trim();
+        if (!subject) { say('Give the email a subject first.', true); return; }
+        if (!message) { say('Write the message first.', true); return; }
+        const inc = document.getElementById('gmIncludeNext');
+        const nextEv = (data.events || [])[0];
+        if (inc && inc.checked && nextEv) {
+          message += `\n\nNext meeting: ${nextEv.title}\n${fmtD(nextEv.date)}${nextEv.time ? ' · ' + nextEv.time : ''}${nextEv.venue ? ' · ' + nextEv.venue : ''}\nDetails & RSVP: ${location.origin}/events/view.html?id=${encodeURIComponent(nextEv.id)}`;
+        }
+        const activeCount = members.filter((m) => m.status !== 'pending').length;
+        if (!confirm(`Send "${subject}" to all ${activeCount} member${activeCount === 1 ? '' : 's'} of ${g.name} now?`)) return;
+        e.target.disabled = true;
+        try {
+          const r = await api('/api/me/group/' + encodeURIComponent(g.slug) + '/announce', { method: 'POST', body: JSON.stringify({ subject, message }) });
+          if (composeWrap) composeWrap.hidden = true;
+          const sEl = document.getElementById('gmSubject'); if (sEl) sEl.value = '';
+          const mEl = document.getElementById('gmMessage'); if (mEl) mEl.value = '';
           say(`✓ Sent to ${r.sent} member${r.sent === 1 ? '' : 's'}${r.skipped ? ` — ${r.skipped} had no email on file` : ''}.`);
-        } catch (e) { say('Could not send the email — please try again.', true); }
+        } catch (err) { say('Could not send the email — please try again.', true); }
+        finally { e.target.disabled = false; }
       });
       // Roster: remove
       wrap.querySelectorAll('#gmRoster [data-mid]').forEach((row) => {
@@ -1083,7 +1150,7 @@ window.MemberPortal = (function () {
             if (members.some((x) => x.memberId === m.id)) { say('That member is already in the group.', true); suggEl.hidden = true; return; }
             members.push({ id: 'gm-' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36), memberId: m.id, name: m.name, business: m.category || '', role: 'Member', status: 'active', source: 'manual' });
             searchEl.value = ''; suggEl.hidden = true;
-            if (await saveRoster()) { render(); say(`${m.name} added ✓`); }
+            if (await saveRoster()) { render(); say(`${m.name} added ✓.${welcomeNote()}`); }
             else { members = members.filter((x) => x.memberId !== m.id); }
           }));
         });
@@ -1101,8 +1168,38 @@ window.MemberPortal = (function () {
           role: 'Member', status: 'active', source: 'manual',
         };
         members.push(entry);
-        if (await saveRoster()) { render(); say(`${entry.name} added ✓`); }
+        if (await saveRoster()) { render(); say(`${entry.name} added ✓.${welcomeNote()}`); }
         else { members = members.filter((x) => x.id !== entry.id); }
+      });
+    }
+
+    // ── Photo albums (Michael, Aug 20 2026: "photo galleries of meetings and
+    // from members"). Albums tagged with the group's slug show on its public
+    // page; anyone signed in can add photos from the album page itself.
+    async function mountGroupAlbums() {
+      const host = document.getElementById('gmAlbums');
+      if (!host) return;
+      let albums = [];
+      try { albums = (await api('/api/albums?group=' + encodeURIComponent(g.slug))).albums || []; } catch (e) {}
+      host.innerHTML = `
+        <p class="member-tile__meta" style="margin:0 0 10px">Albums show on your group's public page. Members add their own shots straight from an album — you don't have to collect photos by email.</p>
+        ${albums.length ? albums.map((a) => `
+          <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line,#eee);flex-wrap:wrap">
+            ${a.cover ? `<img src="${esc(a.cover)}" alt="" style="width:56px;height:42px;border-radius:8px;object-fit:cover;flex:none">` : '<span style="width:56px;height:42px;border-radius:8px;background:var(--cream-deep,#f0e9d6);display:inline-block;flex:none"></span>'}
+            <span style="flex:1;min-width:160px"><strong>${esc(a.title)}</strong><div class="member-tile__meta">${a.count} photo${a.count === 1 ? '' : 's'}</div></span>
+            <a class="btn btn--ghost btn--sm" href="../albums/${encodeURIComponent(a.id)}" target="_blank">Open / add photos ↗</a>
+          </div>`).join('') : '<p class="member-tile__meta">No albums yet — start one for your next meeting.</p>'}
+        <div class="btn-row mt-3">
+          <button type="button" class="btn btn--gold btn--sm" id="gmNewAlbum">＋ New album</button>
+        </div>`;
+      document.getElementById('gmNewAlbum')?.addEventListener('click', async () => {
+        const title = prompt('Name the album — usually the meeting or event it covers:', '');
+        if (!title || !title.trim()) return;
+        try {
+          await api('/api/me/group/' + encodeURIComponent(g.slug) + '/albums', { method: 'POST', body: JSON.stringify({ title: title.trim() }) });
+          say('✓ Album created — open it to add the first photos.');
+          mountGroupAlbums();
+        } catch (e) { say('Could not create the album — please try again.', true); }
       });
     }
 
