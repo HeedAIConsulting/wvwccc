@@ -14,14 +14,14 @@
   <link rel="alternate" hreflang="x-default" href="https://woodlandhillscc.net/about.html" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="stylesheet" href="css/chamber.css?v=20260820b" />
+  <link rel="stylesheet" href="css/chamber.css?v=20260820g" />
   <style>
     .about-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--s-4); margin-top: var(--s-7); }
     .about-stat { border-left: 3px solid var(--gold, #c9a227); padding-left: 14px; }
     .about-stat b { display: block; font-family: var(--display); font-size: 1.9rem; color: var(--gold-bright, #e3c35f); line-height: 1.1; }
     .about-stat span { color: rgba(255,255,255,.75); font-size: .85rem; }
 
-    .hood-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: var(--s-5); }
+    .hood-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(330px,100%), 1fr)); gap: var(--s-5); }
     .hood-card { background: #fff; border: 1px solid var(--line, #e8e3d5); border-radius: var(--r-lg, 16px);
       padding: var(--s-6); position: relative; overflow: hidden; transition: transform .2s, box-shadow .2s; }
     .hood-card:hover { transform: translateY(-3px); box-shadow: 0 16px 38px rgba(27,51,38,.12); }
@@ -84,7 +84,7 @@
             <a class="btn btn--ghost" href="leadership.html">Meet our board →</a>
           </div>
         </div>
-        <img src="images/wvwccc-logo.png" alt="West Valley · Warner Center Chamber of Commerce seal" style="max-width:340px;margin:0 auto;border-radius:50%;box-shadow:var(--sh-lg)" />
+        <img src="images/wvwccc-logo.png" alt="West Valley · Warner Center Chamber of Commerce seal" style="max-width:min(340px,100%);margin:0 auto;border-radius:50%;box-shadow:var(--sh-lg)" />
       </div>
     </div>
   </section>

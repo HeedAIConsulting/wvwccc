@@ -11,7 +11,7 @@
 <link rel="canonical" href="https://woodlandhillscc.net/regional-resource-guide.html">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="css/chamber.css?v=20260820b">
+<link rel="stylesheet" href="css/chamber.css?v=20260820g">
 <style>
 /* ── Regional Resource Guide — Civic Editorial document styles.
       Everything is scoped under .rg-doc so the site shell is untouched. ── */
@@ -54,7 +54,7 @@
 .rg-doc .toc a:hover { color: var(--gold-deep); }
 
 /* community cards */
-.rg-doc .rg-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; margin-top: 28px; }
+.rg-doc .rg-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(320px,100%), 1fr)); gap: 24px; margin-top: 28px; }
 .rg-doc .rg-card { background: #fff; border: 1px solid var(--line); border-top: 4px solid var(--gold); border-radius: var(--r-md); padding: 26px; box-shadow: var(--sh-sm); }
 .rg-doc .rg-card h3 { margin-top: 0; }
 .rg-doc .rg-card .tag { font-family: var(--mono); font-size: 11.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
@@ -97,6 +97,11 @@
 .rg-doc .rg-colophon p { margin-bottom: 8px; max-width: none; }
 
 @media print { .rg-doc .toc, .site-header, .site-footer, .leaders-wall { display: none !important; } .rg-doc section { padding: 34px 0; } }
+  /* Wide reference tables scroll inside their own box on a phone instead of
+     dragging the whole page sideways (Aug 20 2026 mobile audit). */
+  @media (max-width: 700px) {
+    .rg-doc table { display: block; max-width: 100%; overflow-x: auto; white-space: nowrap; }
+  }
 </style>
 </head>
 <body>

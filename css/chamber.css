@@ -911,3 +911,42 @@ html { scrollbar-color: var(--gold) var(--cream-deep); scrollbar-width: thin; }
      overflow:hidden. On phones, labels wrap instead. */
   .btn { white-space: normal; line-height: 1.25; }
 }
+
+/* ── Inline two-column grids must stack on phones (Aug 20 2026 audit) ──
+   Several pages set grid-template-columns in an inline style attribute.
+   Inline styles outrank any media query, so these layouts stayed
+   side-by-side at 320px: on join.html the form ran 70px off-screen and the
+   whole "What members get" panel sat at x=438, invisible. Attribute
+   selectors + !important are the only way to reach them. */
+@media (max-width: 880px) {
+  .grid[style*="1.1fr .9fr"],
+  .grid[style*=".9fr 1.1fr"],
+  .grid[style*="1.15fr .85fr"],
+  .grid[style*="1fr 1.2fr"],
+  .grid[style*="1fr 1.4fr"],
+  .grid[style*="1.4fr"],
+  .grid[style*="1.35fr"],
+  .grid[style*="300px 1fr"],
+  .grid[style*="1fr 1fr"] { grid-template-columns: 1fr !important; }
+  .grid[style*="300px 1fr"] > aside,
+  .grid[style*="1.35fr"] > aside { position: static !important; }
+}
+/* Photo walls sized with a fixed minimum overflowed a 320px phone. */
+.gallery-grid--lg { grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr)); }
+.gallery-grid { grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr)); }
+
+/* Cloudflare Turnstile renders a fixed 300px widget; on a 320px phone inside
+   a padded card it overhangs. Let its wrapper scale it down instead. */
+.cf-turnstile, .cf-turnstile iframe { max-width: 100% !important; }
+@media (max-width: 360px) {
+  .cf-turnstile { transform: scale(.92); transform-origin: left top; }
+}
+
+/* Form controls carry a ~300px INTRINSIC width from the browser. width:100%
+   does not remove it, so on a phone the widest input set the minimum width of
+   its whole column: the Join form's card measured 366px inside a 272px
+   container, pushing the page sideways and the benefits panel off-screen
+   entirely. min-width:0 lets them shrink to their container (Aug 20 2026). */
+input, select, textarea { min-width: 0; }
+.field, .field input, .field select, .field textarea { min-width: 0; max-width: 100%; }
+.grid > *, .btn-row > * { min-width: 0; }

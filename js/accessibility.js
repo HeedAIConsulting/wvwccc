@@ -85,7 +85,7 @@
   /* Panel */\
   .wv-a11y-panel {\
     position: fixed; bottom: 92px; left: 24px; z-index: 99997;\
-    width: 360px; max-height: calc(100vh - 116px); overflow-y: auto;\
+    width: min(360px, calc(100vw - 24px)); max-height: calc(100vh - 116px); overflow-y: auto;\
     background: #fff; color: #15202B;\
     border-radius: 14px; padding: 20px;\
     box-shadow: 0 24px 56px rgba(30,86,49,0.30);\
