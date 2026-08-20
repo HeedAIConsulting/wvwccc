@@ -851,6 +851,65 @@ function rsvpsForEvent(ev, rsvpLeads) {
 // message; a lead without it is one person.
 const rsvpQty = (l) => { const m = /attending:\s*(\d+)/i.exec(String(l.message || '')); return m ? Math.max(1, Math.min(50, parseInt(m[1], 10))) : 1; };
 
+/* ── Welcome-to-the-group email (Michael, Aug 20 2026) ──
+   Anyone ADDED to a group's roster — approved from a join request, picked
+   from the directory, or typed in by hand — gets one email saying what the
+   group is, when it meets, and what they can do now (the group page, RSVPs,
+   photo albums, their member portal). Fires on every roster write path
+   (admin full save, admin roster-only save, leader save), diffing
+   before/after so role edits and removals never email anyone. */
+async function notifyNewGroupMembers(beforeMembers, g, req) {
+  try {
+    const wasActive = new Set((beforeMembers || [])
+      .filter((m) => m && m.status !== 'pending').map((m) => m.id));
+    const fresh = (g.members || []).filter((m) => m && m.status !== 'pending' && !wasActive.has(m.id));
+    if (!fresh.length) return { welcomed: 0, noEmail: 0 };
+    const skipped = [];
+    const { members: dir } = await loadMembersFull();
+    const emailById = new Map(dir.filter((m) => m.email).map((m) => [m.id, m.email]));
+    const base = process.env.SITE_URL || `${req.protocol}://${req.get('host')}`;
+    const groupUrl = `${base}/groups/${g.slug}`;
+    const mgrName = (g.manager && g.manager.name) || 'the group leader';
+    const replyTo = (g.manager && g.manager.email) || undefined;
+    const eh = (v) => String(v ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const seen = new Set();
+    for (const m of fresh) {
+      const addr = String(m.email || emailById.get(m.memberId) || '').trim().toLowerCase();
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(addr)) { skipped.push(m.name || '(unnamed)'); continue; }
+      if (seen.has(addr)) continue;
+      seen.add(addr);
+      const first = String(m.name || '').trim().split(/\s+/)[0] || 'there';
+      const meets = g.meetingSchedule ? `The group meets ${g.meetingSchedule}.` : '';
+      const html = `
+      <div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#111;max-width:560px;border:1px solid #ccc;padding:20px 24px">
+        <img src="https://woodlandhillscc.net/images/wvwccc-logo.png" alt="WVWC Chamber of Commerce" width="72" style="display:block;margin:0 0 12px">
+        <p style="color:#188038;font-weight:bold;margin:0">WELCOME TO ${eh(String(g.name).toUpperCase())}</p>
+        <p style="margin:12px 0 0">Hi ${eh(first)},</p>
+        <p style="margin:10px 0 0">You've been added to <strong>${eh(g.name)}</strong>, a West Valley &middot; Warner Center Chamber group.${meets ? ' ' + eh(meets) : ''}</p>
+        <p style="font-weight:bold;text-decoration:underline;margin:16px 0 6px">WHAT YOU CAN DO</p>
+        <table style="border-collapse:collapse;font-size:14px">
+          <tr><td style="padding:3px 10px 3px 0;vertical-align:top">&#128197;</td><td style="padding:3px 0"><strong>See the meetings.</strong> Every upcoming meeting and event is on <a href="${groupUrl}" style="color:#1E5631">the group's page</a> — open any event to RSVP or add it to your calendar.</td></tr>
+          <tr><td style="padding:3px 10px 3px 0;vertical-align:top">&#128248;</td><td style="padding:3px 0"><strong>Share photos.</strong> The group's photo albums live on the same page — sign in and add your own shots from a meeting.</td></tr>
+          <tr><td style="padding:3px 10px 3px 0;vertical-align:top">&#127963;</td><td style="padding:3px 0"><strong>Use your member portal.</strong> Sign in at <a href="${base}/auth/member-login.html" style="color:#1E5631">woodlandhillscc.net</a> with this email address — no password yet? Choose "Email me a sign-in link".</td></tr>
+        </table>
+        <p style="margin:16px 0 0">Questions about the group? Just reply to this email${replyTo ? ` — it goes to ${eh(mgrName)}` : ''} — or call the Chamber office at (818)&nbsp;347-4737.</p>
+        <p style="margin:14px 0 0;color:#666;font-size:12px">West Valley &middot; Warner Center Chamber of Commerce &middot; <a href="${groupUrl}" style="color:#666">${groupUrl.replace(/^https?:\/\//, '')}</a></p>
+      </div>`;
+      const text = `Hi ${first},\n\nYou've been added to ${g.name}, a West Valley · Warner Center Chamber group.${meets ? ' ' + meets : ''}\n\nWHAT YOU CAN DO\n`
+        + `• See the meetings — every upcoming meeting and event is on the group's page: ${groupUrl} — open any event to RSVP or add it to your calendar.\n`
+        + `• Share photos — the group's photo albums live on the same page; sign in and add your own shots from a meeting.\n`
+        + `• Use your member portal — sign in at ${base}/auth/member-login.html with this email address. No password yet? Choose "Email me a sign-in link".\n\n`
+        + `Questions about the group? Just reply to this email${replyTo ? ` — it goes to ${mgrName}` : ''} — or call the Chamber office at (818) 347-4737.\n\n—\nWest Valley · Warner Center Chamber of Commerce\n${groupUrl}\n`;
+      email.send({ to: addr, replyTo, subject: `Welcome to ${g.name}!`, text, html })
+        .then((r) => { if (r && (r.skipped || r.ok === false)) console.error('group welcome email not sent', addr, r.error || 'mailer not configured'); });
+    }
+    // Callers surface this so a leader is never left believing "everyone gets
+    // a welcome email" when someone had no address on file (Aug 20 2026 review).
+    if (skipped.length) console.warn(`group welcome email: no address on file for ${skipped.join(', ')} (${g.slug})`);
+    return { welcomed: seen.size, noEmail: skipped.length };
+  } catch (e) { console.error('group welcome email', e); return { welcomed: 0, noEmail: 0 }; }
+}
+
 // Resolve :slug to a group the caller leads — or answer 404/403 and return null.
 async function ledGroupOr403(req, res) {
   const g = (await loadGroups()).find((x) => x.slug === req.params.slug || x.id === req.params.slug);
@@ -919,10 +978,54 @@ router.get('/me/group/:slug', auth.requireAuth(), async (req, res) => {
 router.post('/me/group/:slug/members', auth.requireAuth(), async (req, res) => {
   try {
     const g = await ledGroupOr403(req, res); if (!g) return;
+    const before = (g.members || []).slice();
     const next = buildGroup({ ...g, members: Array.isArray(req.body && req.body.members) ? req.body.members : [] }, g);
     await repo.upsertGroup(next);
-    res.json({ ok: true, members: next.members || [] });
+    const welcome = await notifyNewGroupMembers(before, next, req);
+    res.json({ ok: true, members: next.members || [], welcome });
   } catch (e) { console.error('me group members', e); res.status(500).json({ error: 'Could not save the roster.' }); }
+});
+
+// Leader edits to the group page itself — meeting notes and the meeting
+// schedule line (Michael, Aug 20 2026: "a place for meeting notes"). Nothing
+// else about the group is writable from the portal.
+router.patch('/me/group/:slug', auth.requireAuth(), async (req, res) => {
+  try {
+    const g = await ledGroupOr403(req, res); if (!g) return;
+    const b = req.body || {};
+    const patch = {};
+    if (b.meetingNotes !== undefined) patch.meetingNotes = String(b.meetingNotes).slice(0, 12000);
+    if (b.meetingSchedule !== undefined) patch.meetingSchedule = String(b.meetingSchedule).slice(0, 200);
+    if (!Object.keys(patch).length) return res.status(400).json({ error: 'Nothing to save.' });
+    const next = buildGroup({ ...g, ...patch }, g);
+    await repo.upsertGroup(next);
+    res.json({ ok: true, group: { meetingNotes: next.meetingNotes, meetingSchedule: next.meetingSchedule } });
+  } catch (e) { console.error('me group patch', e); res.status(500).json({ error: 'Could not save.' }); }
+});
+
+// 📷 A leader creates a photo album for their group (Michael, Aug 20 2026 —
+// "photo galleries of meetings and from members"). The album is tagged with
+// the group's slug so it shows on the group page, and it starts UNLOCKED so
+// any signed-in member can add their own shots from the album page.
+router.post('/me/group/:slug/albums', auth.requireAuth(), async (req, res) => {
+  try {
+    const g = await ledGroupOr403(req, res); if (!g) return;
+    const title = String((req.body && req.body.title) || '').trim().slice(0, 120);
+    if (!title) return res.status(400).json({ error: 'Give the album a title — the meeting or event it covers.' });
+    const bad = flagContent(title + ' ' + String((req.body && req.body.body) || ''));
+    if (bad) return res.status(400).json({ error: bad });
+    let who = req.user.name || req.user.sub;
+    try { who = (await loadMembersFull()).members.find((m) => m.id === req.user.mid)?.name || who; } catch (e) {}
+    const id = 'alb-' + Date.now().toString(36);
+    const album = await saveAlbum(id, {
+      title,
+      body: String((req.body && req.body.body) || '').slice(0, 2000),
+      groupSlug: g.slug,
+      locked: false,
+      authorName: who,
+    }, null);
+    res.json({ ok: true, album: albumOut(album, false) });
+  } catch (e) { console.error('me group album', e); res.status(500).json({ error: 'Could not create the album.' }); }
 });
 
 // 📣 A leader emails their own group — same machinery as the admin announce.
@@ -1845,6 +1948,64 @@ router.get('/events', async (_req, res) => {
     res.json({ events: all.filter((e) => (e.status || 'approved') === 'approved').map(publicEvent) });
   } catch (e) { console.error(e); res.status(500).json({ error: 'events unavailable' }); }
 });
+/* A real .ics download for one event (Aug 20 2026 — group members add the
+   recurring meetings to their calendars). The site's "Apple / .ics" chip used
+   a data: URI, which iOS Safari and in-app browsers quietly ignore — the exact
+   phones group members carry to a mixer. A served file with the right
+   Content-Type opens straight into Apple/Google/Outlook calendar apps.
+   Times are floating local (no TZID), matching the client-side links.
+   Registered BEFORE /events/:id so the .ics suffix isn't swallowed by it. */
+router.get('/events/:id.ics', async (req, res) => {
+  try {
+    const ev = (await loadEvents()).find((e) => e.id === req.params.id);
+    if (!ev || (ev.status || 'approved') !== 'approved' || !ev.date) return res.status(404).type('text/plain').send('not found');
+    const esc2 = (s) => String(s || '').replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
+    const d8 = String(ev.date).replace(/-/g, '');
+    // Mirrors the client's _parseTime exactly (js/chamber.js) — a naive %12
+    // here turned office-typed 24-hour times ("18:00") into 6 AM and bare
+    // "12:00" into midnight, disagreeing with the Google/Outlook chips
+    // rendered beside the .ics link. Out-of-range → null → all-day entry.
+    const parseT = (t) => {
+      const m = /(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i.exec(String(t || ''));
+      if (!m) return null;
+      let h = parseInt(m[1], 10);
+      const min = parseInt(m[2] || '0', 10);
+      const ap = (m[3] || '').toLowerCase();
+      if (ap === 'pm' && h < 12) h += 12;
+      if (ap === 'am' && h === 12) h = 0;
+      if (h > 23 || min > 59) return null;
+      return { h, min };
+    };
+    const t = parseT(ev.time);
+    const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//WVWCCC//Events//EN', 'BEGIN:VEVENT',
+      'UID:' + ev.id + '@wvwccc', 'DTSTAMP:' + new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z')];
+    if (t) {
+      const pad = (n) => String(n).padStart(2, '0');
+      const start = `${d8}T${pad(t.h)}${pad(t.min)}00`;
+      const te = parseT(ev.endTime);
+      const endDate = new Date(`${ev.date}T${pad(t.h)}:${pad(t.min)}:00`);
+      if (te) { endDate.setHours(te.h, te.min, 0, 0); if (endDate <= new Date(`${ev.date}T${pad(t.h)}:${pad(t.min)}:00`)) endDate.setHours(t.h + 2, t.min, 0, 0); }
+      else endDate.setHours(endDate.getHours() + 2); // no end time on file → 2 hours
+      const pd = (dd) => `${dd.getFullYear()}${pad(dd.getMonth() + 1)}${pad(dd.getDate())}T${pad(dd.getHours())}${pad(dd.getMinutes())}00`;
+      lines.push('DTSTART:' + start, 'DTEND:' + pd(endDate));
+    } else {
+      // No time on file → all-day entry (DTEND is exclusive, so next day).
+      const next = new Date(ev.date + 'T12:00:00'); next.setDate(next.getDate() + 1);
+      const nd8 = `${next.getFullYear()}${String(next.getMonth() + 1).padStart(2, '0')}${String(next.getDate()).padStart(2, '0')}`;
+      lines.push('DTSTART;VALUE=DATE:' + d8, 'DTEND;VALUE=DATE:' + nd8);
+    }
+    const loc = [ev.venue, ev.address].filter(Boolean).join(', ');
+    const base = process.env.SITE_URL || `${req.protocol}://${req.get('host')}`;
+    lines.push('SUMMARY:' + esc2(ev.title),
+      'LOCATION:' + esc2(loc),
+      'DESCRIPTION:' + esc2([ev.summary || '', `${base}/events/view.html?id=${ev.id}`].filter(Boolean).join('\n')),
+      'URL:' + `${base}/events/view.html?id=${ev.id}`,
+      'END:VEVENT', 'END:VCALENDAR');
+    res.type('text/calendar')
+      .set('Content-Disposition', `attachment; filename="${String(ev.id).replace(/[^a-z0-9-]/gi, '')}.ics"`)
+      .send(lines.join('\r\n'));
+  } catch (e) { console.error('event ics', e); res.status(500).type('text/plain').send('failed'); }
+});
 router.get('/events/:id', async (req, res) => {
   try {
     const ev = (await loadEvents()).find((e) => e.id === req.params.id);
@@ -2022,6 +2183,11 @@ router.post('/admin/groups', requireAdmin, async (req, res) => {
     const existing = b.id ? (await loadGroups()).find((g) => g.id === b.id) : null;
     const g = buildGroup(b, existing || {});
     await repo.upsertGroup(g);
+    // Members added in this save get their welcome email — but only on an
+    // EDIT of an existing group. Creating (or importing) a group with a
+    // pre-filled roster stays silent: nobody "was just added" to a group
+    // that didn't exist a second ago.
+    if (existing) notifyNewGroupMembers(existing.members || [], g, req);
     res.json({ ok: true, group: g });
   } catch (e) { console.error(e); res.status(500).json({ error: 'save failed' }); }
 });
@@ -2034,8 +2200,10 @@ router.post('/admin/groups/:id/members', requireAdmin, async (req, res) => {
   try {
     const existing = (await loadGroups()).find((g) => g.id === req.params.id);
     if (!existing) return res.status(404).json({ error: 'That group no longer exists.' });
+    const before = (existing.members || []).slice();
     const g = buildGroup({ ...existing, members: Array.isArray(req.body?.members) ? req.body.members : [] }, existing);
     await repo.upsertGroup(g);
+    notifyNewGroupMembers(before, g, req);
     res.json({ ok: true, members: g.members || [] });
   } catch (e) { console.error('group members', e); res.status(500).json({ error: 'Could not save the roster.' }); }
 });
@@ -2486,7 +2654,11 @@ router.delete('/admin/albums/:id', requireAdmin, async (req, res) => {
    the feature per Diana — the people who were AT the mixer have the photos. */
 router.get('/me/albums', auth.requireAuth(), async (req, res) => {
   try {
-    const mine = (await managedGroups(req.user.sub)).map((g) => String(g.slug).toLowerCase());
+    // groupsLedBy, not managedGroups — a roster chair (Leader/Chair/Co-Chair)
+    // leads her group everywhere else on the site, so she can manage its
+    // albums too (Aug 20 2026; before this, only the named manager email
+    // counted and most groups name the office).
+    const mine = (await groupsLedBy(req.user)).map((g) => String(g.slug).toLowerCase());
     res.json({
       ok: true,
       canAdd: !!req.user.mid || mine.length > 0,
@@ -2500,7 +2672,7 @@ router.post('/me/albums/:id/photos', auth.requireAuth(), async (req, res) => {
     const existing = (await repo.listPosts({ type: 'album' })).find((x) => x.id === req.params.id);
     if (!existing) return res.status(404).json({ error: 'Album not found.' });
     const meta = existing.meta || {};
-    const managed = (await managedGroups(req.user.sub)).map((g) => String(g.slug).toLowerCase());
+    const managed = (await groupsLedBy(req.user)).map((g) => String(g.slug).toLowerCase());
     const managesThis = meta.groupSlug && managed.includes(String(meta.groupSlug).toLowerCase());
     if (meta.locked && !managesThis) {
       return res.status(403).json({ error: 'This album is closed to new photos — contact the Chamber office.' });
@@ -2979,6 +3151,18 @@ router.post('/pay', async (req, res) => {
     const b = req.body || {};
     if (!b.paymentToken) return res.status(400).json({ ok: false, error: 'missing payment token' });
     if (!b.amount || Number(b.amount) <= 0) return res.status(400).json({ ok: false, error: 'invalid amount' });
+    // Contact info is REQUIRED on every payment (Felicia, Aug 19 2026 call —
+    // "Caroline paid and I can't call her to ask what for"). Checked before
+    // the card is ever charged, so a refusal here costs nothing.
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(b.email || ''))) {
+      return res.status(400).json({ ok: false, error: 'Please enter a valid email address so we can send your receipt.' });
+    }
+    if (!String(b.firstName || '').trim() && !String(b.lastName || '').trim() && !String(b.company || '').trim()) {
+      return res.status(400).json({ ok: false, error: 'Please enter your name.' });
+    }
+    if (String(b.phone || '').replace(/\D/g, '').length < 7) {
+      return res.status(400).json({ ok: false, error: 'Please enter a phone number so the office can reach you about this payment.' });
+    }
 
     // Server-side price verification: never trust the browser's total for
     // tickets. sku = ticket:<eventId>:<type-slug>; recompute unit price from
@@ -3057,16 +3241,24 @@ router.post('/pay', async (req, res) => {
           id: 'ord-' + Date.now().toString(36),
           kind: b.kind, sku: b.sku || '', email: b.email || '',
           name: [b.firstName, b.lastName].filter(Boolean).join(' '),
+          phone: String(b.phone || '').slice(0, 40), company: String(b.company || '').slice(0, 160),
+          memo: String(b.description || '').slice(0, 300),
           amount: Number(b.amount), transactionId: result.transactionId || '',
           status: 'declined',
         });
       } catch (e) { console.error('declined-attempt log failed', e); }
       return res.status(402).json({ ok: false, error: result.responseText || 'declined', code: result.raw.response });
     }
+    // Phone, company, and the full "what this is for" description now ride on
+    // the order itself (Felicia, Aug 19 2026) — before this they only existed
+    // in the receipt email, so the Pay Log couldn't answer "who is this and
+    // what did they pay for".
     const order = {
       id: 'ord-' + Date.now().toString(36),
       kind: b.kind, sku: b.sku || '', email: b.email || '',
       name: [b.firstName, b.lastName].filter(Boolean).join(' '),
+      phone: String(b.phone || '').slice(0, 40), company: String(b.company || '').slice(0, 160),
+      memo: String(b.description || '').slice(0, 300),
       amount: Number(b.amount), transactionId: result.transactionId,
       status: 'paid',
     };
@@ -3161,7 +3353,11 @@ router.post('/pay', async (req, res) => {
 function leadSmellsLikeSpam(b, lead) {
   // Honeypot: a visually hidden field humans never see. Bots fill every box.
   if (String(b._gotcha || '').trim()) return true;
-  const text = [lead.name, lead.company, lead.message].join(' ');
+  // Event fields are screened too — they end up in outbound email subjects
+  // and bodies, so a URL planted there is exactly as bad as one in the
+  // message (Aug 20 2026 review).
+  const text = [lead.name, lead.company, lead.message, lead.event, b.eventTitle,
+    ...(Array.isArray(b.attendees) ? b.attendees.map((a) => `${(a && a.name) || ''} ${(a && a.email) || ''}`) : [])].join(' ');
   const links = (text.match(/https?:\/\/|www\.[a-z0-9-]/gi) || []).length;
   if (links >= 2) return true;
   const pitch = /(backlinks?|link.?building|guest post|seo (ranking|service|package)|rank (on google|#?1)|page ?(one|1) of google|website traffic|mass (e-?mail|marketing)|buy followers|crypto(currency)?|bitcoin|forex|casino|viagra|cialis|escorts?|adult traffic|loan (offer|approval))/i;
@@ -3199,12 +3395,28 @@ router.post('/contact', async (req, res) => {
   }
   // Membership applications carry extra fields (business type, employee count,
   // level of interest) — keep them in the message so the office sees the full
-  // application and one-click approval loses nothing.
+  // application and one-click approval loses nothing. The business address and
+  // representatives (Felicia, Aug 19 2026 call) are ALSO stored structured on
+  // the lead, so approval can copy them into the member record.
+  if (lead.kind === 'membership-application') {
+    lead.address = String(b.address || '').trim().slice(0, 200);
+    lead.city = String(b.city || '').trim().slice(0, 80);
+    lead.zip = String(b.zip || '').trim().slice(0, 20);
+    lead.reps = [];
+    for (let i = 1; i <= 4; i++) {
+      const nm = String(b['rep' + i + 'Name'] || '').trim().slice(0, 120);
+      const em = String(b['rep' + i + 'Email'] || '').trim().slice(0, 160);
+      if (nm || em) lead.reps.push({ name: nm, email: em });
+    }
+  }
   if (lead.kind === 'membership-application' && !lead.message) {
     lead.message = [
       b.businessType ? `Business type: ${String(b.businessType).slice(0, 120)}` : '',
       b.employees ? `Employees: ${String(b.employees).slice(0, 20)}` : '',
+      (lead.address || lead.city || lead.zip) ? `Business address: ${[lead.address, lead.city, lead.zip].filter(Boolean).join(', ')}` : '',
+      b.nonprofit ? 'Non-profit rate requested: yes (501(c)(3) letter required)' : '',
       b.level ? `Level of interest: ${String(b.level).slice(0, 80)}` : '',
+      ...(lead.reps || []).map((r, i) => `Representative ${i + 1}: ${r.name || '—'}${r.email ? ` <${r.email}>` : ''}`),
       b.ribbonCutting ? `Ribbon cutting requested: yes${b.ribbonDate ? ` (preferred ${String(b.ribbonDate).slice(0, 20)})` : ''}` : '',
       b.password ? 'Chose their own website password: yes (active when approved)' : '',
     ].filter(Boolean).join('\n');
@@ -3229,13 +3441,19 @@ router.post('/contact', async (req, res) => {
   // site's "where should the RSVPs go" box). Resolve it from the event id the
   // checkout page carries in brackets, e.g. "Summer Mixer (2026-08-26) [ev-x1]".
   let rsvpTo = '';
+  // The REAL event this RSVP references. Besides routing rsvpTo, it gates the
+  // guest confirmation below: without it, /api/contact would be an open relay
+  // that mails chamber-branded "confirmations" with attacker-typed subjects to
+  // any address (found in the Aug 20 2026 review).
+  let rsvpEvent = null;
   if (lead.kind === 'rsvp') {
     try {
       const ref = String(lead.event || '');
       const id = (/\[((?:le|ev|ce)-[a-z0-9]+)\]/i.exec(ref) || [])[1]
         || (/^(?:le|ev|ce)-[a-z0-9]+$/i.test(ref) ? ref : '');
       const ev = id && (await loadEvents()).find((x) => x.id === id);
-      if (ev && ev.rsvpEmail) rsvpTo = String(ev.rsvpEmail).trim().toLowerCase();
+      if (ev && (ev.status || 'approved') === 'approved') rsvpEvent = ev;
+      if (rsvpEvent && rsvpEvent.rsvpEmail) rsvpTo = String(rsvpEvent.rsvpEmail).trim().toLowerCase();
     } catch (e) { /* the office copy still goes */ }
   }
   // If the inquiry came from a group page (e.g. a meeting RSVP), notify that
@@ -3365,22 +3583,41 @@ router.post('/contact', async (req, res) => {
             ${row('Email', g.email)}
             ${row('Phone', g.phone)}
           </table>`).join('') : ''}
-          <p style="margin:18px 0 0;font-style:italic">* This is an RSVP only. Please pay at the door.</p>
           <p style="margin:14px 0 0;color:#666;font-size:12px">Also filed under Admin &rarr; Inquiries on the Chamber website.</p>
         </div>`;
+        /* "* This is an RSVP only. Please pay at the door." used to close this
+           receipt — removed entirely (Felicia, Aug 19 2026 call: members who
+           attend free were being told to pay). When an event really does take
+           money at the door, that belongs in the event description. */
         text = `THANK YOU\n\n`
           + `Name: ${lead.name || '—'}\nEvent: ${evTitle || '—'}\n`
           + `${tier ? `Registration: ${tier}\n` : ''}RSVP Qty: ${qty}\n${groupName ? `Group: ${groupName}\n` : ''}`
           + `\nGUEST INFO\n`
           + `Company: ${lead.company || '—'}\nName: ${lead.name || '—'}\nEmail: ${lead.email}\nPhone: ${lead.phone || '—'}\n`
           + guests.map((g) => `\nName: ${g.name || '—'}\nEmail: ${g.email || '—'}\nPhone: ${g.phone || '—'}\n`).join('')
-          + `\n* This is an RSVP only. Please pay at the door.\n`
           + `\n—\nAlso filed under Admin → Inquiries on the Chamber website.\n`;
       }
       // Individually addressed so leaders never see each other's addresses.
       for (const to of [...new Set(recipients)]) {
         email.send({ to, replyTo: lead.email, subject, text, ...(html ? { html } : {}) })
           .catch((e) => console.error('notify email failed', to, e));
+      }
+      // The person who RSVP'd gets their own copy (Aug 20 2026) — the screen
+      // has promised "a confirmation is on its way to your email" since the
+      // start, but nothing was ever sent to them; the receipt only went to
+      // leaders and the office. Same THANK YOU box, minus the admin footer.
+      // ONLY when the RSVP references a real approved event, and the subject
+      // is built from OUR event record, never from submitter-typed text — an
+      // unauthenticated route must not mail arbitrary content to arbitrary
+      // addresses under the Chamber's own domain.
+      if (lead.kind === 'rsvp' && rsvpEvent && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(lead.email || ''))) {
+        const guestSubject = `Your RSVP is confirmed — ${String(rsvpEvent.title || 'Chamber event').replace(/[\r\n]+/g, ' ').slice(0, 140)}${rsvpEvent.date ? ` (${rsvpEvent.date})` : ''}`;
+        const guestHtml = html.replace(/<p style="margin:14px 0 0;color:#666;font-size:12px">.*?<\/p>/s,
+          '<p style="margin:14px 0 0;color:#666;font-size:12px">West Valley &middot; Warner Center Chamber of Commerce &middot; (818)&nbsp;347-4737</p>');
+        const guestText = text.replace(/\n—\nAlso filed under Admin → Inquiries on the Chamber website\.\n$/,
+          '\n—\nWest Valley · Warner Center Chamber of Commerce · (818) 347-4737\n');
+        email.send({ to: lead.email, subject: guestSubject, text: guestText, html: guestHtml })
+          .then((r) => { if (r && (r.skipped || r.ok === false)) console.error('rsvp guest confirmation not sent', r.error || 'mailer not configured'); });
       }
     }
   } catch (e) { console.error('lead save failed', e); res.status(500).json({ ok: false, error: 'could not send' }); }
@@ -4027,10 +4264,20 @@ router.post('/admin/leads/:id/approve-member', requireAdmin, async (req, res) =>
       name, category: 'Member', group: '', tier: 'member',
       neighborhood: '', contactName: String(lead.name || '').slice(0, 120),
       email: emailOk ? String(lead.email).toLowerCase() : '', phone: String(lead.phone || '').slice(0, 40),
-      address: '', city: '', state: '', zip: '', website: '', tagline: '',
+      // Business address from the application (Felicia, Aug 19 2026 call) —
+      // before this, staff re-typed it from the receipt or a phone call.
+      address: String(lead.address || '').slice(0, 200), city: String(lead.city || '').slice(0, 80),
+      state: '', zip: String(lead.zip || '').slice(0, 20), website: '', tagline: '',
       description: '', joinDate: new Date().toISOString().slice(0, 10),
       tags: [], status: 'approved', seal: (name[0] || '?').toUpperCase(),
       paymentType: 'offline', addedManually: true, leaderStatus: 'New Member',
+      // Representatives from the application land as the public "team" list
+      // (names only — their emails stay on the lead for the office/eblast,
+      // never on the public page).
+      ...(Array.isArray(lead.reps) && lead.reps.some((r) => r && r.name) ? {
+        team: lead.reps.filter((r) => r && r.name).slice(0, 4)
+          .map((r) => ({ name: String(r.name).slice(0, 80), title: 'Representative', bio: '', photo: '' })),
+      } : {}),
     };
     await repo.addMember(m);
     let login = 'no email on the application — add one in Members to create their login';

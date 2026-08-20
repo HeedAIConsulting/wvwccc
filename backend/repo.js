@@ -26,10 +26,12 @@ function readPostsSeed() {
 export async function addLead(lead) {
   if (db.enabled) {
     await db.query(
-      `INSERT INTO leads (id, kind, name, email, phone, company, reason, event, message, status, received, password_hash)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10, now(), $11)`,
+      `INSERT INTO leads (id, kind, name, email, phone, company, reason, event, message, status, received, password_hash, address, city, zip, reps)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10, now(), $11,$12,$13,$14,$15)`,
       [lead.id, lead.kind, lead.name, lead.email, lead.phone, lead.company,
-       lead.reason, lead.event, lead.message, lead.status || 'new', lead.passwordHash || null]);
+       lead.reason, lead.event, lead.message, lead.status || 'new', lead.passwordHash || null,
+       lead.address || null, lead.city || null, lead.zip || null,
+       Array.isArray(lead.reps) && lead.reps.length ? JSON.stringify(lead.reps) : null]);
     return;
   }
   store.append('leads.json', lead);
@@ -84,10 +86,11 @@ export async function setLeadStatus(id, status) {
 export async function addOrder(order) {
   if (db.enabled) {
     await db.query(
-      `INSERT INTO orders (id, kind, sku, member_id, name, email, amount, transaction_id, status, created)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9, now())`,
+      `INSERT INTO orders (id, kind, sku, member_id, name, email, amount, transaction_id, status, phone, company, memo, created)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12, now())`,
       [order.id, order.kind, order.sku, order.memberId || null, order.name,
-       order.email, order.amount, order.transactionId, order.status || 'paid']);
+       order.email, order.amount, order.transactionId, order.status || 'paid',
+       order.phone || null, order.company || null, order.memo || null]);
     return;
   }
   store.append('orders.json', order);

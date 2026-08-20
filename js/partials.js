@@ -279,6 +279,10 @@ window.ChamberPartials = (function () {
   function mountGuidePromo(depth, lang) {
     if (/\/(admin|auth)\//.test(window.location.pathname)) return;
     if (/regional-resource-guide/.test(window.location.pathname)) return;
+    // Never on the event page or checkout: on a phone the fixed promo card sat
+    // directly on top of the RSVP / Get tickets buttons — the one place a
+    // popup must not cover the conversion (Aug 20 2026 mobile pass).
+    if (/\/events\/view|checkout\.html/.test(window.location.pathname)) return;
     try {
       const snooze = Number(localStorage.getItem('wv-guide-promo') || 0);
       if (snooze && Date.now() - snooze < 30 * 86400000) return;

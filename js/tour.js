@@ -60,11 +60,15 @@ window.WVTour = (function () {
       { sel: '#groupManage [data-ev]', title: 'Edit, RSVPs & remove ✏️',
         text: 'Every upcoming event for your group is listed here — however it was posted. Edit fixes a date or typo, RSVPs shows exactly who’s coming and how many they’re bringing, and Remove takes it off the calendar.' },
       { sel: '#gmAnnounce', title: 'Email the whole group 📣',
-        text: 'One message to every member on your roster — meeting reminders, agendas, announcements. Everyone is emailed individually, so addresses are never exposed.' },
+        text: 'Opens a compose box — subject, message, send. It can add the next meeting’s details and an RSVP link automatically. Everyone is emailed individually, so addresses are never exposed, and replies come to you.' },
+      { sel: '#gmNotes', title: 'Meeting notes 📝',
+        text: 'Agendas, recaps, announcements — whatever you type here shows on your group’s public page the moment you Save. Newest at the top reads best.' },
+      { sel: '#gmAlbums, #gmPhotosCard', title: 'Photo albums 📷',
+        text: 'Create an album per meeting — it shows on your group’s page, and any signed-in member can add their own shots straight from the album. No more collecting photos by email.' },
       { sel: '#gmSearch', title: 'Manage your members 👥',
-        text: 'Approve join requests, add members from the Chamber directory (or by hand), and remove people who’ve moved on. What you see here is what shows on your group’s public page.' },
+        text: 'Approve join requests, add members from the Chamber directory (or by hand), and remove people who’ve moved on. Anyone you add with an email on file gets an automatic welcome email explaining how the group works.' },
       { sel: '.wv-sup-btn', title: 'Stuck? We’re right here 🛟',
-        text: 'The Support button (bottom-left of every page) reaches the team that runs this website. Send a note about what you’re trying to do and we’ll walk you through it — that’s the tour!' },
+        text: 'The Support button (bottom-left of every page) reaches the team that runs this website. There’s also a printable Leader Guide linked at the top of this page — that’s the tour!' },
     ],
   };
 

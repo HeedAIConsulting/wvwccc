@@ -80,6 +80,12 @@ CREATE TABLE IF NOT EXISTS orders (
   status          text DEFAULT 'paid',         -- paid|refunded
   created         timestamptz DEFAULT now()
 );
+-- Contact + memo on the order itself (Felicia, Aug 19 2026 — the Pay Log
+-- could not answer "who is this and what did they pay for"; those details
+-- only lived in the receipt email).
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS phone   text;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS company text;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS memo    text;
 
 -- ── Coupons (checkout promo codes — ours, not the gateway's) ──
 CREATE TABLE IF NOT EXISTS coupons (
@@ -122,6 +128,12 @@ ALTER TABLE leads ADD COLUMN IF NOT EXISTS rc_venue text;
 ALTER TABLE leads ADD COLUMN IF NOT EXISTS rc_flyer text;
 ALTER TABLE leads ADD COLUMN IF NOT EXISTS rc_stage text;      -- new|date-set|flyer-received|published|declined
 ALTER TABLE leads ADD COLUMN IF NOT EXISTS rc_event_id text;   -- calendar event created on publish
+-- Membership applications (Felicia, Aug 19 2026 call): the business address
+-- and up to four representatives now ride on the application itself.
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS address text;
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS city    text;
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS zip     text;
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS reps    jsonb;      -- [{name,email}]
 
 -- ── Small key/value store for one-time migration markers & flags ──
 CREATE TABLE IF NOT EXISTS settings (

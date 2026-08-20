@@ -247,19 +247,15 @@ window.Chamber = (function () {
       + '&subject=' + encodeURIComponent(ev.title || 'Event')
       + '&startdt=' + encodeURIComponent(r.start.toISOString()) + '&enddt=' + encodeURIComponent(r.end.toISOString())
       + '&body=' + encodeURIComponent(details) + '&location=' + encodeURIComponent(loc);
-    const dtStart = r.allDay ? 'DTSTART;VALUE=DATE:' + _ymd(r.start) : 'DTSTART:' + _ymd(r.start) + 'T' + _hms(r.start);
-    const dtEnd = r.allDay ? 'DTEND;VALUE=DATE:' + _ymd(r.end) : 'DTEND:' + _ymd(r.end) + 'T' + _hms(r.end);
-    const now = new Date();
-    const ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//WVWCCC//Events//EN', 'BEGIN:VEVENT',
-      'UID:' + (ev.id || 'ev') + '@wvwccc', 'DTSTAMP:' + _ymd(now) + 'T' + _hms(now),
-      dtStart, dtEnd, 'SUMMARY:' + _icsEsc(ev.title), 'LOCATION:' + _icsEsc(loc), 'DESCRIPTION:' + _icsEsc(details),
-      'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
-    const icsHref = 'data:text/calendar;charset=utf-8,' + encodeURIComponent(ics);
+    // The .ics is a REAL served file now (/api/events/<id>.ics) — the old
+    // data: URI download was silently ignored by iOS Safari and in-app
+    // browsers, i.e. exactly the phones people carry to a mixer (Aug 20 2026).
+    const icsHref = (window.ChamberAPI ? ChamberAPI.url('') : '') + '/api/events/' + encodeURIComponent(ev.id || '') + '.ics';
     return `<div class="cal-row" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;align-items:center">
       <span class="member-tile__meta" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.04em">Add to calendar</span>
       <a class="chip" target="_blank" rel="noopener" href="${g}">Google</a>
       <a class="chip" target="_blank" rel="noopener" href="${o}">Outlook</a>
-      <a class="chip" download="${esc((ev.id || 'event') + '.ics')}" href="${icsHref}">Apple / .ics</a>
+      <a class="chip" href="${esc(icsHref)}">Apple / .ics</a>
     </div>`;
   }
 
@@ -412,8 +408,10 @@ window.Chamber = (function () {
         }).join('')}</div>`
       : '';
     // Featured links (type 'featured') get a prominent banner right under the
-    // event meta — e.g. the Gala program (per Michael, Jul 24) — instead of
-    // being buried below the flyer and description with the other buttons.
+    // FLYER — e.g. the Gala program (per Michael, Jul 24) — still well above
+    // the description and the other buttons. It used to sit above the flyer,
+    // which on a phone made a big button the first thing on the page before
+    // the flyer itself (Felicia, Aug 19 2026 call).
     const featured = (ev.links || []).filter((l) => l.type === 'featured');
     const featuredRow = featured.length
       ? `<div class="ev-card__featured" style="margin:4px 0 16px;display:grid;gap:10px">${featured.map((l) =>
@@ -477,8 +475,8 @@ window.Chamber = (function () {
             ${loc ? `<div>📍 ${mapU ? `<a href="${esc(mapU)}" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline" title="Open in Google Maps for directions">${esc(loc)}</a> <span style="font-size:.78rem;color:var(--gold-deep)">(map ↗)</span>` : esc(loc)}</div>` : ''}
             ${hostLine(ev, base)}
           </div>
-          ${featuredRow}
           ${imgs}
+          ${featuredRow}
           ${descHtml ? `<div class="ev-card__desc${ev.descriptionHtml ? ' rt-typo' : ''}"${ev.descriptionHtml ? ' style="white-space:normal"' : ''}>${descHtml}</div>` : ''}
           ${sponsorRow}
           ${links}
@@ -1416,25 +1414,28 @@ window.Chamber = (function () {
       } catch (e) { /* no spotlight set → the card stays blank */ }
 
       // events
-      // The admin PICKS which events show on the homepage (Events → "Show on
-      // homepage" + Home order 1–4). If any upcoming event is picked, ONLY the
-      // picked events render, in the admin's order. With nothing picked, fall
-      // back to the next four upcoming events so the section never goes empty.
+      // The office PICKS which events show on the homepage (Homepage
+      // Management → Featured events, or Events → "Show on homepage"), and
+      // THEIR order is the display order (Felicia, Aug 19 2026 call: "we want
+      // the top four featured events that we've chosen" — the Oct 21 Food &
+      // Wine first even though it's months out). Nothing picked = the section
+      // hides entirely; the auto-fill that used to pad it with the next four
+      // events is gone by her explicit request ("or not have anything then").
       const todayISO = new Date().toISOString().slice(0, 10);
-      const allEv = (evd.events || []).filter((e) => e.confirmed && e.date).sort((a, b) => a.date.localeCompare(b.date));
-      const upcoming = allEv.filter((e) => e.date >= todayISO);
-      const pool = upcoming.length ? upcoming : allEv.slice(-4);
+      const upcoming = (evd.events || []).filter((e) => e.confirmed && e.date && e.date >= todayISO);
       const homeOrd = (e) => { const n = Number(e.homeOrder); return Number.isFinite(n) && n > 0 ? n : 1e9; };
-      const picked = pool.filter((e) => e.featured).sort((a, b) => homeOrd(a) - homeOrd(b) || a.date.localeCompare(b.date));
-      // Admin picks WHICH events appear; on the page they always read top-to-
-      // bottom by date (per the Chamber office, Jul 2026 — a dated list, not a
-      // grid of squares).
-      const events = (picked.length ? picked : pool).slice(0, 4)
-        .sort((a, b) => String(a.date).localeCompare(String(b.date)));
+      const events = upcoming.filter((e) => e.featured)
+        .sort((a, b) => homeOrd(a) - homeOrd(b) || a.date.localeCompare(b.date))
+        .slice(0, 4);
       const elist = document.getElementById('eventList');
-      if (elist) elist.innerHTML = events.length
-        ? events.map((e) => eventCard(e, 0)).join('')
-        : '<p class="notice">The events calendar is coming online. Check back soon or contact the Chamber office.</p>';
+      if (elist) {
+        const section = elist.closest('section');
+        if (!events.length) { if (section) section.hidden = true; }
+        else {
+          if (section) section.hidden = false;
+          elist.innerHTML = events.map((e) => eventCard(e, 0)).join('');
+        }
+      }
     } catch (err) {
       console.error('Home render failed', err);
     }
@@ -2145,7 +2146,7 @@ window.Chamber = (function () {
         summary.innerHTML = `${evMeta}<p class="notice mt-3"><strong>This event is sold out</strong> — ticket sales are closed. Questions? Call the Chamber office at (818) 347-4737 or email <a href="mailto:felicia@woodlandhillscc.net">felicia@woodlandhillscc.net</a>.</p>`;
         const payForm = document.getElementById('payForm');
         ['payBtn', 'amountField', 'payError', 'sandboxNotice'].forEach((i2) => { const el2 = document.getElementById(i2); if (el2) el2.style.display = 'none'; });
-        const left = payForm && payForm.querySelector('div'); if (left) left.style.display = 'none';
+        const left = document.getElementById('payDetails') || (payForm && payForm.querySelector('div')); if (left) left.style.display = 'none';
         return;
       }
       // Effective price: use the early-bird price until its cutoff, then the standard price.
@@ -2300,7 +2301,7 @@ window.Chamber = (function () {
           const el2 = document.getElementById(i2); if (el2) el2.style.display = 'none';
         });
         const pf = document.getElementById('payForm');
-        const left = pf && pf.querySelector('div'); if (left) left.style.display = 'none';
+        const left = document.getElementById('payDetails') || (pf && pf.querySelector('div')); if (left) left.style.display = 'none';
         return;
       }
     } else if (kind === 'membership') {
