@@ -1055,16 +1055,23 @@ window.MemberPortal = (function () {
           const box = card.querySelector('[data-rsvplist]');
           if (!box.hidden) { box.hidden = true; return; }
           const list = (data.rsvps || {})[ev.id] || [];
-          box.innerHTML = list.length ? `
-            <table style="width:100%;border-collapse:collapse;font-size:.9rem">
-              <thead><tr style="text-align:left"><th style="padding:4px 8px 4px 0">Name</th><th style="padding:4px 8px 4px 0">Attending</th><th style="padding:4px 8px 4px 0">Contact</th><th style="padding:4px 0">Received</th></tr></thead>
-              <tbody>${list.map((r) => `<tr style="border-top:1px solid var(--line,#eee)">
-                <td style="padding:6px 8px 6px 0"><strong>${esc(r.name || '—')}</strong>${r.company ? `<div class="member-tile__meta">${esc(r.company)}</div>` : ''}</td>
-                <td style="padding:6px 8px 6px 0">${r.qty}</td>
-                <td style="padding:6px 8px 6px 0">${r.email ? `<a href="mailto:${esc(r.email)}">${esc(r.email)}</a>` : '—'}${r.phone ? `<div class="member-tile__meta"><a href="tel:${esc(r.phone)}">${esc(r.phone)}</a></div>` : ''}</td>
-                <td style="padding:6px 0" class="member-tile__meta">${r.received ? new Date(r.received).toLocaleDateString() : '—'}</td>
-              </tr>`).join('')}</tbody>
-            </table>` : '<p class="member-tile__meta">No RSVPs yet.</p>';
+          /* Stacked rows, not a table: a 4-column table rendered 442px wide
+             inside a 272px card on a phone, so a leader checking who's coming
+             got a page that scrolled sideways (Aug 20 2026 mobile audit).
+             Email addresses wrap instead of forcing the width. */
+          box.innerHTML = list.length ? list.map((r) => `
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;padding:9px 0;border-top:1px solid var(--line,#eee)">
+              <div style="flex:1 1 150px;min-width:0">
+                <strong>${esc(r.name || '—')}</strong>${r.company ? `<div class="member-tile__meta">${esc(r.company)}</div>` : ''}
+                <div class="member-tile__meta" style="overflow-wrap:anywhere">
+                  ${r.email ? `<a href="mailto:${esc(r.email)}">${esc(r.email)}</a>` : ''}${r.email && r.phone ? ' · ' : ''}${r.phone ? `<a href="tel:${esc(r.phone)}">${esc(r.phone)}</a>` : ''}
+                </div>
+              </div>
+              <div style="flex:0 0 auto;text-align:right">
+                <span class="badge badge--gold" style="font-size:.7rem">${r.qty} attending</span>
+                <div class="member-tile__meta">${r.received ? new Date(r.received).toLocaleDateString() : ''}</div>
+              </div>
+            </div>`).join('') : '<p class="member-tile__meta">No RSVPs yet.</p>';
           box.hidden = false;
         });
         card.querySelector('[data-del]')?.addEventListener('click', async () => {

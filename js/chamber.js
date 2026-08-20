@@ -595,13 +595,13 @@ window.Chamber = (function () {
       ? `${ev.alsoRsvp ? `<a class="btn btn--ghost btn--sm" href="${rsvpHrefOf(ev, base)}">RSVP</a> ` : ''}<a class="btn btn--gold btn--sm" href="${ticketHref(ev, base, 'paid')}">${esc(buyLabel(ev, 'Tickets'))}</a>`
       : `<a class="btn btn--ghost btn--sm" href="${rsvpHrefOf(ev, base)}">RSVP</a>`;
     return `
-      <div class="ev-quick" data-ev-detail="${esc(ev.id)}" style="display:flex;align-items:center;gap:14px;padding:11px 14px;border-bottom:1px solid var(--gold-soft,#e6dcbf);cursor:pointer">
+      <div class="ev-quick" data-ev-detail="${esc(ev.id)}" style="display:flex;align-items:center;gap:14px;padding:11px 14px;border-bottom:1px solid var(--gold-soft,#e6dcbf);cursor:pointer;flex-wrap:wrap">
         <div style="flex:0 0 64px;text-align:center;line-height:1.05">
           <div style="font-weight:700;color:var(--green,#1b3326);text-transform:uppercase;font-size:.72rem;letter-spacing:.04em">${esc(mo)}</div>
           <div style="font-weight:800;color:var(--green-ink,#12241a);font-size:1.35rem">${esc(day)}</div>
         </div>
-        <div style="flex:1 1 auto;min-width:0">
-          <span class="ev-quick__title" style="font-weight:700;color:var(--green-ink,#12241a)">${esc(ev.title)}</span>
+        <div style="flex:1 1 140px;min-width:0">
+          <span class="ev-quick__title" style="font-weight:700;color:var(--green-ink,#12241a);overflow-wrap:anywhere">${esc(ev.title)}</span>
           ${ev.featured ? ' <span class="badge badge--gold" style="font-size:.68rem">★ Featured</span>' : ''}
           <div class="member-tile__meta">${esc(ev.category || 'Event')} · ${esc(dateUS)}</div>
         </div>

@@ -191,3 +191,16 @@ a.stat-card:hover { box-shadow: var(--sh-md, 0 8px 24px rgba(0,0,0,.10)); transf
 .sp-suggest button:hover { background: var(--cream-deep, #f3ecda); }
 .sp-suggest button b { font-size: .9rem; }
 .sp-suggest button span { font-size: .75rem; color: var(--slate-mid, #667); }
+
+/* ── Phone pass (Aug 20 2026 audit) ─────────────────────────────────────
+   Felicia checks the back office on her phone. At 320-390px the wide
+   tables used to push the whole PAGE sideways, which is how the last
+   column (and the buttons in it) ended up off-screen. Now the panel
+   scrolls instead of the page, and the designation radios stop forcing a
+   236px floor inside the members table. */
+@media (max-width: 860px) {
+  .panel { overflow-x: auto; }
+  .radio-group { min-width: 0; }
+  .admin-topbar h1 { overflow-wrap: anywhere; }
+  .admin-table th, .admin-table td { padding-left: var(--s-4); padding-right: var(--s-4); }
+}

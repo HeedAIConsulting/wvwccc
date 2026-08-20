@@ -19,7 +19,10 @@
       <div style="display:flex;justify-content:space-between;align-items:baseline;gap:var(--s-4);flex-wrap:wrap;margin-bottom:var(--s-6)">
         <div>
           <span class="kicker">Member Portal</span>
-          <h1 style="margin-top:6px">Welcome back, <span id="welcome">member</span></h1>
+          <!-- overflow-wrap: a long business name used to force the dashboard
+               1150px wide on a phone, giving every leader a sideways-scrolling
+               first screen (Aug 20 2026 mobile audit). -->
+          <h1 style="margin-top:6px;overflow-wrap:anywhere">Welcome back, <span id="welcome">member</span></h1>
         </div>
         <button class="btn btn--ghost btn--sm" data-logout type="button">Sign out</button>
       </div>
@@ -29,7 +32,7 @@
   <div data-partial="footer"></div>
   <script src="../js/partials.js?v=20260820b"></script>
   <script src="../js/api-base.js?v=20260818a"></script>
-  <script src="member.js?v=20260820c"></script>
+  <script src="member.js?v=20260820f"></script>
   <script src="/js/tour.js?v=20260820c"></script>
   <script>
     ChamberPartials.mount({ active: '', depth: 1, lang: 'en' });

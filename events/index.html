@@ -36,8 +36,8 @@
     <div class="container">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:var(--s-5)">
         <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-          <select id="evCat" aria-label="Filter by category" style="padding:9px 13px;border:1px solid var(--gold-soft,#e6dcbf);border-radius:8px;background:#fff;font:inherit;color:var(--green-ink,#1b3326)"><option value="">All categories</option></select>
-          <select id="evWhen" aria-label="Filter by timeframe" style="padding:9px 13px;border:1px solid var(--gold-soft,#e6dcbf);border-radius:8px;background:#fff;font:inherit;color:var(--green-ink,#1b3326)">
+          <select id="evCat" aria-label="Filter by category" style="max-width:100%;padding:9px 13px;border:1px solid var(--gold-soft,#e6dcbf);border-radius:8px;background:#fff;font:inherit;color:var(--green-ink,#1b3326)"><option value="">All categories</option></select>
+          <select id="evWhen" aria-label="Filter by timeframe" style="max-width:100%;padding:9px 13px;border:1px solid var(--gold-soft,#e6dcbf);border-radius:8px;background:#fff;font:inherit;color:var(--green-ink,#1b3326)">
             <option value="upcoming">Upcoming</option>
             <option value="30">Next 30 days</option>
             <option value="90">Next 90 days</option>
@@ -113,7 +113,7 @@
 
   <script src="../js/partials.js?v=20260820b"></script>
   <script src="../js/api-base.js?v=20260818a"></script>
-  <script src="../js/chamber.js?v=20260820b"></script>
+  <script src="../js/chamber.js?v=20260820f"></script>
   <script>
     ChamberPartials.mount({ active: 'events', depth: 1, lang: 'en' });
     Chamber.initEvents();

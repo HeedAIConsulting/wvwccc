@@ -1,0 +1,23 @@
+REPLY TO FELICIA — paste into Gmail as a reply on the existing thread
+To:  felicia@woodlandhillscc.net
+Cc:  diana@woodlandhillscc.net
+Bcc: 47203176@bcc.hubspot.com
+Subject: RE: Everything from Tuesday's call is live - and the group leader pages are ready
+
+--- body below this line ---
+
+Hi Felicia,
+
+Your screenshot solved it - thank you for sending it. The button wasn't missing; it was off the edge of your screen. That Members table is wider than the window, so the last column ran past the right side and cut off at "Reset li..." exactly where your screenshot ends. You were looking in the right place; there was nothing there to see.
+
+Fixed and live now, and I moved it to where you said you'd look:
+
+1. Groups > Manage > "See the leader's view". You were right that this belongs here. Open the group you're helping with, and the button sits right under the manager's email. One click and it tells you what to do next.
+
+2. Members now shows "See their view" directly under the member's name, in the first column, where nothing can push it off screen.
+
+Either one opens a short box with three numbered steps - copy the link (it copies itself), open a private window with Ctrl+Shift+N, paste. You end up looking at their exact screen while staying signed in as yourself here, so you can walk them through it on the phone.
+
+On the calendar section - you've got it exactly right. That's front-end only; there's nothing for it in the admin. It's simply that when a member is looking at any meeting on the website, they can tap Google, Outlook, or Apple to drop that meeting onto their own personal calendar, filled in for them. It's in the Leader Guide only so a leader can answer a member who asks "how do I get this on my calendar?" - I've added that clarification to the top of the section so nobody goes hunting in the admin for it.
+
+Michael

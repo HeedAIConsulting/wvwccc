@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="../css/chamber.css" />
-  <link rel="stylesheet" href="admin.css?v=20260730b" />
+  <link rel="stylesheet" href="admin.css?v=20260820f" />
 </head>
 <body class="admin">
   <div class="admin-shell">
@@ -24,7 +24,7 @@
           <div class="panel__head" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
             <h3 style="margin-right:auto">Events</h3>
             <button type="button" class="btn btn--gold btn--sm" id="evAddBtn" title="Open the new-event form (with the flyer auto-fill)">＋ Add Event</button>
-            <div id="evTabs" style="display:flex;gap:6px">
+            <div id="evTabs" style="display:flex;gap:6px;flex-wrap:wrap">
               <button type="button" class="btn btn--forest btn--sm" data-tab="upcoming">Upcoming</button>
               <button type="button" class="btn btn--ghost btn--sm" data-tab="pending" title="Pending and draft events waiting for your ✓ Publish">Needs publish</button>
               <button type="button" class="btn btn--ghost btn--sm" data-tab="past">Past events</button>
@@ -185,7 +185,7 @@
     </div>
   </div>
   <script src="../js/api-base.js"></script>
-  <script src="admin.js?v=20260820e"></script>
+  <script src="admin.js?v=20260820f"></script>
   <script>Admin.initEvents();</script>
   <script defer src="/js/support.js?v=20260804c"></script>
 </body>
