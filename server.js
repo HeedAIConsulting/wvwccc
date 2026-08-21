@@ -71,7 +71,7 @@ app.get('/healthz', (_req, res) => res.json({ ok: true, ts: Date.now() }));
 app.get('/api/chamber', (_req, res) => res.json({ ok: true, live: true, service: 'wvwccc' }));
 
 // ── API routes (payments, concierge) ──────────────────────
-import chamberRoutes, { sitemapEntries } from './backend/chamber-routes.js';
+import chamberRoutes, { sitemapEntries, loadMembersPublic } from './backend/chamber-routes.js';
 import * as repo from './backend/repo.js';   // album pages stamp their own og:* tags
 app.use('/api', chamberRoutes);
 app.get('/api/ping', (_req, res) => res.json({ ok: true, service: 'wvwccc' }));
@@ -108,14 +108,114 @@ app.use(express.static(__dirname, {
   },
 }));
 
-// ── Pretty, shareable member URLs: /m/<slug> and /members/<slug> ──
-// Real files (members/directory.html, profile.html) are served above by static;
-// anything else under these paths renders the profile page, which resolves the
-// member by slug client-side.
+/* --- Pretty, shareable member URLs: /m/<slug> and /members/<slug> ---
+   Real files (members/directory.html, profile.html) are served above by static;
+   anything else under these paths renders the profile page.
+
+   The page still resolves the member client-side - that is what visitors see,
+   and it keeps the profile layout written in exactly one place. But the shell
+   that leaves here is no longer blank. All 717 member URLs used to ship the
+   same 1,279 bytes: the title "Member Profile", a description reading "A West
+   Valley - Warner Center Chamber of Commerce member profile", and the word
+   "Loading...". Google was handed 717 pages identical to one another that said
+   nothing about the businesses on them, so it had no reason to index any of
+   them - which is what a member reported on Aug 21 2026 ("my company does not
+   appear in Google search results through your Chamber directory"). Crawlers do
+   run JavaScript eventually, but they decide whether a page is worth that
+   trouble from the HTML they are handed first.
+
+   So the stamping the album pages do for Facebook previews now runs for members
+   too, plus the two things a directory listing specifically needs: a
+   LocalBusiness block, which is the form Google reads business name, phone,
+   address and website out of, and those details as real HTML inside #profile.
+   The client script overwrites that block a moment later with the full
+   interactive card, so a visitor sees no difference.
+
+   Fields come from loadMembersPublic() - the same filter the public API uses -
+   so a private field cannot reach the page even by mistake. Any failure falls
+   back to serving the plain template, which is exactly today's behaviour. */
 const profilePage = path.join(__dirname, 'members', 'profile.html');
-app.get(['/m/:slug', '/members/:slug'], (req, res, next) => {
-  if ((req.params.slug || '').includes('.')) return next();   // a file → let 404 handle
-  res.sendFile(profilePage, (err) => { if (err) next(); });
+app.get(['/m/:slug', '/members/:slug'], async (req, res, next) => {
+  const slug = req.params.slug || '';
+  if (slug.includes('.')) return next();                     // a file -> let 404 handle
+  const fallback = () => res.sendFile(profilePage, (err) => { if (err) next(); });
+  try {
+    const key = decodeURIComponent(slug);
+    const { members } = await loadMembersPublic();
+    const m = (members || []).find((x) => x.slug === key || x.id === key);
+    if (!m) return fallback();                               // client shows "not found"
+
+    const html = await fs.promises.readFile(profilePage, 'utf8');
+    const esc = (v) => String(v == null ? '' : v)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    const origin = SITE_ORIGIN;
+    const url = `${origin}/members/${encodeURIComponent(m.slug || key)}`;
+    const where = [m.city, m.state].filter(Boolean).join(', ');
+    const title = `${m.name}${where ? ` - ${where}` : ''} | WVWCCC Member Directory`;
+    /* Description: the member's own words first, trimmed to what a result
+       snippet actually shows. Only when they have written nothing do we fall
+       back to a generated line, and even that names the business and its
+       category so no two members share a description. */
+    const own = String(m.tagline || m.description || '').replace(/\s+/g, ' ').trim();
+    const desc = (own.length > 300 ? own.slice(0, 297).replace(/\s+\S*$/, '') + '\u2026' : own)
+      || `${m.name}${m.category ? `, ${m.category}` : ''}${where ? ` in ${where}` : ''}. A member of the West Valley \u00b7 Warner Center Chamber of Commerce.`;
+    const img = m.primaryImage || m.pageImage || m.logo || (Array.isArray(m.photos) && m.photos[0]) || '/images/wvwccc-logo.png';
+    const ogImage = /^https?:\/\//i.test(img) ? img : origin + (img.startsWith('/') ? img : '/' + img);
+
+    /* LocalBusiness, not Organization: this is a directory entry for a business
+       with a street address and a phone number, and LocalBusiness is the type
+       Google matches against "movers near me" style searches. Keys are emitted
+       only when we hold the value - a schema block with empty fields is worse
+       than a short one. */
+    const ld = { '@context': 'https://schema.org', '@type': 'LocalBusiness', name: m.name, url };
+    if (m.website) ld.sameAs = [m.website];
+    if (m.description || m.tagline) ld.description = String(m.description || m.tagline).replace(/\s+/g, ' ').trim();
+    if (m.phone) ld.telephone = m.phone;
+    if (m.address || m.city) {
+      ld.address = { '@type': 'PostalAddress', addressCountry: 'US' };
+      if (m.address) ld.address.streetAddress = m.address;
+      if (m.city) ld.address.addressLocality = m.city;
+      if (m.state) ld.address.addressRegion = m.state;
+      if (m.zip) ld.address.postalCode = m.zip;
+    }
+    if (m.hours) ld.openingHours = m.hours;
+    if (m.category) ld.additionalType = m.category;
+    if (ogImage) ld.image = ogImage;
+    // A literal </script> inside JSON would end the block early; escaping < is the standard guard.
+    const ldJson = JSON.stringify(ld).replace(/</g, '\\u003c');
+
+    const row = (label, value) => (value ? `<li><strong>${esc(label)}:</strong> ${value}</li>` : '');
+    const seed = `
+      <article>
+        <h1>${esc(m.name)}</h1>
+        ${m.tagline ? `<p>${esc(m.tagline)}</p>` : ''}
+        <ul>
+          ${row('Category', esc(m.category))}
+          ${row('Address', esc([m.address, m.city, m.state, m.zip].filter(Boolean).join(', ')))}
+          ${row('Phone', m.phone ? `<a href="tel:${esc(String(m.phone).replace(/[^\d+]/g, ''))}">${esc(m.phone)}</a>` : '')}
+          ${row('Website', m.website ? `<a href="${esc(m.website)}" rel="noopener">${esc(String(m.website).replace(/^https?:\/\//i, '').replace(/\/$/, ''))}</a>` : '')}
+        </ul>
+        ${m.description ? `<p>${esc(m.description)}</p>` : ''}
+        <p><a href="/members/directory.html">West Valley \u00b7 Warner Center Chamber of Commerce member directory</a></p>
+      </article>`;
+
+    const out = html
+      .replace(/<title>[\s\S]*?<\/title>/, `<title>${esc(title)}</title>`)
+      .replace(/(<meta name="description" content=")[^"]*(")/, `$1${esc(desc)}$2`)
+      .replace('</head>', `  <link rel="canonical" href="${esc(url)}" />
+  <meta property="og:type" content="business.business" />
+  <meta property="og:title" content="${esc(title)}" />
+  <meta property="og:description" content="${esc(desc)}" />
+  <meta property="og:image" content="${esc(ogImage)}" />
+  <meta property="og:url" content="${esc(url)}" />
+  <script type="application/ld+json">${ldJson}</script>
+</head>`)
+      .replace('<p class="member-tile__meta">Loading\u2026</p>', seed);
+    res.type('html').send(out);
+  } catch (e) {
+    console.error('member page', slug, e);
+    fallback();                                              // still renders, client-side
+  }
 });
 // Pretty content-page URLs: /p/<slug> → the generic page renderer.
 app.get('/p/:slug', (req, res, next) => {

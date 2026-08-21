@@ -4884,4 +4884,9 @@ export async function sitemapEntries() {
 }
 
 export { sanitizeProfile };
+/* server.js stamps the real business details into /members/<slug> before the
+   page leaves the building — same reason the album pages stamp their og:* tags.
+   Exported here so there is one definition of "what the public may see" and
+   the crawler can never be shown a field the API would have withheld. */
+export { loadMembersPublic };
 export default router;
