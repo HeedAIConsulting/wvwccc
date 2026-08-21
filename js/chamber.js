@@ -1838,9 +1838,13 @@ window.Chamber = (function () {
       const cat = catEl ? catEl.value : '';
       const when = whenEl ? whenEl.value : 'upcoming';
       const filtered = events.filter((e) => (!cat || e.category === cat) && inWindow(e, when));
-      // Featured events float to the top (keeping date order within each group),
-      // so the admin "Feature on homepage" toggle visibly affects placement here too.
-      const ordered = filtered.filter((e) => e.featured).concat(filtered.filter((e) => !e.featured));
+      // The FULL events page is strictly chronological - featured events do NOT
+      // float to the top here (Felicia + Diana, Aug 20 2026: "On the full event
+      // page they should just be in chronological order", "featured Events is an
+      // additional listing ... they remain on the main event page in chronological
+      // order"). Featuring only drives the homepage section; the list keeps the
+      // Featured badge so the office can still see which ones are picked.
+      const ordered = filtered;
       if (view === 'grid') {
         listEl.hidden = true; gridEl.hidden = false;
       } else {
