@@ -89,6 +89,8 @@ const LEGACY_REDIRECTS = {
   '/member_directory.php': '/members/directory.html',
   '/directory.php': '/members/directory.html',
   '/join.php': '/join.html',
+  '/join-now.php': '/join.html',
+  '/pay_for_item.php': '/pay-now.html',
   '/contact.php': '/contact.html',
   '/index.php': '/',
 };
