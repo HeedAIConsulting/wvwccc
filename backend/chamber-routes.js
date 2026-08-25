@@ -914,7 +914,7 @@ async function notifyNewGroupMembers(beforeMembers, g, req) {
       const meets = g.meetingSchedule ? `The group meets ${g.meetingSchedule}.` : '';
       const html = `
       <div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#111;max-width:560px;border:1px solid #ccc;padding:20px 24px">
-        <img src="https://woodlandhillscc.net/images/wvwccc-logo.png" alt="WVWC Chamber of Commerce" width="72" style="display:block;margin:0 0 12px">
+        <img src="https://woodlandhillscc.net/images/wvwccc-logo-200.png" alt="WVWC Chamber of Commerce" width="72" style="display:block;margin:0 0 12px">
         <p style="color:#188038;font-weight:bold;margin:0">WELCOME TO ${eh(String(g.name).toUpperCase())}</p>
         <p style="margin:12px 0 0">Hi ${eh(first)},</p>
         <p style="margin:10px 0 0">You've been added to <strong>${eh(g.name)}</strong>, a West Valley &middot; Warner Center Chamber group.${meets ? ' ' + eh(meets) : ''}</p>
@@ -3336,7 +3336,7 @@ router.post('/pay', async (req, res) => {
         : '';
       const html = `
         <div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#111;max-width:560px;border:1px solid #ccc;padding:20px 24px">
-          <img src="https://woodlandhillscc.net/images/wvwccc-logo.png" alt="WVWC Chamber of Commerce" width="72" style="display:block;margin:0 0 12px">
+          <img src="https://woodlandhillscc.net/images/wvwccc-logo-200.png" alt="WVWC Chamber of Commerce" width="72" style="display:block;margin:0 0 12px">
           <p style="color:#188038;font-weight:bold;margin:0">THANK YOU</p>
           <p style="font-weight:bold;margin:2px 0 16px">Order #${h(ref)}</p>
           <table style="border-collapse:collapse;font-size:14px">
@@ -3600,7 +3600,7 @@ router.post('/contact', async (req, res) => {
         })).filter((a) => a.name || a.email || a.phone);
         html = `
         <div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#111;max-width:560px;border:1px solid #ccc;padding:20px 24px">
-          <img src="https://woodlandhillscc.net/images/wvwccc-logo.png" alt="WVWC Chamber of Commerce" width="72" style="display:block;margin:0 0 12px">
+          <img src="https://woodlandhillscc.net/images/wvwccc-logo-200.png" alt="WVWC Chamber of Commerce" width="72" style="display:block;margin:0 0 12px">
           <p style="color:#188038;font-weight:bold;margin:0">THANK YOU</p>
           <table style="border-collapse:collapse;font-size:14px;margin-top:10px">
             ${row('Name', lead.name)}

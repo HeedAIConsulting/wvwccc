@@ -83,7 +83,7 @@ window.Admin = (function () {
     if (side) {
       side.innerHTML = `
         <div class="admin-brand">
-          <img src="../images/wvwccc-logo.png" alt="WVWCCC" />
+          <img src="../images/wvwccc-logo-200.png" alt="WVWCCC" />
           <div><b>WVWCCC</b><span>Admin Console</span></div>
         </div>
         <nav class="admin-nav">
@@ -1662,7 +1662,7 @@ window.Admin = (function () {
         ].filter(Boolean).join(' · ');
         return `<div class="panel" data-ab="${esc(a.id)}" style="margin:0 0 12px;padding:12px">
           <div style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap">
-            <img src="${esc(a.cover || '../images/wvwccc-logo.png')}" alt="" style="width:104px;height:78px;object-fit:cover;border-radius:8px;border:1px solid var(--line,#ddd);background:var(--forest,#1E5631)">
+            <img src="${esc(a.cover || '../images/wvwccc-logo-200.png')}" alt="" style="width:104px;height:78px;object-fit:cover;border-radius:8px;border:1px solid var(--line,#ddd);background:var(--forest,#1E5631)">
             <div style="flex:1;min-width:220px">
               <input data-abf="title" value="${esc(a.title)}" style="width:100%;font-weight:700">
               <p class="sub" style="margin:4px 0 0">${a.count} photo${a.count === 1 ? '' : 's'}${tags ? ' · ' + tags : ''} · drag photos onto this card to add them</p>

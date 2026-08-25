@@ -789,7 +789,12 @@ window.MemberPortal = (function () {
           + `<button type="button" data-rmflyer class="btn btn--ghost btn--sm" title="Remove this picture from the event">✕ Remove</button>`
           + (!flyerUrl && legacyImg ? '<span class="member-tile__meta">the picture visitors currently see (from the old website)</span>' : '')
           + '</span>'
-        : (dropLegacy ? '<span class="member-tile__meta">Picture will be removed when you save.</span>' : '');
+        : (dropLegacy ? '<span class="member-tile__meta">Picture will be removed when you save.</span>'
+          // Editing an event that truly has no picture: say what the PUBLIC
+          // page shows instead (the Chamber logo banner) so the two screens
+          // stop appearing to disagree — Felicia read that fallback logo as
+          // "the site has a flyer but this form doesn't" (Aug 25 2026).
+          : (editing ? '<span class="member-tile__meta">No flyer yet — the public page shows the Chamber logo until you add one.</span>' : ''));
       flyerPrev.querySelector('[data-rmflyer]')?.addEventListener('click', () => {
         if (!confirm('Remove this picture from the event?\n\nIt comes off the public page when you save. You can upload a new flyer any time.')) return;
         if (!flyerUrl && legacyImg) dropLegacy = true;   // clearing the old site's picture

@@ -275,7 +275,7 @@ window.WVTour = (function () {
     ov.innerHTML =
       '<div class="wvt-modal" role="dialog" aria-modal="true" aria-label="Welcome to group management">'
       + '<button class="wvt-modal__x" type="button" aria-label="Close">×</button>'
-      + '<img class="wvt-modal__seal" src="/images/wvwccc-logo.png" alt="">'
+      + '<img class="wvt-modal__seal" src="/images/wvwccc-logo-200.png" alt="">'
       + '<h2>You run this group 🌿</h2>'
       + '<p>This page is your group’s home base — post events to the Chamber calendar, see who RSVP’d, email everyone, and manage your member list. Want a 60-second look around?</p>'
       + '<div class="wvt-modal__row">'
@@ -300,7 +300,7 @@ window.WVTour = (function () {
     ov.innerHTML =
       '<div class="wvt-modal" role="dialog" aria-modal="true" aria-label="Welcome to your member dashboard">'
       + '<button class="wvt-modal__x" type="button" aria-label="Close">×</button>'
-      + '<img class="wvt-modal__seal" src="/images/wvwccc-logo.png" alt="">'
+      + '<img class="wvt-modal__seal" src="/images/wvwccc-logo-200.png" alt="">'
       + '<h2>Welcome to your new dashboard</h2>'
       + '<p>This is your member home — update your listing, post offers, and manage your account. Want a quick look around?</p>'
       + '<div class="wvt-modal__row">'

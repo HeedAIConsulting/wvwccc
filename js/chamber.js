@@ -375,13 +375,13 @@ window.Chamber = (function () {
     const barWhen = (ev.confirmed && ev.day)
       ? `${ev.month || ''} ${ev.day}${ev.time ? ' · ' + ev.time : ''}`.trim() : '';
     const logoBar = `<div class="ev-card__logobar">
-            <img src="${base}images/wvwccc-logo.png" alt="" onerror="this.style.display='none'">
+            <img src="${base}images/wvwccc-logo-200.png" alt="" onerror="this.style.display='none'">
             <div class="ev-card__logobar-txt">
               <span class="ev-card__logobar-name">West Valley · Warner Center<b>Chamber of Commerce</b></span>
               ${barWhen ? `<span class="ev-card__logobar-when">${esc(barWhen)}</span>` : ''}
             </div></div>`;
     const heroImg = hero
-      ? `<img class="ev-card__flyer" src="${esc(evImgSrc(hero, base))}" alt="${esc(ev.title)} flyer" onerror="this.onerror=null;this.src='${base}images/wvwccc-logo.png';this.classList.add('ev-card__flyer--ph')">`
+      ? `<img class="ev-card__flyer" src="${esc(evImgSrc(hero, base))}" alt="${esc(ev.title)} flyer" onerror="this.onerror=null;this.src='${base}images/wvwccc-logo-400.png';this.classList.add('ev-card__flyer--ph')">`
       : '';
     let flyerImg;
     if (mode === 'none') flyerImg = '';
@@ -464,7 +464,7 @@ window.Chamber = (function () {
         ${opts.dialog ? '<button aria-label="Close" data-ev-close class="ev-card__x">×</button>' : ''}
         <div class="ev-card__body">
           <div class="ev-card__head">
-            <img class="ev-card__seal" src="/images/wvwccc-logo.png" alt="" onerror="this.style.display='none'">
+            <img class="ev-card__seal" src="/images/wvwccc-logo-200.png" alt="" onerror="this.style.display='none'">
             <div>
               <span class="ev-card__kicker">${esc(ev.category || 'Chamber Event')}</span>
               <h1 class="ev-card__title">${esc(ev.title)}</h1>
@@ -617,7 +617,7 @@ window.Chamber = (function () {
     const img = ev.thumbnail || ev.image || evImgOf(ev.images && ev.images[0]) || '';
     // The chamber-logo placeholder is ALWAYS the base; a real image layers on top and
     // removes itself on error — so a missing/broken/slow image never leaves a white box.
-    const evPh = `<img src="${base}images/wvwccc-logo.png" alt="" class="evp__ph-logo"><span>${esc(ev.month || 'TBA')}</span><strong>${esc(ev.day || '·')}</strong>`;
+    const evPh = `<img src="${base}images/wvwccc-logo-200.png" alt="" class="evp__ph-logo"><span>${esc(ev.month || 'TBA')}</span><strong>${esc(ev.day || '·')}</strong>`;
     const media = `<div class="evp__media evp__media--ph" role="img" aria-label="${esc(ev.title)} flyer">${img ? `<img class="evp__cover" src="${esc(evImgSrc(img, base))}" alt="" loading="lazy" onerror="this.remove()">` : ''}${evPh}</div>`;
     const when = (ev.confirmed && ev.day)
       ? `${esc(ev.month)} ${esc(ev.day)}${ev.time ? ' · ' + esc(ev.time) : ''}`
@@ -811,7 +811,7 @@ window.Chamber = (function () {
   function albumCard(a) {
     const cover = a.cover
       ? `<img src="${esc(a.cover)}" alt="" loading="lazy">`
-      : `<div class="alb-card__ph"><img src="/images/wvwccc-logo.png" alt=""></div>`;
+      : `<div class="alb-card__ph"><img src="/images/wvwccc-logo-200.png" alt=""></div>`;
     const n = a.count || 0;
     return `<a class="alb-card" href="/albums/${encodeURIComponent(a.id)}">
       <div class="alb-card__img">${cover}<span class="alb-card__count">${n} photo${n === 1 ? '' : 's'}</span></div>
@@ -1932,6 +1932,14 @@ window.Chamber = (function () {
   function mountCommunityEventForm() {
     const form = document.getElementById('communityEventForm');
     if (!form) return;
+    // "＋ Add Your Event" at the top of the page (Felicia, Aug 25 2026) —
+    // glide to the card and put the cursor in the first field, instead of a
+    // hard anchor jump that lands the card flush against the screen edge.
+    document.getElementById('addYourEventBtn')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      document.getElementById('communityEventCard')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      setTimeout(() => form.querySelector('[name="title"]')?.focus({ preventScroll: true }), 600);
+    });
     const step1 = document.getElementById('ceStep1');
     // Anchor to step 1: the captcha is checked by /api/public/event/verify, which
     // fires from the step-1 "Email me a code" button. The default placement (before

@@ -46,10 +46,17 @@
           </select>
           <span id="evCount" class="member-tile__meta"></span>
         </div>
-        <div class="view-toggle" role="tablist" aria-label="Event views">
-          <button data-view="quick" class="active" type="button">Quick list</button>
-          <button data-view="details" type="button">Details</button>
-          <button data-view="grid" type="button">📅 Calendar view</button>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+          <div class="view-toggle" role="tablist" aria-label="Event views">
+            <button data-view="quick" class="active" type="button">Quick list</button>
+            <button data-view="details" type="button">Details</button>
+            <button data-view="grid" type="button">📅 Calendar view</button>
+          </div>
+          <!-- Jump to the community submission card at the bottom (Felicia,
+               Aug 25 2026 — "a small action button at the top of the event
+               page" so nobody has to scroll past the whole list to find it). -->
+          <a class="btn btn--gold btn--sm" href="#communityEventCard" id="addYourEventBtn"
+             title="Local organization putting on an event? Add it to the community calendar — member or not.">＋ Add Your Event</a>
         </div>
       </div>
 
@@ -111,9 +118,9 @@
 
   <div data-partial="footer"></div>
 
-  <script src="../js/partials.js?v=20260820b"></script>
+  <script src="../js/partials.js?v=20260825d"></script>
   <script src="../js/api-base.js?v=20260818a"></script>
-  <script src="../js/chamber.js?v=20260825b"></script>
+  <script src="../js/chamber.js?v=20260825d"></script>
   <script>
     ChamberPartials.mount({ active: 'events', depth: 1, lang: 'en' });
     Chamber.initEvents();

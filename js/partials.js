@@ -82,7 +82,7 @@ window.ChamberPartials = (function () {
   <div class="container">
     <div class="site-header__main">
       <a href="${nv('/index.html')}" class="brand" aria-label="WVWCCC home">
-        <img class="brand__logo" src="${p(depth,'images/wvwccc-logo.png')}" alt="West Valley · Warner Center Chamber of Commerce seal" width="56" height="56">
+        <img class="brand__logo" src="${p(depth,'images/wvwccc-logo-200.png')}" alt="West Valley · Warner Center Chamber of Commerce seal" width="56" height="56">
         <span class="brand__text">
           <span class="brand__name">West Valley · Warner Center</span>
           <span class="brand__sub">Chamber of Commerce · Since 1930</span>
@@ -165,7 +165,7 @@ window.ChamberPartials = (function () {
     <div class="site-footer__grid">
       <div class="site-footer__brand">
         <div class="brand">
-          <img class="brand__logo" src="${p(depth,'images/wvwccc-logo.png')}" alt="West Valley · Warner Center Chamber of Commerce seal" width="56" height="56">
+          <img class="brand__logo" src="${p(depth,'images/wvwccc-logo-200.png')}" alt="West Valley · Warner Center Chamber of Commerce seal" width="56" height="56">
           <span class="brand__text">
             <span class="brand__name">West Valley · Warner Center</span>
             <span class="brand__sub">Chamber of Commerce · Since 1930</span>
@@ -399,7 +399,7 @@ window.ChamberPartials = (function () {
     ov.innerHTML = '<div class="wv-trans__panel wv-trans__panel--top"></div>'
       + '<div class="wv-trans__panel wv-trans__panel--bottom"></div>'
       + '<div class="wv-trans__seam"></div>'
-      + '<div class="wv-trans__seal"><img src="' + p(depth, 'images/wvwccc-logo.png') + '" alt=""></div>';
+      + '<div class="wv-trans__seal"><img src="' + p(depth, 'images/wvwccc-logo-200.png') + '" alt=""></div>';
     document.body.appendChild(ov);
 
     // Entrance: if we arrived via an in-site nav, start covered then part.
