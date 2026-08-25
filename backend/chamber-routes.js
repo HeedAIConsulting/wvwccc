@@ -777,7 +777,10 @@ router.get('/me/event/:id', auth.requireAuth(), async (req, res) => {
     // Only the plain fields the member form edits — never ticketing/admin state.
     const { id, title, date, time, endTime, venue, address, category, description,
       summary, flyer, hideCta, rsvpEmail, status, seriesId, groupSlug, groupName, hostKind, hostName } = ev;
-    res.json({ ok: true, event: { id, title, date, time, endTime, venue, address, category, description: description || '', summary: summary || '', flyer: flyer || '', hideCta: !!hideCta, rsvpEmail: rsvpEmail || '', status, seriesId: seriesId || null, groupSlug: groupSlug || '', groupName: groupName || '', hostKind: hostKind || '', hostName: hostName || '' } });
+    // images ride along read-only (they're public on the event page anyway) so
+    // the edit form can show the legacy images[0] picture as the current flyer
+    // (Felicia, Aug 25 2026 — form said "no flyer" while the page showed one).
+    res.json({ ok: true, event: { id, title, date, time, endTime, venue, address, category, description: description || '', summary: summary || '', flyer: flyer || '', hideCta: !!hideCta, rsvpEmail: rsvpEmail || '', status, seriesId: seriesId || null, groupSlug: groupSlug || '', groupName: groupName || '', hostKind: hostKind || '', hostName: hostName || '', images: Array.isArray(ev.images) ? ev.images : [] } });
   } catch (e) { console.error('me/event get', e); res.status(500).json({ error: 'Could not load the event.' }); }
 });
 
@@ -802,6 +805,14 @@ router.patch('/me/event/:id', auth.requireAuth(), async (req, res) => {
     const patch = {};
     for (const k of ['title', 'date', 'time', 'endTime', 'venue', 'address', 'category', 'description', 'summary', 'flyer']) {
       if (b[k] !== undefined) patch[k] = b[k];
+    }
+    // One scoped exception to "images stay put" (Felicia, Aug 25 2026): events
+    // imported from the old website carry their flyer as a plain-string FIRST
+    // entry under images — the public page shows it, the flyer slot is empty.
+    // When the leader replaces or removes that picture, this flag drops exactly
+    // that one legacy entry; curated {src,href} images are never touched.
+    if (b.dropLegacyImage === true && Array.isArray(ev.images) && typeof ev.images[0] === 'string') {
+      patch.images = ev.images.slice(1);
     }
     // RSVP button opt-in/out follows the same rules as posting (Aug 12 2026) —
     // but never on a ticketed event, whose buttons the office controls.

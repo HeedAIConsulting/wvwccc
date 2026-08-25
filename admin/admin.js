@@ -233,6 +233,7 @@ window.Admin = (function () {
     { id: 'member-view', t: 'Open a member\'s portal view (assist a member)', kw: 'member view login as impersonate password help assist portal', href: 'members.html', sel: '#memberSearch', tip: 'Find the member → "Member view link" gives a 20-minute sign-in link. Open it in a private/incognito window to see exactly what they see.' },
     { id: 'board-manager', t: 'Manage the Board & Leadership page (people, titles, photos)', kw: 'board officers leadership page manage title headshot photo add remove president', href: 'board.html', tip: 'One place to add or remove board members, set officer titles, and upload headshots.' },
     { id: 'group-announce', t: 'Email everyone in a group', kw: 'group email announce members notify meeting reminder agenda blast', href: 'groups.html', tip: 'Manage a group → "📣 Email group members" sends your message to the whole roster.' },
+    { id: 'group-add-meeting', t: 'Add a group\'s meeting to the calendar (one date or monthly)', kw: 'group meeting add event calendar monthly recurring schedule series network circle', href: 'groups.html', tip: 'Manage a group → the "Meetings & events" section (below the manager box) → "＋ Add a meeting". Choose Monthly to lay out the coming months in one go.' },
     { id: 'support', t: 'Submit a support request to Heed', kw: 'support help ticket problem bug broken screenshot heed contact', href: 'about.html', sel: '#supportForm', tip: 'Send us a message with a screenshot — or use the 🛟 Support button on any page.' },
   ];
   function openHelp() {

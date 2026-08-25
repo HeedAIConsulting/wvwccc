@@ -771,12 +771,45 @@ window.MemberPortal = (function () {
     form.querySelectorAll('input[name="actionButton"]').forEach((r) => r.addEventListener('change', syncRsvp));
 
     let flyerUrl = '';
+    /* Legacy picture bookkeeping (Felicia, Aug 25 2026). Events imported from
+       the old website carry their flyer as the first entry under `images` —
+       the public page shows that picture while `flyer` is empty, so this form
+       said "no flyer" for an event whose page clearly had one. The preview now
+       shows whatever the PUBLIC page shows, with a ✕ Remove button; replacing
+       or removing it also drops the legacy entry (dropLegacyImage) so the old
+       picture can't linger behind the new one. */
+    let legacyImg = '';        // images[0] when it is the old site's flyer
+    let dropLegacy = false;    // send dropLegacyImage on save
     const flyerPrev = document.getElementById('flyerPreview');
+    const drawFlyerPrev = () => {
+      if (!flyerPrev) return;
+      const src = flyerUrl || (dropLegacy ? '' : legacyImg);
+      flyerPrev.innerHTML = src
+        ? `<span style="display:inline-flex;align-items:center;gap:10px"><img src="${esc(src)}" alt="" style="width:90px;height:90px;border-radius:10px;object-fit:cover">`
+          + `<button type="button" data-rmflyer class="btn btn--ghost btn--sm" title="Remove this picture from the event">✕ Remove</button>`
+          + (!flyerUrl && legacyImg ? '<span class="member-tile__meta">the picture visitors currently see (from the old website)</span>' : '')
+          + '</span>'
+        : (dropLegacy ? '<span class="member-tile__meta">Picture will be removed when you save.</span>' : '');
+      flyerPrev.querySelector('[data-rmflyer]')?.addEventListener('click', () => {
+        if (!confirm('Remove this picture from the event?\n\nIt comes off the public page when you save. You can upload a new flyer any time.')) return;
+        if (!flyerUrl && legacyImg) dropLegacy = true;   // clearing the old site's picture
+        if (flyerUrl && legacyImg) dropLegacy = true;    // new flyer removed — clear the old one too rather than resurrecting it
+        flyerUrl = '';
+        drawFlyerPrev();
+      });
+    };
     const flyerInput = document.getElementById('eventFlyer');
     if (flyerInput) flyerInput.addEventListener('change', async (e) => {
       const f = e.target.files[0]; if (!f) return;
       msg.hidden = false; msg.style.borderColor = 'var(--line)'; msg.textContent = 'Uploading flyer…';
-      try { flyerUrl = await uploadImage(f, 'photo'); if (flyerPrev) flyerPrev.innerHTML = `<img src="${esc(flyerUrl)}" alt="" style="width:90px;height:90px;border-radius:10px;object-fit:cover">`; msg.textContent = 'Flyer attached — remember to add the event.'; }
+      try {
+        flyerUrl = await uploadImage(f, 'photo');
+        // Replacing the old site's picture: drop it so it can't keep showing
+        // under the new flyer ("the flyer will not replace", Jul 15 2026).
+        if (legacyImg) dropLegacy = true;
+        drawFlyerPrev();
+        msg.textContent = editing ? 'New flyer attached — remember to Save changes.' : 'Flyer attached — remember to add the event.';
+      }
       catch (err) { msg.textContent = 'Flyer upload failed (PNG/JPG, max ~2.5MB).'; }
     });
 
@@ -825,7 +858,12 @@ window.MemberPortal = (function () {
         msg.textContent = 'This is one date of a repeating series — your changes apply to this date only.';
       }
       flyerUrl = editing.flyer || '';
-      if (flyerUrl && flyerPrev) flyerPrev.innerHTML = `<img src="${esc(flyerUrl)}" alt="" style="width:90px;height:90px;border-radius:10px;object-fit:cover">`;
+      // No flyer set, but the public page shows a picture? That's the old
+      // site's flyer riding in images[0] — surface it here so this form and
+      // the public page finally agree on what the event looks like.
+      const im0 = Array.isArray(editing.images) && editing.images[0] ? editing.images[0] : '';
+      legacyImg = (!flyerUrl && im0) ? (typeof im0 === 'string' ? im0 : (im0.src || '')) : '';
+      drawFlyerPrev();
       if (submitBtn) submitBtn.textContent = 'Save changes';
       if (editing.groupSlug) {
         const back = document.querySelector('[data-back-link]');
@@ -838,7 +876,12 @@ window.MemberPortal = (function () {
       const body = {};
       form.querySelectorAll('[data-ev]').forEach((el) => { body[el.dataset.ev] = el.value.trim(); });
       body.actionButton = (form.querySelector('input[name="actionButton"]:checked') || {}).value || 'none';
-      if (flyerUrl) body.flyer = flyerUrl;
+      if (editing) {
+        // Always sent on edit so ✕ Remove actually clears the slot; the flag
+        // drops the old website's picture from images[0] on replace/remove.
+        body.flyer = flyerUrl;
+        if (dropLegacy) body.dropLegacyImage = true;
+      } else if (flyerUrl) body.flyer = flyerUrl;
       const btn = submitBtn; btn.disabled = true;
       const wasLabel = btn.textContent;
 
