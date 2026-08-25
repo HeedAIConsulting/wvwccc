@@ -1205,10 +1205,18 @@ window.Chamber = (function () {
         total();
       });
       // A deep link (pay-now.html?for=…) arrives with a description already set.
+      // The special value `for=other` is the office's shareable link straight to
+      // "Something else — I'll type it in" (Felicia, Aug 21 2026): the free-text
+      // box opens empty and focused, no dropdown to walk.
       if (desc) {
-        const hit = CATALOG.findIndex((c) => c.label.toLowerCase() === String(desc).toLowerCase());
-        if (hit >= 0) { pick.value = String(hit); pick.dispatchEvent(new Event('change')); if (amt) amtEl.value = amt; }
-        else { pick.value = 'other'; descEl.hidden = false; descEl.value = desc; }
+        if (String(desc).trim().toLowerCase() === 'other') {
+          pick.value = 'other'; descEl.hidden = false; descEl.value = '';
+          setTimeout(() => descEl.focus(), 0);
+        } else {
+          const hit = CATALOG.findIndex((c) => c.label.toLowerCase() === String(desc).toLowerCase());
+          if (hit >= 0) { pick.value = String(hit); pick.dispatchEvent(new Event('change')); if (amt) amtEl.value = amt; }
+          else { pick.value = 'other'; descEl.hidden = false; descEl.value = desc; }
+        }
       }
       div.querySelector('.pi-x').addEventListener('click', () => { div.remove(); if (!wrap.children.length) row(); total(); });
       amtEl.addEventListener('input', total);

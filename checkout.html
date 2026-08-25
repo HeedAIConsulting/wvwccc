@@ -66,7 +66,10 @@
           </div>
           <div class="field"><label>Email (receipt)</label><input name="email" type="email" required /></div>
           <div class="grid grid-2" style="gap:var(--s-3)">
-            <div class="field"><label>Company (optional)</label><input name="company" autocomplete="organization" /></div>
+            <!-- Required as of Aug 25 2026 (Felicia: receipts arrived with and
+                 without a company and the office wants it on every one). The
+                 placeholder keeps sole guests from stalling on the field. -->
+            <div class="field"><label>Company</label><input name="company" autocomplete="organization" required placeholder="No business? Put &quot;Personal&quot;" /></div>
             <!-- Phone became REQUIRED per Felicia (Aug 19 2026 call): "if our
                  system was down and I want to call her to find out what she
                  paid for, there's nothing here that gives me her phone." -->
@@ -125,7 +128,7 @@
   </script>
   <script src="js/partials.js?v=20260820b"></script>
   <script src="js/api-base.js?v=20260818a"></script>
-  <script src="js/chamber.js?v=20260821a"></script>
+  <script src="js/chamber.js?v=20260825b"></script>
   <script>
     ChamberPartials.mount({ active: '', depth: 0, lang: 'en' });
     Chamber.initCheckout();

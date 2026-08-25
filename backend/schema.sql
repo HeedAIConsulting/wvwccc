@@ -86,6 +86,12 @@ CREATE TABLE IF NOT EXISTS orders (
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS phone   text;
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS company text;
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS memo    text;
+-- Billing address on the order (Felicia, Aug 25 2026 — always collected for
+-- AVS, never stored, so no receipt or applicant view could show it).
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS address1 text;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS city     text;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS state    text;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS zip      text;
 
 -- ── Coupons (checkout promo codes — ours, not the gateway's) ──
 CREATE TABLE IF NOT EXISTS coupons (

@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="../css/chamber.css" />
-  <link rel="stylesheet" href="admin.css?v=20260825a" />
+  <link rel="stylesheet" href="admin.css?v=20260825b" />
 </head>
 <body class="admin">
   <div class="admin-shell">
@@ -55,6 +55,10 @@
           <div class="panel__head" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
             <h3 style="margin-right:auto">Member roster</h3>
             <button id="bulkUploadBtn" class="btn btn--gold btn--sm" type="button" title="Upload a CSV of new members (e.g. the monthly ChamberWare export) — adds them all at once">⬆ Bulk upload (CSV)</button>
+            <!-- Reports (Felicia, Aug 21 2026): "a csv button to sort members by
+                 various columns… category/joindate/zip". Pick the columns, set
+                 an optional joined-date range, download what's on screen. -->
+            <button id="csvExportBtn" class="btn btn--forest btn--sm" type="button" title="Download the roster as a spreadsheet — pick the columns, optionally only members who joined in a date range. Respects the search box and filter.">⬇ Export CSV</button>
             <a id="dirPdfBtn" class="btn btn--ghost btn--sm" href="directory-print.html" target="_blank" title="Print-ready member directory — use your browser's Save as PDF">📄 Directory PDF</a>
             <select id="memberFilter" class="admin-select" title="Show only one designation or leader level — e.g. everyone marked Ambassador, so you can clean the list up">
               <option value="">All members</option>
@@ -98,7 +102,7 @@
     </div>
   </div>
   <script src="../js/api-base.js"></script>
-  <script src="admin.js?v=20260825a"></script>
+  <script src="admin.js?v=20260825b"></script>
   <script>Admin.initMembers();</script>
   <script defer src="/js/support.js?v=20260804c"></script>
 </body>

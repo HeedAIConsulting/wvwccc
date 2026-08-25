@@ -228,7 +228,8 @@ window.Admin = (function () {
     { id: 'event-rsvps', t: 'See RSVPs & payments for an event (download list)', kw: 'event rsvp payment attendee list download csv per event', href: 'events.html', tip: 'On any event row, click "RSVPs / $" to see who RSVP\'d and paid — and download the list.' },
     { id: 'event-home', t: 'Pick which events show on the homepage (order 1–4)', kw: 'homepage event order featured pick home 1 2 3 4', href: 'events.html', tip: 'Edit an event → check "Show on homepage" and set Home order 1–4. Only picked events show, in your order.' },
     { id: 'directory-pdf', t: 'Create a PDF of the member directory', kw: 'directory pdf print export download roster book', href: 'members.html', sel: '#dirPdfBtn', tip: 'Click "Directory PDF" for a print-ready directory — use your browser\'s Save as PDF.' },
-    { id: 'bulk-upload', t: 'Upload new members in bulk (CSV)', kw: 'bulk upload csv import new members monthly export chamberware many', href: 'members.html', sel: '#bulkUploadBtn', tip: 'Click "Bulk upload (CSV)", pick the export file, preview, and Import. Existing companies are updated, never duplicated.' },
+    { id: 'bulk-upload', t: 'Upload new members in bulk (CSV)', kw: 'bulk upload csv import new members monthly chamberware many', href: 'members.html', sel: '#bulkUploadBtn', tip: 'Click "Bulk upload (CSV)", pick the export file, preview, and Import. Existing companies are updated, never duplicated.' },
+    { id: 'csv-export', t: 'Download a member report (CSV — pick columns & join dates)', kw: 'export csv download report members spreadsheet excel column category joindate join date zip filter sort', href: 'members.html', sel: '#csvExportBtn', tip: 'Click "⬇ Export CSV" — pick the columns (category, join date, ZIP…), optionally a joined-date range, and download. The search box and filter narrow what exports.' },
     { id: 'member-view', t: 'Open a member\'s portal view (assist a member)', kw: 'member view login as impersonate password help assist portal', href: 'members.html', sel: '#memberSearch', tip: 'Find the member → "Member view link" gives a 20-minute sign-in link. Open it in a private/incognito window to see exactly what they see.' },
     { id: 'board-manager', t: 'Manage the Board & Leadership page (people, titles, photos)', kw: 'board officers leadership page manage title headshot photo add remove president', href: 'board.html', tip: 'One place to add or remove board members, set officer titles, and upload headshots.' },
     { id: 'group-announce', t: 'Email everyone in a group', kw: 'group email announce members notify meeting reminder agenda blast', href: 'groups.html', tip: 'Manage a group → "📣 Email group members" sends your message to the whole roster.' },
@@ -822,6 +823,7 @@ window.Admin = (function () {
       while (r < today && g++ < 300) r.setMonth(r.getMonth() + term);
       return r;
     };
+    let lastLoaded = [];   // what's on screen — the CSV export works from this
     async function load(q) {
       try {
         let { members } = await api('/api/admin/members' + (q ? `?q=${encodeURIComponent(q)}` : ''));
@@ -848,6 +850,7 @@ window.Admin = (function () {
           },
         };
         members = members.slice().sort(SORTS[sv] || byName);
+        lastLoaded = members;
         document.getElementById('memberCount').textContent = `${members.length} members${fv ? ' (filtered)' : ''}`;
         // Chunked render — the full roster is ~25k DOM nodes; paint the first 80
         // instantly and expand on demand. Search still queries the whole roster.
@@ -1328,6 +1331,76 @@ window.Admin = (function () {
       }).filter((m) => m.name);
       return { members };
     }
+    /* ── ⬇ Export CSV (Felicia, Aug 21 2026) ─────────────────────────────
+       "A csv button to sort members by various columns so we can run various
+       reports. Example: see members that joined in August of 2026 until now…
+       choose by columns of category/joindate/zip." Pick the columns, set an
+       optional joined-date range, download. Works from lastLoaded, so the
+       search box, designation filter, and sort order all carry into the file —
+       what you see is what you export. */
+    const CSV_COLS = [
+      ['name', 'Company', true], ['contactName', 'Contact', true], ['email', 'Email', true],
+      ['phone', 'Phone', true], ['category', 'Category', true], ['joinDate', 'Join date', true],
+      ['address', 'Address', false], ['city', 'City', false], ['zip', 'ZIP', true],
+      ['neighborhood', 'Neighborhood', false], ['website', 'Website', false],
+      ['tier', 'Tier', false], ['status', 'Status', false], ['leaderStatus', 'Designation', false],
+    ];
+    document.getElementById('csvExportBtn')?.addEventListener('click', () => {
+      if (document.querySelector('[data-csv-export]')) return;
+      const ov = document.createElement('div');
+      ov.className = 'chat-modal'; ov.setAttribute('data-csv-export', '');
+      ov.innerHTML = `<div class="chat-modal__box" style="max-width:560px">
+        <button class="chat-modal__x" data-x aria-label="Close" type="button">×</button>
+        <h2 style="margin:0 0 4px">Export members to CSV</h2>
+        <p class="sub" style="margin:0 0 12px">The file opens in Excel or Google Sheets. It contains the <strong>${lastLoaded.length} member${lastLoaded.length === 1 ? '' : 's'} currently shown</strong> — use the search box or filter first to narrow it.</p>
+        <div class="sub" style="font-weight:700;margin-bottom:6px">Columns</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px 12px">
+          ${CSV_COLS.map(([k, label, on]) => `<label style="display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" data-col="${k}" ${on ? 'checked' : ''}>${label}</label>`).join('')}
+        </div>
+        <div class="sub" style="font-weight:700;margin:14px 0 6px">Only members who joined… <span style="font-weight:400">(optional)</span></div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+          <label class="sub">on or after <input type="date" data-from style="padding:6px 8px;border:1px solid var(--line,#ddd);border-radius:8px;font:inherit"></label>
+          <label class="sub">on or before <input type="date" data-to style="padding:6px 8px;border:1px solid var(--line,#ddd);border-radius:8px;font:inherit"></label>
+        </div>
+        <p class="sub" style="margin:8px 0 0">Members with no join date on file are left out whenever a date is set.</p>
+        <p class="sub" data-csv-msg style="margin:8px 0 0" hidden></p>
+        <div style="display:flex;gap:10px;margin-top:16px">
+          <button class="btn btn--forest" data-go type="button">⬇ Download CSV</button>
+          <button class="btn btn--ghost" data-x2 type="button">Cancel</button>
+        </div>
+      </div>`;
+      const close = () => ov.remove();
+      ov.addEventListener('click', (e) => { if (e.target === ov || e.target.closest('[data-x],[data-x2]')) close(); });
+      ov.querySelector('[data-go]').addEventListener('click', () => {
+        const cols = [...ov.querySelectorAll('[data-col]:checked')].map((c) => c.dataset.col);
+        const msg = ov.querySelector('[data-csv-msg]');
+        if (!cols.length) { msg.hidden = false; msg.textContent = 'Pick at least one column.'; return; }
+        const from = ov.querySelector('[data-from]').value, to = ov.querySelector('[data-to]').value;
+        let list = lastLoaded;
+        if (from || to) {
+          list = list.filter((m) => m.joinDate
+            && (!from || String(m.joinDate) >= from)
+            && (!to || String(m.joinDate) <= to));
+        }
+        if (!list.length) { msg.hidden = false; msg.textContent = 'No members match that date range.'; return; }
+        const label = (k) => (CSV_COLS.find(([key]) => key === k) || [k, k])[1];
+        const cell = (v) => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`;
+        const csv = [cols.map(label).map(cell).join(',')]
+          .concat(list.map((m) => cols.map((k) => cell(m[k])).join(',')))
+          .join('\r\n');
+        // BOM so Excel reads accents (café, señor) correctly.
+        const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'members' + (from || to ? `-joined-${from || 'start'}-to-${to || 'now'}` : '') + '-' + new Date().toISOString().slice(0, 10) + '.csv';
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+        msg.hidden = false; msg.style.color = 'var(--green-deep,#1E5631)';
+        msg.textContent = `✓ Downloaded ${list.length} member${list.length === 1 ? '' : 's'}, ${cols.length} column${cols.length === 1 ? '' : 's'}.`;
+      });
+      document.body.appendChild(ov);
+    });
+
     document.getElementById('bulkUploadBtn')?.addEventListener('click', () => {
       if (document.querySelector('[data-bulk-upload]')) return;
       const ov = document.createElement('div');
@@ -1825,9 +1898,12 @@ window.Admin = (function () {
           ${item('Company', o.company && esc(o.company))}
           ${item('Email', o.email && `<a href="mailto:${esc(o.email)}">${esc(o.email)}</a>`)}
           ${item('Phone', o.phone && `<a href="tel:${esc(o.phone)}">${esc(o.phone)}</a>`)}
+          ${item('Billing address', [o.address1, o.city, o.state, o.zip].filter(Boolean).length
+            ? esc([o.address1, [o.city, o.state].filter(Boolean).join(', '), o.zip].filter(Boolean).join(', ')) : '')}
           ${item('For', esc(o.memo || [o.kind, o.sku].filter(Boolean).join(' · ') || '—'))}
           ${item('Transaction', o.transactionId && `<span class="sub">${esc(o.transactionId)}</span>`)}
-          ${(!o.phone && !o.memo) ? '<p class="sub" style="margin-top:6px">Older payments (before Aug 2026) carry no phone or description — those lived only in the receipt email. New payments record both.</p>' : ''}
+          ${(!o.phone && !o.memo) ? '<p class="sub" style="margin-top:6px">Older payments (before Aug 2026) carry no phone or description — those lived only in the receipt email. New payments record both.</p>'
+            : (!o.address1 ? '<p class="sub" style="margin-top:6px">Payments from before Aug 25, 2026 don\'t carry a billing address — every new one records it.</p>' : '')}
         </div>`;
         const close = () => ov.remove();
         ov.addEventListener('click', (e) => { if (e.target === ov || e.target.closest('[data-x]')) close(); });
@@ -1951,6 +2027,22 @@ window.Admin = (function () {
       }
     }
     // Full detail view — Felicia, Jul 31 2026: "we are unable to click on the
+    // The applicant's payments, joined in by email (Felicia, Aug 25 2026: "a
+    // full page on a prospective member that includes their company address
+    // and billing address"). The billing address lives on the ORDER, not the
+    // application — the Aug 19 call established they are often different — so
+    // the modal fetches the Pay Log once and matches on email. "No payment on
+    // file" is shown too: an approved-but-unpaid applicant is her call list.
+    let _ordersCache = null;
+    async function ordersFor(addr) {
+      if (!addr) return [];
+      if (!_ordersCache) {
+        try { _ordersCache = (await api('/api/admin/orders')).orders || []; }
+        catch (e) { _ordersCache = []; }
+      }
+      const a = String(addr).trim().toLowerCase();
+      return _ordersCache.filter((o) => String(o.email || '').trim().toLowerCase() === a);
+    }
     // name to fully open the application." Clicking any name opens everything
     // the inquiry carries, with the same actions as the row.
     function openLead(l) {
@@ -1981,6 +2073,7 @@ window.Admin = (function () {
           ${item('Event', l.event && esc(l.event))}
         </div>
         ${l.chosePassword ? '<p class="sub" style="margin:12px 0 0">🔐 They chose their website password on the application — it activates when you approve.</p>' : ''}
+        ${key === 'membership' ? '<div data-lead-payments style="margin-top:14px"><div class="sub" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.06em">Payments &amp; billing address</div><p class="sub" style="margin:6px 0 0">Checking the Pay Log…</p></div>' : ''}
         ${l.message ? `<div style="margin-top:14px"><div class="sub" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.06em">${key === 'membership' ? 'Application details' : 'Message'}</div><div style="white-space:pre-wrap;margin-top:6px;border-left:3px solid var(--gold-soft,#e6dcbf);padding-left:12px">${esc(l.message)}</div></div>` : ''}
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:18px">
           ${key === 'membership' && l.status !== 'done' ? '<button type="button" class="btn btn--forest btn--sm" data-m-approve>✓ Approve &amp; add to directory</button>' : ''}
@@ -2000,6 +2093,25 @@ window.Admin = (function () {
       ov.querySelector('[data-m-approve]')?.addEventListener('click', (e) => approveMemberLead(l, e.target));
       ov.querySelector('[data-m-event]')?.addEventListener('click', (e) => approveEventLead(l, e.target));
       document.body.appendChild(ov);
+      // Fill the payments block after the modal is up — one Pay Log fetch,
+      // matched on the applicant's email.
+      const payBox = ov.querySelector('[data-lead-payments]');
+      if (payBox) ordersFor(l.email).then((list) => {
+        if (!ov.isConnected) return;
+        if (!list.length) {
+          payBox.innerHTML = payBox.firstElementChild.outerHTML
+            + '<p class="sub" style="margin:6px 0 0">💳 No payment on file yet' + (l.email ? ` for ${esc(l.email)}` : '') + ' — if they were approved, this is a dues follow-up.</p>';
+          return;
+        }
+        payBox.innerHTML = payBox.firstElementChild.outerHTML + list.slice(0, 5).map((o) => {
+          const when = o.created ? new Date(o.created).toLocaleDateString('en-US', { dateStyle: 'medium' }) : '';
+          const addr = [o.address1, [o.city, o.state].filter(Boolean).join(', '), o.zip].filter(Boolean).join(', ');
+          return `<div style="margin-top:8px;border-left:3px solid var(--gold-soft,#e6dcbf);padding-left:12px">
+            <strong>$${Number(o.amount || 0).toFixed(2)}</strong> · ${esc(o.memo || [o.kind, o.sku].filter(Boolean).join(' · ') || 'payment')} ${statusPill(o.status || 'paid')}
+            <div class="sub">${esc(when)}${addr ? ' · Billing: ' + esc(addr) : ' · <em>paid before Aug 25 — no billing address recorded</em>'}</div>
+          </div>`;
+        }).join('') + (list.length > 5 ? `<p class="sub" style="margin:6px 0 0"><a href="payments.html?q=${encodeURIComponent(l.email || '')}">All ${list.length} payments in the Pay Log →</a></p>` : '');
+      });
     }
     function render() {
       const q = (searchEl?.value || '').trim().toLowerCase();

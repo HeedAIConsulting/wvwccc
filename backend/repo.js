@@ -86,11 +86,12 @@ export async function setLeadStatus(id, status) {
 export async function addOrder(order) {
   if (db.enabled) {
     await db.query(
-      `INSERT INTO orders (id, kind, sku, member_id, name, email, amount, transaction_id, status, phone, company, memo, created)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12, now())`,
+      `INSERT INTO orders (id, kind, sku, member_id, name, email, amount, transaction_id, status, phone, company, memo, address1, city, state, zip, created)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16, now())`,
       [order.id, order.kind, order.sku, order.memberId || null, order.name,
        order.email, order.amount, order.transactionId, order.status || 'paid',
-       order.phone || null, order.company || null, order.memo || null]);
+       order.phone || null, order.company || null, order.memo || null,
+       order.address1 || null, order.city || null, order.state || null, order.zip || null]);
     return;
   }
   store.append('orders.json', order);

@@ -3263,6 +3263,8 @@ router.post('/pay', async (req, res) => {
           kind: b.kind, sku: b.sku || '', email: b.email || '',
           name: [b.firstName, b.lastName].filter(Boolean).join(' '),
           phone: String(b.phone || '').slice(0, 40), company: String(b.company || '').slice(0, 160),
+          address1: String(b.address1 || '').slice(0, 200), city: String(b.city || '').slice(0, 80),
+          state: String(b.state || '').slice(0, 20), zip: String(b.zip || '').slice(0, 20),
           memo: String(b.description || '').slice(0, 300),
           amount: Number(b.amount), transactionId: result.transactionId || '',
           status: 'declined',
@@ -3279,6 +3281,11 @@ router.post('/pay', async (req, res) => {
       kind: b.kind, sku: b.sku || '', email: b.email || '',
       name: [b.firstName, b.lastName].filter(Boolean).join(' '),
       phone: String(b.phone || '').slice(0, 40), company: String(b.company || '').slice(0, 160),
+      // Billing address (Felicia, Aug 25 2026): it was always collected for
+      // AVS but dropped here, so no receipt or applicant view could ever show
+      // it. Persisted now — orders from before today simply won't have one.
+      address1: String(b.address1 || '').slice(0, 200), city: String(b.city || '').slice(0, 80),
+      state: String(b.state || '').slice(0, 20), zip: String(b.zip || '').slice(0, 20),
       memo: String(b.description || '').slice(0, 300),
       amount: Number(b.amount), transactionId: result.transactionId,
       status: 'paid',
