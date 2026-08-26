@@ -279,7 +279,29 @@ window.Chamber = (function () {
   // Event image src: leave absolute URLs (http, leading /, data:) alone; prefix
   // relative paths (e.g. "assets/events/11311.jpg") with the page base so they
   // resolve from subdirectory pages like /events/ instead of 404ing.
-  function evImgSrc(u, base) { u = String(u || ''); return /^(https?:|\/|data:)/i.test(u) ? u : (base || '') + u; }
+  function evImgSrc(u, base, w) {
+    u = String(u || '');
+    const url = /^(https?:|\/|data:)/i.test(u) ? u : (base || '') + u;
+    // ?w asks the server for a properly downscaled render at ~2× the CSS
+    // size. A browser squeezing a big upload into a small box in one step
+    // aliases fine detail (Felicia, Aug 26 2026 — the Gaspar sponsor logo,
+    // a crisp 1800px file, looked "pixelated" at 252px). Uploaded assets
+    // only — external URLs pass through untouched.
+    return (w && /\/api\/assets\//.test(url) && !/[?&]w=/.test(url))
+      ? url + (url.includes('?') ? '&' : '?') + 'w=' + w : url;
+  }
+  // Same treatment for images INSIDE a rich description (the editor stores
+  // them with an inline width) — rewrite each /api/assets/ src to request a
+  // render sized for how large it actually displays.
+  function sharpenAssetImgs(rootEl) {
+    if (!rootEl) return;
+    rootEl.querySelectorAll('.ev-card__desc img, .rt-typo img').forEach((im) => {
+      const src = im.getAttribute('src') || '';
+      if (!/\/api\/assets\//.test(src) || /[?&]w=/.test(src)) return;
+      const cssW = parseFloat((im.style && im.style.width) || '') || im.clientWidth || 800;
+      im.src = src + (src.includes('?') ? '&' : '?') + 'w=' + Math.min(1600, Math.max(200, Math.ceil(cssW * 2 / 100) * 100));
+    });
+  }
   // Event images may be plain URL strings or {src, href, label} objects (admin
   // can hyperlink an image, e.g. a sponsor logo → sponsor's site).
   function evImgOf(it) { return typeof it === 'string' ? it : String((it && it.src) || ''); }
@@ -381,7 +403,7 @@ window.Chamber = (function () {
               ${barWhen ? `<span class="ev-card__logobar-when">${esc(barWhen)}</span>` : ''}
             </div></div>`;
     const heroImg = hero
-      ? `<img class="ev-card__flyer" src="${esc(evImgSrc(hero, base))}" alt="${esc(ev.title)} flyer" onerror="this.onerror=null;this.src='${base}images/wvwccc-logo-400.png';this.classList.add('ev-card__flyer--ph')">`
+      ? `<img class="ev-card__flyer" src="${esc(evImgSrc(hero, base, 1200))}" alt="${esc(ev.title)} flyer" onerror="this.onerror=null;this.src='${base}images/wvwccc-logo-400.png';this.classList.add('ev-card__flyer--ph')">`
       : '';
     let flyerImg;
     if (mode === 'none') flyerImg = '';
@@ -389,11 +411,11 @@ window.Chamber = (function () {
     else if (mode === 'both') flyerImg = logoBar + heroImg;
     else if (mode === 'flyer') flyerImg = heroImg;                 // nothing when no flyer
     else flyerImg = heroImg || logoBar;                            // auto
-    const moreFlyers = mode === 'none' || mode === 'logo' ? '' : flyers.slice(1).map((u) => `<img class="ev-card__flyer" src="${esc(evImgSrc(u, base))}" alt="${esc(ev.title)} flyer" loading="lazy">`).join('');
+    const moreFlyers = mode === 'none' || mode === 'logo' ? '' : flyers.slice(1).map((u) => `<img class="ev-card__flyer" src="${esc(evImgSrc(u, base, 1200))}" alt="${esc(ev.title)} flyer" loading="lazy">`).join('');
     // Photo strip: each image may carry a link (e.g. sponsor logo → sponsor site).
     const extra = (ev.images || []).filter((it) => evImgOf(it) && evImgOf(it) !== hero).slice(0, 6);
     const imgTag = (it) => {
-      const im = `<img src="${esc(evImgSrc(evImgOf(it), base))}" alt="${esc((it && it.label) || '')}" loading="lazy">`;
+      const im = `<img src="${esc(evImgSrc(evImgOf(it), base, 800))}" alt="${esc((it && it.label) || '')}" loading="lazy">`;
       const href = evImgHref(it);
       return href ? `<a href="${esc(href)}" target="_blank" rel="noopener">${im}</a>` : im;
     };
@@ -402,7 +424,7 @@ window.Chamber = (function () {
     const sponsors = (Array.isArray(ev.sponsorLogos) ? ev.sponsorLogos : []).filter((s) => evImgOf(s));
     const sponsorRow = sponsors.length
       ? `<div class="ev-card__sponsors" style="display:flex;flex-wrap:wrap;gap:14px;align-items:center;margin:0 0 16px">${sponsors.map((s) => {
-          const im = `<img src="${esc(evImgSrc(evImgOf(s), base))}" alt="${esc(s.label || 'Sponsor logo')}" loading="lazy" style="max-height:64px;max-width:160px;object-fit:contain">`;
+          const im = `<img src="${esc(evImgSrc(evImgOf(s), base, 400))}" alt="${esc(s.label || 'Sponsor logo')}" loading="lazy" style="max-height:64px;max-width:160px;object-fit:contain">`;
           const href = evImgHref(s);
           return href ? `<a href="${esc(href)}" target="_blank" rel="noopener" title="${esc(s.label || '')}">${im}</a>` : im;
         }).join('')}</div>`
@@ -450,8 +472,14 @@ window.Chamber = (function () {
     const paidGuestTier = freeMemberTier
       && ev.ticketTypes.find((t) => tkLive(t) && String(t.group || '').toLowerCase() === 'guest' && Number(t.price) > 0);
     const ctaHint = (!ev.hideCta && !ev.soldOut && paidGuestTier)
-      ? `<p class="member-tile__meta" style="margin:6px 0 0;text-align:right">${tr('Chamber members attend free — use RSVP. Guests:')} $${Number(paidGuestTier.price).toFixed(2)}.</p>`
+      ? `<p class="member-tile__meta" style="margin:6px 0 0">${tr('Chamber members attend free — use RSVP. Guests:')} $${Number(paidGuestTier.price).toFixed(2)}.</p>`
       : '';
+    // The action buttons live at the TOP of the event (Felicia, Aug 26 2026:
+    // "make it so any action buttons whether it is RSVP and or Purchase show
+    // up at the top of the event not the bottom") — right under the date and
+    // venue, before the flyer and the description, so nobody scrolls a long
+    // write-up to find where to sign up. The who-pays hint moves with them.
+    const ctaRow = cta ? `<div class="ev-card__cta ev-card__cta--top">${cta}</div>${ctaHint}` : '';
     const desc = ev.description || ev.summary || '';
     // Rich description (admin editor) renders as sanitized HTML; plain text is
     // escaped + auto-linked so pasted URLs and "click here" links actually work.
@@ -475,6 +503,7 @@ window.Chamber = (function () {
             ${loc ? `<div>📍 ${mapU ? `<a href="${esc(mapU)}" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline" title="Open in Google Maps for directions">${esc(loc)}</a> <span style="font-size:.78rem;color:var(--gold-deep)">(map ↗)</span>` : esc(loc)}</div>` : ''}
             ${hostLine(ev, base)}
           </div>
+          ${ctaRow}
           ${imgs}
           ${featuredRow}
           ${descHtml ? `<div class="ev-card__desc${ev.descriptionHtml ? ' rt-typo' : ''}"${ev.descriptionHtml ? ' style="white-space:normal"' : ''}>${descHtml}</div>` : ''}
@@ -485,7 +514,6 @@ window.Chamber = (function () {
           <div class="ev-card__foot">
             ${ev.confirmed ? calendarMenu(ev) : ''}
             ${shareMenu(ev.title, shareUrl)}
-            <div class="ev-card__cta">${cta}${ctaHint}</div>
           </div>
         </div>
       </div>`;
@@ -499,6 +527,7 @@ window.Chamber = (function () {
     overlay.className = 'ev-modal';
     overlay.style.cssText = 'position:fixed;inset:0;background:rgba(14,42,22,.62);display:flex;align-items:flex-start;justify-content:center;padding:5vh 16px;z-index:9999;overflow-y:auto';
     overlay.innerHTML = eventDetailCard(ev, base, { dialog: true });
+    sharpenAssetImgs(overlay);
     const close = () => overlay.remove();
     overlay.addEventListener('click', (e) => { if (e.target === overlay || e.target.closest('[data-ev-close]')) close(); });
     document.addEventListener('keydown', function esc2(e) { if (e.key === 'Escape') { close(); document.removeEventListener('keydown', esc2); } });
@@ -521,6 +550,7 @@ window.Chamber = (function () {
     _eventReg[ev.id] = ev;
     document.title = `${ev.title} — West Valley · Warner Center Chamber of Commerce`;
     el.innerHTML = eventDetailCard(ev, '../');
+    sharpenAssetImgs(el);
     // Photos from this event (Diana, Jul 30 2026). Loaded after the card so a
     // slow album fetch never delays the event details themselves.
     const mount = document.getElementById('evAlbums');
@@ -560,7 +590,7 @@ window.Chamber = (function () {
           : `<a class="btn btn--ghost btn--sm" href="${base}contact.html?event=${esc(ev.id)}">Notify me</a>`)
       : `<a class="btn btn--ghost btn--sm" href="${rsvpHrefOf(ev, base)}">RSVP</a>`;
     const imgs = (ev.images && ev.images.length)
-      ? `<div class="event-imgs" style="display:flex;gap:6px;margin:8px 0 0;flex-wrap:wrap">${ev.images.slice(0, 3).map((u) => `<img src="${esc(evImgSrc(evImgOf(u), base))}" alt="" loading="lazy" style="width:88px;height:64px;object-fit:cover;border-radius:8px">`).join('')}</div>`
+      ? `<div class="event-imgs" style="display:flex;gap:6px;margin:8px 0 0;flex-wrap:wrap">${ev.images.slice(0, 3).map((u) => `<img src="${esc(evImgSrc(evImgOf(u), base, 200))}" alt="" loading="lazy" style="width:88px;height:64px;object-fit:cover;border-radius:8px">`).join('')}</div>`
       : '';
     const links = (ev.links && ev.links.length)
       ? `<div class="event-links" style="display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 0">${ev.links.map((l) => `<a class="chip chip--gold" target="_blank" rel="noopener" href="${esc(l.url)}">${esc(l.label || l.type || 'Details')}</a>`).join('')}</div>`
@@ -618,7 +648,7 @@ window.Chamber = (function () {
     // The chamber-logo placeholder is ALWAYS the base; a real image layers on top and
     // removes itself on error — so a missing/broken/slow image never leaves a white box.
     const evPh = `<img src="${base}images/wvwccc-logo-200.png" alt="" class="evp__ph-logo"><span>${esc(ev.month || 'TBA')}</span><strong>${esc(ev.day || '·')}</strong>`;
-    const media = `<div class="evp__media evp__media--ph" role="img" aria-label="${esc(ev.title)} flyer">${img ? `<img class="evp__cover" src="${esc(evImgSrc(img, base))}" alt="" loading="lazy" onerror="this.remove()">` : ''}${evPh}</div>`;
+    const media = `<div class="evp__media evp__media--ph" role="img" aria-label="${esc(ev.title)} flyer">${img ? `<img class="evp__cover" src="${esc(evImgSrc(img, base, 800))}" alt="" loading="lazy" onerror="this.remove()">` : ''}${evPh}</div>`;
     const when = (ev.confirmed && ev.day)
       ? `${esc(ev.month)} ${esc(ev.day)}${ev.time ? ' · ' + esc(ev.time) : ''}`
       : 'Date to be announced';

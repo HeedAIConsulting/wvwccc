@@ -10,6 +10,7 @@ import { fileURLToPath } from 'node:url';
 import { sale, addRecurring, refundTransaction, voidTransaction } from './payments-agms.js';
 import * as auth from './auth.js';
 import * as users from './users.js';
+import * as images from './images.js';
 import * as repo from './repo.js';
 import * as llm from './llm.js';
 import * as turnstile from './turnstile.js';
@@ -1103,10 +1104,22 @@ router.post('/me/asset', auth.requireAuth(), async (req, res) => {
   } catch (e) { console.error(e); res.status(500).json({ error: 'upload failed' }); }
 });
 
+// ?w=<px> serves a properly downscaled render (Felicia, Aug 26 2026 — the
+// Gaspar sponsor logo, a crisp 1800px upload, looked pixelated at 252px
+// because the browser's one-step downscale aliases fine detail). Pages ask
+// for ~2× the CSS size; see backend/images.js. Falls back to the original
+// bytes on anything the resizer can't handle.
 router.get('/assets/:id', async (req, res) => {
   try {
     const a = await repo.getAsset(req.params.id);
     if (!a) return res.status(404).end();
+    const w = images.snapWidth(req.query.w);
+    if (w && /^image\/(png|jpe?g|gif|webp)$/.test(a.mime)) {
+      try {
+        const r = images.resizedRender(req.params.id, a.mime, a.buffer, w);
+        if (r) return res.type(r.mime).set('Cache-Control', 'public, max-age=31536000, immutable').send(r.buffer);
+      } catch (e) { console.error('asset resize', req.params.id, e.message); }
+    }
     res.type(a.mime).set('Cache-Control', 'public, max-age=86400').send(a.buffer);
   } catch (e) { res.status(500).end(); }
 });

@@ -11,6 +11,19 @@ Render Web Service `wvwccc-web` (srv-d8f8pci8qa3s738nsib0) + Postgres `wvwccc-db
 - **ElevenLabs ConvAI** agent `agent_8201kqnjhzyrfpdvtqwgf9e0034y` on all public pages (pulled from POC).
 - Nav adds Deals + Community.
 
+**Felicia's Aug 26 pair (2026-08-26):** ✅ built —
+- *Action buttons at the top:* the event page's RSVP / Get tickets buttons
+  (plus the members-free hint) moved from the foot to directly under the
+  date/venue, above the flyer and description (`ev-card__cta--top`).
+- *"Gaspar logo pixelated":* the stored upload was a crisp 1800×900 PNG —
+  the crunch was the browser squeezing it to 252px in one step (aliases fine
+  halftone detail). `/api/assets/:id?w=<px>` now serves properly filtered
+  downscaled renders via mupdf (`backend/images.js`, ladder-snapped +
+  LRU-cached, GIFs and would-be upscales pass through untouched); event
+  pages request ~2× the CSS size for description images, flyers, covers, and
+  sponsor logos. Tests: `backend/test/asset-resize.test.mjs`. Verified
+  headless-Chromium side-by-side (one-step 1800→252 vs pre-scaled render).
+
 **Two representatives per account (2026-08-26):** ✅ built — Felicia's Aug 25
 "Member Profile Question" ("some accounts have 2 admins working on their
 profiles"). A member listing can carry several logins: one per rep, each with
