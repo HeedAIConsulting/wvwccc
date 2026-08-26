@@ -1,0 +1,23 @@
+REPLY TO FELICIA — paste into Gmail as a reply on the "Member Profile Question" thread
+To:  felicia@woodlandhillscc.net
+Cc:  diana@woodlandhillscc.net
+Bcc: 23411980@bcc.hubspot.com
+Subject: RE: Member Profile Question
+
+--- body below this line ---
+
+Hi Felicia,
+
+Short answer: yes. Each representative gets their own sign-in - their own email and their own password - and both open the same business profile. So two admins can each keep the profile up to date without sharing a password.
+
+Here's how you set it up, and it's live now:
+
+1. Members > find the business > click the new gold "🔑 Logins" button. It shows everyone who can sign in on that account.
+
+2. Type the second person's email in the box and click "Give them access". The website emails them a link to set their own password, and nothing changes for the first person - their sign-in stays exactly as it is.
+
+That same box is also where you handle each person separately from then on: "See their view", sign-in link, reset link, and set-a-password all work per person now, so resetting one rep's password never locks out the other. And if someone leaves the business, "Remove" takes away just their sign-in - the profile and the other person's access stay put.
+
+When a member row shows "🔑 Logins (2)", that's your at-a-glance sign the account has two reps on it.
+
+Michael

@@ -11,6 +11,18 @@ Render Web Service `wvwccc-web` (srv-d8f8pci8qa3s738nsib0) + Postgres `wvwccc-db
 - **ElevenLabs ConvAI** agent `agent_8201kqnjhzyrfpdvtqwgf9e0034y` on all public pages (pulled from POC).
 - Nav adds Deals + Community.
 
+**Two representatives per account (2026-08-26):** ✅ built — Felicia's Aug 25
+"Member Profile Question" ("some accounts have 2 admins working on their
+profiles"). A member listing can carry several logins: one per rep, each with
+their own email + password, all opening the same profile. Admin → Members →
+**🔑 Logins** manages them (add a second rep, per-rep view-as / sign-in /
+reset links / set password, remove one who left). Force-reset and
+email-change are per-login now — resetting one rep no longer locks out the
+other, and changing the listing email no longer trips the unique-email
+constraint when two logins exist. Staff emails can't be attached as member
+sign-ins (used to silently wipe the staff password). Tests:
+`backend/test/two-rep-logins.test.mjs`.
+
 
 **West Valley · Warner Center Chamber of Commerce** — production platform.
 Owner: Michael Bowers / Heed Business Solutions · Client: Diana Williams (CEO).

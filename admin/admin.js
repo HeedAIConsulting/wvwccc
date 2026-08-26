@@ -561,10 +561,29 @@ window.Admin = (function () {
   async function openMemberView(memberIdOrEmail, whoLabel) {
     try {
       const byEmail = String(memberIdOrEmail || '').includes('@');
-      const r = await api(byEmail
+      const rr = await apiRaw(byEmail
         ? `/api/admin/login-link-by-email?email=${encodeURIComponent(memberIdOrEmail)}`
-        : `/api/admin/members/${encodeURIComponent(memberIdOrEmail)}/login-link`)
-        .catch((e2) => { throw e2; });
+        : `/api/admin/members/${encodeURIComponent(memberIdOrEmail)}/login-link`);
+      if (!rr.ok && rr.body && rr.body.error === 'multiple-logins') {
+        // Two or more representatives share this account (Felicia, Aug 25
+        // 2026) — each has their own sign-in, so ask whose view to open.
+        document.querySelector('[data-mv-modal]')?.remove();
+        const pick = document.createElement('div');
+        pick.className = 'chat-modal'; pick.setAttribute('data-mv-modal', '');
+        pick.innerHTML = `<div class="chat-modal__box" style="max-width:460px">
+          <button class="chat-modal__x" data-x aria-label="Close" type="button">×</button>
+          <h2 style="margin:0 0 4px">Whose view?</h2>
+          <p class="sub" style="margin:0 0 12px">${rr.body.logins.length} people can sign in on this account — one sign-in per representative. Pick the person you're helping:</p>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            ${rr.body.logins.map((em) => `<button type="button" data-pick="${esc(em)}" style="cursor:pointer;text-align:left;background:var(--green-deep,#1E5631);color:#fff;border:none;border-radius:8px;padding:9px 14px;font-size:.9rem;font-weight:600">👁 ${esc(em)}</button>`).join('')}
+          </div></div>`;
+        pick.addEventListener('click', (e2) => { if (e2.target === pick || e2.target.closest('[data-x]')) pick.remove(); });
+        pick.querySelectorAll('[data-pick]').forEach((b) => b.addEventListener('click', () => { pick.remove(); openMemberView(b.dataset.pick, whoLabel); }));
+        document.body.appendChild(pick);
+        return;
+      }
+      if (!rr.ok) throw new Error((rr.body && rr.body.error) || `error ${rr.status}`);
+      const r = rr.body;
       const copied = navigator.clipboard ? await navigator.clipboard.writeText(r.link).then(() => true).catch(() => false) : false;
       document.querySelector('[data-mv-modal]')?.remove();
       const ov = document.createElement('div');
@@ -590,7 +609,11 @@ window.Admin = (function () {
         catch (err) { window.prompt('Copy this link:', r.link); }
       });
       document.body.appendChild(ov);
-    } catch (err) { alert('Could not open that member view: ' + (err.message || '')); }
+    } catch (err) {
+      alert(/no-login/i.test(err.message || '')
+        ? `${memberIdOrEmail} has no website login yet, so there's no view to open. Use ➕ Create login (or 🔑 Logins → Give them access) first.`
+        : 'Could not open that member view: ' + (err.message || ''));
+    }
   }
 
   // ── Dashboard ──
@@ -867,6 +890,104 @@ window.Admin = (function () {
         } else renderRows(members);
       } catch (e) { showAuthError(e); }
     }
+    /* ── 🔑 Logins manager (Felicia, Aug 25 2026) ─────────────────────────
+       "Can more than one representative have access to the profile account?"
+       Yes. Each representative gets their OWN sign-in — their email, their
+       password — and every one of them opens the same business profile.
+       This box is where the office sees who has access, gives the second
+       admin their own sign-in, and removes someone who left the company. */
+    async function openLoginsManager(memberId, hint) {
+      const m = memberById[memberId] || {};
+      document.querySelector('[data-lg-modal]')?.remove();
+      const ov = document.createElement('div');
+      ov.className = 'chat-modal'; ov.setAttribute('data-lg-modal', '');
+      document.body.appendChild(ov);
+      let dirty = false;
+      const close = () => { ov.remove(); if (dirty) load(search.value.trim()); };
+      ov.addEventListener('click', (e) => { if (e.target === ov || e.target.closest('[data-x]')) close(); });
+      const btn = 'cursor:pointer;background:none;border:1px solid var(--line,#d7d2c6);border-radius:6px;padding:3px 8px;font-size:.78rem';
+      const paint = async () => {
+        let logins = [];
+        try { ({ logins } = await api(`/api/admin/members/${encodeURIComponent(memberId)}/logins`)); }
+        catch (e) { alert('Could not load the logins: ' + (e.message || '')); close(); return; }
+        const rowOf = (u) => {
+          const isMemberLogin = (u.role || 'member') === 'member' && u.source !== 'bootstrap';
+          const when = u.lastLogin ? 'last signed in ' + new Date(u.lastLogin).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'hasn\'t signed in yet';
+          const state = u.needsReset ? ' · still needs to set their password' : '';
+          return `<div style="border:1px solid var(--line,#e4dcc8);border-radius:10px;padding:10px 14px;display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between">
+            <div style="min-width:180px">
+              <strong style="word-break:break-all">${esc(u.email)}</strong>${isMemberLogin ? '' : ' <span class="sub">(' + esc(u.role || 'staff') + ' account)</span>'}
+              <div class="sub">${esc(u.username || '')}${u.username ? ' · ' : ''}${when}${state}</div>
+            </div>
+            ${isMemberLogin ? `<div style="display:flex;gap:6px;flex-wrap:wrap">
+              <button type="button" data-lg-view="${esc(u.email)}" title="See the website exactly as this person sees it" style="${btn};background:var(--green-deep,#1E5631);color:#fff;border:none;font-weight:700">👁 View as</button>
+              <button type="button" data-lg-signin="${esc(u.email)}" title="Email them a one-click sign-in link (no password needed), sent by the website — expires in 20 min" style="${btn};border-color:var(--gold,#C9A227);font-weight:600">✉ Sign-in link</button>
+              <button type="button" data-lg-reset="${esc(u.email)}" title="Email them a set-a-password link, sent by the website — expires in 1 hour" style="${btn}">✉ Reset link</button>
+              <button type="button" data-lg-setpw="${esc(u.email)}" title="Set this person's password now (e.g. over the phone)" style="${btn}">Set password</button>
+              <button type="button" data-lg-remove="${esc(u.email)}" title="Take away this person's sign-in — the business profile itself stays" style="${btn};color:#8a2f22;border-color:#c9a79f">✕ Remove</button>
+            </div>` : ''}
+          </div>`;
+        };
+        ov.innerHTML = `<div class="chat-modal__box" style="max-width:660px">
+          <button class="chat-modal__x" data-x aria-label="Close" type="button">×</button>
+          <h2 style="margin:0 0 4px">Who can sign in for ${esc(m.name || 'this member')}</h2>
+          <p class="sub" style="margin:0 0 12px">Each person has their <strong>own</strong> sign-in and their <strong>own</strong> password — and they all open the same business profile, so two admins can keep it up to date.${hint ? ' ' + esc(hint) : ''}</p>
+          <div style="display:flex;flex-direction:column;gap:8px">${logins.length ? logins.map(rowOf).join('') : '<p class="sub" style="margin:0">No one can sign in yet — add the first person below.</p>'}</div>
+          <form data-lg-add style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;border-top:1px solid var(--line,#e4dcc8);padding-top:12px">
+            <input name="email" type="email" required placeholder="their email — this becomes their sign-in" style="flex:2;min-width:220px" />
+            <input name="name" type="text" placeholder="their name (optional)" style="flex:1;min-width:140px" />
+            <button type="submit" class="btn btn--forest btn--sm" style="white-space:nowrap">➕ Give them access</button>
+          </form>
+          <p class="sub" style="margin:8px 0 0">They'll get an email from the website to set their own password. Adding a second representative never changes the first one's sign-in.</p>
+        </div>`;
+        ov.querySelectorAll('[data-lg-view]').forEach((b) => b.addEventListener('click', () => openMemberView(b.dataset.lgView)));
+        ov.querySelectorAll('[data-lg-signin]').forEach((b) => b.addEventListener('click', async () => {
+          b.disabled = true; const was = b.textContent; b.textContent = 'Sending…';
+          try { const r = await api(`/api/admin/members/${encodeURIComponent(memberId)}/send-signin`, { method: 'POST', body: JSON.stringify({ email: b.dataset.lgSignin }) });
+            b.textContent = '✓ Sent'; setTimeout(() => { b.textContent = was; b.disabled = false; }, 2500);
+            alert('A one-click sign-in link was emailed to ' + r.email + '. It expires in 20 minutes.');
+          } catch (err) { b.disabled = false; b.textContent = was; alert('Could not send: ' + (err.message || 'error')); }
+        }));
+        ov.querySelectorAll('[data-lg-reset]').forEach((b) => b.addEventListener('click', async () => {
+          b.disabled = true; const was = b.textContent; b.textContent = 'Sending…';
+          try { const r = await api(`/api/admin/members/${encodeURIComponent(memberId)}/send-reset`, { method: 'POST', body: JSON.stringify({ email: b.dataset.lgReset }) });
+            b.textContent = '✓ Sent'; setTimeout(() => { b.textContent = was; b.disabled = false; }, 2500);
+            alert('A set-your-password link was emailed to ' + r.email + ' from the website. It expires in 1 hour.');
+          } catch (err) { b.disabled = false; b.textContent = was; alert('Could not send: ' + (err.message || 'error')); }
+        }));
+        ov.querySelectorAll('[data-lg-setpw]').forEach((b) => b.addEventListener('click', async () => {
+          const em = b.dataset.lgSetpw;
+          const pw = prompt(`Set a new password for ${em} (minimum 8 characters).\nThey can sign in with it immediately.`);
+          if (pw === null) return;
+          if (pw.length < 8) { alert('Password must be at least 8 characters.'); return; }
+          try { await api('/api/admin/users/' + encodeURIComponent(em) + '/set-password', { method: 'POST', body: JSON.stringify({ password: pw }) }); alert('Password set for ' + em); }
+          catch (err) { alert('Could not set password: ' + (err.message || '')); }
+        }));
+        ov.querySelectorAll('[data-lg-remove]').forEach((b) => b.addEventListener('click', async () => {
+          const em = b.dataset.lgRemove;
+          if (!confirm(`Take away ${em}'s sign-in?\n\nThe business profile stays exactly as it is — only this person's access goes away. Anyone else on the account keeps theirs.`)) return;
+          try {
+            await api(`/api/admin/members/${encodeURIComponent(memberId)}/remove-login`, { method: 'POST', body: JSON.stringify({ email: em }) });
+            dirty = true; await paint();
+          } catch (err) { alert('Could not remove that login: ' + (err.message || '')); }
+        }));
+        ov.querySelector('[data-lg-add]')?.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const f = e.target;
+          const addr = String(new FormData(f).get('email') || '').trim();
+          const who = String(new FormData(f).get('name') || '').trim();
+          if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(addr)) { alert('Please enter a valid email address.'); return; }
+          const sb = f.querySelector('button[type="submit"]'); sb.disabled = true; sb.textContent = 'Adding…';
+          try {
+            const rr = await apiRaw(`/api/admin/members/${encodeURIComponent(memberId)}/create-login`, { method: 'POST', body: JSON.stringify({ email: addr, name: who || undefined }) });
+            if (!rr.ok) { alert(rr.body && rr.body.error ? rr.body.error : 'Could not add that login.'); sb.disabled = false; sb.textContent = '➕ Give them access'; return; }
+            dirty = true; await paint();
+          } catch (err) { alert('Could not add that login: ' + (err.message || '')); sb.disabled = false; sb.textContent = '➕ Give them access'; }
+        });
+      };
+      await paint();
+    }
+
     function row(m) {
       const id = esc(m.id);
       const radios = opts.leaderOptions.map((o) => {
@@ -882,8 +1003,13 @@ window.Admin = (function () {
       const welcomeLbl = m.welcomeSent
         ? `✓ Welcome sent ${new Date(m.welcomeSent).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
         : '✉ Welcome email';
+      // 🔑 Logins — every sign-in on the account, one per representative
+      // (Felicia, Aug 25 2026: "some accounts have 2 admins working on their
+      // profiles"). The count shows at a glance when a second rep has access.
+      const loginCount = Array.isArray(m.logins) ? m.logins.length : 0;
       const pwActions = m.email
         ? `<button type="button" data-welcome title="${m.welcomeSent ? 'Already sent — click to preview and resend the welcome letter' : 'Email this member the Chamber welcome letter with their website login link'}" style="cursor:pointer;background:${m.welcomeSent ? 'var(--cream,#faf6ea)' : 'none'};border:1px solid var(--gold,#C9A227);border-radius:6px;padding:3px 8px;font-size:.8rem;font-weight:600;${m.welcomeSent ? 'opacity:.75' : ''}">${welcomeLbl}</button>
+           <button type="button" data-logins title="See everyone who can sign in on this account — add a second representative, or remove one who left" style="cursor:pointer;background:none;border:1px solid var(--gold,#C9A227);border-radius:6px;padding:3px 8px;font-size:.8rem;font-weight:600">🔑 Logins${loginCount > 1 ? ` (${loginCount})` : ''}</button>
            <button type="button" data-setpw="${esc(m.email)}" title="Set this member's password now" style="cursor:pointer;background:none;border:1px solid var(--line,#d7d2c6);border-radius:6px;padding:3px 8px;font-size:.8rem">Set password</button>
            <button type="button" data-sendsignin="${id}" title="Email them a one-click sign-in link (no password needed) — sent by the website, expires in 20 min" style="cursor:pointer;background:none;border:1px solid var(--gold,#C9A227);border-radius:6px;padding:3px 8px;font-size:.8rem;font-weight:600">✉ Sign-in link</button>
            <button type="button" data-sendreset="${id}" title="Email them a set-a-password link — sent by the website (not from your Outlook), expires in 1 hour" style="cursor:pointer;background:none;border:1px solid var(--line,#d7d2c6);border-radius:6px;padding:3px 8px;font-size:.8rem">✉ Reset link</button>
@@ -1015,6 +1141,8 @@ window.Admin = (function () {
             alert(r.message || 'Password reset queued.');
           } catch (e) { showAuthError(e); }
         });
+        // 🔑 Everyone who can sign in on this account (add / remove a rep).
+        tr.querySelector('[data-logins]')?.addEventListener('click', () => openLoginsManager(id));
         // Create a website login for a member who doesn't have one yet.
         tr.querySelector('[data-createlogin]')?.addEventListener('click', async (e) => {
           const m = memberById[id];

@@ -3774,11 +3774,23 @@ router.post('/admin/members/:id/send-welcome', requireAdmin, async (req, res) =>
 });
 
 // Force a member to reset their password (old password stops working).
+// A member can have more than one login (one per representative) — when they
+// do, the office must say WHICH one, so forcing a reset on one rep never
+// locks the other rep out too.
 router.post('/admin/members/:id/reset-password', requireAdmin, async (req, res) => {
   try {
-    const email = await users.requireReset(req.params.id);
-    if (!email) return res.status(404).json({ error: 'No login is linked to that member.' });
-    res.json({ ok: true, email, message: `${email} will be required to set a new password at next login.` });
+    const which = String((req.body && req.body.email) || '').trim().toLowerCase();
+    const logins = await users.listByMemberId(req.params.id);
+    if (!logins.length) return res.status(404).json({ error: 'No login is linked to that member.' });
+    if (which && !logins.some((u) => u.email === which)) {
+      return res.status(404).json({ error: 'That email is not one of this member\'s logins.' });
+    }
+    if (!which && logins.length > 1) {
+      return res.status(409).json({ error: 'multiple-logins', logins: logins.map((u) => u.email) });
+    }
+    const reset = await users.requireReset(req.params.id, which || logins[0].email);
+    if (!reset.length) return res.status(404).json({ error: 'No login is linked to that member.' });
+    res.json({ ok: true, email: reset[0], message: `${reset.join(', ')} will be required to set a new password at next login.` });
   } catch (e) { console.error('reset-password', e); res.status(500).json({ error: 'could not reset' }); }
 });
 
@@ -3794,9 +3806,10 @@ router.post('/admin/users/:email/set-password', requireAdmin, async (req, res) =
   } catch (e) { console.error('admin set-password', e); res.status(500).json({ error: 'could not set password' }); }
 });
 
-// Admin creates a LOGIN for an existing directory member who doesn't have one
-// yet (e.g. imported roster rows without emails). Creates the account against
-// the given email and sends the set-your-password invitation.
+// Admin creates a LOGIN for an existing directory member — the first one, or
+// an ADDITIONAL one for a second representative (Felicia, Aug 25 2026: "some
+// accounts have 2 admins working on their profiles"). Each rep signs in with
+// their own email and password; they all open the same business profile.
 router.post('/admin/members/:id/create-login', requireAdmin, async (req, res) => {
   const emailAddr = String((req.body && req.body.email) || '').trim().toLowerCase();
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(emailAddr)) return res.status(400).json({ error: 'A valid email address is required.' });
@@ -3804,23 +3817,50 @@ router.post('/admin/members/:id/create-login', requireAdmin, async (req, res) =>
     const m = (await loadMembersFull()).members.find((x) => x.id === req.params.id);
     if (!m) return res.status(404).json({ error: 'member not found' });
     const existing = await users.getUserByEmail(emailAddr);
+    if (existing && ['staff', 'admin', 'super_admin'].includes(existing.role || 'member')) {
+      return res.status(409).json({ error: 'That email is a Chamber staff login — it can\'t double as a member sign-in.' });
+    }
     if (existing && existing.memberId && existing.memberId !== m.id) {
       return res.status(409).json({ error: 'That email already belongs to another member\'s login.' });
     }
-    const detail = await attachLoginAndInvite(m.id, emailAddr, m.contactName, m.name, req, req.body.sendInvite !== false);
-    res.json({ ok: true, email: emailAddr, detail });
+    const detail = await attachLoginAndInvite(m.id, emailAddr, req.body.name || m.contactName, m.name, req, req.body.sendInvite !== false);
+    res.json({ ok: true, email: emailAddr, detail, already: !!existing });
   } catch (e) { console.error('create-login', e); res.status(500).json({ error: 'could not create the login' }); }
+});
+
+// The logins on file for one member — every representative's sign-in, so the
+// office can see who has access to the profile and manage each one.
+router.get('/admin/members/:id/logins', requireAdmin, async (req, res) => {
+  try { res.json({ logins: await users.listByMemberId(req.params.id) }); }
+  catch (e) { console.error('list logins', e); res.status(500).json({ error: 'could not load logins' }); }
+});
+
+// Remove one representative's website access (they left the company, etc.).
+// The business profile is untouched — only that person's sign-in goes away.
+router.post('/admin/members/:id/remove-login', requireAdmin, async (req, res) => {
+  const emailAddr = String((req.body && req.body.email) || '').trim().toLowerCase();
+  if (!emailAddr) return res.status(400).json({ error: 'Say which login to remove.' });
+  try {
+    const ok = await users.removeLogin(req.params.id, emailAddr);
+    if (!ok) return res.status(404).json({ error: 'That login is not one of this member\'s (staff accounts can\'t be removed here).' });
+    res.json({ ok: true, email: emailAddr });
+  } catch (e) { console.error('remove-login', e); res.status(500).json({ error: 'could not remove the login' }); }
 });
 
 // Admin generates a one-time SIGN-IN link for a member's login — so the office
 // can open the member's portal view to assist them (open it in a private/
 // incognito window to keep your admin session), or text/email it to the member.
 // Uses the existing 20-minute magic-link tokens; no password is exposed.
+// With two or more representatives on the account, ?email= says whose view;
+// leaving it off when there are several returns the list so the office can pick.
 router.get('/admin/members/:id/login-link', requireAdmin, async (req, res) => {
   try {
-    const list = await users.listUsers();
-    const u = (list || []).find((x) => x.memberId === req.params.id) || null;
-    if (!u || !u.email) return res.status(404).json({ error: 'No login is linked to that member.' });
+    const logins = await users.listByMemberId(req.params.id);
+    if (!logins.length) return res.status(404).json({ error: 'No login is linked to that member.' });
+    const which = String(req.query.email || '').trim().toLowerCase();
+    let u = which ? logins.find((x) => x.email === which) : (logins.length === 1 ? logins[0] : null);
+    if (which && !u) return res.status(404).json({ error: 'That email is not one of this member\'s logins.' });
+    if (!u) return res.status(409).json({ error: 'multiple-logins', logins: logins.map((x) => x.email) });
     const token = auth.signMagicToken(u.email);
     const base = process.env.SITE_URL || `${req.protocol}://${req.get('host')}`;
     res.json({ ok: true, email: u.email, link: `${base}/api/auth/magic/verify?token=${encodeURIComponent(token)}`, expiresInMinutes: 20 });
@@ -3857,11 +3897,21 @@ router.get('/admin/users/:email/reset-link', requireAdmin, async (req, res) => {
 
 // Resolve a member's login address (per the office, Jul 15 — sends must go
 // FROM the website, not pasted into staff Outlook where filters eat them).
-async function memberLoginAddress(id) {
+// `wanted` picks a specific representative's login when the account has more
+// than one; it must be one of the member's logins or the listing email.
+async function memberLoginAddress(id, wanted) {
   const { members } = await loadMembersFull();
   const m = members.find((x) => x.id === id);
   if (!m) return { error: 'member not found', code: 404 };
-  const addr = String(m.email || '').trim().toLowerCase();
+  let addr = String(m.email || '').trim().toLowerCase();
+  if (wanted) {
+    wanted = String(wanted).trim().toLowerCase();
+    const logins = await users.listByMemberId(id);
+    if (wanted !== addr && !logins.some((u) => u.email === wanted)) {
+      return { error: 'That email is not one of this member\'s logins.', code: 404 };
+    }
+    addr = wanted;
+  }
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(addr)) return { error: 'This member has no email on file — add one first.', code: 400 };
   return { m, addr };
 }
@@ -3871,7 +3921,7 @@ async function memberLoginAddress(id) {
 // copying a URL for staff to forward from Outlook (Felicia, Jul 15).
 router.post('/admin/members/:id/send-reset', requireAdmin, async (req, res) => {
   try {
-    const info = await memberLoginAddress(req.params.id);
+    const info = await memberLoginAddress(req.params.id, req.body && req.body.email);
     if (info.error) return res.status(info.code).json({ error: info.error });
     const { m, addr } = info;
     if (!(await users.getUserByEmail(addr))) {
@@ -3896,7 +3946,7 @@ router.post('/admin/members/:id/send-reset', requireAdmin, async (req, res) => {
 // Best for members who can't manage passwords: they click and they're in.
 router.post('/admin/members/:id/send-signin', requireAdmin, async (req, res) => {
   try {
-    const info = await memberLoginAddress(req.params.id);
+    const info = await memberLoginAddress(req.params.id, req.body && req.body.email);
     if (info.error) return res.status(info.code).json({ error: info.error });
     const { m, addr } = info;
     // The magic-verify step needs a user record to exist; create a passwordless
@@ -4069,6 +4119,17 @@ router.get('/admin/members', requireAdmin, async (req, res) => {
       members = members.filter((m) => [m.name, m.category, m.contactName, m.email, m.neighborhood]
         .filter(Boolean).join(' ').toLowerCase().includes(q));
     }
+    // Every login on each member — a business can have one per representative
+    // (Felicia, Aug 25 2026). Admin-only payload; the public /api/members
+    // never carries login emails.
+    const byMember = {};
+    try {
+      for (const u of await users.listUsers()) {
+        if (!u.memberId || !u.email) continue;
+        (byMember[u.memberId] = byMember[u.memberId] || []).push(u.email);
+      }
+    } catch (e) { /* roster still renders without login counts */ }
+    members = members.map((m) => ({ ...m, logins: byMember[m.id] || [] }));
     res.json({ members });
   } catch (e) { res.status(500).json({ error: 'members failed' }); }
 });
@@ -4122,9 +4183,14 @@ router.patch('/admin/members/:id/email', requireAdmin, async (req, res) => {
     if (!m) return res.status(404).json({ error: 'not found' });
     const taken = await users.getUserByEmail(newEmail);
     if (taken && taken.memberId !== id) return res.status(409).json({ error: 'Another login already uses that email address.' });
-    const loginMoved = await users.updateEmailByMemberId(id, newEmail);
+    // Move the login that matches the old listing email. With several rep
+    // logins and no match, none moves — the listing email still updates, and
+    // the response says so instead of guessing which rep to re-address.
+    const loginMoved = await users.updateEmailByMemberId(id, newEmail, m.email || '');
     await repo.setMemberEdit(id, { email: newEmail });
-    res.json({ ok: true, email: newEmail, loginMoved, previous: m.email || '' });
+    const logins = await users.listByMemberId(id);
+    res.json({ ok: true, email: newEmail, loginMoved, previous: m.email || '',
+      note: (!loginMoved && logins.length > 1) ? 'This member has ' + logins.length + ' logins and none matched the old address — manage them under 🔑 Logins.' : undefined });
   } catch (e) { console.error('member email change', e); res.status(500).json({ error: 'could not update the email' }); }
 });
 
@@ -4197,8 +4263,16 @@ function normalizeJoinDate(s) {
   return m ? `${m[3]}-${m[1].padStart(2, '0')}-${m[2].padStart(2, '0')}` : '';
 }
 async function attachLoginAndInvite(memberId, emailAddr, displayName, businessName, req, sendInvite) {
-  await users.bulkImportMembers([{ email: emailAddr, memberId, username: displayName || businessName, passwordHash: null, passwordAlgo: 'unknown', needsReset: true }]);
-  if (!sendInvite) return 'login created (no email sent)';
+  // Only CREATE when the login doesn't exist yet. Re-inviting an existing rep
+  // must not blank the password they already set (the old upsert did), and an
+  // email that belongs to someone else's account must never be silently
+  // re-pointed here.
+  let made = 'login already existed';
+  if (!(await users.getUserByEmail(emailAddr))) {
+    await users.bulkImportMembers([{ email: emailAddr, memberId, username: displayName || businessName, passwordHash: null, passwordAlgo: 'unknown', needsReset: true }]);
+    made = 'login created';
+  }
+  if (!sendInvite) return made + ' (no email sent)';
   const token = auth.signResetToken(emailAddr);
   const base = process.env.SITE_URL || `${req.protocol}://${req.get('host')}`;
   const link = `${base}/auth/reset.html?token=${encodeURIComponent(token)}`;
@@ -4210,7 +4284,7 @@ async function attachLoginAndInvite(memberId, emailAddr, displayName, businessNa
     text: `Hello${displayName ? ' ' + displayName : ''},\n\nYour member listing for ${businessName} is live on the West Valley · Warner Center Chamber website, and a member login has been created for this email address.\n\nSet your password here to manage your listing (photos, description, offers, and more):\n${link}\n\n(The link expires in 1 hour — if it expires, just use "Forgot password" on the sign-in page at ${base}/auth/login.html.)\n\n— West Valley · Warner Center Chamber of Commerce\n(818) 347-4737`,
     html: `<p>Hello${displayName ? ' ' + esc(displayName) : ''},</p><p>Your member listing for <strong>${esc(businessName)}</strong> is live on the West Valley · Warner Center Chamber website, and a member login has been created for this email address.</p><p><a href="${link}">Set your password</a> to manage your listing — photos, description, offers, and more.</p><p>(The link expires in 1 hour — if it expires, just use “Forgot password” on the <a href="${base}/auth/login.html">sign-in page</a>.)</p><p>— West Valley · Warner Center Chamber of Commerce<br>(818) 347-4737</p>`,
   });
-  return r && r.ok ? 'login created · set-password email sent' : 'login created · email pending (' + ((r && r.error) || 'not configured') + ')';
+  return r && r.ok ? made + ' · set-password email sent' : made + ' · email pending (' + ((r && r.error) || 'not configured') + ')';
 }
 router.post('/admin/members/import', requireAdmin, async (req, res) => {
   const rows = Array.isArray(req.body && req.body.members) ? req.body.members.slice(0, 500) : [];
