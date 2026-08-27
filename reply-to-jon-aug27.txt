@@ -1,0 +1,21 @@
+REPLY TO JON MANN — paste into Gmail as a reply on the "Your YPN management page on the Chamber website is ready" thread
+To:  jon@jointmatters.com
+Cc:  felicia@woodlandhillscc.net, diana@woodlandhillscc.net
+Bcc: 23411980@bcc.hubspot.com
+Subject: Re: Your YPN management page on the Chamber website is ready
+
+--- body below this line ---
+
+Hi Jon,
+
+Separated - thanks for flagging it.
+
+When you sign in now, you'll land on Joint Matters, same as before. At the top of the dashboard there are two tabs: Joint Matters Calibration Services and Young Professionals Network. Click YPN and the whole page becomes the group - roster, join requests, group events, meeting notes - with none of your business listing in it. Click back and it's your company page with none of YPN in it. The site remembers which one you were last in, so if you mostly work on YPN it'll open there.
+
+One thing I want to be straight about, since it's different from the old site: it's still one sign-in. Your email address is the account, so I can't give you the same username with two passwords the way the old site did. What I can do - and did - is make the two hats behave like separate accounts once you're inside. If you'd genuinely rather have two logins, give me a second email address you control and I'll put YPN on that one; you'd sign in as one or the other. Your call, and I'm happy either way.
+
+Your events list follows the same rule now. Coming from the YPN side, you see YPN's events; coming from Joint Matters, you see everything, with the group ones labeled.
+
+It's live - just sign out and back in (or hard-refresh) and you'll see the tabs. Take a look and tell me if it reads the way you expected. If something still feels mixed together, say so and I'll keep going.
+
+Michael
