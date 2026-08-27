@@ -92,19 +92,17 @@ window.ChamberPartials = (function () {
         <a href="${nv('/index.html')}" ${active==='home'?'class="active"':''}>${t.home}</a>
         <a href="${nv('/members/directory.html')}" ${active==='members'?'class="active"':''}>${t.dir}</a>
         <a href="${nv('/events/index.html')}" ${active==='events'?'class="active"':''}>${t.events}</a>
+        <!-- Community keeps ONLY Our Community + the general community pages
+             (Felicia, Aug 27 2026: "Everything listed under Community except
+             for Our Community should be listed under The Chamber" — and the
+             members at the mixer looked for Groups under The Chamber). -->
         <div class="nav-dd">
           <button type="button" aria-haspopup="true">${t.community} <span aria-hidden="true">▾</span></button>
           <div class="nav-dd__menu" data-dd="Our Community">
-            <a href="/groups/index.html">${L?'Grupos y Redes':'Groups & Networks'}</a>
-            <a href="/gallery.html">${L?'Galería de Fotos':'Photo Gallery'}</a>
-            <a href="${nv('/community/news.html')}">${t.news}</a>
-            <a href="${nv('/community/podcast.html')}">${L?'Podcast Valley Biz Buzz':'Valley Biz Buzz Podcast'}</a>
-            <a href="/newsletters/valley-biz-connect.html">${L?'Revista Valley Biz Connect':'Valley Biz Connect Magazine'}</a>
-            <a href="/community/board.html">${L?'Tablón Comunitario':'Community Board'}</a>
             <a href="/community/our-community.html">${L?'Nuestra Comunidad':'Our Community'}</a>
-            <a href="/community/community-benefit-foundation.html">${L?'Fundación de Beneficio Comunitario':'Community Benefit Foundation'}</a>
-            <a href="/community/grateful-hearts.html">Grateful Hearts</a>
-            <a href="/community/history.html">${L?'Historia':'Our History'}</a>
+            <a href="/community/phone-numbers.html">${L?'Teléfonos Importantes':'Important Phone Numbers'}</a>
+            <a href="/community/candy-cane-lane.html">Candy Cane Lane</a>
+            <a href="/community/demographics.html">${L?'Demografía':'Demographics'}</a>
           </div>
         </div>
         <div class="nav-dd">
@@ -126,6 +124,15 @@ window.ChamberPartials = (function () {
             <a href="/leadership.html">${L?'Junta y Liderazgo':'Board & Leadership'}</a>
             <a href="/leaders.html">${L?'Líderes de la Cámara':'Chamber Leaders'}</a>
             <a href="/ambassadors.html">${L?'Embajadores':'Ambassadors'}</a>
+            <a href="/groups/index.html">${L?'Grupos y Círculos de Conexión':'Groups & Connection Circles'}</a>
+            <a href="/community/board.html">${L?'Tablón Comunitario':'Community Board'}</a>
+            <a href="/gallery.html">${L?'Galería de Fotos':'Photo Gallery'}</a>
+            <a href="${nv('/community/news.html')}">${t.news}</a>
+            <a href="${nv('/community/podcast.html')}">${L?'Podcast Valley Biz Buzz':'Valley Biz Buzz Podcast'}</a>
+            <a href="/newsletters/valley-biz-connect.html">${L?'Revista Valley Biz Connect':'Valley Biz Connect Magazine'}</a>
+            <a href="/community/community-benefit-foundation.html">${L?'Fundación de Beneficio Comunitario':'Community Benefit Foundation'}</a>
+            <a href="/community/grateful-hearts.html">Grateful Hearts</a>
+            <a href="/community/history.html">${L?'Historia':'Our History'}</a>
             <a href="/p/benefits-of-membership">${L?'Por qué unirse':'Why Join the Chamber'}</a>
             <a href="${nv('/resources.html')}">${L?'Más sobre la Cámara':'More Chamber pages'} →</a>
           </div>
@@ -189,7 +196,7 @@ window.ChamberPartials = (function () {
         <h4>${t.engage}</h4>
         <ul>
           <li><a href="${nv('/events/index.html')}">${t.events}</a></li>
-          <li><a href="/groups/index.html">${L?'Grupos y Redes':'Groups & Networks'}</a></li>
+          <li><a href="/groups/index.html">${L?'Grupos y Círculos de Conexión':'Groups & Connection Circles'}</a></li>
           <li><a href="/gallery.html">${L?'Galería de Fotos':'Photo Gallery'}</a></li>
           <li><a href="${nv('/community/news.html')}">${L?'Noticias':'Valley Biz Buzz'}</a></li>
           <li><a href="/newsletters/valley-biz-connect.html">Valley Biz Connect</a></li>

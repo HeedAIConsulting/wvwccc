@@ -1,0 +1,24 @@
+REPLY TO FELICIA — paste into Gmail as a reply on the "Update Requests from Members and Us" thread
+To:  felicia@woodlandhillscc.net
+Cc:  diana@woodlandhillscc.net
+Bcc: 23411980@bcc.hubspot.com
+Subject: RE: Update Requests from Members and Us
+
+--- body below this line ---
+
+Hi Felicia,
+
+All three items from the mixer are live. Here's each one:
+
+1. Messaging a member. The honest answer is there wasn't a messaging feature to be unable to use - member emails are hidden from the public directory on purpose, and nothing filled that gap. Now there is one: every member profile has a "✉️ Message this member" button. A signed-in member writes their note, the website delivers it to the member's email on file (their address stays private), and when the member hits reply, it goes straight back to the sender. You and Diana can see the traffic in Admin > Inquiries. There's a sensible limit so nobody can spray the whole roster.
+
+2. Groups and Connection Circles. Moved - they're now under The Chamber in the menu, and the page is named "Groups & Connection Circles" like your members expect. I went through your Networks and Committees 2026 flyer line by line and added the nine that were missing: Table for Six, the Food and Wine, Installation, Golf, Ambassador, Membership, Education, and Beautification Committees, and the UCC Government Affairs Meeting - each with the leader and phone number from the flyer.
+
+Three small things for you on that flyer:
+- It lists the Education Committee twice with different leaders (Shawn Kiley, 2nd Wednesday 4 PM on page 1; Damon Buford, 4th Thursday 9 AM on page 2). I listed it once with the office as the contact - tell me which is current and I'll put in the right leader and meeting time.
+- A few names differ between the website and the flyer: the site says Dynamic Business Networking (DBN), Lee's Luncheon Connection Circle, and Martin's Connection Circle; the flyer says Dynamic Business Professionals Network, Lunch Leads with Lee's, and Martin's Monday Morning Meeting. I kept the site's names since the calendar uses them - say the word and I'll rename any of them.
+- The site also lists an Event Planning & Hospitality Professionals Network that isn't on the flyer. I left it up - let me know if it should come down.
+
+3. The Community menu. Done exactly as you described: everything except Our Community now lives under The Chamber, and Community holds Our Community plus - good news - the three pages from the old website, which I was able to retrieve in full: Important Phone Numbers (the whole A-to-Z directory, the safety hotlines, and the government officials, now with a search box), Candy Cane Lane, and Demographics. One heads-up: those pages say what the old site last published, so a few officials' names and numbers may have changed since - worth a quick skim when you have a minute, and the phone numbers page has a "let the office know" link for anything a member spots.
+
+Michael

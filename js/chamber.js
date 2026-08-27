@@ -1796,6 +1796,19 @@ window.Chamber = (function () {
           ${m.leaderStatus ? `<div class="mt-3"><span class="badge badge--leader badge--dot">${esc(m.leaderStatus)}</span></div>` : ''}
           <ul style="list-style:none;margin-top:var(--s-4);display:flex;flex-direction:column;gap:10px;text-align:left;overflow-wrap:anywhere;word-break:break-word">${contactRows}</ul>
           ${ctas ? `<div class="btn-row mt-4" style="justify-content:center">${ctas}</div>` : ''}
+          <!-- Member-to-member message (Felicia, Aug 27 2026): the directory
+               hides emails on purpose, so the website relays the message —
+               see /api/members/:id/message. -->
+          <div class="mt-4">
+            <button class="btn btn--forest btn--sm" id="msgMemberBtn" type="button" style="width:100%">✉️ Message this member</button>
+            <form id="msgMemberForm" hidden style="margin-top:10px;text-align:left">
+              <textarea name="message" rows="4" required maxlength="4000" placeholder="Your message…" style="width:100%;font:inherit;padding:10px;border:1.5px solid var(--gold-soft,#e6dcbf);border-radius:10px"></textarea>
+              <input name="phone" type="tel" maxlength="40" placeholder="Your phone (optional)" style="width:100%;margin-top:8px;font:inherit;padding:8px 10px;border:1.5px solid var(--line,#e4dcc8);border-radius:10px">
+              <button class="btn btn--gold btn--sm" type="submit" style="width:100%;margin-top:8px">Send</button>
+              <p class="member-tile__meta" style="margin-top:6px">Delivered by the Chamber website to the member's email on file — their address stays private, and replies come straight back to you.</p>
+            </form>
+            <p class="member-tile__meta" id="msgMemberNote" hidden style="margin-top:8px"></p>
+          </div>
           ${(social || reviews) ? `<div class="chips mt-4" style="justify-content:center">${social}${reviews}</div>` : ''}
         </aside>
         <div>
@@ -1818,6 +1831,41 @@ window.Chamber = (function () {
           </div>
         </div>
       </div>`;
+
+    // ✉️ Message this member — reveal the form, send through the website.
+    const msgBtn = document.getElementById('msgMemberBtn');
+    const msgForm = document.getElementById('msgMemberForm');
+    const msgNote = document.getElementById('msgMemberNote');
+    const msgSay = (s, keepForm) => { msgNote.hidden = false; msgNote.textContent = s; if (!keepForm) msgForm.hidden = true; };
+    if (msgBtn) msgBtn.addEventListener('click', () => { msgForm.hidden = !msgForm.hidden; msgNote.hidden = true; });
+    if (msgForm) msgForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fd = new FormData(msgForm);
+      const sb = msgForm.querySelector('button[type="submit"]');
+      sb.disabled = true; sb.textContent = 'Sending…';
+      try {
+        const r = await fetch(ChamberAPI.url('/api/members/' + encodeURIComponent(m.id) + '/message'), {
+          method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: fd.get('message'), phone: fd.get('phone') }),
+        });
+        const body = await r.json().catch(() => ({}));
+        if (r.status === 401 || r.status === 403) {
+          msgSay('Please sign in to message a member — it takes a second.', true);
+          msgNote.innerHTML = 'Please <a href="/auth/login.html">sign in</a> to message a member — your Chamber login works here.';
+        } else if (r.status === 409 && body.error === 'no-email') {
+          msgSay(`${m.name} doesn't receive messages through the site yet — please call the Chamber office at (818) 347-4737 and they'll connect you.`);
+          msgBtn.hidden = true;
+        } else if (!r.ok) {
+          msgSay(body.error || 'The message could not be sent — please try again.', true);
+        } else {
+          msgSay(`✓ Sent — ${m.name} will get your message by email, and their reply comes straight to your inbox.`);
+          msgBtn.hidden = true;
+        }
+      } catch (err) {
+        msgSay('The message could not be sent — please try again.', true);
+      }
+      sb.disabled = false; sb.textContent = 'Send';
+    });
 
     // Shareable short URL: chamberdomain/m/<slug>
     const shareBtn = document.getElementById('copyShareLink');

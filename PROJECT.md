@@ -11,6 +11,33 @@ Render Web Service `wvwccc-web` (srv-d8f8pci8qa3s738nsib0) + Postgres `wvwccc-db
 - **ElevenLabs ConvAI** agent `agent_8201kqnjhzyrfpdvtqwgf9e0034y` on all public pages (pulled from POC).
 - Nav adds Deals + Community.
 
+**Mixer feedback batch (2026-08-27):** ✅ built — Felicia's "Update Requests
+from Members and Us" (member feedback from the Aug 26 mixer):
+- *Member-to-member messaging:* there wasn't one (directory strips emails on
+  purpose). `POST /api/members/:id/message` relays it server-side — signed-in
+  senders only, recipient's address never exposed, Reply-To back to the
+  sender, 5/hr rate limit, logged to Admin → Inquiries. "✉️ Message this
+  member" on every profile. Tests: `backend/test/member-message.test.mjs`.
+- *Nav restructure:* Community dropdown keeps only Our Community + the three
+  recovered pages; everything else (Groups, Community Board, Gallery, Biz
+  Buzz, Podcast, Magazine, CBF, Grateful Hearts, History) moved under The
+  Chamber. "Groups & Networks" renamed **Groups & Connection Circles**
+  everywhere (nav, footer, page, support topics).
+- *Groups roster:* audited against the office's "Networks and Committees
+  2026" flyer; added the 9 missing (Table for Six, Food & Wine, Installation,
+  Golf, UCC Government Affairs, Ambassador, Membership, Education,
+  Beautification committees) — seed is add-only into the live store, so they
+  appear on deploy without touching admin edits. Flags for the office: the
+  flyer lists Education Committee twice with different leaders; three circle
+  names differ site-vs-flyer; Event Planning & Hospitality is on the site but
+  not the flyer.
+- *Old-site pages recovered from the Wayback Machine:* Important Phone
+  Numbers (full A–Z + hotlines + officials, searchable), Candy Cane Lane,
+  Demographics → `community/phone-numbers.html`, `candy-cane-lane.html`,
+  `demographics.html`. Officials/numbers are as last published on the old
+  site — page invites corrections to the office.
+Cache-busts: partials.js + chamber.js → 20260827a.
+
 **Felicia's Aug 26 pair (2026-08-26):** ✅ built —
 - *Action buttons at the top:* the event page's RSVP / Get tickets buttons
   (plus the members-free hint) moved from the foot to directly under the

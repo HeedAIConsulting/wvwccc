@@ -1124,6 +1124,63 @@ router.get('/assets/:id', async (req, res) => {
   } catch (e) { res.status(500).end(); }
 });
 
+// ── Member-to-member messages (Felicia, Aug 27 2026) ────────
+// A member at the mixer was "unable to use the messaging feature to message
+// a member" — there wasn't one: the public directory strips email addresses
+// on purpose. This relays the message server-side instead. Any signed-in
+// user writes to a member THROUGH the website; the member receives it at
+// their on-file address (never exposed), Reply-To goes straight back to the
+// sender, and the office sees the traffic in Admin → Inquiries.
+const _memberMsgRate = new Map(); // sender email → recent send timestamps
+router.post('/members/:id/message', auth.requireAuth(), async (req, res) => {
+  const b = req.body || {};
+  const text = String(b.message || '').trim().slice(0, 4000);
+  if (text.length < 3) return res.status(400).json({ error: 'Write a message first.' });
+  const senderEmail = String(req.user.sub || '').toLowerCase();
+  // 5 an hour per sender keeps a compromised login from spraying the roster.
+  const now = Date.now();
+  const recent = (_memberMsgRate.get(senderEmail) || []).filter((t) => now - t < 3600_000);
+  if (recent.length >= 5) return res.status(429).json({ error: 'You have sent several messages in the last hour — please try again a little later.' });
+  try {
+    const { members } = await loadMembersFull();
+    const m = members.find((x) => x.id === req.params.id);
+    if (!m) return res.status(404).json({ error: 'Member not found.' });
+    const addr = String(m.email || '').trim().toLowerCase();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(addr)) return res.status(409).json({ error: 'no-email' });
+    let senderName = String(b.name || '').trim().slice(0, 120);
+    let senderBusiness = '';
+    if (req.user.mid) {
+      const me = members.find((x) => x.id === req.user.mid);
+      if (me) { senderBusiness = me.name || ''; if (!senderName) senderName = me.contactName || me.name || ''; }
+    }
+    if (!senderName) senderName = senderEmail;
+    const from = senderBusiness && senderBusiness !== senderName ? `${senderName} (${senderBusiness})` : senderName;
+    const phone = String(b.phone || '').trim().slice(0, 40);
+    const r = await email.send({
+      to: addr,
+      replyTo: senderEmail,
+      subject: `Message from ${from} — via your Chamber listing`,
+      text: `Hello${m.contactName ? ' ' + m.contactName : ''},\n\n${from} sent you a message through your listing on the West Valley · Warner Center Chamber website:\n\n${text}\n\nReply to this email to answer ${senderName} directly (${senderEmail}${phone ? ' · ' + phone : ''}).\n\n— West Valley · Warner Center Chamber of Commerce\n(818) 347-4737 · https://woodlandhillscc.net`,
+      html: `<p>Hello${esc(m.contactName ? ' ' + m.contactName : '')},</p><p><strong>${esc(from)}</strong> sent you a message through your listing on the West Valley · Warner Center Chamber website:</p><blockquote style="border-left:3px solid #C9A227;margin:12px 0;padding:8px 14px;background:#faf6ea">${esc(text).replace(/\n/g, '<br>')}</blockquote><p>Reply to this email to answer ${esc(senderName)} directly (${esc(senderEmail)}${phone ? ' · ' + esc(phone) : ''}).</p><p>— West Valley · Warner Center Chamber of Commerce<br>(818) 347-4737 · <a href="https://woodlandhillscc.net">woodlandhillscc.net</a></p>`,
+    });
+    if (r && (r.skipped || r.ok === false)) {
+      return res.status(500).json({ error: 'The message could not be sent right now — please try again, or call the office at (818) 347-4737.' });
+    }
+    recent.push(now);
+    _memberMsgRate.set(senderEmail, recent);
+    // Office visibility, same store the contact form writes to.
+    try {
+      await repo.addLead({
+        id: 'lead-' + Date.now().toString(36), kind: 'member-message',
+        name: from, email: senderEmail, phone, company: senderBusiness,
+        reason: `Member message → ${m.name}`, message: text,
+        status: 'new', received: new Date().toISOString(),
+      });
+    } catch (e) { /* the message itself already went out */ }
+    res.json({ ok: true });
+  } catch (e) { console.error('member message', e); res.status(500).json({ error: 'The message could not be sent.' }); }
+});
+
 // ── Image Library (Felicia, Jul 29 2026) ────────────────────
 // "Is there a gallery now in the back end?" — every image the office has ever
 // uploaded, browsable and reusable, so a council-member headshot or a sponsor
