@@ -11,6 +11,24 @@ Render Web Service `wvwccc-web` (srv-d8f8pci8qa3s738nsib0) + Postgres `wvwccc-db
 - **ElevenLabs ConvAI** agent `agent_8201kqnjhzyrfpdvtqwgf9e0034y` on all public pages (pulled from POC).
 - Nav adds Deals + Community.
 
+**Two workspaces, one sign-in (2026-08-27):** ✅ built — Jon Mann (Joint
+Matters + Young Professionals Network leader): "When I sign in to my company
+page, I see content for YPN mixed in. Can we separate these two accounts?"
+On the old site he used one username with two passwords pointing at two
+places; the email is the account key here, so that can't come back. Instead
+the member dashboard now renders **one workspace per hat** — a switcher at the
+top, the business pane (listing, getting-started, membership, volunteer) and
+each led group's pane (roster counts, manage, add a group event) never on
+screen together. The business leads, so signing in lands where it always did;
+the choice sticks per browser and `?w=<key>` opens either directly; the page
+heading names the active workspace. A login with a single role sees no
+switcher and no change. `event.html?g=<slug>` now lists **that group's**
+events rather than everything the login has posted, with a link back to all
+of them. A leader with no business listing gets their group workspace instead
+of the old "not linked to a listing" dead end.
+Tests: `backend/test/workspace-separation.test.mjs`. Cache-bust: member.js →
+20260827a.
+
 **Mixer feedback batch (2026-08-27):** ✅ built — Felicia's "Update Requests
 from Members and Us" (member feedback from the Aug 26 mixer):
 - *Member-to-member messaging:* there wasn't one (directory strips emails on

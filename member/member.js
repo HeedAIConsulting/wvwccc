@@ -19,6 +19,20 @@ window.MemberPortal = (function () {
   const TIER_LABEL = (t) => (t || 'member').charAt(0).toUpperCase() + (t || 'member').slice(1);
 
   // ── Dashboard ──
+  /* Two hats, two workspaces (Jon Mann, Aug 27 2026 — "When I sign in to my
+     company page, I see content for YPN mixed in. Can we separate these two
+     accounts?"). One sign-in still opens both: the email IS the account, and
+     the old site's same-username-two-passwords trick can't come back. What
+     changes is that a login carrying both a business listing and a group it
+     leads no longer stacks them on one page — each gets its own workspace and
+     a switcher at the top, so signing in lands on the business exactly like it
+     did before there was a group. Anyone with a single role sees no switcher
+     and no change at all. The chosen workspace sticks (localStorage), and
+     ?w=<key> opens one directly so a link can point at either. */
+  const WS_KEY = 'wv_workspace';
+  const wsRemember = (k) => { try { localStorage.setItem(WS_KEY, k); } catch (e) {} };
+  const wsRecall = () => { try { return localStorage.getItem(WS_KEY) || ''; } catch (e) { return ''; } };
+
   async function initDashboard() {
     let data;
     try { data = await api('/api/me'); } catch (e) { return; }
@@ -31,28 +45,34 @@ window.MemberPortal = (function () {
     try { myGroups = (await api('/api/me/my-groups')).groups || []; } catch (e) {}
     const bindLogout = () => document.querySelectorAll('[data-logout]').forEach((b) => b.addEventListener('click', (e) => { e.preventDefault(); logout(); }));
 
-    document.getElementById('welcome').textContent = member ? member.name : user.email;
+    const welcomeEl = document.getElementById('welcome');
+    if (welcomeEl) welcomeEl.textContent = member ? member.name : user.email;
     const wrap = document.getElementById('memberBody');
 
-    if (!member) {
+    // No listing AND no group to lead → nothing to manage yet.
+    if (!member && !myGroups.length) {
       wrap.innerHTML = `<div class="notice">Your login isn't linked to a directory listing yet. Contact the Chamber office at (818) 347-4737 and we'll connect it.</div>`;
       bindLogout(); return;
     }
-    const status = member.status || 'approved';
-    // Welcome + getting-started guide — a checklist that reflects what's actually
-    // filled in, so new members know exactly how to complete their listing.
-    const steps = [
-      { done: !!member.logo, label: 'Add your business logo', href: 'profile.html#logo' },
-      { done: !!member.tagline, label: 'Write a one-line tagline', href: 'profile.html' },
-      { done: !!(member.services || member.description), label: 'Describe your services', href: 'profile.html' },
-      { done: !!(member.accomplishments || member.associations), label: 'Add accomplishments & associations', href: 'profile.html' },
-      { done: !!(member.social && Object.keys(member.social).length), label: 'Add your social media links', href: 'profile.html' },
-      { done: !!(member.photos && member.photos.length), label: 'Upload photos to your gallery', href: 'profile.html' },
-    ];
-    const doneCount = steps.filter((s) => s.done).length;
-    const allDone = doneCount === steps.length;
-    const firstName = (member.contactName || member.name || '').split(' ')[0] || member.name;
-    const gettingStarted = `
+
+    // ── The business workspace (unchanged content, now in its own pane) ──
+    let businessPane = '';
+    if (member) {
+      const status = member.status || 'approved';
+      // Welcome + getting-started guide — a checklist that reflects what's actually
+      // filled in, so new members know exactly how to complete their listing.
+      const steps = [
+        { done: !!member.logo, label: 'Add your business logo', href: 'profile.html#logo' },
+        { done: !!member.tagline, label: 'Write a one-line tagline', href: 'profile.html' },
+        { done: !!(member.services || member.description), label: 'Describe your services', href: 'profile.html' },
+        { done: !!(member.accomplishments || member.associations), label: 'Add accomplishments & associations', href: 'profile.html' },
+        { done: !!(member.social && Object.keys(member.social).length), label: 'Add your social media links', href: 'profile.html' },
+        { done: !!(member.photos && member.photos.length), label: 'Upload photos to your gallery', href: 'profile.html' },
+      ];
+      const doneCount = steps.filter((s) => s.done).length;
+      const allDone = doneCount === steps.length;
+      const firstName = (member.contactName || member.name || '').split(' ')[0] || member.name;
+      const gettingStarted = `
       <div class="card" style="border-left:4px solid var(--gold,#c8a24a);margin-bottom:var(--s-6)">
         <span class="kicker">Welcome to the Chamber</span>
         <h2 style="margin:4px 0 2px">Welcome, ${esc(firstName)}! 🌿</h2>
@@ -78,27 +98,7 @@ window.MemberPortal = (function () {
           <span class="member-tile__meta" style="align-self:center">Need help? Use the <strong>🛟 Support</strong> button (bottom-left).</span>
         </div>
       </div>`;
-    // Groups this login leads — management sits at the VERY TOP at login
-    // (Felicia call, Aug 19 2026: "they could see the events they have posted…
-    // edit, delete" without hunting for an events page).
-    const groupsLead = myGroups.length ? `
-      <div class="card" style="border-left:4px solid var(--green,#1E5631);margin-bottom:var(--s-6)">
-        <span class="kicker">Your group${myGroups.length === 1 ? '' : 's'}</span>
-        <h2 style="margin:4px 0 2px">Group management</h2>
-        <p class="member-tile__meta">Post and edit your group's events, see RSVPs, and manage the member list.</p>
-        <div style="display:flex;flex-direction:column;gap:10px;margin-top:var(--s-4)">
-          ${myGroups.map((g) => `
-          <div style="display:flex;justify-content:space-between;align-items:center;gap:var(--s-3);flex-wrap:wrap;border:1px solid var(--line,#eee);border-radius:var(--r-md,10px);padding:12px 14px">
-            <div>
-              <strong>${esc(g.name)}</strong>
-              <div class="member-tile__meta">${g.memberCount} member${g.memberCount === 1 ? '' : 's'}${g.pendingCount ? ` · <strong style="color:var(--gold,#b8893c)">${g.pendingCount} join request${g.pendingCount === 1 ? '' : 's'} waiting</strong>` : ''}</div>
-            </div>
-            <a class="btn btn--forest btn--sm" href="group.html?g=${encodeURIComponent(g.slug)}">Manage group →</a>
-          </div>`).join('')}
-        </div>
-      </div>` : '';
-    wrap.innerHTML = `
-      ${groupsLead}
+      businessPane = `
       ${gettingStarted}
       <div class="grid member-cols" style="grid-template-columns:1.4fr .9fr;gap:var(--s-6);align-items:start">
         <div class="card">
@@ -134,6 +134,75 @@ window.MemberPortal = (function () {
         </aside>
       </div>
       <div id="volunteerBlock" class="mt-6"></div>`;
+    }
+
+    // ── A group workspace: only that group's business, nothing else ──
+    const groupPane = (g) => `
+      <div class="grid member-cols" style="grid-template-columns:1.4fr .9fr;gap:var(--s-6);align-items:start">
+        <div class="card" style="border-left:4px solid var(--green,#1E5631)">
+          <span class="kicker">Group workspace</span>
+          <h2 style="margin:4px 0">${esc(g.name)}</h2>
+          <div class="member-tile__meta">${g.memberCount} member${g.memberCount === 1 ? '' : 's'}${g.pendingCount ? ` · <strong style="color:var(--gold,#b8893c)">${g.pendingCount} join request${g.pendingCount === 1 ? '' : 's'} waiting</strong>` : ''}</div>
+          <p class="mt-4">Everything for running this group lives on its management page: post and edit the group's events, see who has RSVP'd, approve join requests and add members, post meeting notes and photos, and email everyone at once.</p>
+          <div class="btn-row mt-5">
+            <a class="btn btn--forest" href="group.html?g=${encodeURIComponent(g.slug)}">Manage this group</a>
+            <a class="btn btn--gold" href="event.html?g=${encodeURIComponent(g.slug)}">＋ Add a group event</a>
+            <a class="btn btn--ghost" href="/groups/${encodeURIComponent(g.slug)}" target="_blank">View public page ↗</a>
+          </div>
+        </div>
+        <aside class="card bg-forest" style="color:#fff">
+          <span class="hero__feature-label">Group leader</span>
+          <h3 style="color:#fff;margin-top:8px">Quick links</h3>
+          <ul style="list-style:none;display:flex;flex-direction:column;gap:8px;margin-top:var(--s-3)">
+            <li><a style="color:var(--gold-bright)" href="group.html?g=${encodeURIComponent(g.slug)}">› Members &amp; join requests</a></li>
+            <li><a style="color:var(--gold-bright)" href="event.html?g=${encodeURIComponent(g.slug)}">› Add or repeat a meeting</a></li>
+            <li><a style="color:var(--gold-bright)" href="leader-guide.html">› Group Leader Guide</a></li>
+            <li><a style="color:var(--gold-bright)" href="../events/index.html">› The Chamber calendar</a></li>
+          </ul>
+          <p style="color:rgba(255,255,255,.8);font-size:.82rem;margin-top:var(--s-4)">Need help? Use the <strong>🛟 Support</strong> button (bottom-left).</p>
+        </aside>
+      </div>`;
+
+    // One entry per hat this login wears. The business always leads: signing in
+    // should land where it always has.
+    const spaces = [];
+    if (member) spaces.push({ key: 'business', name: member.name, label: 'My business', html: businessPane });
+    for (const g of myGroups) spaces.push({ key: 'group:' + g.slug, name: g.name, label: 'My group', html: groupPane(g) });
+
+    const wanted = new URLSearchParams(location.search).get('w') || '';
+    const active = spaces.find((s) => s.key === wanted) || spaces.find((s) => s.key === wsRecall()) || spaces[0];
+
+    // A single hat = the page as it always was, switcher and all omitted.
+    const switcher = spaces.length > 1 ? `
+      <div role="tablist" aria-label="Choose a workspace" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:var(--s-5);border-bottom:1px solid var(--line,#e6e0cf);padding-bottom:var(--s-3)">
+        ${spaces.map((s) => `<button type="button" role="tab" data-space="${esc(s.key)}"
+          aria-selected="${s.key === active.key ? 'true' : 'false'}"
+          style="cursor:pointer;text-align:left;border-radius:var(--r-md,10px);padding:9px 14px;font-family:inherit;font-size:.92rem;line-height:1.25;border:1px solid ${s.key === active.key ? 'var(--green,#1E5631)' : 'var(--line,#e6e0cf)'};background:${s.key === active.key ? 'var(--green,#1E5631)' : 'transparent'};color:${s.key === active.key ? '#fff' : 'var(--green-ink,#12241a)'}">
+          <strong style="display:block;overflow-wrap:anywhere">${esc(s.name)}</strong>
+          <span style="font-size:.78rem;opacity:.8">${esc(s.label)}</span>
+        </button>`).join('')}
+      </div>` : '';
+
+    wrap.innerHTML = switcher + spaces.map((s) =>
+      `<div data-space-pane="${esc(s.key)}"${s.key === active.key ? '' : ' hidden'}>${s.html}</div>`).join('');
+
+    const show = (key) => {
+      const chosen = spaces.find((s) => s.key === key) || spaces[0];
+      wrap.querySelectorAll('[data-space-pane]').forEach((p) => { p.hidden = p.dataset.spacePane !== chosen.key; });
+      wrap.querySelectorAll('[data-space]').forEach((b) => {
+        const on = b.dataset.space === chosen.key;
+        b.setAttribute('aria-selected', on ? 'true' : 'false');
+        b.style.background = on ? 'var(--green,#1E5631)' : 'transparent';
+        b.style.color = on ? '#fff' : 'var(--green-ink,#12241a)';
+        b.style.borderColor = on ? 'var(--green,#1E5631)' : 'var(--line,#e6e0cf)';
+      });
+      // The heading names the workspace you're in, so the two never blur.
+      if (welcomeEl) welcomeEl.textContent = chosen.name;
+      wsRemember(chosen.key);
+    };
+    wrap.querySelectorAll('[data-space]').forEach((b) => b.addEventListener('click', () => show(b.dataset.space)));
+    if (spaces.length > 1) show(active.key);
+
     bindLogout();
     mountVolunteer();
   }
@@ -623,12 +692,18 @@ window.MemberPortal = (function () {
 
     function renderMyEvents(events) {
       if (!listEl) return;
-      if (!events || !events.length) { listEl.innerHTML = ''; return; }
+      // Arriving from a group's workspace (event.html?g=…) → this list is that
+      // group's calendar, not a pile of everything the login has ever posted
+      // (Jon Mann, Aug 27 2026 — business and group stay separate).
+      const all = events || [];
+      const scoped = groupCtx ? all.filter((e) => e.groupSlug === groupCtx) : all;
+      if (!scoped.length) { listEl.innerHTML = ''; return; }
+      const events_ = scoped;
       const seen = new Set(); const rows = [];
-      for (const ev of events) {
+      for (const ev of events_) {
         const key = ev.seriesId || ev.id;
         if (seen.has(key)) continue; seen.add(key);
-        const count = ev.seriesId ? events.filter((e) => e.seriesId === ev.seriesId).length : 1;
+        const count = ev.seriesId ? events_.filter((e) => e.seriesId === ev.seriesId).length : 1;
         const host = ev.hostName || ev.groupName || '';
         rows.push(`<div class="card" style="padding:var(--s-4);margin-bottom:var(--s-3);display:flex;justify-content:space-between;align-items:center;gap:var(--s-3);flex-wrap:wrap">
           <div><strong>${esc(ev.title)}</strong>${host ? ` <span class="badge badge--gold" style="font-size:.62rem;vertical-align:middle">${esc(host)}</span>` : ''}<div class="member-tile__meta">${esc(ev.date || '')}${ev.time ? ' · ' + esc(ev.time) : ''}${count > 1 ? ' · repeats (' + count + ' dates)' : ''}${ev.venue ? ' · ' + esc(ev.venue) : ''}</div></div>
@@ -637,7 +712,11 @@ window.MemberPortal = (function () {
             <button class="btn btn--ghost btn--sm" data-del="${esc(ev.id)}" style="color:var(--red,#b00020)">Remove</button>
           </div></div>`);
       }
-      listEl.innerHTML = '<h3>Your events on the calendar</h3>' + rows.join('');
+      const groupName = groupCtx ? (events_[0] && events_[0].groupName) || 'your group' : '';
+      listEl.innerHTML = (groupCtx
+        ? `<h3>${esc(groupName)} events on the calendar</h3>`
+          + (all.length > scoped.length ? `<p class="member-tile__meta" style="margin:-6px 0 12px"><a href="event.html">See all of your events →</a></p>` : '')
+        : '<h3>Your events on the calendar</h3>') + rows.join('');
       listEl.querySelectorAll('[data-del]').forEach((b) => b.addEventListener('click', async () => {
         if (!confirm('Remove this event (and all of its repeat dates) from the calendar?')) return;
         b.disabled = true;
