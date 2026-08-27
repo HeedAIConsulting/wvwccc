@@ -2203,6 +2203,10 @@ function buildGroup(b, existing = {}) {
   };
 }
 let _groupsSeeded = false;
+// Test seam: the seed/backfill pass runs once per process, so a test that wants
+// to prove the backfill leaves an admin's edit alone has to be able to run it
+// a second time. Nothing in the app calls this.
+export function __resetGroupSeed() { _groupsSeeded = false; }
 async function loadGroups() {
   if (!_groupsSeeded) {
     _groupsSeeded = true;
@@ -2210,21 +2214,35 @@ async function loadGroups() {
       if (!(await repo.hasGroups())) {
         for (const g of readSeedGroups()) await repo.upsertGroup(buildGroup(g, g));
       } else {
-        // add-only for new groups; plus a one-time leader/manager BACKFILL for
-        // existing groups that still have no roster/manager (so the imported
-        // Connection Circle leaders land without clobbering any admin edits).
+        // add-only for new groups; plus a BACKFILL that fills the blanks on
+        // groups already in the store — the imported Connection Circle leaders
+        // land, and a correction from the office reaches a group that was
+        // seeded with a placeholder. It only ever writes a field the office
+        // has left EMPTY (or still holding the "call the office" placeholder
+        // the seed itself wrote), so an admin edit is never clobbered.
+        // Felicia, Aug 27 2026: the Networks & Committees flyer lists the
+        // Education Committee twice; she confirmed Damon Buford's entry is the
+        // current one, and that correction rides in through here.
+        const seedPlaceholder = (s) => !String(s || '').trim()
+          || /^contact the chamber office/i.test(String(s).trim());
         const live = new Map((await repo.listGroupsStore()).map((g) => [g.id, g]));
         for (const g of readSeedGroups()) {
           const cur = live.get(g.id);
           if (!cur) { await repo.upsertGroup(buildGroup(g, g)); continue; }
+          const curMgr = cur.manager || {};
           const noRoster = !Array.isArray(cur.members) || cur.members.length === 0;
-          const noManager = !cur.manager || !cur.manager.email;
+          // "No manager" means nobody is named at all — a manager carrying a
+          // name but no email is a real entry and stays put.
+          const noManager = !curMgr.email && !String(curMgr.name || '').trim();
           const addRoster = noRoster && Array.isArray(g.members) && g.members.length;
-          const addManager = noManager && g.manager && g.manager.email;
-          if (addRoster || addManager) {
+          const addManager = noManager && g.manager && (g.manager.email || g.manager.name);
+          const addSchedule = seedPlaceholder(cur.meetingSchedule)
+            && !seedPlaceholder(g.meetingSchedule);
+          if (addRoster || addManager || addSchedule) {
             const merged = { ...cur };
             if (addRoster) merged.members = g.members;
             if (addManager) merged.manager = g.manager;
+            if (addSchedule) merged.meetingSchedule = g.meetingSchedule;
             await repo.upsertGroup(buildGroup(merged, cur));
           }
         }

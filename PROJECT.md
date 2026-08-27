@@ -11,6 +11,20 @@ Render Web Service `wvwccc-web` (srv-d8f8pci8qa3s738nsib0) + Postgres `wvwccc-db
 - **ElevenLabs ConvAI** agent `agent_8201kqnjhzyrfpdvtqwgf9e0034y` on all public pages (pulled from POC).
 - Nav adds Deals + Community.
 
+**Education Committee correction + a seed that can carry one (2026-08-27):**
+✅ built — Felicia confirmed the flyer's duplicate Education Committee entries
+resolve to **Damon Buford, (602) 690-2173, 4th Thursday 9 AM**. The committee
+had already been seeded into the live store that morning with a "call the
+office" placeholder, and the seed pass is add-only for groups that already
+exist, so a corrected seed would never have reached production. The backfill
+in `loadGroups()` now also fills a **blank or placeholder** manager and
+meeting schedule — and only those: a manager carrying a real name, or a
+schedule the office actually typed, is left alone. Verified against a
+production-shaped placeholder record (corrects on next boot) and against an
+office-set group (untouched). Tests: `backend/test/group-seed-backfill.test.mjs`,
+including a mutation check that the no-clobber guard is what makes it pass.
+`__resetGroupSeed()` is a test-only seam for re-running the pass in-process.
+
 **Two workspaces, one sign-in (2026-08-27):** ✅ built — Jon Mann (Joint
 Matters + Young Professionals Network leader): "When I sign in to my company
 page, I see content for YPN mixed in. Can we separate these two accounts?"
