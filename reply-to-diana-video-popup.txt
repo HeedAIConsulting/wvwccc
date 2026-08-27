@@ -1,0 +1,31 @@
+REPLY TO DIANA — paste into Gmail as a reply on the "Video Link" thread
+To:  diana@woodlandhillscc.net
+Cc:  felicia@woodlandhillscc.net
+Bcc: 23411980@bcc.hubspot.com
+Subject: RE: Video Link
+
+--- body below this line ---
+
+Hi Diana,
+
+Thank you for the go-ahead on the video - I'd like to put it to work right away.
+
+Here's what I have in mind, and I want your okay before I build it: a welcome video that opens on its own the first time someone lands on the homepage. A clean panel over the page with the video, a Watch button and a clear X to close, and then it doesn't come back for that visitor. Anyone who has been to the site before wouldn't see it at all.
+
+The case for it: this is the best first impression the Chamber has, and a visitor deciding whether to join will watch sixty seconds of you and the community before they'll read a page of text. It's the closest thing we have to greeting someone at the door.
+
+The case against, so you have both: popups interrupt, and some people close them on reflex - a few will be annoyed no matter how well it's done. It's also the kind of thing that wears out. My recommendation is we run it, but with guardrails:
+
+- It opens muted with captions on, so it never blares in an open office.
+- It shows once per visitor, not on every visit.
+- It never appears on a page someone landed on to do something specific - paying, RSVPing, signing in. Homepage only.
+- We put the video on the homepage itself as well, below the hero, so anyone who closes the popup can still find it.
+- We give it about a month and then look at whether people are actually watching. If they're closing it inside two seconds, we pull the popup and keep the on-page version.
+
+One question for you: should it play for everyone, or only for visitors who aren't signed-in members? My instinct is everyone for the first few weeks, since the video is as much a "look what your Chamber is" reminder for members as it is a pitch to newcomers.
+
+If you'd rather not have a popup at all, the alternative is putting the video right at the top of the homepage where it plays when someone scrolls to it - less interruption, less attention. Happy either way; just tell me which you want.
+
+Once Donavan sends the final cut with the fixes, I'll have it up the same day. The vertical version he's making will be perfect for social, and the 20-second cut is the right length for the homepage if we decide the full one is too long to open with.
+
+Michael
