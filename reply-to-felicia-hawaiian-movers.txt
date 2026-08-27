@@ -1,0 +1,37 @@
+REPLY TO FELICIA — paste into Gmail as a reply on the "FW: Chamber Membership and Google Listing" thread
+To:  felicia@woodlandhillscc.net
+Cc:  diana@woodlandhillscc.net
+Bcc: 23411980@bcc.hubspot.com
+Subject: RE: Chamber Membership and Google Listing
+
+--- body below this line ---
+
+Hi Felicia,
+
+First, I owe you an apology. This one has been sitting since the 21st and you had to ask three times. It came to me as a question rather than as something broken, so it never went into the queue where your website items get turned around the same day. That is an explanation, not an excuse - it was the wrong call and I'm sorry. Anything you forward me about a member goes in that same queue from here on, question or not.
+
+Now the answer, and it's a good one.
+
+I checked Nicole's listing the way she asked. Her page is live at woodlandhillscc.net/members/hawaiian-movers, and everything she asked us to verify is there:
+
+- The correct business name, address (7442 Loma Verde, Canoga Park) and phone
+- A working link out to hawaiianmovers.com
+- Her full description and her category, Shippers
+- Behind the scenes it carries what Google looks for: a canonical web address, structured business data, and a place in the sitemap our robots file points Google to
+
+So to her actual question - "please check whether my company has an active public directory page with the correct business information and a link to my website" - the answer is yes, on every count. Nothing is broken on our end.
+
+Why she isn't seeing it in Google yet: the address is new. We relaunched the website this summer and every member page moved, and the old site's directory used a completely different URL scheme. Google has to find a new page, crawl it, and then decide it's worth showing someone - that runs weeks to months, not days. Hers is queued up correctly; it simply hasn't aged in yet.
+
+One thing worth telling her gently: Royal Hawaiian Movers is a different company, and what she's seeing rank for them is almost certainly their own website and Google Business Profile, not a chamber directory page. A chamber page rarely outranks a business's own listings, and it isn't meant to. What it does is act as a credible outside reference pointing at her site.
+
+Two things would actually move her needle, and both are hers to pull:
+
+1. Put a link on hawaiianmovers.com back to her chamber page - "Proud member of the West Valley~Warner Center Chamber of Commerce." A link from her own site is the strongest single nudge we can give Google toward that page, and it helps her site as well.
+2. Make sure her Google Business Profile is claimed and filled in. That is what ranks for "movers Canoga Park." The chamber page supports it; it doesn't replace it.
+
+On our side, I'd like to set up Google Search Console for the website. It lets me submit member pages for indexing directly instead of waiting, and it would let me tell you which member pages Google has picked up and which it hasn't - useful the next time a member asks this, because Nicole won't be the last. Say the word and I'll connect it.
+
+Last thing: I'm glad to write to Nicole directly with all of this, with you and Diana copied - just tell me to. She mentioned not renewing, so I'd rather she hear it sooner than later.
+
+Michael
