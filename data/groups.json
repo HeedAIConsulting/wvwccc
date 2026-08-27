@@ -17,9 +17,21 @@
       "contactEmail": "felicia@woodlandhillscc.net",
       "eventMatch": "Home Improvement",
       "status": "approved",
-      "manager": { "name": "Lisa Alexandrian", "email": "lisa@greenrodentrestoration.com", "phone": "(747)998-2396" },
+      "manager": {
+        "name": "Lisa Alexandrian",
+        "email": "lisa@greenrodentrestoration.com",
+        "phone": "(747)998-2396"
+      },
       "members": [
-        { "id": "gm-lisa-alexandrian", "name": "Lisa Alexandrian", "email": "lisa@greenrodentrestoration.com", "phone": "(747)998-2396", "role": "Leader", "status": "active", "source": "admin" }
+        {
+          "id": "gm-lisa-alexandrian",
+          "name": "Lisa Alexandrian",
+          "email": "lisa@greenrodentrestoration.com",
+          "phone": "(747)998-2396",
+          "role": "Leader",
+          "status": "active",
+          "source": "admin"
+        }
       ]
     },
     {
@@ -35,9 +47,21 @@
       "contactEmail": "felicia@woodlandhillscc.net",
       "eventMatch": "Health & Wellness",
       "status": "approved",
-      "manager": { "name": "Susan Roberts", "email": "susan@seniorcareresources.org", "phone": "(310)986-4533" },
+      "manager": {
+        "name": "Susan Roberts",
+        "email": "susan@seniorcareresources.org",
+        "phone": "(310)986-4533"
+      },
       "members": [
-        { "id": "gm-susan-roberts", "name": "Susan Roberts", "email": "susan@seniorcareresources.org", "phone": "(310)986-4533", "role": "Leader", "status": "active", "source": "admin" }
+        {
+          "id": "gm-susan-roberts",
+          "name": "Susan Roberts",
+          "email": "susan@seniorcareresources.org",
+          "phone": "(310)986-4533",
+          "role": "Leader",
+          "status": "active",
+          "source": "admin"
+        }
       ]
     },
     {
@@ -53,9 +77,21 @@
       "contactEmail": "felicia@woodlandhillscc.net",
       "eventMatch": "Dynamic Business Networking",
       "status": "approved",
-      "manager": { "name": "Priscilla Purganan", "email": "precypurg@gmail.com", "phone": "(661)430-1520" },
+      "manager": {
+        "name": "Priscilla Purganan",
+        "email": "precypurg@gmail.com",
+        "phone": "(661)430-1520"
+      },
       "members": [
-        { "id": "gm-priscilla-purganan", "name": "Priscilla Purganan", "email": "precypurg@gmail.com", "phone": "(661)430-1520", "role": "Leader", "status": "active", "source": "admin" }
+        {
+          "id": "gm-priscilla-purganan",
+          "name": "Priscilla Purganan",
+          "email": "precypurg@gmail.com",
+          "phone": "(661)430-1520",
+          "role": "Leader",
+          "status": "active",
+          "source": "admin"
+        }
       ]
     },
     {
@@ -71,9 +107,21 @@
       "contactEmail": "felicia@woodlandhillscc.net",
       "eventMatch": "Luncheon Connection Circle",
       "status": "approved",
-      "manager": { "name": "Lee Levy", "email": "lee@nexgraphics.com", "phone": "(818)888-8235" },
+      "manager": {
+        "name": "Lee Levy",
+        "email": "lee@nexgraphics.com",
+        "phone": "(818)888-8235"
+      },
       "members": [
-        { "id": "gm-lee-levy", "name": "Lee Levy", "email": "lee@nexgraphics.com", "phone": "(818)888-8235", "role": "Leader", "status": "active", "source": "admin" }
+        {
+          "id": "gm-lee-levy",
+          "name": "Lee Levy",
+          "email": "lee@nexgraphics.com",
+          "phone": "(818)888-8235",
+          "role": "Leader",
+          "status": "active",
+          "source": "admin"
+        }
       ]
     },
     {
@@ -89,9 +137,21 @@
       "contactEmail": "felicia@woodlandhillscc.net",
       "eventMatch": "Martin's Connection Circle",
       "status": "approved",
-      "manager": { "name": "Martin Carman", "email": "martin.carman@synapticsystems.biz", "phone": "(818)710-0647" },
+      "manager": {
+        "name": "Martin Carman",
+        "email": "martin.carman@synapticsystems.biz",
+        "phone": "(818)710-0647"
+      },
       "members": [
-        { "id": "gm-martin-carman", "name": "Martin Carman", "email": "martin.carman@synapticsystems.biz", "phone": "(818)710-0647", "role": "Leader", "status": "active", "source": "admin" }
+        {
+          "id": "gm-martin-carman",
+          "name": "Martin Carman",
+          "email": "martin.carman@synapticsystems.biz",
+          "phone": "(818)710-0647",
+          "role": "Leader",
+          "status": "active",
+          "source": "admin"
+        }
       ]
     },
     {
@@ -107,9 +167,21 @@
       "contactEmail": "felicia@woodlandhillscc.net",
       "eventMatch": "YPN",
       "status": "approved",
-      "manager": { "name": "Jon Mann", "email": "jon@jointmatters.com", "phone": "(818)518-4697" },
+      "manager": {
+        "name": "Jon Mann",
+        "email": "jon@jointmatters.com",
+        "phone": "(818)518-4697"
+      },
       "members": [
-        { "id": "gm-jon-mann", "name": "Jon Mann", "email": "jon@jointmatters.com", "phone": "(818)518-4697", "role": "Leader", "status": "active", "source": "admin" }
+        {
+          "id": "gm-jon-mann",
+          "name": "Jon Mann",
+          "email": "jon@jointmatters.com",
+          "phone": "(818)518-4697",
+          "role": "Leader",
+          "status": "active",
+          "source": "admin"
+        }
       ]
     },
     {
@@ -125,9 +197,21 @@
       "contactEmail": "felicia@woodlandhillscc.net",
       "eventMatch": "Event Planning",
       "status": "approved",
-      "manager": { "name": "Erin Coplan", "email": "erincoplan@gmail.com", "phone": "(818)996-2695" },
+      "manager": {
+        "name": "Erin Coplan",
+        "email": "erincoplan@gmail.com",
+        "phone": "(818)996-2695"
+      },
       "members": [
-        { "id": "gm-erin-coplan", "name": "Erin Coplan", "email": "erincoplan@gmail.com", "phone": "(818)996-2695", "role": "Leader", "status": "active", "source": "admin" }
+        {
+          "id": "gm-erin-coplan",
+          "name": "Erin Coplan",
+          "email": "erincoplan@gmail.com",
+          "phone": "(818)996-2695",
+          "role": "Leader",
+          "status": "active",
+          "source": "admin"
+        }
       ]
     },
     {
@@ -143,9 +227,21 @@
       "contactEmail": "felicia@woodlandhillscc.net",
       "eventMatch": "Clean Up",
       "status": "approved",
-      "manager": { "name": "Howie Baron", "email": "baronshuttersandblinds@gmail.com", "phone": "(818)572-2244" },
+      "manager": {
+        "name": "Howie Baron",
+        "email": "baronshuttersandblinds@gmail.com",
+        "phone": "(818)572-2244"
+      },
       "members": [
-        { "id": "gm-howie-baron", "name": "Howie Baron", "email": "baronshuttersandblinds@gmail.com", "phone": "(818)572-2244", "role": "Leader", "status": "active", "source": "admin" }
+        {
+          "id": "gm-howie-baron",
+          "name": "Howie Baron",
+          "email": "baronshuttersandblinds@gmail.com",
+          "phone": "(818)572-2244",
+          "role": "Leader",
+          "status": "active",
+          "source": "admin"
+        }
       ]
     },
     {
@@ -161,10 +257,30 @@
       "contactEmail": "felicia@woodlandhillscc.net",
       "eventMatch": "Senior Resources",
       "status": "approved",
-      "manager": { "name": "Marcia Israel", "email": "riggscody@aol.com", "phone": "(818)706-1100" },
+      "manager": {
+        "name": "Marcia Israel",
+        "email": "riggscody@aol.com",
+        "phone": "(818)706-1100"
+      },
       "members": [
-        { "id": "gm-marcia-israel", "name": "Marcia Israel", "email": "riggscody@aol.com", "phone": "(818)706-1100", "role": "Leader", "status": "active", "source": "admin" },
-        { "id": "gm-sandy-rosenholz", "name": "Sandy Rosenholz", "email": "sandyrosenholz@gmail.com", "phone": "(818)359-2125", "role": "Leader", "status": "active", "source": "admin" }
+        {
+          "id": "gm-marcia-israel",
+          "name": "Marcia Israel",
+          "email": "riggscody@aol.com",
+          "phone": "(818)706-1100",
+          "role": "Leader",
+          "status": "active",
+          "source": "admin"
+        },
+        {
+          "id": "gm-sandy-rosenholz",
+          "name": "Sandy Rosenholz",
+          "email": "sandyrosenholz@gmail.com",
+          "phone": "(818)359-2125",
+          "role": "Leader",
+          "status": "active",
+          "source": "admin"
+        }
       ]
     },
     {
@@ -180,10 +296,30 @@
       "contactEmail": "felicia@woodlandhillscc.net",
       "eventMatch": "Sustainable",
       "status": "approved",
-      "manager": { "name": "Star Tomlinson", "email": "Star@TheDrainCo.com", "phone": "(818)344-1114" },
+      "manager": {
+        "name": "Star Tomlinson",
+        "email": "Star@TheDrainCo.com",
+        "phone": "(818)344-1114"
+      },
       "members": [
-        { "id": "gm-star-tomlinson", "name": "Star Tomlinson", "email": "Star@TheDrainCo.com", "phone": "(818)344-1114", "role": "Leader", "status": "active", "source": "admin" },
-        { "id": "gm-steve-hochman", "name": "Steve Hochman", "email": "steve@thesolarhawk.com", "phone": "(818)402-4166", "role": "Leader", "status": "active", "source": "admin" }
+        {
+          "id": "gm-star-tomlinson",
+          "name": "Star Tomlinson",
+          "email": "Star@TheDrainCo.com",
+          "phone": "(818)344-1114",
+          "role": "Leader",
+          "status": "active",
+          "source": "admin"
+        },
+        {
+          "id": "gm-steve-hochman",
+          "name": "Steve Hochman",
+          "email": "steve@thesolarhawk.com",
+          "phone": "(818)402-4166",
+          "role": "Leader",
+          "status": "active",
+          "source": "admin"
+        }
       ]
     },
     {
@@ -199,10 +335,202 @@
       "contactEmail": "felicia@woodlandhillscc.net",
       "eventMatch": "Toastmasters",
       "status": "approved",
-      "manager": { "name": "Steve Hornstein", "email": "steve@hornsteinLawOffices.com", "phone": "(818)887-9401" },
+      "manager": {
+        "name": "Steve Hornstein",
+        "email": "steve@hornsteinLawOffices.com",
+        "phone": "(818)887-9401"
+      },
       "members": [
-        { "id": "gm-steve-hornstein", "name": "Steve Hornstein", "email": "steve@hornsteinLawOffices.com", "phone": "(818)887-9401", "role": "Leader", "status": "active", "source": "admin" }
+        {
+          "id": "gm-steve-hornstein",
+          "name": "Steve Hornstein",
+          "email": "steve@hornsteinLawOffices.com",
+          "phone": "(818)887-9401",
+          "role": "Leader",
+          "status": "active",
+          "source": "admin"
+        }
       ]
+    },
+    {
+      "id": "grp-table-for-six",
+      "slug": "table-for-six",
+      "name": "Table for Six",
+      "tagline": "A networking meal. Six members. One table.",
+      "description": "Enjoy a networking meal with six members at a member restaurant — open to all members. Pick a spot, invite five, and set up your own!",
+      "heroImage": "",
+      "photos": [],
+      "meetingSchedule": "Various days and times — open to all members",
+      "meetingNotes": "",
+      "contactEmail": "felicia@woodlandhillscc.net",
+      "eventMatch": "Table for Six",
+      "status": "approved",
+      "manager": {
+        "name": "",
+        "email": "",
+        "phone": "(818) 347-4737"
+      },
+      "members": []
+    },
+    {
+      "id": "grp-food-wine-committee",
+      "slug": "west-valley-food-and-wine-committee",
+      "name": "West Valley Food and Wine Committee",
+      "tagline": "The team behind the Chamber's signature food and wine events.",
+      "description": "Help plan and put on the West Valley's favorite food and wine gatherings. Chaired by Steve and Bryna Hornstein. Call the Chamber office at (818) 347-4737 to sign up.",
+      "heroImage": "",
+      "photos": [],
+      "meetingSchedule": "Call the Chamber office to sign up · (818) 347-4737",
+      "meetingNotes": "",
+      "contactEmail": "felicia@woodlandhillscc.net",
+      "eventMatch": "Food and Wine",
+      "status": "approved",
+      "manager": {
+        "name": "Steve & Bryna Hornstein",
+        "email": "",
+        "phone": "(818) 347-4737"
+      },
+      "members": []
+    },
+    {
+      "id": "grp-installation-committee",
+      "slug": "installation-committee",
+      "name": "Installation Committee",
+      "tagline": "Planning the Chamber's annual installation celebration.",
+      "description": "The committee behind the Chamber's annual installation event. Call the Chamber office at (818) 347-4737 for information.",
+      "heroImage": "",
+      "photos": [],
+      "meetingSchedule": "Call the Chamber office for information · (818) 347-4737",
+      "meetingNotes": "",
+      "contactEmail": "felicia@woodlandhillscc.net",
+      "eventMatch": "Installation",
+      "status": "approved",
+      "manager": {
+        "name": "",
+        "email": "",
+        "phone": "(818) 347-4737"
+      },
+      "members": []
+    },
+    {
+      "id": "grp-golf-committee",
+      "slug": "golf-committee",
+      "name": "Golf Committee",
+      "tagline": "Fairways, foursomes, and the Chamber golf classic.",
+      "description": "Help put on the Chamber's golf outings. Call the Chamber office at (818) 347-4737 to sign up.",
+      "heroImage": "",
+      "photos": [],
+      "meetingSchedule": "Call the Chamber office to sign up · (818) 347-4737",
+      "meetingNotes": "",
+      "contactEmail": "felicia@woodlandhillscc.net",
+      "eventMatch": "Golf",
+      "status": "approved",
+      "manager": {
+        "name": "",
+        "email": "",
+        "phone": "(818) 347-4737"
+      },
+      "members": []
+    },
+    {
+      "id": "grp-ucc-government-affairs",
+      "slug": "ucc-government-affairs",
+      "name": "UCC Government Affairs Meeting",
+      "tagline": "The Chamber's voice on local government and policy.",
+      "description": "The United Chambers government affairs meeting — where Chamber members stay on top of local government issues that affect West Valley businesses. Contact Marian Jocz at (818) 981-4491.",
+      "heroImage": "",
+      "photos": [],
+      "meetingSchedule": "3rd Monday of each month",
+      "meetingNotes": "",
+      "contactEmail": "felicia@woodlandhillscc.net",
+      "eventMatch": "Government Affairs",
+      "status": "approved",
+      "manager": {
+        "name": "Marian Jocz",
+        "email": "",
+        "phone": "(818) 981-4491"
+      },
+      "members": []
+    },
+    {
+      "id": "grp-ambassador-committee",
+      "slug": "ambassador-committee",
+      "name": "Ambassador Committee",
+      "tagline": "The Chamber's welcome wagon — first faces at every mixer.",
+      "description": "Ambassadors welcome new members and guests at every Chamber event. Chaired by Sheryl Tratner, (818) 300-3116. Meet the current Ambassadors on the Ambassadors page.",
+      "heroImage": "",
+      "photos": [],
+      "meetingSchedule": "30 minutes before each mixer starts",
+      "meetingNotes": "",
+      "contactEmail": "felicia@woodlandhillscc.net",
+      "eventMatch": "Mixer",
+      "status": "approved",
+      "manager": {
+        "name": "Sheryl Tratner",
+        "email": "",
+        "phone": "(818) 300-3116"
+      },
+      "members": []
+    },
+    {
+      "id": "grp-membership-committee",
+      "slug": "membership-committee",
+      "name": "Membership Committee",
+      "tagline": "Growing the Chamber, one great local business at a time.",
+      "description": "Know a business that could benefit from Chamber membership? Please call committee leader Jon Mann at (818) 518-4697.",
+      "heroImage": "",
+      "photos": [],
+      "meetingSchedule": "Contact Jon Mann · (818) 518-4697",
+      "meetingNotes": "",
+      "contactEmail": "felicia@woodlandhillscc.net",
+      "eventMatch": "",
+      "status": "approved",
+      "manager": {
+        "name": "Jon Mann",
+        "email": "",
+        "phone": "(818) 518-4697"
+      },
+      "members": []
+    },
+    {
+      "id": "grp-education-committee",
+      "slug": "education-committee",
+      "name": "Education Committee",
+      "tagline": "Championing education across the West Valley.",
+      "description": "Supporting students, schools, and education across the West Valley. Contact the Chamber office at (818) 347-4737 for current meeting details.",
+      "heroImage": "",
+      "photos": [],
+      "meetingSchedule": "Contact the Chamber office · (818) 347-4737",
+      "meetingNotes": "",
+      "contactEmail": "felicia@woodlandhillscc.net",
+      "eventMatch": "Education",
+      "status": "approved",
+      "manager": {
+        "name": "",
+        "email": "",
+        "phone": "(818) 347-4737"
+      },
+      "members": []
+    },
+    {
+      "id": "grp-beautification-committee",
+      "slug": "beautification-committee",
+      "name": "Beautification Committee",
+      "tagline": "Keeping the West Valley looking its best.",
+      "description": "Projects that keep our neighborhoods beautiful. Chaired by Sean McCarthy, (818) 389-1876.",
+      "heroImage": "",
+      "photos": [],
+      "meetingSchedule": "Contact Sean McCarthy · (818) 389-1876",
+      "meetingNotes": "",
+      "contactEmail": "felicia@woodlandhillscc.net",
+      "eventMatch": "Beautification",
+      "status": "approved",
+      "manager": {
+        "name": "Sean McCarthy",
+        "email": "",
+        "phone": "(818) 389-1876"
+      },
+      "members": []
     }
   ]
 }

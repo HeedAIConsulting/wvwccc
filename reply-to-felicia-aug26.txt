@@ -1,0 +1,19 @@
+REPLY TO FELICIA — paste into Gmail as a reply on the "Action Buttons" thread
+To:  felicia@woodlandhillscc.net
+Cc:  diana@woodlandhillscc.net
+Bcc: 23411980@bcc.hubspot.com
+Subject: RE: Action Buttons
+
+--- body below this line ---
+
+Hi Felicia,
+
+This covers your last three emails in one place - all three are live now.
+
+1. Action buttons. Done. RSVP and Purchase (and the "members attend free" note) now sit at the top of every event, right under the date and venue - before the flyer and the write-up, so nobody has to scroll to sign up. The bottom of the event keeps just the add-to-calendar and share buttons.
+
+2. The Gaspar logo. Your upload was never the problem - the file you put on the September 2nd Breakfast is a beautiful, high-resolution logo. The website was shrinking that big file down to its display size in one crude step, and that's what crunched the fine dot pattern in the lettering. The site now prepares a properly sized copy of any image it's about to show small, so that logo - and every image inside an event, the flyers on the event list included - displays sharp. Nothing for you to redo; keep uploading the biggest version you have, and the site handles the rest.
+
+3. Two representatives on one profile. Yes. Each person gets their own sign-in - their own email and their own password - and both open the same business profile. Members > find the business > the new gold "🔑 Logins" button shows everyone who has access. Type the second person's email and click "Give them access"; the website emails them a link to set their own password, and nothing changes for the first person. That box is also where "See their view", reset links, and set-a-password now work per person - so resetting one rep never locks out the other - and if someone leaves the business, "Remove" takes away just their sign-in. A row showing "🔑 Logins (2)" is your at-a-glance sign an account has two reps.
+
+Michael

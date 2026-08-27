@@ -787,10 +787,13 @@ html { scrollbar-color: var(--gold) var(--cream-deep); scrollbar-width: thin; }
 .rt-typo img { height: auto; }
 .rt-typo a img { border-radius: var(--r-md); }
 .ev-card__row { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 14px; }
+/* Action buttons at the TOP of the event card (Felicia, Aug 26 2026) —
+   under the date/venue, above the flyer, so RSVP/Purchase never hides
+   below a long description. */
+.ev-card__cta--top { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 14px 0 2px; }
 .ev-card__foot { border-top: 1px solid var(--line); margin-top: 6px; padding-top: 16px; display: flex; flex-wrap: wrap;
   align-items: center; gap: 12px; }
-.ev-card__foot .ev-card__cta { margin-left: auto; }
-@media (max-width: 560px) { .ev-card__body { padding: 22px 18px 24px; } .ev-card__title { font-size: 1.4rem; } .ev-card__foot .ev-card__cta { margin-left: 0; width: 100%; } .ev-card__foot .ev-card__cta .btn { width: 100%; } }
+@media (max-width: 560px) { .ev-card__body { padding: 22px 18px 24px; } .ev-card__title { font-size: 1.4rem; } .ev-card__cta--top { width: 100%; } .ev-card__cta--top .btn { flex: 1 1 100%; text-align: center; } }
 
 /* ── Member profile: Meet the team ── */
 .meet-team h3 { margin-bottom: var(--s-4); }

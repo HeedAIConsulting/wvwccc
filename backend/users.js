@@ -101,18 +101,56 @@ export async function updatePassword(email, bcryptHash) {
   if (mi >= 0) { arr[mi] = { ...arr[mi], passwordHash: bcryptHash, passwordAlgo: 'bcrypt', needsReset: false, mustChange: false }; store.write('users.json', { ...mu, users: arr }); }
 }
 
+// All the logins attached to one member listing. A business can have more
+// than one (Felicia, Aug 25 2026 — "some accounts have 2 admins working on
+// their profiles"): each representative signs in with their OWN email and
+// password, and they all land on the same profile.
+export async function listByMemberId(memberId) {
+  if (!memberId) return [];
+  const boot = bootstrapUsers().filter((u) => u.memberId === memberId)
+    .map((u) => ({ email: u.email, username: u.username, role: u.role, status: u.status, needsReset: false, lastLogin: null, source: 'bootstrap' }));
+  let rest = [];
+  if (db.enabled) {
+    const r = await db.query(
+      'SELECT email, username, role, status, needs_reset, last_login FROM users WHERE member_id=$1 ORDER BY created_at',
+      [memberId]);
+    rest = r.rows.map((x) => ({
+      email: lc(x.email), username: x.username, role: x.role || 'member', status: x.status || 'approved',
+      needsReset: !!x.needs_reset, lastLogin: x.last_login || null, source: 'db',
+    }));
+  } else {
+    rest = storeUsers().filter((u) => u.memberId === memberId).map((u) => ({
+      email: lc(u.email), username: u.username, role: u.role || 'member', status: u.status || 'approved',
+      needsReset: !!u.needsReset, lastLogin: u.lastLogin || null, source: 'store',
+    }));
+  }
+  const seen = new Set(boot.map((b) => b.email));
+  return [...boot, ...rest.filter((u) => !seen.has(u.email))];
+}
+
 // Admin-triggered: move a member's login to a new email (per the office,
 // Jul 14 2026 — members hand over new/rep addresses and welcome/reset emails
 // must follow). Returns true when a login existed and was moved.
-export async function updateEmailByMemberId(memberId, newEmail) {
+// A member can have SEVERAL logins now, so this moves exactly one: the one
+// matching oldEmail when given, otherwise the only one. With two or more
+// logins and no match it moves none (returns false) — guessing here would
+// either steal the wrong rep's sign-in or trip the unique-email constraint.
+export async function updateEmailByMemberId(memberId, newEmail, oldEmail) {
   newEmail = lc(newEmail);
+  oldEmail = lc(oldEmail);
+  const logins = await listByMemberId(memberId);
+  if (logins.some((u) => u.email === newEmail)) return true;   // already there
+  let target = oldEmail ? logins.find((u) => u.email === oldEmail) : null;
+  if (!target && logins.length === 1) target = logins[0];
+  if (!target || target.source === 'bootstrap') return false;
   if (db.enabled) {
-    const r = await db.query('UPDATE users SET email=$1 WHERE member_id=$2 RETURNING email', [newEmail, memberId]);
+    const r = await db.query('UPDATE users SET email=$1 WHERE member_id=$2 AND lower(email)=$3 RETURNING email',
+      [newEmail, memberId, target.email]);
     return r.rows.length > 0;
   }
   const mu = store.read('users.json', { users: [] });
   const arr = mu.users || [];
-  const i = arr.findIndex((u) => u.memberId === memberId);
+  const i = arr.findIndex((u) => u.memberId === memberId && lc(u.email) === target.email);
   if (i < 0) return false;
   arr[i] = { ...arr[i], email: newEmail };
   store.write('users.json', { ...mu, users: arr });
@@ -121,20 +159,50 @@ export async function updateEmailByMemberId(memberId, newEmail) {
 
 // Admin-triggered: force a member to set a new password on next login.
 // Clears the stored hash so the old password no longer works.
-export async function requireReset(memberId) {
+// Pass onlyEmail to reset ONE representative's login — without it, every
+// login on the member resets, which is wrong when a second rep exists.
+// Returns the list of emails that were reset.
+export async function requireReset(memberId, onlyEmail) {
+  onlyEmail = onlyEmail ? lc(onlyEmail) : null;
   if (db.enabled) {
-    const r = await db.query(
-      "UPDATE users SET needs_reset=true, password_hash=NULL, password_algo='unknown' WHERE member_id=$1 RETURNING email",
-      [memberId]);
-    return r.rows[0]?.email || null;
+    const r = onlyEmail
+      ? await db.query("UPDATE users SET needs_reset=true, password_hash=NULL, password_algo='unknown' WHERE member_id=$1 AND lower(email)=$2 RETURNING email", [memberId, onlyEmail])
+      : await db.query("UPDATE users SET needs_reset=true, password_hash=NULL, password_algo='unknown' WHERE member_id=$1 RETURNING email", [memberId]);
+    return r.rows.map((x) => lc(x.email));
   }
   const mu = store.read('users.json', { users: [] });
   const arr = mu.users || [];
-  const i = arr.findIndex((u) => u.memberId === memberId);
-  if (i < 0) return null;
-  arr[i] = { ...arr[i], needsReset: true, mustChange: false, passwordHash: '', passwordAlgo: 'unknown' };
-  store.write('users.json', { ...mu, users: arr });
-  return arr[i].email || null;
+  const reset = [];
+  for (let i = 0; i < arr.length; i++) {
+    if (arr[i].memberId !== memberId) continue;
+    if (onlyEmail && lc(arr[i].email) !== onlyEmail) continue;
+    arr[i] = { ...arr[i], needsReset: true, mustChange: false, passwordHash: '', passwordAlgo: 'unknown' };
+    reset.push(lc(arr[i].email));
+  }
+  if (reset.length) store.write('users.json', { ...mu, users: arr });
+  return reset;
+}
+
+// Admin-triggered: remove one representative's website access (they left the
+// company, etc.). Only member-role logins that belong to this member listing
+// can go — staff/admin accounts and env-configured bootstrap logins never.
+// The profile itself is untouched; only the sign-in disappears.
+export async function removeLogin(memberId, email) {
+  email = lc(email);
+  const target = (await listByMemberId(memberId)).find((u) => u.email === email);
+  if (!target || target.source === 'bootstrap') return false;
+  if (['staff', 'admin', 'super_admin'].includes(target.role || 'member')) return false;
+  if (db.enabled) {
+    const r = await db.query("DELETE FROM users WHERE member_id=$1 AND lower(email)=$2 AND role='member' RETURNING email",
+      [memberId, email]);
+    return r.rows.length > 0;
+  }
+  const mu = store.read('users.json', { users: [] });
+  const arr = mu.users || [];
+  const keep = arr.filter((u) => !(u.memberId === memberId && lc(u.email) === email));
+  if (keep.length === arr.length) return false;
+  store.write('users.json', { ...mu, users: keep });
+  return true;
 }
 
 // List all login accounts (bootstrap admins + db/store users) for the admin Users page.

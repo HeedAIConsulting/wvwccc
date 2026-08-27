@@ -75,7 +75,7 @@
       + '<div class="wv-sup-row"><div><label>Your name</label><input name="name" maxlength="120"></div>'
       + '<div><label>Your email</label><input name="email" type="email" maxlength="160"></div></div>'
       + '<label>What do you need help with?</label><select name="area">'
-      + ['Login / access issue','Feature help or request','Website issue / something looks broken','Members','Events','Groups & Networks','Payments','Newsletter / Podcast','AI Assistant','Other']
+      + ['Login / access issue','Feature help or request','Website issue / something looks broken','Members','Events','Groups & Connection Circles','Payments','Newsletter / Podcast','AI Assistant','Other']
           .map(function (o) { return '<option>' + o + '</option>'; }).join('')
       + '</select>'
       + '<label>How can we help? *</label><textarea name="message" rows="4" maxlength="6000" placeholder="Describe what you were doing and what happened…"></textarea>'
