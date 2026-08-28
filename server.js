@@ -95,6 +95,13 @@ const LEGACY_REDIRECTS = {
   '/index.php': '/',
 };
 app.get(Object.keys(LEGACY_REDIRECTS), (req, res) => res.redirect(301, LEGACY_REDIRECTS[req.path.toLowerCase()] || '/'));
+
+/* Retired page (Diana, Aug 27 2026: "Take this page down. Chamber Leaders").
+   The URL was in the sitemap and is linked from old emails, so it redirects to
+   the directory - the surviving page that lists the same businesses - instead
+   of 404ing. Deleting leaders.html already drops it from the sitemap, which is
+   built by walking the repo's own .html files. */
+app.get('/leaders.html', (_req, res) => res.redirect(301, '/members/directory.html'));
 app.get(/^\/[^/]+\.php$/i, (_req, res) => res.redirect(302, '/'));
 
 // ── Static site ────────────────────────────────────────────
@@ -332,6 +339,23 @@ function staticSitemapPaths() {
 
 const xmlEsc = (s) => String(s).replace(/[<>&'"]/g, (c) =>
   ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&apos;', '"': '&quot;' }[c]));
+
+/* ── Google Search Console verification ──────────────────────
+   Nicole Cohen (Hawaiian Movers) asked on Aug 27 2026 that we submit her
+   member page for indexing, which needs a verified Search Console property.
+   Google verifies a site by fetching /google<token>.html and finding its own
+   filename inside. Serving that from GSC_VERIFICATION means the token can be
+   set, rotated or cleared on Render without a deploy, and no stray
+   verification file ever sits in the repo. Unset, the route matches nothing
+   and the site behaves exactly as before. */
+app.get(/^\/google[A-Za-z0-9_-]+\.html$/, (req, res, next) => {
+  const token = String(process.env.GSC_VERIFICATION || '').trim()
+    .replace(/^google/i, '').replace(/\.html$/i, '');
+  if (!token) return next();
+  const file = `google${token}.html`;
+  if (req.path.slice(1) !== file) return next();
+  res.type('text/html').send(`google-site-verification: ${file}`);
+});
 
 app.get('/sitemap.xml', async (_req, res) => {
   try {

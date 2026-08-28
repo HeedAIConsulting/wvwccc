@@ -11,6 +11,61 @@ Render Web Service `wvwccc-web` (srv-d8f8pci8qa3s738nsib0) + Postgres `wvwccc-db
 - **ElevenLabs ConvAI** agent `agent_8201kqnjhzyrfpdvtqwgf9e0034y` on all public pages (pulled from POC).
 - Nav adds Deals + Community.
 
+**Chamber Leaders retired + Search Console unblocked (2026-08-27):** ✅ built —
+- *Diana, 2:30 PM:* "Take this page down. Chamber Leaders." `leaders.html` is
+  deleted, along with its nav entry, the admin quick link, and the admin
+  members-screen reference. The sitemap is a walk of the repo's own .html
+  files, so removing the file drops the URL automatically; `/leaders.html`
+  301s to the member directory so the indexed URL and old email links don't
+  dead-end. Tier still drives directory ranking and badges — only the public
+  page is gone.
+- *Nicole Cohen (Hawaiian Movers) via Felicia, 2:50 PM:* her SEO specialist
+  asked us to (1) request indexing in Search Console and (2) confirm the
+  sitemap covers her page and every member profile. (2) is verified: **714 of
+  714** member pages are in the sitemap, hers included, and robots.txt points
+  Google at it. (1) needed a verified Search Console property, so
+  `GSC_VERIFICATION` now serves Google's `/google<token>.html` file straight
+  from an env var — set it on Render, no deploy, no stray file in the repo.
+  Root cause of her original complaint was already fixed on Aug 21 (commit
+  3eb7075): every member page used to ship the same 1,279-byte "Loading…"
+  shell, so Google had no reason to index any of them. Verified today that
+  Googlebot gets the full page, canonical + JSON-LD, no noindex and no
+  X-Robots-Tag.
+Tests: `backend/test/seo-and-retired-pages.test.mjs` (boots the real server).
+Cache-bust: partials.js → 20260827b.
+
+**Education Committee correction + a seed that can carry one (2026-08-27):**
+✅ built — Felicia confirmed the flyer's duplicate Education Committee entries
+resolve to **Damon Buford, (602) 690-2173, 4th Thursday 9 AM**. The committee
+had already been seeded into the live store that morning with a "call the
+office" placeholder, and the seed pass is add-only for groups that already
+exist, so a corrected seed would never have reached production. The backfill
+in `loadGroups()` now also fills a **blank or placeholder** manager and
+meeting schedule — and only those: a manager carrying a real name, or a
+schedule the office actually typed, is left alone. Verified against a
+production-shaped placeholder record (corrects on next boot) and against an
+office-set group (untouched). Tests: `backend/test/group-seed-backfill.test.mjs`,
+including a mutation check that the no-clobber guard is what makes it pass.
+`__resetGroupSeed()` is a test-only seam for re-running the pass in-process.
+
+**Two workspaces, one sign-in (2026-08-27):** ✅ built — Jon Mann (Joint
+Matters + Young Professionals Network leader): "When I sign in to my company
+page, I see content for YPN mixed in. Can we separate these two accounts?"
+On the old site he used one username with two passwords pointing at two
+places; the email is the account key here, so that can't come back. Instead
+the member dashboard now renders **one workspace per hat** — a switcher at the
+top, the business pane (listing, getting-started, membership, volunteer) and
+each led group's pane (roster counts, manage, add a group event) never on
+screen together. The business leads, so signing in lands where it always did;
+the choice sticks per browser and `?w=<key>` opens either directly; the page
+heading names the active workspace. A login with a single role sees no
+switcher and no change. `event.html?g=<slug>` now lists **that group's**
+events rather than everything the login has posted, with a link back to all
+of them. A leader with no business listing gets their group workspace instead
+of the old "not linked to a listing" dead end.
+Tests: `backend/test/workspace-separation.test.mjs`. Cache-bust: member.js →
+20260827a.
+
 **Mixer feedback batch (2026-08-27):** ✅ built — Felicia's "Update Requests
 from Members and Us" (member feedback from the Aug 26 mixer):
 - *Member-to-member messaging:* there wasn't one (directory strips emails on
