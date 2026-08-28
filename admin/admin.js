@@ -71,7 +71,6 @@ window.Admin = (function () {
     { href: 'leads.html', icon: '✉', label: 'Inquiries', key: 'leads' },
     { grp: 'Live pages' },
     { href: '../leadership.html', icon: '↗', label: 'Board & Leadership', ext: true },
-    { href: '../leaders.html', icon: '↗', label: 'Chamber Leaders', ext: true },
     { href: '../members/directory.html', icon: '↗', label: 'Directory', ext: true },
     { grp: 'Help' },
     { href: 'about.html', icon: 'ⓘ', label: 'About / Support', key: 'about' },

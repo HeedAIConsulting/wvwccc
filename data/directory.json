@@ -3,7 +3,9 @@
     "status": "PUBLIC SEED — 594 active members (FINAL roster through May 31 2026). PII (email) stripped; lives server-side only. + June 2026 new members added 2026-07-07",
     "source": "generated from data/_store/members.json",
     "count": 607,
-    "generatedAt": "2026-06-09T18:37:14"
+    "generatedAt": "2026-06-09T18:37:14",
+    "categoriesImportedAt": "2026-08-28",
+    "categoriesSource": "office export: ALL CATEGORIES and Join Date"
   },
   "members": [
     {
@@ -38,7 +40,10 @@
         "public",
         "relations"
       ],
-      "slug": "11-eleven-media-networks"
+      "slug": "11-eleven-media-networks",
+      "categories": [
+        "Advertising, Marketing, and Public Relations"
+      ]
     },
     {
       "id": "m16206",
@@ -73,7 +78,10 @@
       "tags": [
         "dentist"
       ],
-      "slug": "32ology-dental-studio-argina-kudaverdian-dds"
+      "slug": "32ology-dental-studio-argina-kudaverdian-dds",
+      "categories": [
+        "Dentist"
+      ]
     },
     {
       "id": "m16016",
@@ -99,7 +107,10 @@
         "care",
         "services"
       ],
-      "slug": "a-better-solution-in-home-care"
+      "slug": "a-better-solution-in-home-care",
+      "categories": [
+        "Home Care Services"
+      ]
     },
     {
       "id": "m13424",
@@ -128,7 +139,10 @@
         "profit",
         "organization"
       ],
-      "slug": "a-vision-of-health"
+      "slug": "a-vision-of-health",
+      "categories": [
+        "Non-Profit Organization"
+      ]
     },
     {
       "id": "m15782",
@@ -154,12 +168,16 @@
       "employees": "1",
       "leaderStatus": "New Member",
       "logo": "/images/members/m15782.jpg",
-      "group": "Fitness & Recreation",
+      "group": "Health & Medical",
       "tags": [
         "sports",
         "medicine"
       ],
-      "slug": "aamp-sports-rehab"
+      "slug": "aamp-sports-rehab",
+      "categories": [
+        "Chiropractor",
+        "Sports Medicine"
+      ]
     },
     {
       "id": "m1480",
@@ -183,7 +201,10 @@
         "medical",
         "diagnostics"
       ],
-      "slug": "abacus-diagnostics"
+      "slug": "abacus-diagnostics",
+      "categories": [
+        "Manufacturer - Medical Diagnostics"
+      ]
     },
     {
       "id": "m15580",
@@ -214,7 +235,10 @@
         "profit",
         "organization"
       ],
-      "slug": "about-my-father-s-business-homeless-outreach"
+      "slug": "about-my-father-s-business-homeless-outreach",
+      "categories": [
+        "Non-Profit Organization"
+      ]
     },
     {
       "id": "m15554",
@@ -240,7 +264,10 @@
         "care",
         "services"
       ],
-      "slug": "accentcare"
+      "slug": "accentcare",
+      "categories": [
+        "Home Care Services"
+      ]
     },
     {
       "id": "m14961",
@@ -266,7 +293,10 @@
       "tags": [
         "bookkeeping"
       ],
-      "slug": "advantage-gold-financial"
+      "slug": "advantage-gold-financial",
+      "categories": [
+        "Bookkeeping"
+      ]
     },
     {
       "id": "m15790",
@@ -305,7 +335,10 @@
         "conditioning",
         "ventilating"
       ],
-      "slug": "affordable-heating-and-air"
+      "slug": "affordable-heating-and-air",
+      "categories": [
+        "Heating, Air Conditioning & Ventilating"
+      ]
     },
     {
       "id": "m15959",
@@ -335,7 +368,10 @@
         "insurance",
         "services"
       ],
-      "slug": "aflac"
+      "slug": "aflac",
+      "categories": [
+        "Insurance Services"
+      ]
     },
     {
       "id": "m15921",
@@ -362,7 +398,10 @@
         "senior",
         "care"
       ],
-      "slug": "age-easy-llc"
+      "slug": "age-easy-llc",
+      "categories": [
+        "Senior Care"
+      ]
     },
     {
       "id": "m15285",
@@ -387,7 +426,10 @@
         "real",
         "estate"
       ],
-      "slug": "agency-the"
+      "slug": "agency-the",
+      "categories": [
+        "Real Estate"
+      ]
     },
     {
       "id": "m16043",
@@ -417,7 +459,10 @@
         "janitorial",
         "services"
       ],
-      "slug": "ags-cleaning-services"
+      "slug": "ags-cleaning-services",
+      "categories": [
+        "Cleaning / Janitorial Services"
+      ]
     },
     {
       "id": "m16088",
@@ -439,7 +484,10 @@
         "motel"
       ],
       "slug": "airbnb",
-      "leaderLogo": "/images/leaders/leaders_142.jpg"
+      "leaderLogo": "/images/leaders/leaders_142.jpg",
+      "categories": [
+        "Hotel / Motel"
+      ]
     },
     {
       "id": "m16178",
@@ -460,11 +508,15 @@
       "leaderStatus": "New Member",
       "description": "Akavan Orthodontics and Pediatric Dentistry provides high quality orthodontic treatments, and pediatric dental care Tarzana, Encino, Reseda",
       "tagline": "Akavan Orthodontics",
-      "group": "Other",
+      "group": "Health & Medical",
       "tags": [
         "orthodontist"
       ],
-      "slug": "akavan-orthodontics-children-s-dentistry"
+      "slug": "akavan-orthodontics-children-s-dentistry",
+      "categories": [
+        "Dentist",
+        "Orthodontist"
+      ]
     },
     {
       "id": "m13975",
@@ -488,7 +540,10 @@
         "handyman"
       ],
       "slug": "al-the-handyman",
-      "pageImage": "/images/board/al-collins.jpg"
+      "pageImage": "/images/board/al-collins.jpg",
+      "categories": [
+        "Handyman"
+      ]
     },
     {
       "id": "m15274",
@@ -570,7 +625,10 @@
         "events",
         "consultants"
       ],
-      "slug": "all-valley-party-rentals"
+      "slug": "all-valley-party-rentals",
+      "categories": [
+        "Party Equipment Rental - Special Events Consultants"
+      ]
     },
     {
       "id": "m15422",
@@ -595,7 +653,10 @@
         "profit",
         "organization"
       ],
-      "slug": "alliance-for-community-empowerment"
+      "slug": "alliance-for-community-empowerment",
+      "categories": [
+        "Non-Profit Organization"
+      ]
     },
     {
       "id": "m10253",
@@ -619,7 +680,10 @@
         "insurance",
         "services"
       ],
-      "slug": "allstate-insurance"
+      "slug": "allstate-insurance",
+      "categories": [
+        "Insurance Services"
+      ]
     },
     {
       "id": "m15689",
@@ -646,7 +710,10 @@
         "business",
         "valuation"
       ],
-      "slug": "alpha-biz"
+      "slug": "alpha-biz",
+      "categories": [
+        "Business Valuation"
+      ]
     },
     {
       "id": "m15993",
@@ -680,7 +747,10 @@
         "profit",
         "organization"
       ],
-      "slug": "als-network"
+      "slug": "als-network",
+      "categories": [
+        "Non-Profit Organization"
+      ]
     },
     {
       "id": "m15594",
@@ -712,7 +782,10 @@
         "service",
         "provider"
       ],
-      "slug": "am-house-inc"
+      "slug": "am-house-inc",
+      "categories": [
+        "Security Service Provider"
+      ]
     },
     {
       "id": "m10302",
@@ -746,7 +819,11 @@
         "electrical",
         "contractor"
       ],
-      "slug": "am-shine-electric-inc"
+      "slug": "am-shine-electric-inc",
+      "categories": [
+        "Electrical Contractor",
+        "Solar Company"
+      ]
     },
     {
       "id": "m14776",
@@ -772,7 +849,10 @@
         "senior",
         "care"
       ],
-      "slug": "amada-senior-care"
+      "slug": "amada-senior-care",
+      "categories": [
+        "Senior Care"
+      ]
     },
     {
       "id": "m12344",
@@ -798,7 +878,10 @@
         "business",
         "machines"
       ],
-      "slug": "american-business-machines"
+      "slug": "american-business-machines",
+      "categories": [
+        "Copy & Business Machines"
+      ]
     },
     {
       "id": "m16098",
@@ -826,7 +909,10 @@
         "insurance",
         "services"
       ],
-      "slug": "american-global"
+      "slug": "american-global",
+      "categories": [
+        "Insurance Services"
+      ]
     },
     {
       "id": "m15701",
@@ -854,7 +940,11 @@
       "slug": "american-legion-post",
       "leaderLogo": "/images/leaders/leaders_130.jpg",
       "pageImage": "/images/board/paul-lawler.jpg",
-      "boardTitle": "Corporate Secretary · Past President"
+      "boardTitle": "Corporate Secretary · Past President",
+      "categories": [
+        "Non-Profit Organization",
+        "Veterans Assistance Category"
+      ]
     },
     {
       "id": "m2203",
@@ -881,7 +971,10 @@
         "credit",
         "repair"
       ],
-      "slug": "amg-consulting-group-inc"
+      "slug": "amg-consulting-group-inc",
+      "categories": [
+        "Credit Repair"
+      ]
     },
     {
       "id": "m16013",
@@ -909,7 +1002,10 @@
         "limousine",
         "service"
       ],
-      "slug": "ams-luxury-transportation-llc"
+      "slug": "ams-luxury-transportation-llc",
+      "categories": [
+        "Limousine Service"
+      ]
     },
     {
       "id": "m15786",
@@ -947,7 +1043,10 @@
         "care",
         "services"
       ],
-      "slug": "anafoxbeauty"
+      "slug": "anafoxbeauty",
+      "categories": [
+        "Beauty and Skin Care Services"
+      ]
     },
     {
       "id": "wv-anheuser-busch-brewery",
@@ -969,7 +1068,10 @@
         "retailer",
         "specialty"
       ],
-      "slug": "anheuser-busch-brewery"
+      "slug": "anheuser-busch-brewery",
+      "categories": [
+        "Retailer, Specialty"
+      ]
     },
     {
       "id": "wv-arc-family-counseling",
@@ -988,7 +1090,10 @@
         "counseling",
         "services"
       ],
-      "slug": "arc-family-counseling"
+      "slug": "arc-family-counseling",
+      "categories": [
+        "Counseling Services"
+      ]
     },
     {
       "id": "m16170",
@@ -1014,7 +1119,10 @@
       "tags": [
         "dentist"
       ],
-      "slug": "arpin-khostegyan-dds-inc"
+      "slug": "arpin-khostegyan-dds-inc",
+      "categories": [
+        "Dentist"
+      ]
     },
     {
       "id": "m16100",
@@ -1041,7 +1149,10 @@
         "retailer",
         "specialty"
       ],
-      "slug": "artfully-made-llc"
+      "slug": "artfully-made-llc",
+      "categories": [
+        "Retailer, Specialty"
+      ]
     },
     {
       "id": "m13298",
@@ -1066,7 +1177,10 @@
         "service",
         "provider"
       ],
-      "slug": "assertive-security-services-consulting-group-inc"
+      "slug": "assertive-security-services-consulting-group-inc",
+      "categories": [
+        "Security Service Provider"
+      ]
     },
     {
       "id": "m16033",
@@ -1113,7 +1227,11 @@
         "retailer",
         "specialty"
       ],
-      "slug": "atrium-topanga"
+      "slug": "atrium-topanga",
+      "categories": [
+        "Dispensary",
+        "Retailer, Specialty"
+      ]
     },
     {
       "id": "m15356",
@@ -1138,7 +1256,10 @@
         "rescue"
       ],
       "slug": "aussie-rescue-socal-inc",
-      "pageImage": "/images/board/bob-epstein.jpg"
+      "pageImage": "/images/board/bob-epstein.jpg",
+      "categories": [
+        "Animal Rescue"
+      ]
     },
     {
       "id": "m15582",
@@ -1174,7 +1295,10 @@
         "retailer",
         "specialty"
       ],
-      "slug": "authentic-kratom"
+      "slug": "authentic-kratom",
+      "categories": [
+        "Retailer, Specialty"
+      ]
     },
     {
       "id": "m15678",
@@ -1200,7 +1324,10 @@
         "talent",
         "agency"
       ],
-      "slug": "avant-artists-llc"
+      "slug": "avant-artists-llc",
+      "categories": [
+        "Talent Agency"
+      ]
     },
     {
       "id": "m12569",
@@ -1228,7 +1355,10 @@
         "merchant",
         "services"
       ],
-      "slug": "avant-garde-merchant-solutions-inc"
+      "slug": "avant-garde-merchant-solutions-inc",
+      "categories": [
+        "Merchant Services"
+      ]
     },
     {
       "id": "m16093",
@@ -1255,7 +1385,10 @@
         "home",
         "improvement"
       ],
-      "slug": "azzaro-home"
+      "slug": "azzaro-home",
+      "categories": [
+        "Home Improvement"
+      ]
     },
     {
       "id": "m15571",
@@ -1281,7 +1414,10 @@
       "tags": [
         "banks"
       ],
-      "slug": "bank-of-southern-california"
+      "slug": "bank-of-southern-california",
+      "categories": [
+        "Banks"
+      ]
     },
     {
       "id": "m15907",
@@ -1306,7 +1442,11 @@
       ],
       "slug": "baron-shutters-and-blinds",
       "pageImage": "/images/board/howard-baron.jpg",
-      "leaderStatus": "Board Member"
+      "leaderStatus": "Board Member",
+      "categories": [
+        "Home Improvement",
+        "Window Covering"
+      ]
     },
     {
       "id": "m13200",
@@ -1340,7 +1480,10 @@
         "space",
         "leasing"
       ],
-      "slug": "barrister-executive-suites-inc"
+      "slug": "barrister-executive-suites-inc",
+      "categories": [
+        "Office Space Leasing"
+      ]
     },
     {
       "id": "m15809",
@@ -1371,7 +1514,10 @@
         "occupational",
         "therapy"
       ],
-      "slug": "base-training-physical-therapy"
+      "slug": "base-training-physical-therapy",
+      "categories": [
+        "Physical & Occupational Therapy"
+      ]
     },
     {
       "id": "m15541",
@@ -1395,7 +1541,10 @@
         "senior",
         "care"
       ],
-      "slug": "belmont-village-senior-living-calabasas"
+      "slug": "belmont-village-senior-living-calabasas",
+      "categories": [
+        "Senior Care"
+      ]
     },
     {
       "id": "m16142",
@@ -1427,7 +1576,10 @@
         "and",
         "publications"
       ],
-      "slug": "belocal-n2"
+      "slug": "belocal-n2",
+      "categories": [
+        "Marketing and Publications"
+      ]
     },
     {
       "id": "m16204",
@@ -1450,7 +1602,10 @@
         "real",
         "estate"
       ],
-      "slug": "berkshire-hathaway-home-services"
+      "slug": "berkshire-hathaway-home-services",
+      "categories": [
+        "Real Estate"
+      ]
     },
     {
       "id": "wv-biomat-usa-inc",
@@ -1471,7 +1626,11 @@
         "health",
         "wellness"
       ],
-      "slug": "biomat-usa-inc"
+      "slug": "biomat-usa-inc",
+      "categories": [
+        "Health & Wellness",
+        "Health Care Assist Prods."
+      ]
     },
     {
       "id": "wv-bizfed-los-angeles-county-business-federation",
@@ -1495,7 +1654,10 @@
         "business",
         "classification"
       ],
-      "slug": "bizfed-los-angeles-county-business-federation"
+      "slug": "bizfed-los-angeles-county-business-federation",
+      "categories": [
+        "Member with no business classification"
+      ]
     },
     {
       "id": "m15569",
@@ -1546,7 +1708,10 @@
         "web",
         "site"
       ],
-      "slug": "bldr-digital"
+      "slug": "bldr-digital",
+      "categories": [
+        "Web Site"
+      ]
     },
     {
       "id": "m16123",
@@ -1578,7 +1743,11 @@
         "mattress",
         "retailer"
       ],
-      "slug": "blissful-sleep"
+      "slug": "blissful-sleep",
+      "categories": [
+        "Mattress Retailer",
+        "Retailer, Specialty"
+      ]
     },
     {
       "id": "m15900",
@@ -1605,7 +1774,10 @@
         "advisory",
         "services"
       ],
-      "slug": "bluerock-accounting-consulting"
+      "slug": "bluerock-accounting-consulting",
+      "categories": [
+        "Accounting, Taxation, & Business Advisory Services"
+      ]
     },
     {
       "id": "m16096",
@@ -1630,7 +1802,10 @@
         "rental",
         "equipment"
       ],
-      "slug": "bonners-party-rentals"
+      "slug": "bonners-party-rentals",
+      "categories": [
+        "Party Rental Equipment"
+      ]
     },
     {
       "id": "m11868",
@@ -1656,7 +1831,10 @@
         "health",
         "care"
       ],
-      "slug": "bonum-home-health-services-bonum-hospice-services"
+      "slug": "bonum-home-health-services-bonum-hospice-services",
+      "categories": [
+        "Home Health Care"
+      ]
     },
     {
       "id": "wv-botfia",
@@ -1679,7 +1857,10 @@
         "business",
         "classification"
       ],
-      "slug": "botfia"
+      "slug": "botfia",
+      "categories": [
+        "Member with no business classification"
+      ]
     },
     {
       "id": "m15632",
@@ -1705,7 +1886,10 @@
       "tags": [
         "schools"
       ],
-      "slug": "boulevard-school-the"
+      "slug": "boulevard-school-the",
+      "categories": [
+        "Schools"
+      ]
     },
     {
       "id": "m2222",
@@ -1734,7 +1918,10 @@
       "slug": "boys-girls-club-of-the-west-valley",
       "leaderLogo": "/images/leaders/leaders_118.jpg",
       "pageImage": "/images/board/geovanny-ragsdale.jpg",
-      "leaderStatus": "Board Member"
+      "leaderStatus": "Board Member",
+      "categories": [
+        "Non-Profit Organization"
+      ]
     },
     {
       "id": "m16215",
@@ -1760,7 +1947,10 @@
       "tags": [
         "plumbing"
       ],
-      "slug": "bryco-plumbing-inc"
+      "slug": "bryco-plumbing-inc",
+      "categories": [
+        "Plumbing"
+      ]
     },
     {
       "id": "m16092",
@@ -1795,7 +1985,10 @@
         "and",
         "collision"
       ],
-      "slug": "bumper-to-bumper-auto-body"
+      "slug": "bumper-to-bumper-auto-body",
+      "categories": [
+        "Auto Body and Collision"
+      ]
     },
     {
       "id": "wv-burke-williams-corporate-at-topanga-village",
@@ -1816,7 +2009,10 @@
         "spa",
         "massage"
       ],
-      "slug": "burke-williams-corporate-at-topanga-village"
+      "slug": "burke-williams-corporate-at-topanga-village",
+      "categories": [
+        "Spa & Massage"
+      ]
     },
     {
       "id": "m12107",
@@ -1837,7 +2033,10 @@
         "electrical",
         "contractor"
       ],
-      "slug": "bzco-electric"
+      "slug": "bzco-electric",
+      "categories": [
+        "Electrical Contractor"
+      ]
     },
     {
       "id": "m15106",
@@ -1865,7 +2064,10 @@
         "attorney",
         "services"
       ],
-      "slug": "c-z-personal-injury-law-firm-valentino-corporation"
+      "slug": "c-z-personal-injury-law-firm-valentino-corporation",
+      "categories": [
+        "Attorney Services"
+      ]
     },
     {
       "id": "m15956",
@@ -1890,7 +2092,10 @@
         "profit",
         "organization"
       ],
-      "slug": "cabrito-foundation"
+      "slug": "cabrito-foundation",
+      "categories": [
+        "Non-Profit Organization"
+      ]
     },
     {
       "id": "m12502",
@@ -1911,7 +2116,10 @@
       "tags": [
         "magazine"
       ],
-      "slug": "calabasas-style-magazine"
+      "slug": "calabasas-style-magazine",
+      "categories": [
+        "Magazine"
+      ]
     },
     {
       "id": "m15834",
@@ -1939,12 +2147,16 @@
       "employees": "2",
       "leaderStatus": "New Member",
       "logo": "/images/members/m15834.jpg",
-      "group": "Arts & Entertainment",
+      "group": "Retail & Shopping",
       "tags": [
         "music",
         "instruction"
       ],
-      "slug": "california-musicbox-studios"
+      "slug": "california-musicbox-studios",
+      "categories": [
+        "Music Instruction",
+        "Retailer, Specialty"
+      ]
     },
     {
       "id": "wv-california-steamerz",
@@ -1965,7 +2177,10 @@
         "cleaning",
         "restoration"
       ],
-      "slug": "california-steamerz"
+      "slug": "california-steamerz",
+      "categories": [
+        "Cleaning & Restoration"
+      ]
     },
     {
       "id": "m15994",
@@ -1996,7 +2211,10 @@
         "medical",
         "supplies"
       ],
-      "slug": "call-before-you-fall"
+      "slug": "call-before-you-fall",
+      "categories": [
+        "Medical Supplies"
+      ]
     },
     {
       "id": "m15964",
@@ -2020,7 +2238,10 @@
         "social",
         "member"
       ],
-      "slug": "cara-and-stuart-goldman-resident-member"
+      "slug": "cara-and-stuart-goldman-resident-member",
+      "categories": [
+        "Resident~Social Member"
+      ]
     },
     {
       "id": "m15875",
@@ -2052,7 +2273,10 @@
       "tags": [
         "healthcare"
       ],
-      "slug": "carbon-health-urgent-care-woodland-hills"
+      "slug": "carbon-health-urgent-care-woodland-hills",
+      "categories": [
+        "Healthcare"
+      ]
     },
     {
       "id": "m15826",
@@ -2076,7 +2300,10 @@
         "care",
         "services"
       ],
-      "slug": "care-home-concierge"
+      "slug": "care-home-concierge",
+      "categories": [
+        "Home Care Services"
+      ]
     },
     {
       "id": "m15992",
@@ -2101,7 +2328,10 @@
       "tags": [
         "pharmacy"
       ],
-      "slug": "care-plus-pharmacy"
+      "slug": "care-plus-pharmacy",
+      "categories": [
+        "Pharmacy"
+      ]
     },
     {
       "id": "m16062",
@@ -2124,7 +2354,10 @@
         "senior",
         "care"
       ],
-      "slug": "caring-heart-assisted-living"
+      "slug": "caring-heart-assisted-living",
+      "categories": [
+        "Senior Care"
+      ]
     },
     {
       "id": "m15830",
@@ -2151,7 +2384,10 @@
         "living",
         "community"
       ],
-      "slug": "caring-love-boarding-care"
+      "slug": "caring-love-boarding-care",
+      "categories": [
+        "Senior Living Community"
+      ]
     },
     {
       "id": "m15265",
@@ -2186,7 +2422,10 @@
         "profit",
         "organization"
       ],
-      "slug": "casa-of-los-angeles"
+      "slug": "casa-of-los-angeles",
+      "categories": [
+        "Non-Profit Organization"
+      ]
     },
     {
       "id": "m13066",
@@ -2221,7 +2460,10 @@
       "tags": [
         "restaurant"
       ],
-      "slug": "casale-na"
+      "slug": "casale-na",
+      "categories": [
+        "Restaurant"
+      ]
     },
     {
       "id": "m15026",
@@ -2254,7 +2496,10 @@
         "marketing",
         "communications"
       ],
-      "slug": "cast-iron-la"
+      "slug": "cast-iron-la",
+      "categories": [
+        "Marketing Communications"
+      ]
     },
     {
       "id": "m15409",
@@ -2278,7 +2523,10 @@
         "social",
         "member"
       ],
-      "slug": "catherine-da-gama-social-membership"
+      "slug": "catherine-da-gama-social-membership",
+      "categories": [
+        "Resident~Social Member"
+      ]
     },
     {
       "id": "m13194",
@@ -2300,7 +2548,11 @@
       "tags": [
         "delicatessen"
       ],
-      "slug": "cavaretta-s-italian-deli"
+      "slug": "cavaretta-s-italian-deli",
+      "categories": [
+        "Catering",
+        "Delicatessen"
+      ]
     },
     {
       "id": "wv-cedars-sinai-medical-center",
@@ -2321,7 +2573,10 @@
       "tags": [
         "hospital"
       ],
-      "slug": "cedars-sinai-medical-center"
+      "slug": "cedars-sinai-medical-center",
+      "categories": [
+        "Hospital"
+      ]
     },
     {
       "id": "m1588",
@@ -2343,7 +2598,10 @@
       "tags": [
         "schools"
       ],
-      "slug": "chaminade-college-preparatory"
+      "slug": "chaminade-college-preparatory",
+      "categories": [
+        "Schools"
+      ]
     },
     {
       "id": "m10405",
@@ -2370,7 +2628,11 @@
         "payroll",
         "services"
       ],
-      "slug": "champion-employer-services"
+      "slug": "champion-employer-services",
+      "categories": [
+        "Human Resources",
+        "Payroll Services"
+      ]
     },
     {
       "id": "wv-chick-fil-a-at-victory-and-fallbrook",
@@ -2391,7 +2653,11 @@
       "tags": [
         "restaurant"
       ],
-      "slug": "chick-fil-a-at-victory-and-fallbrook"
+      "slug": "chick-fil-a-at-victory-and-fallbrook",
+      "categories": [
+        "Catering",
+        "Restaurant"
+      ]
     },
     {
       "id": "m15303",
@@ -2414,7 +2680,10 @@
       "tags": [
         "restaurant"
       ],
-      "slug": "chick-fil-a-woodland-hills"
+      "slug": "chick-fil-a-woodland-hills",
+      "categories": [
+        "Restaurant"
+      ]
     },
     {
       "id": "m15888",
@@ -2446,7 +2715,10 @@
         "profit",
         "organization"
       ],
-      "slug": "child-teen-counseling"
+      "slug": "child-teen-counseling",
+      "categories": [
+        "Non-Profit Organization"
+      ]
     },
     {
       "id": "m15693",
@@ -2475,7 +2747,10 @@
         "organization"
       ],
       "slug": "child-care-resource-center",
-      "leaderLogo": "/images/leaders/leaders_136.jpg"
+      "leaderLogo": "/images/leaders/leaders_136.jpg",
+      "categories": [
+        "Non-Profit Organization"
+      ]
     },
     {
       "id": "m15781",
@@ -2499,7 +2774,10 @@
       "tags": [
         "schools"
       ],
-      "slug": "chime-institute"
+      "slug": "chime-institute",
+      "categories": [
+        "Schools"
+      ]
     },
     {
       "id": "m15910",
@@ -2526,7 +2804,10 @@
         "insurance",
         "services"
       ],
-      "slug": "chris-faber-public-adjusters"
+      "slug": "chris-faber-public-adjusters",
+      "categories": [
+        "Insurance Services"
+      ]
     },
     {
       "id": "m15311",
@@ -2551,7 +2832,7 @@
       "employees": "1",
       "leaderStatus": "New Member",
       "logo": "/images/members/m15311.jpg",
-      "group": "Automotive",
+      "group": "Senior Services",
       "tags": [
         "retirement",
         "plans",
@@ -2559,7 +2840,10 @@
         "administrative",
         "services"
       ],
-      "slug": "chris-gomberg-retirement-coach"
+      "slug": "chris-gomberg-retirement-coach",
+      "categories": [
+        "Retirement Plans and Administrative Services"
+      ]
     },
     {
       "id": "m13892",
@@ -2583,7 +2867,10 @@
       "tags": [
         "restaurant"
       ],
-      "slug": "cici-s-lady-ci-s-cafe"
+      "slug": "cici-s-lady-ci-s-cafe",
+      "categories": [
+        "Restaurant"
+      ]
     },
     {
       "id": "m16198",
@@ -2605,11 +2892,14 @@
       "leaderStatus": "New Member",
       "description": "We make getting around easier, greener and affordable. By leveraging innovative connections and strategic partnerships, we bring electric mobility to all.",
       "tagline": "Circuit - Your Local Electric Shuttle",
-      "group": "Fitness & Recreation",
+      "group": "Government & Public",
       "tags": [
         "transportation"
       ],
-      "slug": "circuit"
+      "slug": "circuit",
+      "categories": [
+        "Transportation"
+      ]
     },
     {
       "id": "m16057",
@@ -2637,7 +2927,10 @@
       ],
       "slug": "city-national-bank",
       "pageImage": "/images/board/mahsa-hadjiaghai.jpg",
-      "boardTitle": "Past President"
+      "boardTitle": "Past President",
+      "categories": [
+        "Banks"
+      ]
     },
     {
       "id": "m15803",
@@ -2693,7 +2986,10 @@
       "tags": [
         "bookkeeping"
       ],
-      "slug": "clarity-in-operations"
+      "slug": "clarity-in-operations",
+      "categories": [
+        "Bookkeeping"
+      ]
     },
     {
       "id": "m14076",
@@ -2731,7 +3027,10 @@
         "profit",
         "organization"
       ],
-      "slug": "class-act-community-playhouse"
+      "slug": "class-act-community-playhouse",
+      "categories": [
+        "Non-Profit Organization"
+      ]
     },
     {
       "id": "m14525",
@@ -2764,7 +3063,10 @@
         "consulting"
       ],
       "slug": "cmit-solutions-of-la-irvine-mexico-and-south-africa",
-      "leaderLogo": "/images/leaders/leaders_117.jpg"
+      "leaderLogo": "/images/leaders/leaders_117.jpg",
+      "categories": [
+        "IT Consulting"
+      ]
     },
     {
       "id": "m15603",
@@ -2787,7 +3089,10 @@
       "tags": [
         "investments"
       ],
-      "slug": "coastline-capital-fund-management"
+      "slug": "coastline-capital-fund-management",
+      "categories": [
+        "Investments"
+      ]
     },
     {
       "id": "m16117",
@@ -2812,7 +3117,10 @@
         "real",
         "estate"
       ],
-      "slug": "coldwell-banker-envision-patricia-cockburn"
+      "slug": "coldwell-banker-envision-patricia-cockburn",
+      "categories": [
+        "Real Estate"
+      ]
     },
     {
       "id": "m16143",
@@ -2844,7 +3152,10 @@
         "moving",
         "services"
       ],
-      "slug": "college-hunks-hauling-junk-moving-thousand-oaks"
+      "slug": "college-hunks-hauling-junk-moving-thousand-oaks",
+      "categories": [
+        "Moving Services"
+      ]
     },
     {
       "id": "m11895",
@@ -2907,7 +3218,10 @@
         "estate",
         "commercial"
       ],
-      "slug": "commercial-real-estate-network"
+      "slug": "commercial-real-estate-network",
+      "categories": [
+        "Real Estate, Commercial"
+      ]
     },
     {
       "id": "m12479",
@@ -2936,7 +3250,10 @@
       "tags": [
         "dentist"
       ],
-      "slug": "complete-health-dentistry-of-woodland-hills"
+      "slug": "complete-health-dentistry-of-woodland-hills",
+      "categories": [
+        "Dentist"
+      ]
     },
     {
       "id": "m10053",
@@ -2964,7 +3281,10 @@
         "computer",
         "services"
       ],
-      "slug": "computer-doctor-the"
+      "slug": "computer-doctor-the",
+      "categories": [
+        "Computer Services"
+      ]
     },
     {
       "id": "m15980",
@@ -2990,7 +3310,10 @@
         "health",
         "care"
       ],
-      "slug": "continuity-care-home-nurses"
+      "slug": "continuity-care-home-nurses",
+      "categories": [
+        "Home Health Care"
+      ]
     },
     {
       "id": "m12274",
@@ -3020,7 +3343,10 @@
         "bowling",
         "alley"
       ],
-      "slug": "corbin-bowl"
+      "slug": "corbin-bowl",
+      "categories": [
+        "Bowling Alley"
+      ]
     },
     {
       "id": "m16156",
@@ -3054,7 +3380,10 @@
         "fitness",
         "wellness"
       ],
-      "slug": "core-more-fitness"
+      "slug": "core-more-fitness",
+      "categories": [
+        "Fitness/Wellness"
+      ]
     },
     {
       "id": "m15679",
@@ -3084,7 +3413,10 @@
         "fitness",
         "wellness"
       ],
-      "slug": "core-bungee-fitness-plus"
+      "slug": "core-bungee-fitness-plus",
+      "categories": [
+        "Fitness/Wellness"
+      ]
     },
     {
       "id": "m15069",
@@ -3118,7 +3450,10 @@
         "financial",
         "services"
       ],
-      "slug": "core-family-office"
+      "slug": "core-family-office",
+      "categories": [
+        "Financial Services"
+      ]
     },
     {
       "id": "m10107",
@@ -3139,7 +3474,10 @@
       "tags": [
         "grocery"
       ],
-      "slug": "costco-woodland-hills"
+      "slug": "costco-woodland-hills",
+      "categories": [
+        "Grocery"
+      ]
     },
     {
       "id": "m12130",
@@ -3168,7 +3506,10 @@
         "hotel",
         "motel"
       ],
-      "slug": "courtyard-by-marriott-woodland-hills"
+      "slug": "courtyard-by-marriott-woodland-hills",
+      "categories": [
+        "Hotel / Motel"
+      ]
     },
     {
       "id": "wv-crespi-carmelite-high-school",
@@ -3189,7 +3530,10 @@
       "tags": [
         "schools"
       ],
-      "slug": "crespi-carmelite-high-school"
+      "slug": "crespi-carmelite-high-school",
+      "categories": [
+        "Schools"
+      ]
     },
     {
       "id": "m16146",
@@ -3216,7 +3560,10 @@
         "health",
         "wellness"
       ],
-      "slug": "cryohealthcare-woodland-hills"
+      "slug": "cryohealthcare-woodland-hills",
+      "categories": [
+        "Health & Wellness"
+      ]
     },
     {
       "id": "wv-csun-department-of-recreation-and-tourism-management-csu-nor",
@@ -3236,7 +3583,10 @@
       "tags": [
         "schools"
       ],
-      "slug": "csun-department-of-recreation-and-tourism-management-csu-nor"
+      "slug": "csun-department-of-recreation-and-tourism-management-csu-nor",
+      "categories": [
+        "Schools"
+      ]
     },
     {
       "id": "m15905",
@@ -3267,7 +3617,10 @@
       "tags": [
         "medical"
       ],
-      "slug": "cutting-edge-hyperbaric-advanced-wound-care"
+      "slug": "cutting-edge-hyperbaric-advanced-wound-care",
+      "categories": [
+        "Medical"
+      ]
     },
     {
       "id": "m15633",
@@ -3298,7 +3651,10 @@
         "martial",
         "arts"
       ],
-      "slug": "cutting-edge-martial-arts-academy"
+      "slug": "cutting-edge-martial-arts-academy",
+      "categories": [
+        "Martial Arts"
+      ]
     },
     {
       "id": "m15752",
@@ -3326,7 +3682,10 @@
       "tags": [
         "consulting"
       ],
-      "slug": "cyberusa-inc"
+      "slug": "cyberusa-inc",
+      "categories": [
+        "IT Consulting"
+      ]
     },
     {
       "id": "m14489",
@@ -3345,12 +3704,17 @@
       "seal": "D",
       "employees": "1",
       "leaderStatus": "Ambassador",
-      "group": "Other",
+      "group": "Professional Services",
       "tags": [
         "toner",
         "ink"
       ],
-      "slug": "datanet-consultants"
+      "slug": "datanet-consultants",
+      "categories": [
+        "Copy & Business Machines",
+        "Printer Supplies",
+        "Toner & Ink"
+      ]
     },
     {
       "id": "m15560",
@@ -3409,7 +3773,10 @@
         "appliance",
         "repair"
       ],
-      "slug": "db-hvac-and-appliance-repairs"
+      "slug": "db-hvac-and-appliance-repairs",
+      "categories": [
+        "Appliance Repair"
+      ]
     },
     {
       "id": "m15975",
@@ -3436,7 +3803,10 @@
         "tax",
         "services"
       ],
-      "slug": "demetriou-montano-associates"
+      "slug": "demetriou-montano-associates",
+      "categories": [
+        "Tax Services"
+      ]
     },
     {
       "id": "m15110",
@@ -3460,7 +3830,10 @@
         "social",
         "member"
       ],
-      "slug": "dennis-and-karen-dibiase-resident"
+      "slug": "dennis-and-karen-dibiase-resident",
+      "categories": [
+        "Resident~Social Member"
+      ]
     },
     {
       "id": "m15497",
@@ -3486,7 +3859,10 @@
       "tags": [
         "dentist"
       ],
-      "slug": "dentists-of-canoga-park"
+      "slug": "dentists-of-canoga-park",
+      "categories": [
+        "Dentist"
+      ]
     },
     {
       "id": "m15903",
@@ -3509,7 +3885,10 @@
       "tags": [
         "restaurant"
       ],
-      "slug": "deux-bistro"
+      "slug": "deux-bistro",
+      "categories": [
+        "Restaurant"
+      ]
     },
     {
       "id": "m16106",
@@ -3539,7 +3918,10 @@
       "tags": [
         "restaurant"
       ],
-      "slug": "di-mart-la"
+      "slug": "di-mart-la",
+      "categories": [
+        "Restaurant"
+      ]
     },
     {
       "id": "m13386",
@@ -3564,7 +3946,10 @@
         "medical",
         "diagnostics"
       ],
-      "slug": "diagnostic-automation-inc"
+      "slug": "diagnostic-automation-inc",
+      "categories": [
+        "Manufacturer - Medical Diagnostics"
+      ]
     },
     {
       "id": "m13628",
@@ -3590,7 +3975,10 @@
         "cemetery",
         "mortuary"
       ],
-      "slug": "dignity-memorial"
+      "slug": "dignity-memorial",
+      "categories": [
+        "Cemetery/Mortuary"
+      ]
     },
     {
       "id": "m10474",
@@ -3614,7 +4002,11 @@
         "educational",
         "services"
       ],
-      "slug": "discovery-school"
+      "slug": "discovery-school",
+      "categories": [
+        "Educational Services",
+        "Preschool"
+      ]
     },
     {
       "id": "m15494",
@@ -3640,7 +4032,10 @@
         "health",
         "wellness"
       ],
-      "slug": "doctor2me"
+      "slug": "doctor2me",
+      "categories": [
+        "Health & Wellness"
+      ]
     },
     {
       "id": "m10595",
@@ -3664,7 +4059,10 @@
         "profit",
         "organization"
       ],
-      "slug": "kiwanis-club-of-warner-center"
+      "slug": "kiwanis-club-of-warner-center",
+      "categories": [
+        "Notary"
+      ]
     },
     {
       "id": "m12551",
@@ -3696,7 +4094,10 @@
         "social",
         "member"
       ],
-      "slug": "don-sweeney-social-member"
+      "slug": "don-sweeney-social-member",
+      "categories": [
+        "Resident~Social Member"
+      ]
     },
     {
       "id": "m10483",
@@ -3727,7 +4128,11 @@
         "attorney",
         "services"
       ],
-      "slug": "donald-weissman-social-member"
+      "slug": "donald-weissman-social-member",
+      "categories": [
+        "Attorney Services",
+        "Law Firm"
+      ]
     },
     {
       "id": "wv-douglas-emmett",
@@ -3750,7 +4155,10 @@
         "management"
       ],
       "slug": "douglas-emmett",
-      "leaderLogo": "/images/leaders/leaders_149.jpg"
+      "leaderLogo": "/images/leaders/leaders_149.jpg",
+      "categories": [
+        "Property Management"
+      ]
     },
     {
       "id": "wv-dr-bruce-vafa-d-d-s-children-sedation-dentistry",
@@ -3803,13 +4211,17 @@
       "employees": "5",
       "leaderStatus": "New Member",
       "logo": "/images/members/m16091.jpg",
-      "group": "Other",
+      "group": "Health & Medical",
       "tags": [
         "weight",
         "management",
         "services"
       ],
-      "slug": "dr-v-weight-pain-management"
+      "slug": "dr-v-weight-pain-management",
+      "categories": [
+        "Chiropractor",
+        "Weight Management Services"
+      ]
     },
     {
       "id": "m16111",
@@ -3837,7 +4249,10 @@
         "financial",
         "services"
       ],
-      "slug": "dreams-business-resources"
+      "slug": "dreams-business-resources",
+      "categories": [
+        "Financial Services"
+      ]
     },
     {
       "id": "m12523",
@@ -3861,7 +4276,11 @@
         "general",
         "contractor"
       ],
-      "slug": "e-h-butland-corp"
+      "slug": "e-h-butland-corp",
+      "categories": [
+        "Construction",
+        "General Contractor"
+      ]
     },
     {
       "id": "wv-eattheboard-com",
@@ -3884,7 +4303,10 @@
         "business",
         "classification"
       ],
-      "slug": "eattheboard-com"
+      "slug": "eattheboard-com",
+      "categories": [
+        "Member with no business classification"
+      ]
     },
     {
       "id": "m16115",
@@ -3909,7 +4331,10 @@
         "financial",
         "services"
       ],
-      "slug": "edward-jones"
+      "slug": "edward-jones",
+      "categories": [
+        "Financial Services"
+      ]
     },
     {
       "id": "m16190",
@@ -3936,7 +4361,10 @@
         "financial",
         "services"
       ],
-      "slug": "edward-jones-2"
+      "slug": "edward-jones-2",
+      "categories": [
+        "Financial Services"
+      ]
     },
     {
       "id": "m1682",
@@ -3963,7 +4391,10 @@
       "tags": [
         "schools"
       ],
-      "slug": "el-camino-real-charter-high-school"
+      "slug": "el-camino-real-charter-high-school",
+      "categories": [
+        "Schools"
+      ]
     },
     {
       "id": "m10851",
@@ -3983,7 +4414,10 @@
       "tags": [
         "restaurant"
       ],
-      "slug": "el-torito"
+      "slug": "el-torito",
+      "categories": [
+        "Restaurant"
+      ]
     },
     {
       "id": "m15735",
@@ -4020,7 +4454,10 @@
         "mental",
         "health"
       ],
-      "slug": "elevated-healing-behavioral-health-inc"
+      "slug": "elevated-healing-behavioral-health-inc",
+      "categories": [
+        "Mental Health"
+      ]
     },
     {
       "id": "m15630",
@@ -4047,7 +4484,10 @@
         "retailer",
         "specialty"
       ],
-      "slug": "elfin-los-angeles-llc"
+      "slug": "elfin-los-angeles-llc",
+      "categories": [
+        "Retailer, Specialty"
+      ]
     },
     {
       "id": "m14058",
@@ -4084,7 +4524,10 @@
         "dance",
         "academy"
       ],
-      "slug": "elite-dance-and-performing-arts-center-the"
+      "slug": "elite-dance-and-performing-arts-center-the",
+      "categories": [
+        "Dance Academy"
+      ]
     },
     {
       "id": "m14937",
@@ -4107,7 +4550,10 @@
         "medical",
         "spa"
       ],
-      "slug": "elleve-med-spa"
+      "slug": "elleve-med-spa",
+      "categories": [
+        "Medical Spa"
+      ]
     },
     {
       "id": "m15871",
@@ -4131,7 +4577,11 @@
       "tags": [
         "media"
       ],
-      "slug": "elvira-media"
+      "slug": "elvira-media",
+      "categories": [
+        "Media",
+        "Photography"
+      ]
     },
     {
       "id": "m15802",
@@ -4183,7 +4633,10 @@
         "financial",
         "services"
       ],
-      "slug": "eos"
+      "slug": "eos",
+      "categories": [
+        "Financial Services"
+      ]
     },
     {
       "id": "m16154",
@@ -4210,7 +4663,10 @@
         "real",
         "estate"
       ],
-      "slug": "esperanza-butler-keller-williams"
+      "slug": "esperanza-butler-keller-williams",
+      "categories": [
+        "Real Estate"
+      ]
     },
     {
       "id": "m16187",
@@ -4237,7 +4693,10 @@
         "fitness",
         "wellness"
       ],
-      "slug": "ethos-fitness"
+      "slug": "ethos-fitness",
+      "categories": [
+        "Fitness/Wellness"
+      ]
     },
     {
       "id": "m13474",
@@ -4270,7 +4729,10 @@
       "tags": [
         "restaurant"
       ],
-      "slug": "eureka-woodland-hills"
+      "slug": "eureka-woodland-hills",
+      "categories": [
+        "Restaurant"
+      ]
     },
     {
       "id": "m16149",
@@ -4296,7 +4758,10 @@
         "staffing",
         "service"
       ],
-      "slug": "exact-staff"
+      "slug": "exact-staff",
+      "categories": [
+        "Staffing Service"
+      ]
     },
     {
       "id": "m15565",
@@ -4373,7 +4838,10 @@
         "and",
         "installation"
       ],
-      "slug": "excellence-garage-door"
+      "slug": "excellence-garage-door",
+      "categories": [
+        "Garage Door & Window Repair and Installation"
+      ]
     },
     {
       "id": "m15266",
@@ -4397,7 +4865,10 @@
       "tags": [
         "healthcare"
       ],
-      "slug": "exer-urgent-care"
+      "slug": "exer-urgent-care",
+      "categories": [
+        "Healthcare"
+      ]
     },
     {
       "id": "m14338",
@@ -4456,7 +4927,10 @@
         "care"
       ],
       "slug": "fairwinds-west-hills-retirement-community",
-      "leaderLogo": "/images/leaders/leaders_124.jpg"
+      "leaderLogo": "/images/leaders/leaders_124.jpg",
+      "categories": [
+        "Senior Care"
+      ]
     },
     {
       "id": "m14658",
@@ -4481,7 +4955,10 @@
         "senior",
         "care"
       ],
-      "slug": "fallbrook-glen-of-west-hills"
+      "slug": "fallbrook-glen-of-west-hills",
+      "categories": [
+        "Senior Care"
+      ]
     },
     {
       "id": "m16130",
@@ -4508,7 +4985,10 @@
         "credit",
         "unions"
       ],
-      "slug": "farmers-insurance-federal-credit-union"
+      "slug": "farmers-insurance-federal-credit-union",
+      "categories": [
+        "Credit Unions"
+      ]
     },
     {
       "id": "m15657",
@@ -4545,7 +5025,10 @@
         "drug",
         "testing"
       ],
-      "slug": "fastest-labs-of-woodland-hills"
+      "slug": "fastest-labs-of-woodland-hills",
+      "categories": [
+        "Drug Testing"
+      ]
     },
     {
       "id": "m13389",
@@ -4567,7 +5050,10 @@
         "dry",
         "cleaners"
       ],
-      "slug": "fazio-cleaners"
+      "slug": "fazio-cleaners",
+      "categories": [
+        "Dry Cleaners"
+      ]
     },
     {
       "id": "wv-fifth-avenue-orchestras-entertainment",
@@ -4588,7 +5074,10 @@
       "tags": [
         "orchestra"
       ],
-      "slug": "fifth-avenue-orchestras-entertainment"
+      "slug": "fifth-avenue-orchestras-entertainment",
+      "categories": [
+        "Orchestra"
+      ]
     },
     {
       "id": "m13620",
@@ -4611,7 +5100,10 @@
         "credit",
         "unions"
       ],
-      "slug": "financial-partners-credit-union"
+      "slug": "financial-partners-credit-union",
+      "categories": [
+        "Credit Unions"
+      ]
     },
     {
       "id": "m15321",
@@ -4639,7 +5131,10 @@
         "broker"
       ],
       "slug": "firehawk",
-      "leaderLogo": "/images/leaders/leaders_122.jpg"
+      "leaderLogo": "/images/leaders/leaders_122.jpg",
+      "categories": [
+        "Solar Broker"
+      ]
     },
     {
       "id": "m15380",
@@ -4667,7 +5162,10 @@
         "banks"
       ],
       "slug": "first-bank",
-      "leaderLogo": "/images/leaders/leaders_146.jpg"
+      "leaderLogo": "/images/leaders/leaders_146.jpg",
+      "categories": [
+        "Banks"
+      ]
     },
     {
       "id": "m16009",
@@ -4696,7 +5194,10 @@
         "profit",
         "organization"
       ],
-      "slug": "first-baptist-church-of-woodland-hills"
+      "slug": "first-baptist-church-of-woodland-hills",
+      "categories": [
+        "Non-Profit Organization"
+      ]
     },
     {
       "id": "m14893",
@@ -4715,12 +5216,16 @@
       "seal": "F",
       "employees": "4",
       "leaderStatus": "New Member",
-      "group": "Other",
+      "group": "Home & Trades",
       "tags": [
         "commercial",
         "cleaners"
       ],
-      "slug": "fish-window-cleaning"
+      "slug": "fish-window-cleaning",
+      "categories": [
+        "Commercial Cleaners",
+        "Residential Cleaning"
+      ]
     },
     {
       "id": "m14128",
@@ -4745,7 +5250,10 @@
       "tags": [
         "restaurant"
       ],
-      "slug": "fleming-s-prime-steakhouse-wine-bar"
+      "slug": "fleming-s-prime-steakhouse-wine-bar",
+      "categories": [
+        "Restaurant"
+      ]
     },
     {
       "id": "m15491",
@@ -4771,7 +5279,10 @@
       "tags": [
         "restaurant"
       ],
-      "slug": "fogo-de-chao-woodland-hills"
+      "slug": "fogo-de-chao-woodland-hills",
+      "categories": [
+        "Restaurant"
+      ]
     },
     {
       "id": "m16060",
@@ -4790,11 +5301,15 @@
       "yearEstablished": "1980",
       "employees": "4",
       "leaderStatus": "New Member",
-      "group": "Other",
+      "group": "Real Estate",
       "tags": [
         "broker"
       ],
-      "slug": "foresight-investments"
+      "slug": "foresight-investments",
+      "categories": [
+        "Broker",
+        "Real Estate Broker"
+      ]
     },
     {
       "id": "m13749",
@@ -4821,7 +5336,10 @@
         "cemetery",
         "mortuary"
       ],
-      "slug": "forest-lawn-memorial-parks-mortuaries"
+      "slug": "forest-lawn-memorial-parks-mortuaries",
+      "categories": [
+        "Cemetery/Mortuary"
+      ]
     },
     {
       "id": "m14578",
@@ -4853,7 +5371,10 @@
       "tags": [
         "consulting"
       ],
-      "slug": "fothion-inc"
+      "slug": "fothion-inc",
+      "categories": [
+        "IT Consulting"
+      ]
     },
     {
       "id": "m14533",
@@ -4883,7 +5404,10 @@
       "tags": [
         "technology"
       ],
-      "slug": "fpa-technology-services-inc"
+      "slug": "fpa-technology-services-inc",
+      "categories": [
+        "Technology"
+      ]
     },
     {
       "id": "wv-franklin-s-ace-hardware",
@@ -4905,7 +5429,11 @@
         "hardware",
         "store"
       ],
-      "slug": "franklin-s-ace-hardware"
+      "slug": "franklin-s-ace-hardware",
+      "categories": [
+        "Hardware Store",
+        "Home Improvement"
+      ]
     },
     {
       "id": "m14841",
@@ -4941,7 +5469,11 @@
       "tags": [
         "schools"
       ],
-      "slug": "fusion-academy-warner-center"
+      "slug": "fusion-academy-warner-center",
+      "categories": [
+        "Private School",
+        "Schools"
+      ]
     },
     {
       "id": "m15577",
@@ -4974,7 +5506,10 @@
       "tags": [
         "chiropractor"
       ],
-      "slug": "gabriel-y-edery-d-c-chiropractic"
+      "slug": "gabriel-y-edery-d-c-chiropractic",
+      "categories": [
+        "Chiropractor"
+      ]
     },
     {
       "id": "m15349",
@@ -5006,7 +5541,10 @@
         "attorney",
         "services"
       ],
-      "slug": "gaines-stacey"
+      "slug": "gaines-stacey",
+      "categories": [
+        "Attorney Services"
+      ]
     },
     {
       "id": "m2220",
@@ -5031,7 +5569,10 @@
         "auto",
         "dealers"
       ],
-      "slug": "galpin-motors"
+      "slug": "galpin-motors",
+      "categories": [
+        "Auto Dealers"
+      ]
     },
     {
       "id": "m15823",
@@ -5058,7 +5599,10 @@
         "health",
         "wellness"
       ],
-      "slug": "gameday-men-s-health-west-hills"
+      "slug": "gameday-men-s-health-west-hills",
+      "categories": [
+        "Health & Wellness"
+      ]
     },
     {
       "id": "m12768",
@@ -5081,7 +5625,10 @@
         "management"
       ],
       "slug": "gelb-group-a-family-of-companies",
-      "leaderLogo": "/images/leaders/leaders_137.jpg"
+      "leaderLogo": "/images/leaders/leaders_137.jpg",
+      "categories": [
+        "Property Management"
+      ]
     },
     {
       "id": "m1723",
@@ -5103,7 +5650,10 @@
       "tags": [
         "grocery"
       ],
-      "slug": "gelson-s-market"
+      "slug": "gelson-s-market",
+      "categories": [
+        "Grocery"
+      ]
     },
     {
       "id": "m15949",
@@ -5128,7 +5678,10 @@
         "senior",
         "care"
       ],
-      "slug": "generations-concierge"
+      "slug": "generations-concierge",
+      "categories": [
+        "Senior Care"
+      ]
     },
     {
       "id": "m15109",
@@ -5163,7 +5716,10 @@
         "profit",
         "organization"
       ],
-      "slug": "get-together-foundation"
+      "slug": "get-together-foundation",
+      "categories": [
+        "Non-Profit Organization"
+      ]
     },
     {
       "id": "m15831",
@@ -5187,7 +5743,10 @@
         "financial",
         "services"
       ],
-      "slug": "ghrb-consulting"
+      "slug": "ghrb-consulting",
+      "categories": [
+        "Financial Services"
+      ]
     },
     {
       "id": "m14595",
@@ -5209,7 +5768,10 @@
       "tags": [
         "psychologist"
       ],
-      "slug": "ginger-adam-little-m-s-lmft"
+      "slug": "ginger-adam-little-m-s-lmft",
+      "categories": [
+        "Psychologist"
+      ]
     },
     {
       "id": "m12419",
@@ -5237,7 +5799,10 @@
         "contractor"
       ],
       "slug": "glass-etc-california",
-      "leaderLogo": "/images/leaders/leaders_150.jpg"
+      "leaderLogo": "/images/leaders/leaders_150.jpg",
+      "categories": [
+        "Glass Contractor"
+      ]
     },
     {
       "id": "m15868",
@@ -5268,7 +5833,10 @@
       "tags": [
         "consulting"
       ],
-      "slug": "globevm-it-managed-service-provider"
+      "slug": "globevm-it-managed-service-provider",
+      "categories": [
+        "IT Consulting"
+      ]
     },
     {
       "id": "m13284",
@@ -5293,7 +5861,10 @@
         "profit",
         "organization"
       ],
-      "slug": "golden-heart-ranch"
+      "slug": "golden-heart-ranch",
+      "categories": [
+        "Non-Profit Organization"
+      ]
     },
     {
       "id": "m14971",
@@ -5319,7 +5890,10 @@
         "social",
         "services"
       ],
-      "slug": "golden-road-recovery"
+      "slug": "golden-road-recovery",
+      "categories": [
+        "Substance Abuse, Social Services"
+      ]
     },
     {
       "id": "m16179",
@@ -5344,7 +5918,10 @@
         "real",
         "estate"
       ],
-      "slug": "golden-stars-realty"
+      "slug": "golden-stars-realty",
+      "categories": [
+        "Real Estate"
+      ]
     },
     {
       "id": "m16095",
@@ -5369,7 +5946,10 @@
         "business",
         "classification"
       ],
-      "slug": "good-clean-love"
+      "slug": "good-clean-love",
+      "categories": [
+        "Member with no business classification"
+      ]
     },
     {
       "id": "m16155",
@@ -5399,7 +5979,10 @@
         "mental",
         "health"
       ],
-      "slug": "good-mourning-mental-health-counseling-inc"
+      "slug": "good-mourning-mental-health-counseling-inc",
+      "categories": [
+        "Mental Health"
+      ]
     },
     {
       "id": "m15940",
@@ -5427,7 +6010,10 @@
         "profit",
         "organization"
       ],
-      "slug": "good-vibes-entertainment"
+      "slug": "good-vibes-entertainment",
+      "categories": [
+        "Non-Profit Organization"
+      ]
     },
     {
       "id": "m13457",
@@ -5454,7 +6040,11 @@
       "tags": [
         "clothing"
       ],
-      "slug": "goodie-two-sleeves"
+      "slug": "goodie-two-sleeves",
+      "categories": [
+        "Clothing",
+        "Retailer, Specialty"
+      ]
     },
     {
       "id": "m15722",
@@ -5485,7 +6075,10 @@
       "tags": [
         "medical"
       ],
-      "slug": "gotwound-com"
+      "slug": "gotwound-com",
+      "categories": [
+        "Medical"
+      ]
     },
     {
       "id": "m15270",
@@ -5510,7 +6103,10 @@
         "educational",
         "services"
       ],
-      "slug": "grand-canyon-education"
+      "slug": "grand-canyon-education",
+      "categories": [
+        "Educational Services"
+      ]
     },
     {
       "id": "m14972",
@@ -5533,7 +6129,11 @@
       "tags": [
         "restaurant"
       ],
-      "slug": "grandi-italiani-family-restaurant"
+      "slug": "grandi-italiani-family-restaurant",
+      "categories": [
+        "Catering",
+        "Restaurant"
+      ]
     },
     {
       "id": "m15442",
@@ -5557,7 +6157,10 @@
       "tags": [
         "exporter"
       ],
-      "slug": "green-global-llc"
+      "slug": "green-global-llc",
+      "categories": [
+        "Exporter"
+      ]
     },
     {
       "id": "m15652",
@@ -5586,7 +6189,10 @@
       ],
       "slug": "green-rodent-restoration",
       "website": "https://greenrodentrestoration.com/",
-      "pageImage": "/images/board/lisa-alexandrian.jpg"
+      "pageImage": "/images/board/lisa-alexandrian.jpg",
+      "categories": [
+        "Pest Control"
+      ]
     },
     {
       "id": "m15156",
@@ -5613,7 +6219,10 @@
       "tags": [
         "grocery"
       ],
-      "slug": "grocery-outlet-of-canoga-park"
+      "slug": "grocery-outlet-of-canoga-park",
+      "categories": [
+        "Grocery"
+      ]
     },
     {
       "id": "m16024",
@@ -5648,7 +6257,10 @@
         "dance",
         "instruction"
       ],
-      "slug": "gymnastika-llc"
+      "slug": "gymnastika-llc",
+      "categories": [
+        "Dance Instruction"
+      ]
     },
     {
       "id": "m16063",
@@ -5679,7 +6291,10 @@
         "retailer",
         "specialty"
       ],
-      "slug": "h20-droplet"
+      "slug": "h20-droplet",
+      "categories": [
+        "Retailer, Specialty"
+      ]
     },
     {
       "id": "m1747",
@@ -5703,7 +6318,10 @@
         "auto",
         "repair"
       ],
-      "slug": "hank-s-tire-service-inc"
+      "slug": "hank-s-tire-service-inc",
+      "categories": [
+        "Tire & Auto Repair"
+      ]
     },
     {
       "id": "m16085",
@@ -5727,7 +6345,10 @@
         "retailer",
         "specialty"
       ],
-      "slug": "have-a-lavender-day"
+      "slug": "have-a-lavender-day",
+      "categories": [
+        "Retailer, Specialty"
+      ]
     },
     {
       "id": "m15441",
@@ -5758,7 +6379,10 @@
       "tags": [
         "notary"
       ],
-      "slug": "have-mercy"
+      "slug": "have-mercy",
+      "categories": [
+        "Notary"
+      ]
     },
     {
       "id": "m15885",
@@ -5791,7 +6415,10 @@
         "profit",
         "organization"
       ],
-      "slug": "haven-hills-inc"
+      "slug": "haven-hills-inc",
+      "categories": [
+        "Non-Profit Organization"
+      ]
     },
     {
       "id": "m15884",
@@ -5827,7 +6454,10 @@
       "tags": [
         "shippers"
       ],
-      "slug": "hawaiian-movers"
+      "slug": "hawaiian-movers",
+      "categories": [
+        "Shippers"
+      ]
     },
     {
       "id": "m14897",
@@ -5859,7 +6489,11 @@
       "tags": [
         "medical"
       ],
-      "slug": "health-and-healing-dpc"
+      "slug": "health-and-healing-dpc",
+      "categories": [
+        "Medical",
+        "Medical Practice"
+      ]
     },
     {
       "id": "m16086",
@@ -5886,7 +6520,10 @@
         "education",
         "center"
       ],
-      "slug": "health-e-habits"
+      "slug": "health-e-habits",
+      "categories": [
+        "Technical Education Center"
+      ]
     },
     {
       "id": "m16197",
@@ -5915,7 +6552,10 @@
         "services"
       ],
       "slug": "heaven-s-hands-home-care",
-      "website": "https://www.heavenshandscare.com/"
+      "website": "https://www.heavenshandscare.com/",
+      "categories": [
+        "Home Care Services"
+      ]
     },
     {
       "id": "m14946",
@@ -5951,7 +6591,10 @@
         "business",
         "consultant"
       ],
-      "slug": "heed-consulting-group"
+      "slug": "heed-consulting-group",
+      "categories": [
+        "Business Consultant"
+      ]
     },
     {
       "id": "m13973",
@@ -5978,7 +6621,10 @@
         "health",
         "wellness"
       ],
-      "slug": "herbalife"
+      "slug": "herbalife",
+      "categories": [
+        "Health & Wellness"
+      ]
     },
     {
       "id": "m15946",
@@ -6003,7 +6649,10 @@
         "care",
         "services"
       ],
-      "slug": "high-paw-dog-daycare"
+      "slug": "high-paw-dog-daycare",
+      "categories": [
+        "Pet Care Services"
+      ]
     },
     {
       "id": "m15305",
@@ -6029,7 +6678,10 @@
         "affairs",
         "consulting"
       ],
-      "slug": "high-point-strategies-llc"
+      "slug": "high-point-strategies-llc",
+      "categories": [
+        "Public Affairs Consulting"
+      ]
     },
     {
       "id": "m1755",
@@ -6062,7 +6714,10 @@
         "motel"
       ],
       "slug": "hilton-woodland-hills",
-      "leaderLogo": "/images/leaders/leaders_135.jpg"
+      "leaderLogo": "/images/leaders/leaders_135.jpg",
+      "categories": [
+        "Hotel / Motel"
+      ]
     },
     {
       "id": "wv-hipn-group",
@@ -6084,7 +6739,10 @@
         "business",
         "classification"
       ],
-      "slug": "hipn-group"
+      "slug": "hipn-group",
+      "categories": [
+        "Member with no business classification"
+      ]
     },
     {
       "id": "m15832",
@@ -6115,12 +6773,15 @@
       "employees": "15",
       "leaderStatus": "Ambassador",
       "logo": "/images/members/m15832.jpg",
-      "group": "Health & Medical",
+      "group": "Professional Services",
       "tags": [
         "environmental",
         "consultant"
       ],
-      "slug": "home-biotesting"
+      "slug": "home-biotesting",
+      "categories": [
+        "Environmental Consultant"
+      ]
     },
     {
       "id": "m15556",
@@ -6145,7 +6806,10 @@
         "care",
         "services"
       ],
-      "slug": "home-helpers-home-care-of-northridge"
+      "slug": "home-helpers-home-care-of-northridge",
+      "categories": [
+        "Home Care Services"
+      ]
     },
     {
       "id": "m14484",
@@ -6201,7 +6865,10 @@
         "care",
         "services"
       ],
-      "slug": "homewatch-caregivers-of-northridge"
+      "slug": "homewatch-caregivers-of-northridge",
+      "categories": [
+        "Home Care Services"
+      ]
     },
     {
       "id": "m15136",
@@ -6227,7 +6894,10 @@
         "mayor"
       ],
       "slug": "honorary-mayor-of-woodland-hills",
-      "boardTitle": "Honorary Mayor · Appointed 2011"
+      "boardTitle": "Honorary Mayor · Appointed 2011",
+      "categories": [
+        "Honorary Mayor"
+      ]
     },
     {
       "id": "m16122",
@@ -6255,7 +6925,10 @@
         "mental",
         "health"
       ],
-      "slug": "hope-springs-wellness"
+      "slug": "hope-springs-wellness",
+      "categories": [
+        "Mental Health"
+      ]
     },
     {
       "id": "m1761",
@@ -6292,7 +6965,11 @@
       "slug": "hornstein-law-offices",
       "leaderLogo": "/images/leaders/leaders_8.jpg",
       "pageImage": "/images/board/steve-hornstein.jpg",
-      "boardTitle": "Chief Financial Officer · Past President"
+      "boardTitle": "Chief Financial Officer · Past President",
+      "categories": [
+        "Attorney Services",
+        "Estate Sales Concierge"
+      ]
     },
     {
       "id": "m13422",
@@ -6317,7 +6994,10 @@
       "tags": [
         "restaurant"
       ],
-      "slug": "hq-gastropub"
+      "slug": "hq-gastropub",
+      "categories": [
+        "Restaurant"
+      ]
     },
     {
       "id": "wv-hsbc-bank",
@@ -6365,7 +7045,10 @@
         "financial",
         "services"
       ],
-      "slug": "human-interest"
+      "slug": "human-interest",
+      "categories": [
+        "Financial Services"
+      ]
     },
     {
       "id": "m14377",
@@ -6388,7 +7071,10 @@
         "property",
         "management"
       ],
-      "slug": "i-g-direct-real-estate-10-c-o-ids-real-estate-group"
+      "slug": "i-g-direct-real-estate-10-c-o-ids-real-estate-group",
+      "categories": [
+        "Property Management"
+      ]
     },
     {
       "id": "m16116",
@@ -6414,7 +7100,10 @@
       "tags": [
         "chiropractor"
       ],
-      "slug": "illuminate-chiropractic"
+      "slug": "illuminate-chiropractic",
+      "categories": [
+        "Chiropractor"
+      ]
     },
     {
       "id": "m12727",
@@ -6448,7 +7137,10 @@
         "services"
       ],
       "slug": "inside-moves-relocation-services-inc",
-      "leaderLogo": "/images/leaders/leaders_60.jpg"
+      "leaderLogo": "/images/leaders/leaders_60.jpg",
+      "categories": [
+        "Moving Services"
+      ]
     },
     {
       "id": "m16066",
@@ -6473,7 +7165,10 @@
         "business",
         "classification"
       ],
-      "slug": "insperity"
+      "slug": "insperity",
+      "categories": [
+        "Member with no business classification"
+      ]
     },
     {
       "id": "m15555",
@@ -6500,7 +7195,10 @@
         "advisory",
         "services"
       ],
-      "slug": "integrity-accounting-tax-services"
+      "slug": "integrity-accounting-tax-services",
+      "categories": [
+        "Accounting, Taxation, & Business Advisory Services"
+      ]
     },
     {
       "id": "m15925",
@@ -6525,7 +7223,11 @@
         "5th",
         "grades"
       ],
-      "slug": "international-school-of-los-angeles"
+      "slug": "international-school-of-los-angeles",
+      "categories": [
+        "School, K-5th Grades",
+        "School-Preschool"
+      ]
     },
     {
       "id": "m15822",
@@ -6550,7 +7252,10 @@
         "service",
         "provider"
       ],
-      "slug": "iron-delta-security"
+      "slug": "iron-delta-security",
+      "categories": [
+        "Security Service Provider"
+      ]
     },
     {
       "id": "m15929",
@@ -6577,7 +7282,10 @@
         "business",
         "classification"
       ],
-      "slug": "irs-reso"
+      "slug": "irs-reso",
+      "categories": [
+        "Member with no business classification"
+      ]
     },
     {
       "id": "m2263",
@@ -6602,7 +7310,10 @@
         "advisory",
         "services"
       ],
-      "slug": "irwin-zigmond-cpa"
+      "slug": "irwin-zigmond-cpa",
+      "categories": [
+        "Accounting, Taxation, & Business Advisory Services"
+      ]
     },
     {
       "id": "m15672",
@@ -6625,7 +7336,10 @@
         "senior",
         "care"
       ],
-      "slug": "israela-elkayam-senior-care-services"
+      "slug": "israela-elkayam-senior-care-services",
+      "categories": [
+        "Senior Care"
+      ]
     },
     {
       "id": "m1775",
@@ -6647,7 +7361,11 @@
       "tags": [
         "schools"
       ],
-      "slug": "ivy-academia-entrepreneurial-charter-school"
+      "slug": "ivy-academia-entrepreneurial-charter-school",
+      "categories": [
+        "Schools",
+        "Schools - PreK through 12"
+      ]
     },
     {
       "id": "m2040",
@@ -6670,7 +7388,10 @@
         "senior",
         "care"
       ],
-      "slug": "ivy-park-at-woodland-hills"
+      "slug": "ivy-park-at-woodland-hills",
+      "categories": [
+        "Senior Care"
+      ]
     },
     {
       "id": "m1782",
@@ -6700,7 +7421,10 @@
         "recruiting",
         "agency"
       ],
-      "slug": "jackson-mccarthy-associates"
+      "slug": "jackson-mccarthy-associates",
+      "categories": [
+        "Recruiting Agency"
+      ]
     },
     {
       "id": "m16110",
@@ -6731,7 +7455,11 @@
         "general",
         "contractor"
       ],
-      "slug": "jade-construction-remodeling-inc"
+      "slug": "jade-construction-remodeling-inc",
+      "categories": [
+        "Construction",
+        "General Contractor"
+      ]
     },
     {
       "id": "m15405",
@@ -6756,7 +7484,10 @@
         "dealers"
       ],
       "slug": "jaguar-land-rover-woodland-hills",
-      "leaderLogo": "/images/leaders/leaders_133.jpg"
+      "leaderLogo": "/images/leaders/leaders_133.jpg",
+      "categories": [
+        "Auto Dealers"
+      ]
     },
     {
       "id": "wv-jane-w-applegate",
@@ -6776,7 +7507,10 @@
         "mail",
         "only"
       ],
-      "slug": "jane-w-applegate"
+      "slug": "jane-w-applegate",
+      "categories": [
+        "Mail Only"
+      ]
     },
     {
       "id": "m15519",
@@ -6811,7 +7545,10 @@
         "insurance",
         "services"
       ],
-      "slug": "jason-rubin-insurance-services"
+      "slug": "jason-rubin-insurance-services",
+      "categories": [
+        "Insurance Services"
+      ]
     },
     {
       "id": "m15906",
@@ -6838,7 +7575,10 @@
         "government",
         "advocacy"
       ],
-      "slug": "jaycebaron-com"
+      "slug": "jaycebaron-com",
+      "categories": [
+        "Non-Profit/Government Advocacy"
+      ]
     },
     {
       "id": "m16070",
@@ -6863,7 +7603,10 @@
         "office",
         "supplies"
       ],
-      "slug": "jb-office-solutions"
+      "slug": "jb-office-solutions",
+      "categories": [
+        "Office Supplies"
+      ]
     },
     {
       "id": "m15985",
@@ -6889,7 +7632,10 @@
         "home",
         "improvement"
       ],
-      "slug": "jd-s-repair-small-job-specialist"
+      "slug": "jd-s-repair-small-job-specialist",
+      "categories": [
+        "Home Improvement"
+      ]
     },
     {
       "id": "m14846",
@@ -6922,7 +7668,10 @@
       "tags": [
         "catering"
       ],
-      "slug": "jerk-wings-cafe"
+      "slug": "jerk-wings-cafe",
+      "categories": [
+        "Catering"
+      ]
     },
     {
       "id": "wv-jet-by-john-eshaya",
@@ -6942,7 +7691,10 @@
         "retailer",
         "specialty"
       ],
-      "slug": "jet-by-john-eshaya"
+      "slug": "jet-by-john-eshaya",
+      "categories": [
+        "Retailer, Specialty"
+      ]
     },
     {
       "id": "m15701-400",
@@ -6968,7 +7720,11 @@
         "business",
         "classification"
       ],
-      "slug": "jewish-war-veterans"
+      "slug": "jewish-war-veterans",
+      "categories": [
+        "Member with no business classification",
+        "Veterans Assistance Category"
+      ]
     },
     {
       "id": "m15777",
@@ -7000,7 +7756,10 @@
         "service",
         "repairs"
       ],
-      "slug": "jmp-autowerkz"
+      "slug": "jmp-autowerkz",
+      "categories": [
+        "Automobile Service & Repairs"
+      ]
     },
     {
       "id": "m14027",
@@ -7024,7 +7783,10 @@
       "tags": [
         "restaurant"
       ],
-      "slug": "joey-woodland-hills"
+      "slug": "joey-woodland-hills",
+      "categories": [
+        "Restaurant"
+      ]
     },
     {
       "id": "m14690",
@@ -7055,7 +7817,10 @@
       "slug": "joint-matters-calibration-services",
       "leaderLogo": "/images/leaders/leaders_132.jpg",
       "pageImage": "/images/board/jon-mann.jpg",
-      "boardTitle": "Inaugural Term"
+      "boardTitle": "Inaugural Term",
+      "categories": [
+        "Medical Equipment Diagnostics"
+      ]
     },
     {
       "id": "m12620",
@@ -7083,7 +7848,11 @@
         "insurance",
         "services"
       ],
-      "slug": "joyce-emerson-greenberg-state-farm-insurance"
+      "slug": "joyce-emerson-greenberg-state-farm-insurance",
+      "categories": [
+        "Financial Services",
+        "Insurance Services"
+      ]
     },
     {
       "id": "m15415",
@@ -7137,7 +7906,12 @@
       "tags": [
         "restaurant"
       ],
-      "slug": "juicy-ladies"
+      "slug": "juicy-ladies",
+      "categories": [
+        "Health & Wellness",
+        "Nutritional Products",
+        "Restaurant"
+      ]
     },
     {
       "id": "wv-kabc-news",
@@ -7156,7 +7930,10 @@
       "tags": [
         "press"
       ],
-      "slug": "kabc-news"
+      "slug": "kabc-news",
+      "categories": [
+        "Press"
+      ]
     },
     {
       "id": "m16005",
@@ -7192,7 +7969,10 @@
       "tags": [
         "orthodontist"
       ],
-      "slug": "kahan-orthodontics"
+      "slug": "kahan-orthodontics",
+      "categories": [
+        "Orthodontist"
+      ]
     },
     {
       "id": "m1796",
@@ -7218,7 +7998,10 @@
         "hospital"
       ],
       "slug": "kaiser-permanente-woodland-hills",
-      "leaderLogo": "/images/leaders/leaders_6.jpg"
+      "leaderLogo": "/images/leaders/leaders_6.jpg",
+      "categories": [
+        "Hospital"
+      ]
     },
     {
       "id": "m15981",
@@ -7251,7 +8034,11 @@
         "video",
         "productions"
       ],
-      "slug": "kantor-productions"
+      "slug": "kantor-productions",
+      "categories": [
+        "Photography",
+        "Video Productions"
+      ]
     },
     {
       "id": "wv-kcal-tv",
@@ -7270,7 +8057,10 @@
       "tags": [
         "press"
       ],
-      "slug": "kcal-tv"
+      "slug": "kcal-tv",
+      "categories": [
+        "Press"
+      ]
     },
     {
       "id": "wv-kcbs-news-desk",
@@ -7289,7 +8079,10 @@
       "tags": [
         "press"
       ],
-      "slug": "kcbs-news-desk"
+      "slug": "kcbs-news-desk",
+      "categories": [
+        "Press"
+      ]
     },
     {
       "id": "wv-kcop-tv-news-desk",
@@ -7308,7 +8101,10 @@
       "tags": [
         "press"
       ],
-      "slug": "kcop-tv-news-desk"
+      "slug": "kcop-tv-news-desk",
+      "categories": [
+        "Press"
+      ]
     },
     {
       "id": "m16051",
@@ -7341,7 +8137,10 @@
         "real",
         "estate"
       ],
-      "slug": "keller-williams-luxury"
+      "slug": "keller-williams-luxury",
+      "categories": [
+        "Real Estate"
+      ]
     },
     {
       "id": "m16072",
@@ -7369,7 +8168,10 @@
         "advisory",
         "services"
       ],
-      "slug": "kelly-partners"
+      "slug": "kelly-partners",
+      "categories": [
+        "Accounting, Taxation, & Business Advisory Services"
+      ]
     },
     {
       "id": "m15514",
@@ -7403,7 +8205,10 @@
       "tags": [
         "dentist"
       ],
-      "slug": "kids-dental-crew"
+      "slug": "kids-dental-crew",
+      "categories": [
+        "Dentist"
+      ]
     },
     {
       "id": "m16080",
@@ -7434,7 +8239,10 @@
         "financial",
         "services"
       ],
-      "slug": "kingdom-stewardship-accounting-and-finance-llc"
+      "slug": "kingdom-stewardship-accounting-and-finance-llc",
+      "categories": [
+        "Financial Services"
+      ]
     },
     {
       "id": "wv-kirsch-kohn-and-bridge",
@@ -7481,7 +8289,10 @@
       "address": "4400 Coldwater Canyon #135",
       "city": "Studio City",
       "state": "CA",
-      "zip": "91604"
+      "zip": "91604",
+      "categories": [
+        "Non-Profit Organization"
+      ]
     },
     {
       "id": "wv-knbc-tv-news-desk",
@@ -7500,7 +8311,10 @@
       "tags": [
         "press"
       ],
-      "slug": "knbc-tv-news-desk"
+      "slug": "knbc-tv-news-desk",
+      "categories": [
+        "Press"
+      ]
     },
     {
       "id": "m16042",
@@ -7528,7 +8342,10 @@
         "retailer",
         "specialty"
       ],
-      "slug": "knot-hero-llc"
+      "slug": "knot-hero-llc",
+      "categories": [
+        "Retailer, Specialty"
+      ]
     },
     {
       "id": "m15374",
@@ -7560,7 +8377,11 @@
       "tags": [
         "synagogue"
       ],
-      "slug": "kol-tikvah"
+      "slug": "kol-tikvah",
+      "categories": [
+        "Non-Profit Organization",
+        "Synagogue"
+      ]
     },
     {
       "id": "m15862",
@@ -7593,7 +8414,10 @@
         "space",
         "leasing"
       ],
-      "slug": "konnekted"
+      "slug": "konnekted",
+      "categories": [
+        "Office Space Leasing"
+      ]
     },
     {
       "id": "wv-kroenke-group-tkg-management",
@@ -7614,7 +8438,10 @@
         "property",
         "management"
       ],
-      "slug": "kroenke-group-tkg-management"
+      "slug": "kroenke-group-tkg-management",
+      "categories": [
+        "Property Management"
+      ]
     },
     {
       "id": "m15339",
@@ -7637,7 +8464,10 @@
         "marketing",
         "consultants"
       ],
-      "slug": "kt-marketing"
+      "slug": "kt-marketing",
+      "categories": [
+        "Marketing Consultants"
+      ]
     },
     {
       "id": "wv-ktla-news-desk",
@@ -7656,7 +8486,10 @@
       "tags": [
         "press"
       ],
-      "slug": "ktla-news-desk"
+      "slug": "ktla-news-desk",
+      "categories": [
+        "Press"
+      ]
     },
     {
       "id": "m15430",
@@ -7679,7 +8512,10 @@
       "tags": [
         "contractors"
       ],
-      "slug": "kya-group-the"
+      "slug": "kya-group-the",
+      "categories": [
+        "Contractors"
+      ]
     },
     {
       "id": "wv-l-a-magazine",
@@ -7699,7 +8535,10 @@
       "tags": [
         "magazine"
       ],
-      "slug": "l-a-magazine"
+      "slug": "l-a-magazine",
+      "categories": [
+        "Magazine"
+      ]
     },
     {
       "id": "wv-l-a-times-valley-section",
@@ -7719,7 +8558,10 @@
       "tags": [
         "press"
       ],
-      "slug": "l-a-times-valley-section"
+      "slug": "l-a-times-valley-section",
+      "categories": [
+        "Press"
+      ]
     },
     {
       "id": "m16127",
@@ -7742,7 +8584,10 @@
         "retailer",
         "specialty"
       ],
-      "slug": "laderach-chocolatier-suisse-westfield-topanga"
+      "slug": "laderach-chocolatier-suisse-westfield-topanga",
+      "categories": [
+        "Retailer, Specialty"
+      ]
     },
     {
       "id": "m15979",
@@ -7766,7 +8611,10 @@
         "attorney",
         "services"
       ],
-      "slug": "landegger-verano-alc"
+      "slug": "landegger-verano-alc",
+      "categories": [
+        "Attorney Services"
+      ]
     },
     {
       "id": "m15578",
@@ -7796,7 +8644,10 @@
         "social",
         "services"
       ],
-      "slug": "launch-to-wellness"
+      "slug": "launch-to-wellness",
+      "categories": [
+        "Substance Abuse, Social Services"
+      ]
     },
     {
       "id": "m13994",
@@ -7851,7 +8702,10 @@
         "attorney",
         "services"
       ],
-      "slug": "law-office-of-kenneth-snyder"
+      "slug": "law-office-of-kenneth-snyder",
+      "categories": [
+        "Attorney Services"
+      ]
     },
     {
       "id": "wv-law-offices-of-feinberg-waller-apc",
@@ -7902,7 +8756,10 @@
         "lighting",
         "design"
       ],
-      "slug": "ld-kitchens-baths"
+      "slug": "ld-kitchens-baths",
+      "categories": [
+        "Kitchen,Bath & Lighting Design"
+      ]
     },
     {
       "id": "m15825",
@@ -7928,7 +8785,10 @@
       "tags": [
         "photography"
       ],
-      "slug": "lensmaster-inc-george-w-deloache-photography"
+      "slug": "lensmaster-inc-george-w-deloache-photography",
+      "categories": [
+        "Photography"
+      ]
     },
     {
       "id": "m15909",
@@ -7953,7 +8813,10 @@
         "beauty",
         "salon"
       ],
-      "slug": "let-s-make-up"
+      "slug": "let-s-make-up",
+      "categories": [
+        "Beauty Salon"
+      ]
     },
     {
       "id": "m1757",
@@ -7978,7 +8841,10 @@
         "attorney",
         "services"
       ],
-      "slug": "lewitt-hackman-shapiro-marshall-harlan-a-law-corporation"
+      "slug": "lewitt-hackman-shapiro-marshall-harlan-a-law-corporation",
+      "categories": [
+        "Attorney Services"
+      ]
     },
     {
       "id": "m15460",
@@ -8014,7 +8880,10 @@
         "services"
       ],
       "slug": "liat-cohen-law-offices-p-c",
-      "leaderLogo": "/images/leaders/leaders_144.jpg"
+      "leaderLogo": "/images/leaders/leaders_144.jpg",
+      "categories": [
+        "Attorney Services"
+      ]
     },
     {
       "id": "m15635",
@@ -8040,7 +8909,10 @@
       "tags": [
         "hospice"
       ],
-      "slug": "liem-hospice"
+      "slug": "liem-hospice",
+      "categories": [
+        "Hospice"
+      ]
     },
     {
       "id": "m15887",
@@ -8066,7 +8938,10 @@
         "and",
         "collision"
       ],
-      "slug": "limitless-auto-collision"
+      "slug": "limitless-auto-collision",
+      "categories": [
+        "Auto Body and Collision"
+      ]
     },
     {
       "id": "m10488",
@@ -8089,7 +8964,10 @@
         "dog",
         "groomer"
       ],
-      "slug": "lisa-haberman-social-member"
+      "slug": "lisa-haberman-social-member",
+      "categories": [
+        "Dog Groomer"
+      ]
     },
     {
       "id": "m15393",
@@ -8153,7 +9031,10 @@
         "living",
         "community"
       ],
-      "slug": "livelle-mulholland-the"
+      "slug": "livelle-mulholland-the",
+      "categories": [
+        "Senior Living Community"
+      ]
     },
     {
       "id": "m12672",
@@ -8175,7 +9056,10 @@
       "tags": [
         "restaurant"
       ],
-      "slug": "local-peasant-the"
+      "slug": "local-peasant-the",
+      "categories": [
+        "Restaurant"
+      ]
     },
     {
       "id": "m15923",
@@ -8201,7 +9085,10 @@
       "tags": [
         "restaurant"
       ],
-      "slug": "loqui"
+      "slug": "loqui",
+      "categories": [
+        "Restaurant"
+      ]
     },
     {
       "id": "m16124",
@@ -8227,7 +9114,10 @@
         "cancer",
         "center"
       ],
-      "slug": "los-angeles-cancer-network"
+      "slug": "los-angeles-cancer-network",
+      "categories": [
+        "Cancer Center"
+      ]
     },
     {
       "id": "wv-los-angeles-news-network",
@@ -8246,7 +9136,10 @@
       "tags": [
         "press"
       ],
-      "slug": "los-angeles-news-network"
+      "slug": "los-angeles-news-network",
+      "categories": [
+        "Press"
+      ]
     },
     {
       "id": "wv-los-angeles-rams-llc",
@@ -8270,7 +9163,10 @@
       ],
       "slug": "los-angeles-rams-llc",
       "leaderLogo": "/images/leaders/leaders_126.jpg",
-      "leaderStatus": "Board Member"
+      "leaderStatus": "Board Member",
+      "categories": [
+        "Sports Franchise"
+      ]
     },
     {
       "id": "m13793",
@@ -8292,7 +9188,11 @@
       "tags": [
         "newspaper"
       ],
-      "slug": "los-angeles-times"
+      "slug": "los-angeles-times",
+      "categories": [
+        "Newspaper",
+        "Press"
+      ]
     },
     {
       "id": "m13793-44",
@@ -8314,7 +9214,11 @@
       "tags": [
         "press"
       ],
-      "slug": "los-angeles-times-2"
+      "slug": "los-angeles-times-2",
+      "categories": [
+        "Newspaper",
+        "Press"
+      ]
     },
     {
       "id": "m15616",
@@ -8347,7 +9251,10 @@
       "tags": [
         "restaurant"
       ],
-      "slug": "lounge-51"
+      "slug": "lounge-51",
+      "categories": [
+        "Restaurant"
+      ]
     },
     {
       "id": "m15883",
@@ -8377,7 +9284,10 @@
         "balloon",
         "artists"
       ],
-      "slug": "lovely-garland-the"
+      "slug": "lovely-garland-the",
+      "categories": [
+        "Balloon Artists"
+      ]
     },
     {
       "id": "m15932",
@@ -8406,7 +9316,10 @@
         "education",
         "services"
       ],
-      "slug": "loving-hands-children-s-home"
+      "slug": "loving-hands-children-s-home",
+      "categories": [
+        "Child Care and Education Services"
+      ]
     },
     {
       "id": "wv-luther-burbank-savings",
@@ -8452,7 +9365,10 @@
         "travel",
         "agency"
       ],
-      "slug": "luxury-destinations-concierge"
+      "slug": "luxury-destinations-concierge",
+      "categories": [
+        "Travel Agency"
+      ]
     },
     {
       "id": "m15353",
@@ -8476,7 +9392,11 @@
         "senior",
         "advocacy"
       ],
-      "slug": "lwg-associates"
+      "slug": "lwg-associates",
+      "categories": [
+        "Senior Advocacy",
+        "Senior Care"
+      ]
     },
     {
       "id": "wv-macgregor-madhok-llp",
@@ -8498,7 +9418,10 @@
         "attorney",
         "services"
       ],
-      "slug": "macgregor-madhok-llp"
+      "slug": "macgregor-madhok-llp",
+      "categories": [
+        "Attorney Services"
+      ]
     },
     {
       "id": "m2253",
@@ -8529,7 +9452,10 @@
         "services"
       ],
       "slug": "maguire-hart",
-      "leaderLogo": "/images/leaders/leaders_41.jpg"
+      "leaderLogo": "/images/leaders/leaders_41.jpg",
+      "categories": [
+        "Accounting, Taxation, & Business Advisory Services"
+      ]
     },
     {
       "id": "m15604",
@@ -8553,7 +9479,10 @@
         "retailer",
         "specialty"
       ],
-      "slug": "main-street-vintage-mall"
+      "slug": "main-street-vintage-mall",
+      "categories": [
+        "Retailer, Specialty"
+      ]
     },
     {
       "id": "m12167",
@@ -8578,7 +9507,10 @@
         "travel",
         "agency"
       ],
-      "slug": "majestic-scenic-travel"
+      "slug": "majestic-scenic-travel",
+      "categories": [
+        "Travel Agency"
+      ]
     },
     {
       "id": "wv-malibu-times",
@@ -8598,7 +9530,10 @@
       "tags": [
         "press"
       ],
-      "slug": "malibu-times"
+      "slug": "malibu-times",
+      "categories": [
+        "Press"
+      ]
     },
     {
       "id": "m14703",
@@ -8623,7 +9558,10 @@
         "tasting",
         "sales"
       ],
-      "slug": "malibu-wines-and-beer-garden"
+      "slug": "malibu-wines-and-beer-garden",
+      "categories": [
+        "Wine Tasting / Wine Sales"
+      ]
     },
     {
       "id": "m16136",
@@ -8651,7 +9589,11 @@
         "insurance",
         "services"
       ],
-      "slug": "mammoth-insurance-solutions"
+      "slug": "mammoth-insurance-solutions",
+      "categories": [
+        "Employee Services",
+        "Insurance Services"
+      ]
     },
     {
       "id": "m15264",
@@ -8675,7 +9617,10 @@
         "business",
         "development"
       ],
-      "slug": "managed-career-solutions-spc"
+      "slug": "managed-career-solutions-spc",
+      "categories": [
+        "Business Development"
+      ]
     },
     {
       "id": "m15991",
@@ -8701,7 +9646,10 @@
         "early",
         "childhood"
       ],
-      "slug": "maple-tree-montessori-preschool-infant-care"
+      "slug": "maple-tree-montessori-preschool-infant-care",
+      "categories": [
+        "School - Early Childhood"
+      ]
     },
     {
       "id": "m15642",
@@ -8738,7 +9686,10 @@
         "insurance",
         "services"
       ],
-      "slug": "marci-stark-insurance-agency"
+      "slug": "marci-stark-insurance-agency",
+      "categories": [
+        "Insurance Services"
+      ]
     },
     {
       "id": "m15323",
@@ -8761,7 +9712,11 @@
       "tags": [
         "notary"
       ],
-      "slug": "marco-bookkeeping-notary-public-llc"
+      "slug": "marco-bookkeeping-notary-public-llc",
+      "categories": [
+        "Accounting, Taxation, & Business Advisory Services",
+        "Notary"
+      ]
     },
     {
       "id": "m2138",
@@ -8789,7 +9744,10 @@
       "slug": "marriott-warner-center",
       "leaderLogo": "/images/leaders/leaders_36.jpg",
       "pageImage": "/images/board/etienne-tardy.jpg",
-      "leaderStatus": "Board Member"
+      "leaderStatus": "Board Member",
+      "categories": [
+        "Hotel / Motel"
+      ]
     },
     {
       "id": "m15358",
@@ -8816,7 +9774,10 @@
         "insurance",
         "services"
       ],
-      "slug": "maryrose-miraglia-insurance"
+      "slug": "maryrose-miraglia-insurance",
+      "categories": [
+        "Insurance Services"
+      ]
     },
     {
       "id": "m13449",
@@ -8838,7 +9799,10 @@
       "tags": [
         "restaurant"
       ],
-      "slug": "mcdonald-s"
+      "slug": "mcdonald-s",
+      "categories": [
+        "Restaurant"
+      ]
     },
     {
       "id": "m13449-154",
@@ -8859,7 +9823,10 @@
       "tags": [
         "restaurant"
       ],
-      "slug": "mcdonald-s-2"
+      "slug": "mcdonald-s-2",
+      "categories": [
+        "Restaurant"
+      ]
     },
     {
       "id": "m15003",
@@ -8883,7 +9850,10 @@
       "tags": [
         "media"
       ],
-      "slug": "media-mental"
+      "slug": "media-mental",
+      "categories": [
+        "Media"
+      ]
     },
     {
       "id": "wv-mendocino-farms",
@@ -8904,7 +9874,10 @@
       "tags": [
         "restaurant"
       ],
-      "slug": "mendocino-farms"
+      "slug": "mendocino-farms",
+      "categories": [
+        "Restaurant"
+      ]
     },
     {
       "id": "m15350",
@@ -8962,7 +9935,10 @@
         "financial",
         "services"
       ],
-      "slug": "merrill-lynch"
+      "slug": "merrill-lynch",
+      "categories": [
+        "Financial Services"
+      ]
     },
     {
       "id": "m16083",
@@ -8993,7 +9969,10 @@
         "company",
         "film"
       ],
-      "slug": "michelle-delgado-productions"
+      "slug": "michelle-delgado-productions",
+      "categories": [
+        "Production Company - Film"
+      ]
     },
     {
       "id": "m12663",
@@ -9017,7 +9996,10 @@
         "social",
         "member"
       ],
-      "slug": "michelle-goldwater"
+      "slug": "michelle-goldwater",
+      "categories": [
+        "Resident~Social Member"
+      ]
     },
     {
       "id": "m15543",
@@ -9041,7 +10023,10 @@
       "tags": [
         "pediatric"
       ],
-      "slug": "milk-and-honey-pediatrics"
+      "slug": "milk-and-honey-pediatrics",
+      "categories": [
+        "Pediatric"
+      ]
     },
     {
       "id": "m15815",
@@ -9069,7 +10054,10 @@
         "medical",
         "practice"
       ],
-      "slug": "misra-wellness"
+      "slug": "misra-wellness",
+      "categories": [
+        "Medical Practice"
+      ]
     },
     {
       "id": "m15785",
@@ -9101,7 +10089,10 @@
       "tags": [
         "optical"
       ],
-      "slug": "mobileeyesnow"
+      "slug": "mobileeyesnow",
+      "categories": [
+        "Optical"
+      ]
     },
     {
       "id": "m12900",
@@ -9132,7 +10123,10 @@
       "tags": [
         "restaurant"
       ],
-      "slug": "mon-restaurant"
+      "slug": "mon-restaurant",
+      "categories": [
+        "Restaurant"
+      ]
     },
     {
       "id": "m2284",
@@ -9169,7 +10163,10 @@
         "service",
         "repairs"
       ],
-      "slug": "monaco-motors-inc"
+      "slug": "monaco-motors-inc",
+      "categories": [
+        "Automobile Service & Repairs"
+      ]
     },
     {
       "id": "m15302-284",
@@ -9197,7 +10194,10 @@
         "floor",
         "covering"
       ],
-      "slug": "custom-hardwood-flooring-la"
+      "slug": "custom-hardwood-flooring-la",
+      "categories": [
+        "Business Services"
+      ]
     },
     {
       "id": "m15876",
@@ -9221,7 +10221,10 @@
         "mortgage",
         "services"
       ],
-      "slug": "money-store-the"
+      "slug": "money-store-the",
+      "categories": [
+        "Mortgage Services"
+      ]
     },
     {
       "id": "m13954",
@@ -9245,7 +10248,10 @@
       "tags": [
         "restaurant"
       ],
-      "slug": "monty-s-steak-house"
+      "slug": "monty-s-steak-house",
+      "categories": [
+        "Restaurant"
+      ]
     },
     {
       "id": "m15445",
@@ -9273,12 +10279,16 @@
       "employees": "2",
       "leaderStatus": "Ambassador",
       "logo": "/images/members/m15445.jpg",
-      "group": "Other",
+      "group": "Professional Services",
       "tags": [
         "business",
         "management"
       ],
-      "slug": "morale-matters"
+      "slug": "morale-matters",
+      "categories": [
+        "Business Management",
+        "Marketing Consultants"
+      ]
     },
     {
       "id": "m14949",
@@ -9325,7 +10335,11 @@
       "tags": [
         "restaurant"
       ],
-      "slug": "mort-s-delicatessen-restaurant"
+      "slug": "mort-s-delicatessen-restaurant",
+      "categories": [
+        "Catering",
+        "Restaurant"
+      ]
     },
     {
       "id": "wv-motion-picture-television-fund",
@@ -9351,7 +10365,10 @@
       "leaderLogo": "/images/leaders/leaders_2.jpg",
       "pageImage": "/images/board/kathy-davis.jpg",
       "leaderStatus": "Board Member",
-      "boardTitle": "Past President"
+      "boardTitle": "Past President",
+      "categories": [
+        "Senior Care"
+      ]
     },
     {
       "id": "m16058",
@@ -9389,7 +10406,10 @@
         "profit",
         "organization"
       ],
-      "slug": "mount-sinai-memorial-parks-and-mortuaries"
+      "slug": "mount-sinai-memorial-parks-and-mortuaries",
+      "categories": [
+        "Non-Profit Organization"
+      ]
     },
     {
       "id": "m15760",
@@ -9413,7 +10433,10 @@
       "tags": [
         "music"
       ],
-      "slug": "mpath-llc"
+      "slug": "mpath-llc",
+      "categories": [
+        "Music"
+      ]
     },
     {
       "id": "m1555",
@@ -9445,7 +10468,10 @@
         "club"
       ],
       "slug": "mulholland-hills-country-club",
-      "leaderLogo": "/images/leaders/leaders_141.jpg"
+      "leaderLogo": "/images/leaders/leaders_141.jpg",
+      "categories": [
+        "Country Club"
+      ]
     },
     {
       "id": "m15615",
@@ -9479,7 +10505,10 @@
       "tags": [
         "telecommunications"
       ],
-      "slug": "my-telecomm"
+      "slug": "my-telecomm",
+      "categories": [
+        "Telecommunications"
+      ]
     },
     {
       "id": "m15892",
@@ -9507,7 +10536,10 @@
         "and",
         "furnishing"
       ],
-      "slug": "nadia-geller-designs-inc"
+      "slug": "nadia-geller-designs-inc",
+      "categories": [
+        "Interior Design and Furnishing"
+      ]
     },
     {
       "id": "m14908",
@@ -9568,7 +10600,10 @@
         "law",
         "firm"
       ],
-      "slug": "nazaryan-law-car-accident-injury-lawyers"
+      "slug": "nazaryan-law-car-accident-injury-lawyers",
+      "categories": [
+        "Law Firm"
+      ]
     },
     {
       "id": "m15673",
@@ -9595,7 +10630,10 @@
         "organizer",
         "professional"
       ],
-      "slug": "neatly-arranged"
+      "slug": "neatly-arranged",
+      "categories": [
+        "Organizer, Professional"
+      ]
     },
     {
       "id": "m15377",
@@ -9621,7 +10659,10 @@
         "profit",
         "organization"
       ],
-      "slug": "networking-plus-inc"
+      "slug": "networking-plus-inc",
+      "categories": [
+        "Non-Profit Organization"
+      ]
     },
     {
       "id": "m15262",
@@ -9653,7 +10694,10 @@
         "profit",
         "organization"
       ],
-      "slug": "new-economics-for-women-women-s-business-center"
+      "slug": "new-economics-for-women-women-s-business-center",
+      "categories": [
+        "Non-Profit Organization"
+      ]
     },
     {
       "id": "m15776",
@@ -9684,7 +10728,10 @@
         "financial",
         "services"
       ],
-      "slug": "new-york-life"
+      "slug": "new-york-life",
+      "categories": [
+        "Financial Services"
+      ]
     },
     {
       "id": "m15796",
@@ -9747,7 +10794,11 @@
         "internet",
         "marketing"
       ],
-      "slug": "nex-graphics"
+      "slug": "nex-graphics",
+      "categories": [
+        "Graphic Design",
+        "Web Development and Internet Marketing"
+      ]
     },
     {
       "id": "m15595",
@@ -9792,7 +10843,10 @@
         "social",
         "member"
       ],
-      "slug": "nonie-lann"
+      "slug": "nonie-lann",
+      "categories": [
+        "Resident~Social Member"
+      ]
     },
     {
       "id": "m15843",
@@ -9819,7 +10873,10 @@
         "retailer",
         "specialty"
       ],
-      "slug": "nordstrom-rack"
+      "slug": "nordstrom-rack",
+      "categories": [
+        "Retailer, Specialty"
+      ]
     },
     {
       "id": "m15943",
@@ -9844,7 +10901,10 @@
         "financial",
         "services"
       ],
-      "slug": "northwestern-mutual"
+      "slug": "northwestern-mutual",
+      "categories": [
+        "Insurance & Financial Services"
+      ]
     },
     {
       "id": "m10599",
@@ -9877,7 +10937,10 @@
       "tags": [
         "bakery"
       ],
-      "slug": "nothing-bundt-cakes"
+      "slug": "nothing-bundt-cakes",
+      "categories": [
+        "Bakery"
+      ]
     },
     {
       "id": "m15517",
@@ -9901,7 +10964,11 @@
       "tags": [
         "restaurant"
       ],
-      "slug": "noyon-inc"
+      "slug": "noyon-inc",
+      "categories": [
+        "Restaurant",
+        "Retailer, Specialty"
+      ]
     },
     {
       "id": "m12937",
@@ -9934,7 +11001,11 @@
         "non",
         "profit"
       ],
-      "slug": "nueva-vision-community-school"
+      "slug": "nueva-vision-community-school",
+      "categories": [
+        "Education / Non-Profit",
+        "Music Instruction"
+      ]
     },
     {
       "id": "m16112",
@@ -9956,13 +11027,17 @@
       "leaderStatus": "New Member",
       "description": "Looking for the perfect place to host your next party, event, quince, wedding, or baby shower? Look no further than OLOV Hall. Located in the heart of Canoga Park, you",
       "tagline": "OLOV Club",
-      "group": "Hospitality & Events",
+      "group": "Nonprofit & Community",
       "tags": [
         "banquet",
         "reception",
         "hall"
       ],
-      "slug": "olov-club"
+      "slug": "olov-club",
+      "categories": [
+        "Banquet/Reception Hall",
+        "Non-Profit Organization"
+      ]
     },
     {
       "id": "m16000",
@@ -9991,7 +11066,10 @@
         "and",
         "collision"
       ],
-      "slug": "omega-automotive-and-northridge-body-works"
+      "slug": "omega-automotive-and-northridge-body-works",
+      "categories": [
+        "Auto Body and Collision"
+      ]
     },
     {
       "id": "wv-on-the-boulevard-magazine",
@@ -10011,7 +11089,10 @@
       "tags": [
         "magazine"
       ],
-      "slug": "on-the-boulevard-magazine"
+      "slug": "on-the-boulevard-magazine",
+      "categories": [
+        "Magazine"
+      ]
     },
     {
       "id": "wv-onelife-productions",
@@ -10031,7 +11112,10 @@
         "event",
         "planning"
       ],
-      "slug": "onelife-productions"
+      "slug": "onelife-productions",
+      "categories": [
+        "Event Planning"
+      ]
     },
     {
       "id": "m16101",
@@ -10056,7 +11140,10 @@
         "merchant",
         "services"
       ],
-      "slug": "optimum-payments-inc"
+      "slug": "optimum-payments-inc",
+      "categories": [
+        "Merchant Services"
+      ]
     },
     {
       "id": "m15647",
@@ -10081,7 +11168,10 @@
       "tags": [
         "orthodontist"
       ],
-      "slug": "orthodontics-in-woodland-hills"
+      "slug": "orthodontics-in-woodland-hills",
+      "categories": [
+        "Orthodontist"
+      ]
     },
     {
       "id": "m15797",
@@ -10105,7 +11195,10 @@
         "special",
         "events"
       ],
-      "slug": "outlyr"
+      "slug": "outlyr",
+      "categories": [
+        "Special Events"
+      ]
     },
     {
       "id": "m15610",
@@ -10130,7 +11223,10 @@
         "senior",
         "care"
       ],
-      "slug": "pacific-coast-senior-solutions-llc"
+      "slug": "pacific-coast-senior-solutions-llc",
+      "categories": [
+        "Senior Care"
+      ]
     },
     {
       "id": "m12306",
@@ -10214,7 +11310,10 @@
       "tags": [
         "banks"
       ],
-      "slug": "pacific-premier-bank"
+      "slug": "pacific-premier-bank",
+      "categories": [
+        "Banks"
+      ]
     },
     {
       "id": "m15507",
@@ -10240,7 +11339,10 @@
         "paint",
         "contractor"
       ],
-      "slug": "pacos-painting"
+      "slug": "pacos-painting",
+      "categories": [
+        "Paint Contractor"
+      ]
     },
     {
       "id": "m15537",
@@ -10268,7 +11370,11 @@
         "estate",
         "commercial"
       ],
-      "slug": "paley-commercial-real-estate-inc"
+      "slug": "paley-commercial-real-estate-inc",
+      "categories": [
+        "Property Management",
+        "Real Estate, Commercial"
+      ]
     },
     {
       "id": "m15656",
@@ -10292,7 +11398,10 @@
         "retailer",
         "specialty"
       ],
-      "slug": "pampered-chef"
+      "slug": "pampered-chef",
+      "categories": [
+        "Retailer, Specialty"
+      ]
     },
     {
       "id": "m16214",
@@ -10315,7 +11424,10 @@
       "tags": [
         "restaurant"
       ],
-      "slug": "panda-express"
+      "slug": "panda-express",
+      "categories": [
+        "Restaurant"
+      ]
     },
     {
       "id": "m16199",
@@ -10348,7 +11460,10 @@
         "travel",
         "agency"
       ],
-      "slug": "passports-patisserie-pnp-travel-com"
+      "slug": "passports-patisserie-pnp-travel-com",
+      "categories": [
+        "Travel Agency"
+      ]
     },
     {
       "id": "wv-pattons-the",
@@ -10368,7 +11483,10 @@
       "tags": [
         "supporter"
       ],
-      "slug": "pattons-the"
+      "slug": "pattons-the",
+      "categories": [
+        "Supporter"
+      ]
     },
     {
       "id": "m10060",
@@ -10402,7 +11520,10 @@
         "insurance",
         "services"
       ],
-      "slug": "paul-davis-insurance-services"
+      "slug": "paul-davis-insurance-services",
+      "categories": [
+        "Insurance Services"
+      ]
     },
     {
       "id": "m15289",
@@ -10435,7 +11556,10 @@
         "financial",
         "services"
       ],
-      "slug": "pbc-private-wealth"
+      "slug": "pbc-private-wealth",
+      "categories": [
+        "Financial Services"
+      ]
     },
     {
       "id": "m15808",
@@ -10462,7 +11586,10 @@
         "design"
       ],
       "slug": "peacock-print-co",
-      "pageImage": "/images/board/mary-johnson.jpg"
+      "pageImage": "/images/board/mary-johnson.jpg",
+      "categories": [
+        "Print & Design"
+      ]
     },
     {
       "id": "m15851",
@@ -10489,7 +11616,10 @@
         "profit",
         "organization"
       ],
-      "slug": "pediatric-victory-foundation"
+      "slug": "pediatric-victory-foundation",
+      "categories": [
+        "Non-Profit Organization"
+      ]
     },
     {
       "id": "wv-peet-s-coffee",
@@ -10511,7 +11641,10 @@
         "coffee",
         "tea"
       ],
-      "slug": "peet-s-coffee"
+      "slug": "peet-s-coffee",
+      "categories": [
+        "Coffee,Tea"
+      ]
     },
     {
       "id": "m15848",
@@ -10533,11 +11666,14 @@
       "yearEstablished": "2004",
       "employees": "50",
       "logo": "/images/members/m15848.jpg",
-      "group": "Fitness & Recreation",
+      "group": "Government & Public",
       "tags": [
         "transportation"
       ],
-      "slug": "pegasus-transit-inc"
+      "slug": "pegasus-transit-inc",
+      "categories": [
+        "Transportation"
+      ]
     },
     {
       "id": "m2297",
@@ -10644,7 +11780,10 @@
         "home",
         "manufacturing"
       ],
-      "slug": "piccola-tiny-homes"
+      "slug": "piccola-tiny-homes",
+      "categories": [
+        "Home Manufacturing"
+      ]
     },
     {
       "id": "m14047",
@@ -10667,7 +11806,10 @@
         "schools",
         "adult"
       ],
-      "slug": "pierce-college"
+      "slug": "pierce-college",
+      "categories": [
+        "Schools - Adult"
+      ]
     },
     {
       "id": "m14911",
@@ -10754,7 +11896,10 @@
         "service",
         "provider"
       ],
-      "slug": "point2point-protective-services-inc"
+      "slug": "point2point-protective-services-inc",
+      "categories": [
+        "Security Service Provider"
+      ]
     },
     {
       "id": "m16012",
@@ -10781,7 +11926,10 @@
       "tags": [
         "banks"
       ],
-      "slug": "poppy-bank-calabasas"
+      "slug": "poppy-bank-calabasas",
+      "categories": [
+        "Banks"
+      ]
     },
     {
       "id": "m16037",
@@ -10805,7 +11953,10 @@
         "dealers"
       ],
       "slug": "porsche-woodland-hills",
-      "leaderLogo": "/images/leaders/leaders_139.jpg"
+      "leaderLogo": "/images/leaders/leaders_139.jpg",
+      "categories": [
+        "Auto Dealers"
+      ]
     },
     {
       "id": "m15937",
@@ -10838,7 +11989,10 @@
         "magazine",
         "publishing"
       ],
-      "slug": "porter-ranch-living-magazine"
+      "slug": "porter-ranch-living-magazine",
+      "categories": [
+        "Magazine Publishing"
+      ]
     },
     {
       "id": "m12944",
@@ -10860,7 +12014,10 @@
       "tags": [
         "publisher"
       ],
-      "slug": "post-periodical"
+      "slug": "post-periodical",
+      "categories": [
+        "Publisher"
+      ]
     },
     {
       "id": "m15691",
@@ -10886,7 +12043,10 @@
         "solar",
         "company"
       ],
-      "slug": "powur"
+      "slug": "powur",
+      "categories": [
+        "Solar Company"
+      ]
     },
     {
       "id": "m15660",
@@ -10911,7 +12071,10 @@
         "moving",
         "services"
       ],
-      "slug": "precision-moving-solutions-llc"
+      "slug": "precision-moving-solutions-llc",
+      "categories": [
+        "Moving Services"
+      ]
     },
     {
       "id": "m15770",
@@ -10935,7 +12098,10 @@
         "roofing",
         "contractor"
       ],
-      "slug": "precision-roofing-and-exteriors-inc"
+      "slug": "precision-roofing-and-exteriors-inc",
+      "categories": [
+        "Roofing Contractor"
+      ]
     },
     {
       "id": "m12400",
@@ -10968,7 +12134,10 @@
         "unions"
       ],
       "slug": "premier-america-credit-union",
-      "leaderLogo": "/images/leaders/leaders_98.jpg"
+      "leaderLogo": "/images/leaders/leaders_98.jpg",
+      "categories": [
+        "Credit Unions"
+      ]
     },
     {
       "id": "m15232",
@@ -10998,7 +12167,10 @@
         "senior",
         "care"
       ],
-      "slug": "preserve-at-woodland-hills-the"
+      "slug": "preserve-at-woodland-hills-the",
+      "categories": [
+        "Senior Care"
+      ]
     },
     {
       "id": "m15895",
@@ -11029,7 +12201,10 @@
       "tags": [
         "cosmetics"
       ],
-      "slug": "pretty-smack-cosmetics"
+      "slug": "pretty-smack-cosmetics",
+      "categories": [
+        "Cosmetics"
+      ]
     },
     {
       "id": "m15759",
@@ -11054,7 +12229,10 @@
         "mortgage",
         "services"
       ],
-      "slug": "priority-financial-network"
+      "slug": "priority-financial-network",
+      "categories": [
+        "Mortgage Services"
+      ]
     },
     {
       "id": "m15545",
@@ -11091,7 +12269,10 @@
         "and",
         "personal"
       ],
-      "slug": "project-equinox"
+      "slug": "project-equinox",
+      "categories": [
+        "Coaching, Business and Personal"
+      ]
     },
     {
       "id": "m15908",
@@ -11118,7 +12299,10 @@
       "tags": [
         "restaurant"
       ],
-      "slug": "prose-kitchen-bar"
+      "slug": "prose-kitchen-bar",
+      "categories": [
+        "Restaurant"
+      ]
     },
     {
       "id": "m16047",
@@ -11140,7 +12324,10 @@
         "mental",
         "health"
       ],
-      "slug": "prosperous-health"
+      "slug": "prosperous-health",
+      "categories": [
+        "Mental Health"
+      ]
     },
     {
       "id": "m12553",
@@ -11165,7 +12352,10 @@
         "hospital"
       ],
       "slug": "providence-cedars-sinai-tarzana-medical-center",
-      "leaderLogo": "/images/leaders/leaders_3.jpg"
+      "leaderLogo": "/images/leaders/leaders_3.jpg",
+      "categories": [
+        "Hospital"
+      ]
     },
     {
       "id": "m13477",
@@ -11197,7 +12387,10 @@
         "financial",
         "services"
       ],
-      "slug": "providence-financial-insurance-services-inc"
+      "slug": "providence-financial-insurance-services-inc",
+      "categories": [
+        "Financial Services"
+      ]
     },
     {
       "id": "m15300",
@@ -11228,7 +12421,10 @@
         "fitness",
         "wellness"
       ],
-      "slug": "q4-active"
+      "slug": "q4-active",
+      "categories": [
+        "Fitness/Wellness"
+      ]
     },
     {
       "id": "m15551",
@@ -11252,7 +12448,10 @@
         "events",
         "services"
       ],
-      "slug": "qe-productions"
+      "slug": "qe-productions",
+      "categories": [
+        "Events Services"
+      ]
     },
     {
       "id": "m12012",
@@ -11279,7 +12478,11 @@
       ],
       "slug": "r-susan-tenzer-j-d-tenzer-consulting",
       "pageImage": "/images/board/susan-tenzer.jpg",
-      "boardTitle": "President of the Board"
+      "boardTitle": "President of the Board",
+      "categories": [
+        "Corporate Consultant",
+        "Mediator"
+      ]
     },
     {
       "id": "m15324",
@@ -11313,7 +12516,10 @@
         "estate"
       ],
       "slug": "rachel-tabak-realtor-with-keller-williams",
-      "pageImage": "/images/board/rachel-tabak.jpg"
+      "pageImage": "/images/board/rachel-tabak.jpg",
+      "categories": [
+        "Real Estate"
+      ]
     },
     {
       "id": "m15999",
@@ -11346,7 +12552,10 @@
         "network",
         "show"
       ],
-      "slug": "radio-iran-kirn-670-am"
+      "slug": "radio-iran-kirn-670-am",
+      "categories": [
+        "Radio Network/Show"
+      ]
     },
     {
       "id": "m16044",
@@ -11369,7 +12578,10 @@
       "tags": [
         "restaurant"
       ],
-      "slug": "raising-cane-s"
+      "slug": "raising-cane-s",
+      "categories": [
+        "Restaurant"
+      ]
     },
     {
       "id": "wv-rdc-collective-corp-so-cal-co-op",
@@ -11445,7 +12657,10 @@
       "tags": [
         "orthodontist"
       ],
-      "slug": "rehil-orthodontics"
+      "slug": "rehil-orthodontics",
+      "categories": [
+        "Orthodontist"
+      ]
     },
     {
       "id": "m14365",
@@ -11468,7 +12683,10 @@
       "tags": [
         "schools"
       ],
-      "slug": "reseda-charter-high-school"
+      "slug": "reseda-charter-high-school",
+      "categories": [
+        "Schools"
+      ]
     },
     {
       "id": "m15001",
@@ -11490,7 +12708,10 @@
         "neighborhood",
         "council"
       ],
-      "slug": "reseda-neighborhood-council"
+      "slug": "reseda-neighborhood-council",
+      "categories": [
+        "Neighborhood Council"
+      ]
     },
     {
       "id": "m15810",
@@ -11517,7 +12738,10 @@
         "fitness",
         "wellness"
       ],
-      "slug": "revision-fitness-wellness"
+      "slug": "revision-fitness-wellness",
+      "categories": [
+        "Fitness/Wellness"
+      ]
     },
     {
       "id": "m15849",
@@ -11549,7 +12773,10 @@
       "tags": [
         "photography"
       ],
-      "slug": "richardson-portraits"
+      "slug": "richardson-portraits",
+      "categories": [
+        "Photography"
+      ]
     },
     {
       "id": "m15899",
@@ -11579,7 +12806,10 @@
       "tags": [
         "telecommunications"
       ],
-      "slug": "ringaro-telecom"
+      "slug": "ringaro-telecom",
+      "categories": [
+        "Telecommunications"
+      ]
     },
     {
       "id": "m16029",
@@ -11606,7 +12836,10 @@
         "communication",
         "services"
       ],
-      "slug": "ringplanet-communications"
+      "slug": "ringplanet-communications",
+      "categories": [
+        "Communication Services"
+      ]
     },
     {
       "id": "m15539",
@@ -11631,7 +12864,10 @@
         "real",
         "estate"
       ],
-      "slug": "rodrigo-suerte-felipe-realtor"
+      "slug": "rodrigo-suerte-felipe-realtor",
+      "categories": [
+        "Real Estate"
+      ]
     },
     {
       "id": "m12146",
@@ -11656,7 +12892,10 @@
         "event",
         "planning"
       ],
-      "slug": "ron-rubin-events"
+      "slug": "ron-rubin-events",
+      "categories": [
+        "Entertainment & Event Planning"
+      ]
     },
     {
       "id": "m15708",
@@ -11681,7 +12920,10 @@
         "profit",
         "organization"
       ],
-      "slug": "ronald-reagan-library"
+      "slug": "ronald-reagan-library",
+      "categories": [
+        "Non-Profit Organization"
+      ]
     },
     {
       "id": "m1979",
@@ -11705,7 +12947,10 @@
         "use",
         "consulting"
       ],
-      "slug": "rosenheim-associates-inc"
+      "slug": "rosenheim-associates-inc",
+      "categories": [
+        "Land Use Consulting"
+      ]
     },
     {
       "id": "m12343",
@@ -11728,7 +12973,10 @@
         "profit",
         "organization"
       ],
-      "slug": "rotary-club-of-woodland-hills"
+      "slug": "rotary-club-of-woodland-hills",
+      "categories": [
+        "Non-Profit Organization"
+      ]
     },
     {
       "id": "m15793",
@@ -11790,7 +13038,10 @@
       "tags": [
         "restaurant"
       ],
-      "slug": "ruth-s-chris-steak-house"
+      "slug": "ruth-s-chris-steak-house",
+      "categories": [
+        "Restaurant"
+      ]
     },
     {
       "id": "wv-s-f-valley-business-journal",
@@ -11810,7 +13061,10 @@
       "tags": [
         "press"
       ],
-      "slug": "s-f-valley-business-journal"
+      "slug": "s-f-valley-business-journal",
+      "categories": [
+        "Press"
+      ]
     },
     {
       "id": "m10641",
@@ -11831,7 +13085,11 @@
       "tags": [
         "restaurant"
       ],
-      "slug": "safir-mediterranean-cuisine"
+      "slug": "safir-mediterranean-cuisine",
+      "categories": [
+        "Catering",
+        "Restaurant"
+      ]
     },
     {
       "id": "m14651",
@@ -11862,7 +13120,10 @@
         "profit",
         "organization"
       ],
-      "slug": "salvation-army-store"
+      "slug": "salvation-army-store",
+      "categories": [
+        "Non-Profit Organization"
+      ]
     },
     {
       "id": "m15304",
@@ -11890,7 +13151,10 @@
         "real",
         "estate"
       ],
-      "slug": "sammy-lopolo-pinnacle-estate-properties-calabasas"
+      "slug": "sammy-lopolo-pinnacle-estate-properties-calabasas",
+      "categories": [
+        "Real Estate"
+      ]
     },
     {
       "id": "wv-san-fernando-valley-buzz",
@@ -11909,7 +13173,10 @@
       "tags": [
         "media"
       ],
-      "slug": "san-fernando-valley-buzz"
+      "slug": "san-fernando-valley-buzz",
+      "categories": [
+        "Media"
+      ]
     },
     {
       "id": "wv-sandler-powell-jacobs-berlin-llp",
@@ -11934,7 +13201,10 @@
         "advisory",
         "services"
       ],
-      "slug": "sandler-powell-jacobs-berlin-llp"
+      "slug": "sandler-powell-jacobs-berlin-llp",
+      "categories": [
+        "Accounting, Taxation, & Business Advisory Services"
+      ]
     },
     {
       "id": "m15257",
@@ -12015,7 +13285,10 @@
         "music",
         "instruction"
       ],
-      "slug": "school-of-rock-woodland-hills"
+      "slug": "school-of-rock-woodland-hills",
+      "categories": [
+        "Music Instruction"
+      ]
     },
     {
       "id": "m15597",
@@ -12041,7 +13314,10 @@
         "attorney",
         "services"
       ],
-      "slug": "scott-whitehead"
+      "slug": "scott-whitehead",
+      "categories": [
+        "Attorney Services"
+      ]
     },
     {
       "id": "m16061",
@@ -12074,7 +13350,10 @@
       "tags": [
         "music"
       ],
-      "slug": "scott-detweiler-music"
+      "slug": "scott-detweiler-music",
+      "categories": [
+        "Music"
+      ]
     },
     {
       "id": "m16209",
@@ -12108,7 +13387,10 @@
       "tags": [
         "consulting"
       ],
-      "slug": "secure-techies-llc"
+      "slug": "secure-techies-llc",
+      "categories": [
+        "IT Consulting"
+      ]
     },
     {
       "id": "m16004",
@@ -12132,7 +13414,10 @@
         "retailer",
         "specialty"
       ],
-      "slug": "see-s-candies"
+      "slug": "see-s-candies",
+      "categories": [
+        "Retailer, Specialty"
+      ]
     },
     {
       "id": "m14592",
@@ -12159,7 +13444,10 @@
         "insurance",
         "services"
       ],
-      "slug": "selman-insurance-services"
+      "slug": "selman-insurance-services",
+      "categories": [
+        "Insurance Services"
+      ]
     },
     {
       "id": "m15716",
@@ -12187,7 +13475,10 @@
         "senior",
         "care"
       ],
-      "slug": "senior-care-resources-llc"
+      "slug": "senior-care-resources-llc",
+      "categories": [
+        "Senior Care"
+      ]
     },
     {
       "id": "m15866",
@@ -12211,7 +13502,10 @@
         "senior",
         "care"
       ],
-      "slug": "senior-home-care-la"
+      "slug": "senior-home-care-la",
+      "categories": [
+        "Senior Care"
+      ]
     },
     {
       "id": "m12524",
@@ -12240,7 +13534,10 @@
         "care"
       ],
       "slug": "senior-resources-inc",
-      "leaderLogo": "/images/leaders/leaders_25.jpg"
+      "leaderLogo": "/images/leaders/leaders_25.jpg",
+      "categories": [
+        "Senior Care"
+      ]
     },
     {
       "id": "m10617",
@@ -12265,13 +13562,17 @@
       "yearEstablished": "1995",
       "employees": "8",
       "logo": "/images/members/m10617.jpg",
-      "group": "Government & Public",
+      "group": "Home & Trades",
       "tags": [
         "restoration",
         "water",
         "fire"
       ],
-      "slug": "servpro-of-woodland-hills-tarzana-reseda"
+      "slug": "servpro-of-woodland-hills-tarzana-reseda",
+      "categories": [
+        "Carpet Cleaning & Restoration",
+        "Restoration,Water & Fire"
+      ]
     },
     {
       "id": "m15618",
@@ -12298,7 +13599,10 @@
         "travel",
         "agency"
       ],
-      "slug": "sg-luxury-adventures"
+      "slug": "sg-luxury-adventures",
+      "categories": [
+        "Travel Agency"
+      ]
     },
     {
       "id": "m15658",
@@ -12323,7 +13627,10 @@
         "walking",
         "sitting"
       ],
-      "slug": "sharon-hice-pet-and-house-sitting"
+      "slug": "sharon-hice-pet-and-house-sitting",
+      "categories": [
+        "Pet Walking/Sitting"
+      ]
     },
     {
       "id": "m15563",
@@ -12349,7 +13656,10 @@
         "profit",
         "organization"
       ],
-      "slug": "she-is-hope-la"
+      "slug": "she-is-hope-la",
+      "categories": [
+        "Non-Profit Organization"
+      ]
     },
     {
       "id": "m16217",
@@ -12375,11 +13685,15 @@
       "employees": "1",
       "leaderStatus": "New Member",
       "logo": "/images/members/m16217.jpg",
-      "group": "Financial & Insurance",
+      "group": "Professional Services",
       "tags": [
         "bookkeeping"
       ],
-      "slug": "she-s-got-moxie"
+      "slug": "she-s-got-moxie",
+      "categories": [
+        "Bookkeeping",
+        "Notary"
+      ]
     },
     {
       "id": "m14392",
@@ -12429,7 +13743,10 @@
         "real",
         "estate"
       ],
-      "slug": "sherry-keowen-coldwell-banker"
+      "slug": "sherry-keowen-coldwell-banker",
+      "categories": [
+        "Real Estate"
+      ]
     },
     {
       "id": "m16221",
@@ -12454,7 +13771,10 @@
         "profit",
         "organization"
       ],
-      "slug": "shift-our-ways-collective"
+      "slug": "shift-our-ways-collective",
+      "categories": [
+        "Non-Profit Organization"
+      ]
     },
     {
       "id": "m16213",
@@ -12477,7 +13797,10 @@
         "senior",
         "care"
       ],
-      "slug": "silverado-calabasas"
+      "slug": "silverado-calabasas",
+      "categories": [
+        "Senior Care"
+      ]
     },
     {
       "id": "m15271",
@@ -12502,7 +13825,10 @@
         "construction",
         "home"
       ],
-      "slug": "simplicity-consulting-group"
+      "slug": "simplicity-consulting-group",
+      "categories": [
+        "Loans-Construction, Home"
+      ]
     },
     {
       "id": "m16055",
@@ -12532,7 +13858,10 @@
       "tags": [
         "consulting"
       ],
-      "slug": "simplified-it-consulting"
+      "slug": "simplified-it-consulting",
+      "categories": [
+        "IT Consulting"
+      ]
     },
     {
       "id": "wv-simply-sorted-llc",
@@ -12553,7 +13882,10 @@
         "organizer",
         "professional"
       ],
-      "slug": "simply-sorted-llc"
+      "slug": "simply-sorted-llc",
+      "categories": [
+        "Organizer, Professional"
+      ]
     },
     {
       "id": "m15890",
@@ -12585,7 +13917,10 @@
         "special",
         "events"
       ],
-      "slug": "sjofors-partners-inc"
+      "slug": "sjofors-partners-inc",
+      "categories": [
+        "Business Consulting-Management Services/Fund Raising/Special Events"
+      ]
     },
     {
       "id": "m16073",
@@ -12608,7 +13943,11 @@
         "glass",
         "contractor"
       ],
-      "slug": "smiley-glass"
+      "slug": "smiley-glass",
+      "categories": [
+        "Glass Contractor",
+        "Glass, Stained & Etched"
+      ]
     },
     {
       "id": "m12094",
@@ -12629,7 +13968,10 @@
       "tags": [
         "restaurant"
       ],
-      "slug": "so-sushi"
+      "slug": "so-sushi",
+      "categories": [
+        "Restaurant"
+      ]
     },
     {
       "id": "m15820",
@@ -12652,7 +13994,10 @@
       "tags": [
         "dentist"
       ],
-      "slug": "socal-smiles"
+      "slug": "socal-smiles",
+      "categories": [
+        "Dentist"
+      ]
     },
     {
       "id": "m14590",
@@ -12676,7 +14021,10 @@
         "gas"
       ],
       "slug": "socalgas",
-      "leaderLogo": "/images/leaders/leaders_92.jpg"
+      "leaderLogo": "/images/leaders/leaders_92.jpg",
+      "categories": [
+        "Gas Co."
+      ]
     },
     {
       "id": "wv-social-medium-a-social-makerspace",
@@ -12698,7 +14046,11 @@
         "retailer",
         "specialty"
       ],
-      "slug": "social-medium-a-social-makerspace"
+      "slug": "social-medium-a-social-makerspace",
+      "categories": [
+        "Art Classes",
+        "Retailer, Specialty"
+      ]
     },
     {
       "id": "m15629",
@@ -12729,7 +14081,10 @@
         "solar",
         "company"
       ],
-      "slug": "sol-up"
+      "slug": "sol-up",
+      "categories": [
+        "Solar Company"
+      ]
     },
     {
       "id": "m15852",
@@ -12753,7 +14108,10 @@
         "employee",
         "services"
       ],
-      "slug": "south-valley-worksource-center"
+      "slug": "south-valley-worksource-center",
+      "categories": [
+        "Employee Services"
+      ]
     },
     {
       "id": "m15666",
@@ -12785,7 +14143,10 @@
         "profit",
         "organization"
       ],
-      "slug": "southern-california-medical-center"
+      "slug": "southern-california-medical-center",
+      "categories": [
+        "Non-Profit Organization"
+      ]
     },
     {
       "id": "m14876",
@@ -12819,7 +14180,11 @@
         "real",
         "estate"
       ],
-      "slug": "southland-regional-association-of-realtors"
+      "slug": "southland-regional-association-of-realtors",
+      "categories": [
+        "Real Estate",
+        "Real Estate Development"
+      ]
     },
     {
       "id": "m14844",
@@ -12846,7 +14211,10 @@
         "financial",
         "services"
       ],
-      "slug": "sovran-advisors"
+      "slug": "sovran-advisors",
+      "categories": [
+        "Financial Services"
+      ]
     },
     {
       "id": "m15399",
@@ -12916,7 +14284,10 @@
         "public",
         "relations"
       ],
-      "slug": "spectrum-reach"
+      "slug": "spectrum-reach",
+      "categories": [
+        "Advertising, Marketing, and Public Relations"
+      ]
     },
     {
       "id": "m2024",
@@ -12939,7 +14310,10 @@
         "hotel",
         "motel"
       ],
-      "slug": "st-george-motor-inn"
+      "slug": "st-george-motor-inn",
+      "categories": [
+        "Hotel / Motel"
+      ]
     },
     {
       "id": "m10438",
@@ -12970,7 +14344,11 @@
         "insurance",
         "services"
       ],
-      "slug": "stan-israel-insurance-services-inc"
+      "slug": "stan-israel-insurance-services-inc",
+      "categories": [
+        "Financial Services",
+        "Insurance Services"
+      ]
     },
     {
       "id": "m10259",
@@ -12994,7 +14372,10 @@
         "office",
         "supplies"
       ],
-      "slug": "staples"
+      "slug": "staples",
+      "categories": [
+        "Office Supplies"
+      ]
     },
     {
       "id": "m13308",
@@ -13028,7 +14409,10 @@
       "tags": [
         "banks"
       ],
-      "slug": "state-bank-of-india-california"
+      "slug": "state-bank-of-india-california",
+      "categories": [
+        "Banks"
+      ]
     },
     {
       "id": "m2028",
@@ -13051,7 +14435,10 @@
         "insurance",
         "services"
       ],
-      "slug": "state-farm-insurance"
+      "slug": "state-farm-insurance",
+      "categories": [
+        "Insurance Services"
+      ]
     },
     {
       "id": "m2028-101",
@@ -13074,7 +14461,10 @@
         "insurance",
         "services"
       ],
-      "slug": "state-farm-insurance-2"
+      "slug": "state-farm-insurance-2",
+      "categories": [
+        "Insurance Services"
+      ]
     },
     {
       "id": "m16002",
@@ -13097,7 +14487,10 @@
       "tags": [
         "restaurant"
       ],
-      "slug": "stk-steakhouse-topanga"
+      "slug": "stk-steakhouse-topanga",
+      "categories": [
+        "Restaurant"
+      ]
     },
     {
       "id": "m12546",
@@ -13134,7 +14527,10 @@
         "attorney",
         "services"
       ],
-      "slug": "stone-dean-llp"
+      "slug": "stone-dean-llp",
+      "categories": [
+        "Attorney Services"
+      ]
     },
     {
       "id": "m16021",
@@ -13165,7 +14561,10 @@
       "tags": [
         "photobooth"
       ],
-      "slug": "storybooth-co"
+      "slug": "storybooth-co",
+      "categories": [
+        "Photobooth"
+      ]
     },
     {
       "id": "m15869",
@@ -13193,7 +14592,10 @@
         "restaurant"
       ],
       "slug": "sunberry-acai-bowls",
-      "pageImage": "/images/board/damon-buford.jpg"
+      "pageImage": "/images/board/damon-buford.jpg",
+      "categories": [
+        "Restaurant"
+      ]
     },
     {
       "id": "m15590",
@@ -13219,7 +14621,11 @@
       "tags": [
         "dentist"
       ],
-      "slug": "superkiddos-dental-and-orthodontics"
+      "slug": "superkiddos-dental-and-orthodontics",
+      "categories": [
+        "Dentist",
+        "Orthodontist"
+      ]
     },
     {
       "id": "m16134",
@@ -13244,7 +14650,10 @@
         "golf",
         "simulator"
       ],
-      "slug": "svn2-indoor-golf"
+      "slug": "svn2-indoor-golf",
+      "categories": [
+        "Golf Simulator"
+      ]
     },
     {
       "id": "m15863",
@@ -13266,7 +14675,10 @@
       "tags": [
         "restaurant"
       ],
-      "slug": "sweetgreen"
+      "slug": "sweetgreen",
+      "categories": [
+        "Restaurant"
+      ]
     },
     {
       "id": "m15526",
@@ -13291,7 +14703,10 @@
         "real",
         "estate"
       ],
-      "slug": "sync-brokerage"
+      "slug": "sync-brokerage",
+      "categories": [
+        "Real Estate"
+      ]
     },
     {
       "id": "m16169",
@@ -13321,7 +14736,11 @@
       "tags": [
         "chiropractor"
       ],
-      "slug": "synergy-chiropractic-and-physical-therapy"
+      "slug": "synergy-chiropractic-and-physical-therapy",
+      "categories": [
+        "Chiropractor",
+        "Physical Therapists"
+      ]
     },
     {
       "id": "m16185",
@@ -13345,7 +14764,10 @@
       "tags": [
         "restaurant"
       ],
-      "slug": "tainos-l-a"
+      "slug": "tainos-l-a",
+      "categories": [
+        "Restaurant"
+      ]
     },
     {
       "id": "m15294",
@@ -13370,7 +14792,10 @@
         "frozen",
         "dessert"
       ],
-      "slug": "tang-java"
+      "slug": "tang-java",
+      "categories": [
+        "Frozen Dessert"
+      ]
     },
     {
       "id": "m2053",
@@ -13404,7 +14829,11 @@
         "profit",
         "organization"
       ],
-      "slug": "tarzana-community-cultural-center"
+      "slug": "tarzana-community-cultural-center",
+      "categories": [
+        "Banquet/Reception Hall",
+        "Non-Profit Organization"
+      ]
     },
     {
       "id": "wv-tarzana-improvement-association",
@@ -13424,7 +14853,10 @@
         "profit",
         "organization"
       ],
-      "slug": "tarzana-improvement-association"
+      "slug": "tarzana-improvement-association",
+      "categories": [
+        "Non-Profit Organization"
+      ]
     },
     {
       "id": "m15506",
@@ -13458,7 +14890,10 @@
         "profit",
         "organization"
       ],
-      "slug": "tarzana-international-film-festival"
+      "slug": "tarzana-international-film-festival",
+      "categories": [
+        "Non-Profit Organization"
+      ]
     },
     {
       "id": "m12014",
@@ -13480,7 +14915,10 @@
         "neighborhood",
         "council"
       ],
-      "slug": "tarzana-neighborhood-council"
+      "slug": "tarzana-neighborhood-council",
+      "categories": [
+        "Neighborhood Council"
+      ]
     },
     {
       "id": "wv-tarzana-square",
@@ -13502,7 +14940,10 @@
         "property",
         "management"
       ],
-      "slug": "tarzana-square"
+      "slug": "tarzana-square",
+      "categories": [
+        "Property Management"
+      ]
     },
     {
       "id": "m14798",
@@ -13529,7 +14970,10 @@
         "social",
         "services"
       ],
-      "slug": "tarzana-treatment-centers"
+      "slug": "tarzana-treatment-centers",
+      "categories": [
+        "Substance Abuse, Social Services"
+      ]
     },
     {
       "id": "m15965",
@@ -13556,7 +15000,10 @@
       "tags": [
         "pharmacy"
       ],
-      "slug": "tarzana-village-pharmacy"
+      "slug": "tarzana-village-pharmacy",
+      "categories": [
+        "Pharmacy"
+      ]
     },
     {
       "id": "m15844",
@@ -13583,7 +15030,10 @@
       "tags": [
         "technology"
       ],
-      "slug": "tech-consultants-llc-the"
+      "slug": "tech-consultants-llc-the",
+      "categories": [
+        "Technology"
+      ]
     },
     {
       "id": "m15889",
@@ -13615,7 +15065,10 @@
         "mental",
         "health"
       ],
-      "slug": "teen-therapy-center"
+      "slug": "teen-therapy-center",
+      "categories": [
+        "Mental Health"
+      ]
     },
     {
       "id": "m15383",
@@ -13638,7 +15091,10 @@
       "tags": [
         "paralegal"
       ],
-      "slug": "templeton-associates"
+      "slug": "templeton-associates",
+      "categories": [
+        "Paralegal"
+      ]
     },
     {
       "id": "wv-the-acorn",
@@ -13658,7 +15114,10 @@
       "tags": [
         "newspaper"
       ],
-      "slug": "the-acorn"
+      "slug": "the-acorn",
+      "categories": [
+        "Newspaper"
+      ]
     },
     {
       "id": "m12515",
@@ -13681,7 +15140,10 @@
         "senior",
         "care"
       ],
-      "slug": "the-commons-of-woodland-hills-senior-living"
+      "slug": "the-commons-of-woodland-hills-senior-living",
+      "categories": [
+        "Senior Care"
+      ]
     },
     {
       "id": "m11085",
@@ -13716,7 +15178,11 @@
         "plumbing"
       ],
       "slug": "the-drain-co",
-      "leaderLogo": "/images/leaders/leaders_123.jpg"
+      "leaderLogo": "/images/leaders/leaders_123.jpg",
+      "categories": [
+        "Drain Service -Residential, Commercial & Multi-unit Properties",
+        "Plumbing"
+      ]
     },
     {
       "id": "m14986",
@@ -13738,7 +15204,10 @@
       "tags": [
         "apartments"
       ],
-      "slug": "the-kitt-at-warner-center"
+      "slug": "the-kitt-at-warner-center",
+      "categories": [
+        "Apartments"
+      ]
     },
     {
       "id": "m15130",
@@ -13772,7 +15241,10 @@
       "tags": [
         "restaurant"
       ],
-      "slug": "the-stand"
+      "slug": "the-stand",
+      "categories": [
+        "Restaurant"
+      ]
     },
     {
       "id": "m15614",
@@ -13810,7 +15282,10 @@
         "social",
         "services"
       ],
-      "slug": "thrive-treatment-center"
+      "slug": "thrive-treatment-center",
+      "categories": [
+        "Substance Abuse, Social Services"
+      ]
     },
     {
       "id": "m15634",
@@ -13837,7 +15312,10 @@
         "social",
         "services"
       ],
-      "slug": "thrive-treatment-llc"
+      "slug": "thrive-treatment-llc",
+      "categories": [
+        "Substance Abuse, Social Services"
+      ]
     },
     {
       "id": "m16067",
@@ -13866,7 +15344,10 @@
       "leaderLogo": "/images/leaders/leaders_140.jpg",
       "pageImage": "/images/board/tim-gaspar.jpg",
       "leaderStatus": "Board Member",
-      "boardTitle": "Economic Development Chair"
+      "boardTitle": "Economic Development Chair",
+      "categories": [
+        "Government"
+      ]
     },
     {
       "id": "m15557",
@@ -13899,7 +15380,10 @@
         "employee",
         "services"
       ],
-      "slug": "tinq"
+      "slug": "tinq",
+      "categories": [
+        "Employee Services"
+      ]
     },
     {
       "id": "m14995",
@@ -13930,7 +15414,11 @@
         "waste",
         "removal"
       ],
-      "slug": "tm-scrap-metals-junk-removal-services"
+      "slug": "tm-scrap-metals-junk-removal-services",
+      "categories": [
+        "Hauling/Recycling",
+        "Waste Removal"
+      ]
     },
     {
       "id": "m15950",
@@ -13955,7 +15443,10 @@
         "pest",
         "control"
       ],
-      "slug": "top-termite-co-inc"
+      "slug": "top-termite-co-inc",
+      "categories": [
+        "Pest Control"
+      ]
     },
     {
       "id": "m15602",
@@ -13992,7 +15483,10 @@
         "events",
         "services"
       ],
-      "slug": "totally-rad-video-games"
+      "slug": "totally-rad-video-games",
+      "categories": [
+        "Events Services"
+      ]
     },
     {
       "id": "m12455",
@@ -14018,7 +15512,10 @@
         "pawn",
         "broker"
       ],
-      "slug": "traders-loan-jewelry"
+      "slug": "traders-loan-jewelry",
+      "categories": [
+        "Pawn Broker"
+      ]
     },
     {
       "id": "m15724",
@@ -14049,7 +15546,10 @@
         "business",
         "consultant"
       ],
-      "slug": "transpeed-network-corporation"
+      "slug": "transpeed-network-corporation",
+      "categories": [
+        "Business Consultant"
+      ]
     },
     {
       "id": "m16189",
@@ -14075,7 +15575,10 @@
         "travel",
         "agency"
       ],
-      "slug": "travelstore"
+      "slug": "travelstore",
+      "categories": [
+        "Travel Agency"
+      ]
     },
     {
       "id": "wv-tri-valley-special-olympics",
@@ -14125,7 +15628,10 @@
         "coffee",
         "tea"
       ],
-      "slug": "trio-coffee-house"
+      "slug": "trio-coffee-house",
+      "categories": [
+        "Coffee,Tea"
+      ]
     },
     {
       "id": "m1472",
@@ -14154,7 +15660,10 @@
         "events",
         "consultants"
       ],
-      "slug": "triple-a-rents-and-events"
+      "slug": "triple-a-rents-and-events",
+      "categories": [
+        "Party Equipment Rental - Special Events Consultants"
+      ]
     },
     {
       "id": "m12172",
@@ -14181,7 +15690,10 @@
         "estate",
         "commercial"
       ],
-      "slug": "tristar-realty-group"
+      "slug": "tristar-realty-group",
+      "categories": [
+        "Real Estate, Commercial"
+      ]
     },
     {
       "id": "m2100",
@@ -14212,7 +15724,11 @@
         "sales"
       ],
       "slug": "u-frame-it-gallery",
-      "leaderLogo": "/images/leaders/leaders_52.jpg"
+      "leaderLogo": "/images/leaders/leaders_52.jpg",
+      "categories": [
+        "Framing & Art Sales",
+        "Picture Framing/Custom Art Sales"
+      ]
     },
     {
       "id": "m2100-166",
@@ -14242,7 +15758,11 @@
         "art",
         "sales"
       ],
-      "slug": "u-frame-it-gallery-2"
+      "slug": "u-frame-it-gallery-2",
+      "categories": [
+        "Framing & Art Sales",
+        "Picture Framing/Custom Art Sales"
+      ]
     },
     {
       "id": "m16180",
@@ -14264,12 +15784,17 @@
       "leaderStatus": "New Member",
       "description": "The brand other brands trust. uBreakiFix is an authorized repair provider for the world&#x27;s top tech brands. At uBreakiFix® by Asurion, we offer quality repairs and services for the devices you depend on most.",
       "tagline": "uBreakiFix",
-      "group": "Other",
+      "group": "Technology",
       "tags": [
         "electronic",
         "repair"
       ],
-      "slug": "ubreakifix-by-asurion-woodland-hills"
+      "slug": "ubreakifix-by-asurion-woodland-hills",
+      "categories": [
+        "Cellular Phones",
+        "Computer Repair",
+        "Electronic Repair"
+      ]
     },
     {
       "id": "m2153-402",
@@ -14386,7 +15911,10 @@
       "tags": [
         "hospital"
       ],
-      "slug": "ucla-west-valley-medical-center"
+      "slug": "ucla-west-valley-medical-center",
+      "categories": [
+        "Hospital"
+      ]
     },
     {
       "id": "m15856",
@@ -14411,7 +15939,10 @@
         "retailer",
         "specialty"
       ],
-      "slug": "uniformity-dm-graphics"
+      "slug": "uniformity-dm-graphics",
+      "categories": [
+        "Retailer, Specialty"
+      ]
     },
     {
       "id": "m16160",
@@ -14436,7 +15967,10 @@
         "promotional",
         "products"
       ],
-      "slug": "unique-impressions"
+      "slug": "unique-impressions",
+      "categories": [
+        "Promotional Products"
+      ]
     },
     {
       "id": "m16208",
@@ -14458,13 +15992,17 @@
       "leaderStatus": "New Member",
       "description": "Full-service restoration and reconstruction company specializing in emergency response for water, fire, mold, and storm damage, in Southern California.",
       "tagline": "Unique Restoration | Canoga Park, California",
-      "group": "Government & Public",
+      "group": "Home & Trades",
       "tags": [
         "restoration",
         "water",
         "fire"
       ],
-      "slug": "unique-restoration"
+      "slug": "unique-restoration",
+      "categories": [
+        "General Contractor",
+        "Restoration,Water & Fire"
+      ]
     },
     {
       "id": "m12355",
@@ -14487,7 +16025,10 @@
         "profit",
         "organization"
       ],
-      "slug": "united-cerebral-palsy-ucpla"
+      "slug": "united-cerebral-palsy-ucpla",
+      "categories": [
+        "Non-Profit Organization"
+      ]
     },
     {
       "id": "m13947",
@@ -14511,7 +16052,10 @@
         "profit",
         "organization"
       ],
-      "slug": "united-chambers-of-commerce"
+      "slug": "united-chambers-of-commerce",
+      "categories": [
+        "Non-Profit Organization"
+      ]
     },
     {
       "id": "m16038",
@@ -14542,7 +16086,10 @@
       "tags": [
         "chiropractor"
       ],
-      "slug": "unwind-chiropractic-la"
+      "slug": "unwind-chiropractic-la",
+      "categories": [
+        "Chiropractor"
+      ]
     },
     {
       "id": "m15911",
@@ -14574,7 +16121,10 @@
       "tags": [
         "commerce"
       ],
-      "slug": "urbrand-studio"
+      "slug": "urbrand-studio",
+      "categories": [
+        "E-commerce"
+      ]
     },
     {
       "id": "m15395",
@@ -14599,7 +16149,10 @@
         "shopping",
         "center"
       ],
-      "slug": "valley-country-market"
+      "slug": "valley-country-market",
+      "categories": [
+        "Shopping Center"
+      ]
     },
     {
       "id": "m13597",
@@ -14624,7 +16177,10 @@
         "profit",
         "organization"
       ],
-      "slug": "valley-cultural-foundation"
+      "slug": "valley-cultural-foundation",
+      "categories": [
+        "Non-Profit Organization"
+      ]
     },
     {
       "id": "m15307",
@@ -14649,7 +16205,10 @@
         "profit",
         "organization"
       ],
-      "slug": "valley-economic-alliance"
+      "slug": "valley-economic-alliance",
+      "categories": [
+        "Non-Profit Organization"
+      ]
     },
     {
       "id": "m15845",
@@ -14674,7 +16233,10 @@
       "tags": [
         "dentist"
       ],
-      "slug": "valley-grin-co-the"
+      "slug": "valley-grin-co-the",
+      "categories": [
+        "Dentist"
+      ]
     },
     {
       "id": "m15242",
@@ -14698,7 +16260,10 @@
       "tags": [
         "schools"
       ],
-      "slug": "valley-international-preparatory-high-school-viphs"
+      "slug": "valley-international-preparatory-high-school-viphs",
+      "categories": [
+        "Schools"
+      ]
     },
     {
       "id": "m12934",
@@ -14742,7 +16307,10 @@
       "tags": [
         "newspaper"
       ],
-      "slug": "valley-news-group"
+      "slug": "valley-news-group",
+      "categories": [
+        "Newspaper"
+      ]
     },
     {
       "id": "m13420",
@@ -14765,7 +16333,10 @@
       "tags": [
         "magazine"
       ],
-      "slug": "valley-scene-magazine"
+      "slug": "valley-scene-magazine",
+      "categories": [
+        "Magazine"
+      ]
     },
     {
       "id": "m12669",
@@ -14799,7 +16370,10 @@
         "profit",
         "organization"
       ],
-      "slug": "valley-village"
+      "slug": "valley-village",
+      "categories": [
+        "Non-Profit Organization"
+      ]
     },
     {
       "id": "m2123",
@@ -14847,7 +16421,10 @@
       "tags": [
         "newspaper"
       ],
-      "slug": "van-nuys-news-press"
+      "slug": "van-nuys-news-press",
+      "categories": [
+        "Newspaper"
+      ]
     },
     {
       "id": "m15310",
@@ -14872,7 +16449,10 @@
         "health",
         "wellness"
       ],
-      "slug": "vanity-wellness-center"
+      "slug": "vanity-wellness-center",
+      "categories": [
+        "Health & Wellness"
+      ]
     },
     {
       "id": "m15080",
@@ -14896,7 +16476,10 @@
         "senior",
         "care"
       ],
-      "slug": "variel-the"
+      "slug": "variel-the",
+      "categories": [
+        "Senior Care"
+      ]
     },
     {
       "id": "wv-vica-valley-industry-commerce-association",
@@ -14919,7 +16502,10 @@
         "profit",
         "organization"
       ],
-      "slug": "vica-valley-industry-commerce-association"
+      "slug": "vica-valley-industry-commerce-association",
+      "categories": [
+        "Non-Profit Organization"
+      ]
     },
     {
       "id": "m10524",
@@ -14952,7 +16538,10 @@
       "tags": [
         "acupuncturist"
       ],
-      "slug": "vickery-health-wellness"
+      "slug": "vickery-health-wellness",
+      "categories": [
+        "Acupuncturist"
+      ]
     },
     {
       "id": "m14962",
@@ -14976,7 +16565,10 @@
         "electronics",
         "retailer"
       ],
-      "slug": "video-audio-center"
+      "slug": "video-audio-center",
+      "categories": [
+        "Electronics Retailer"
+      ]
     },
     {
       "id": "wv-village-profile",
@@ -14995,7 +16587,10 @@
       "tags": [
         "press"
       ],
-      "slug": "village-profile"
+      "slug": "village-profile",
+      "categories": [
+        "Press"
+      ]
     },
     {
       "id": "m10108",
@@ -15021,7 +16616,10 @@
         "dealers"
       ],
       "slug": "vista-ford-lincoln",
-      "leaderLogo": "/images/leaders/leaders_148.jpg"
+      "leaderLogo": "/images/leaders/leaders_148.jpg",
+      "categories": [
+        "Auto Dealers"
+      ]
     },
     {
       "id": "m15772",
@@ -15042,13 +16640,18 @@
       "employees": "1",
       "leaderStatus": "New Member",
       "logo": "/images/members/m15772.jpg",
-      "group": "Nonprofit & Community",
+      "group": "Health & Medical",
       "tags": [
         "non",
         "profit",
         "organization"
       ],
-      "slug": "vitalant"
+      "slug": "vitalant",
+      "categories": [
+        "Blood Drives/Blood Donations",
+        "Health Care / Non-Profit",
+        "Non-Profit Organization"
+      ]
     },
     {
       "id": "m15882",
@@ -15075,7 +16678,10 @@
         "attorney",
         "services"
       ],
-      "slug": "volchok-volchok-swire"
+      "slug": "volchok-volchok-swire",
+      "categories": [
+        "Attorney Services"
+      ]
     },
     {
       "id": "m15620",
@@ -15099,7 +16705,10 @@
         "theatre",
         "plays"
       ],
-      "slug": "vopa-valley-opera-and-performing-arts"
+      "slug": "vopa-valley-opera-and-performing-arts",
+      "categories": [
+        "Theatre - Plays"
+      ]
     },
     {
       "id": "m15583",
@@ -15124,7 +16733,10 @@
         "law",
         "firm"
       ],
-      "slug": "vorzimer-masserman-fertility-family-law-center"
+      "slug": "vorzimer-masserman-fertility-family-law-center",
+      "categories": [
+        "Law Firm"
+      ]
     },
     {
       "id": "m16068",
@@ -15150,7 +16762,10 @@
         "space",
         "leasing"
       ],
-      "slug": "w-executive-suites"
+      "slug": "w-executive-suites",
+      "categories": [
+        "Office Space Leasing"
+      ]
     },
     {
       "id": "m16076",
@@ -15186,7 +16801,10 @@
         "space",
         "leasing"
       ],
-      "slug": "warner-center-executive-suites"
+      "slug": "warner-center-executive-suites",
+      "categories": [
+        "Office Space Leasing"
+      ]
     },
     {
       "id": "m15141",
@@ -15214,11 +16832,14 @@
       "employees": "5",
       "leaderStatus": "New Member",
       "logo": "/images/members/m15141.jpg",
-      "group": "Fitness & Recreation",
+      "group": "Government & Public",
       "tags": [
         "transportation"
       ],
-      "slug": "warner-connects"
+      "slug": "warner-connects",
+      "categories": [
+        "Transportation"
+      ]
     },
     {
       "id": "m15586",
@@ -15251,7 +16872,10 @@
         "social",
         "services"
       ],
-      "slug": "warner-park-recovery-center"
+      "slug": "warner-park-recovery-center",
+      "categories": [
+        "Substance Abuse, Social Services"
+      ]
     },
     {
       "id": "m15840",
@@ -15278,7 +16902,10 @@
         "children",
         "gym"
       ],
-      "slug": "we-rock-the-spectrum-kid-s-gym-headquarter-office"
+      "slug": "we-rock-the-spectrum-kid-s-gym-headquarter-office",
+      "categories": [
+        "Children's Gym"
+      ]
     },
     {
       "id": "wv-web-corner-the",
@@ -15300,7 +16927,10 @@
         "website",
         "developer"
       ],
-      "slug": "web-corner-the"
+      "slug": "web-corner-the",
+      "categories": [
+        "Website Developer"
+      ]
     },
     {
       "id": "m2151",
@@ -15322,7 +16952,10 @@
       "tags": [
         "restaurant"
       ],
-      "slug": "wendy-s-old-fashioned-hamburgers"
+      "slug": "wendy-s-old-fashioned-hamburgers",
+      "categories": [
+        "Restaurant"
+      ]
     },
     {
       "id": "m10387",
@@ -15350,12 +16983,17 @@
       "yearEstablished": "2006",
       "employees": "4",
       "logo": "/images/members/m10387.jpg",
-      "group": "Other",
+      "group": "Health & Medical",
       "tags": [
         "counseling",
         "services"
       ],
-      "slug": "west-valley-counseling-center-a-non-profit-corporation"
+      "slug": "west-valley-counseling-center-a-non-profit-corporation",
+      "categories": [
+        "Counseling Services",
+        "Non-Profit Organization",
+        "Therapist"
+      ]
     },
     {
       "id": "m2155",
@@ -15384,7 +17022,10 @@
         "profit",
         "organization"
       ],
-      "slug": "west-valley-family-ymca"
+      "slug": "west-valley-family-ymca",
+      "categories": [
+        "Non-Profit Organization"
+      ]
     },
     {
       "id": "m15146",
@@ -15411,7 +17052,10 @@
         "profit",
         "organization"
       ],
-      "slug": "west-valley-food-pantry"
+      "slug": "west-valley-food-pantry",
+      "categories": [
+        "Non-Profit Organization"
+      ]
     },
     {
       "id": "m14288",
@@ -15436,7 +17080,10 @@
         "hearing",
         "services"
       ],
-      "slug": "west-valley-hearing-center"
+      "slug": "west-valley-hearing-center",
+      "categories": [
+        "Hearing Services"
+      ]
     },
     {
       "id": "m11847",
@@ -15459,7 +17106,10 @@
       "tags": [
         "nursery"
       ],
-      "slug": "west-valley-nursery"
+      "slug": "west-valley-nursery",
+      "categories": [
+        "Nursery"
+      ]
     },
     {
       "id": "m2154",
@@ -15512,7 +17162,10 @@
         "center"
       ],
       "slug": "westfield-topanga",
-      "leaderLogo": "/images/leaders/leaders_10.jpg"
+      "leaderLogo": "/images/leaders/leaders_10.jpg",
+      "categories": [
+        "Shopping Center"
+      ]
     },
     {
       "id": "m15400",
@@ -15537,7 +17190,10 @@
         "tasting",
         "sales"
       ],
-      "slug": "whatever-vineyards"
+      "slug": "whatever-vineyards",
+      "categories": [
+        "Wine Tasting / Wine Sales"
+      ]
     },
     {
       "id": "m15284",
@@ -15587,7 +17243,10 @@
         "bowling",
         "alley"
       ],
-      "slug": "winnetka-bowl"
+      "slug": "winnetka-bowl",
+      "categories": [
+        "Bowling Alley"
+      ]
     },
     {
       "id": "wv-winnetka-neighborhood-council",
@@ -15609,7 +17268,10 @@
         "business",
         "classification"
       ],
-      "slug": "winnetka-neighborhood-council"
+      "slug": "winnetka-neighborhood-council",
+      "categories": [
+        "Member with no business classification"
+      ]
     },
     {
       "id": "m15082",
@@ -15635,7 +17297,10 @@
         "care"
       ],
       "slug": "wisteria-at-warner-center",
-      "leaderLogo": "/images/leaders/leaders_145.jpg"
+      "leaderLogo": "/images/leaders/leaders_145.jpg",
+      "categories": [
+        "Senior Care"
+      ]
     },
     {
       "id": "m15062",
@@ -15680,7 +17345,10 @@
       "tags": [
         "schools"
       ],
-      "slug": "woodland-hills-academy"
+      "slug": "woodland-hills-academy",
+      "categories": [
+        "Schools"
+      ]
     },
     {
       "id": "m15924",
@@ -15704,7 +17372,10 @@
       "tags": [
         "acupuncturist"
       ],
-      "slug": "woodland-hills-acupuncture-wellness-center"
+      "slug": "woodland-hills-acupuncture-wellness-center",
+      "categories": [
+        "Acupuncturist"
+      ]
     },
     {
       "id": "m16176",
@@ -15738,7 +17409,10 @@
         "retailer",
         "specialty"
       ],
-      "slug": "woodland-hills-camera-and-telescopes-and-the-darkroom"
+      "slug": "woodland-hills-camera-and-telescopes-and-the-darkroom",
+      "categories": [
+        "Retailer, Specialty"
+      ]
     },
     {
       "id": "m12843",
@@ -15771,7 +17445,10 @@
         "country",
         "club"
       ],
-      "slug": "woodland-hills-country-club"
+      "slug": "woodland-hills-country-club",
+      "categories": [
+        "Country Club"
+      ]
     },
     {
       "id": "wv-woodland-hills-homeowners-organization",
@@ -15793,7 +17470,10 @@
         "homeowners",
         "organization"
       ],
-      "slug": "woodland-hills-homeowners-organization"
+      "slug": "woodland-hills-homeowners-organization",
+      "categories": [
+        "Homeowners Organization"
+      ]
     },
     {
       "id": "m12540",
@@ -15816,7 +17496,10 @@
         "profit",
         "organization"
       ],
-      "slug": "woodland-hills-optimist-club-scholarship-fund"
+      "slug": "woodland-hills-optimist-club-scholarship-fund",
+      "categories": [
+        "Non-Profit Organization"
+      ]
     },
     {
       "id": "m15798",
@@ -15847,7 +17530,11 @@
         "care",
         "services"
       ],
-      "slug": "woodland-hills-pet-clinic"
+      "slug": "woodland-hills-pet-clinic",
+      "categories": [
+        "Pet Care Services",
+        "Veterinarian"
+      ]
     },
     {
       "id": "m2170",
@@ -15878,7 +17565,11 @@
       "tags": [
         "schools"
       ],
-      "slug": "woodland-hills-private-school"
+      "slug": "woodland-hills-private-school",
+      "categories": [
+        "Schools",
+        "Schools - Private"
+      ]
     },
     {
       "id": "m15002",
@@ -15901,7 +17592,10 @@
         "neighborhood",
         "council"
       ],
-      "slug": "woodland-hills-warner-center-neighborhood-council"
+      "slug": "woodland-hills-warner-center-neighborhood-council",
+      "categories": [
+        "Neighborhood Council"
+      ]
     },
     {
       "id": "m12341",
@@ -15933,7 +17627,10 @@
       "tags": [
         "florist"
       ],
-      "slug": "woodland-warner-flowers"
+      "slug": "woodland-warner-flowers",
+      "categories": [
+        "Florist"
+      ]
     },
     {
       "id": "m10158",
@@ -15956,13 +17653,17 @@
       "employees": "2",
       "leaderStatus": "Ambassador",
       "logo": "/images/members/m10158.jpg",
-      "group": "Other",
+      "group": "Professional Services",
       "tags": [
         "promotional",
         "products"
       ],
       "slug": "world-s-greatest-promotional-stuff",
-      "leaderLogo": "/images/leaders/leaders_113.jpg"
+      "leaderLogo": "/images/leaders/leaders_113.jpg",
+      "categories": [
+        "Promotional Products",
+        "T Shirt Screen Print"
+      ]
     },
     {
       "id": "m16181",
@@ -15992,7 +17693,10 @@
         "business",
         "consultant"
       ],
-      "slug": "ww-consulting-for-good"
+      "slug": "ww-consulting-for-good",
+      "categories": [
+        "Business Consultant"
+      ]
     },
     {
       "id": "m16144",
@@ -16024,7 +17728,10 @@
         "dog",
         "training"
       ],
-      "slug": "yavadog"
+      "slug": "yavadog",
+      "categories": [
+        "Dog Training"
+      ]
     },
     {
       "id": "m16141",
@@ -16051,14 +17758,17 @@
         "insurance",
         "services"
       ],
-      "slug": "zolo-insurance-services-inc"
+      "slug": "zolo-insurance-services-inc",
+      "categories": [
+        "Insurance Services"
+      ]
     },
     {
       "id": "wv-bob-blumenfield",
       "slug": "councilmember-bob-blumenfield",
       "name": "Councilmember Bob Blumenfield",
       "category": "Government & Civic",
-      "group": "Civic Partners",
+      "group": "Government & Public",
       "tier": "platinum",
       "neighborhood": "Reseda",
       "contactName": "Bob Blumenfield",
@@ -16077,7 +17787,12 @@
         "government"
       ],
       "status": "approved",
-      "leaderLogo": "/images/leaders/leaders_88.jpg"
+      "leaderLogo": "/images/leaders/leaders_88.jpg",
+      "categories": [
+        "Government & Civic",
+        "Government"
+      ],
+      "joinDate": "2023-06-28"
     },
     {
       "id": "m16222",
@@ -16107,7 +17822,10 @@
         "conditioning",
         "ventilating"
       ],
-      "slug": "la-heating-air-conditioning"
+      "slug": "la-heating-air-conditioning",
+      "categories": [
+        "Heating, Air Conditioning & Ventilating"
+      ]
     },
     {
       "id": "m16223",
@@ -16135,7 +17853,10 @@
         "attorney",
         "services"
       ],
-      "slug": "mvp-law-group-apc"
+      "slug": "mvp-law-group-apc",
+      "categories": [
+        "Attorney Services"
+      ]
     },
     {
       "id": "m16224",
@@ -16163,7 +17884,10 @@
         "financial",
         "services"
       ],
-      "slug": "modern-woodmen"
+      "slug": "modern-woodmen",
+      "categories": [
+        "Financial Services"
+      ]
     },
     {
       "id": "m16225",
@@ -16191,7 +17915,10 @@
         "insurance",
         "services"
       ],
-      "slug": "zadsure-insurance-agency"
+      "slug": "zadsure-insurance-agency",
+      "categories": [
+        "Insurance Services"
+      ]
     },
     {
       "id": "m16226",
@@ -16214,11 +17941,15 @@
       "yearEstablished": "",
       "employees": "",
       "leaderStatus": "New Member",
-      "group": "Home & Trades",
+      "group": "Retail & Shopping",
       "tags": [
         "generators"
       ],
-      "slug": "all-american-generator"
+      "slug": "all-american-generator",
+      "categories": [
+        "Generators",
+        "Retailer, Specialty"
+      ]
     },
     {
       "id": "m16227",
@@ -16246,7 +17977,11 @@
         "behavioral",
         "health"
       ],
-      "slug": "summit-intensive-outpatient-program"
+      "slug": "summit-intensive-outpatient-program",
+      "categories": [
+        "Behavioral Health",
+        "Substance Abuse, Social Services"
+      ]
     },
     {
       "id": "m16228",
@@ -16274,7 +18009,10 @@
         "senior",
         "care"
       ],
-      "slug": "always-best-care-thousand-oaks"
+      "slug": "always-best-care-thousand-oaks",
+      "categories": [
+        "Senior Care"
+      ]
     },
     {
       "id": "m16229",
@@ -16302,7 +18040,10 @@
         "fitness",
         "wellness"
       ],
-      "slug": "wellness-hills-performance-center"
+      "slug": "wellness-hills-performance-center",
+      "categories": [
+        "Fitness/Wellness"
+      ]
     },
     {
       "id": "m16230",
@@ -16330,7 +18071,10 @@
         "pest",
         "control"
       ],
-      "slug": "ameripest-solutions"
+      "slug": "ameripest-solutions",
+      "categories": [
+        "Pest Control"
+      ]
     },
     {
       "id": "m16231",
@@ -16353,12 +18097,15 @@
       "yearEstablished": "",
       "employees": "",
       "leaderStatus": "New Member",
-      "group": "Retail & Shopping",
+      "group": "Restaurants & Food",
       "tags": [
         "grocery",
         "retail"
       ],
-      "slug": "jim-s-fallbrook-market-inc"
+      "slug": "jim-s-fallbrook-market-inc",
+      "categories": [
+        "Grocery / Retail"
+      ]
     },
     {
       "id": "m16232",
@@ -16385,7 +18132,10 @@
       "tags": [
         "cpa"
       ],
-      "slug": "mycpa-llp"
+      "slug": "mycpa-llp",
+      "categories": [
+        "CPA"
+      ]
     },
     {
       "id": "m16233",
@@ -16413,7 +18163,10 @@
         "health",
         "wellness"
       ],
-      "slug": "pause-woodland-hills"
+      "slug": "pause-woodland-hills",
+      "categories": [
+        "Health & Wellness"
+      ]
     }
   ]
 }

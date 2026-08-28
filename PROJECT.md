@@ -11,6 +11,30 @@ Render Web Service `wvwccc-web` (srv-d8f8pci8qa3s738nsib0) + Postgres `wvwccc-db
 - **ElevenLabs ConvAI** agent `agent_8201kqnjhzyrfpdvtqwgf9e0034y` on all public pages (pulled from POC).
 - Nav adds Deals + Community.
 
+**Felicia + Diana, 2026-08-27/28:** ✅ built
+- *Chamber Leaders page retired* (Diana: "take this page down") — off the
+  menu and the admin sidebar, `/leaders.html` 301s to `/about.html` so the
+  indexed URL doesn't dead-end. Tier still doubles as the Leader level for
+  the office's own records.
+- *Full category set imported* (Felicia's "ALL CATEGORIES and Join Date"
+  export): 558 of 607 members matched, 71 now carry 2–3 categories in
+  `categories[]`, which the directory filter and Wendy already search — so a
+  caterer that is also a banquet hall is findable as both.
+  `scripts/import-directory-categories.py`. Join dates are **fill-only**:
+  549/555 already agreed, and the 6 that differ are the duplicate-company
+  rows the export itself flags, so the site's dates stand.
+- *Fewer categories to browse:* the category picker is now two-tier — the ~20
+  broad types lead, the ~250 specific ones sit underneath (both still filter).
+- *Taxonomy de-duplicated + a real bug fixed:* the group keywords moved to
+  `data/category-groups.json`, shared by the importer and
+  `scripts/categorize-members.js`, and now match at a word start. Substring
+  matching had been filing "Newspaper" under Beauty & Personal Care (`spa`),
+  "Retirement Plans" under Automotive (`tire`), "Transportation" under
+  Fitness (`sport`) and "Environmental" under Health (`mental`).
+- *Education Committee:* leader Damon Buford, 4th Thursday 9 AM. The add-only
+  group seed now also backfills a leader name and replaces the "contact the
+  office" placeholder schedule — but never a time the office set in admin.
+
 **Mixer feedback batch (2026-08-27):** ✅ built — Felicia's "Update Requests
 from Members and Us" (member feedback from the Aug 26 mixer):
 - *Member-to-member messaging:* there wasn't one (directory strips emails on
@@ -27,10 +51,11 @@ from Members and Us" (member feedback from the Aug 26 mixer):
   2026" flyer; added the 9 missing (Table for Six, Food & Wine, Installation,
   Golf, UCC Government Affairs, Ambassador, Membership, Education,
   Beautification committees) — seed is add-only into the live store, so they
-  appear on deploy without touching admin edits. Flags for the office: the
-  flyer lists Education Committee twice with different leaders; three circle
-  names differ site-vs-flyer; Event Planning & Hospitality is on the site but
-  not the flyer.
+  appear on deploy without touching admin edits. Flags for the office: three
+  circle names differ site-vs-flyer; Event Planning & Hospitality is on the
+  site but not the flyer. **Resolved 2026-08-27** — Felicia confirmed the
+  Education Committee's duplicate flyer entries: Damon Buford, 4th Thursday
+  9 AM is the current one.
 - *Old-site pages recovered from the Wayback Machine:* Important Phone
   Numbers (full A–Z + hotlines + officials, searchable), Candy Cane Lane,
   Demographics → `community/phone-numbers.html`, `candy-cane-lane.html`,

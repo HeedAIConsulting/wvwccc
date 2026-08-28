@@ -575,6 +575,11 @@ a.member-tile__name:hover { color: var(--green); }
   padding: 9px 12px; border-radius: var(--r-sm); font-size: .9rem; color: var(--ink); }
 .dd__opt:hover { background: var(--cream-deep); }
 .dd__opt.is-active { background: var(--leaf-soft); color: var(--green-deep); font-weight: 600; }
+.dd__sect { padding: 10px 12px 4px; font-size: .72rem; font-weight: 700; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--green-deep); opacity: .75; }
+.dd__sect + .dd__opt { margin-top: 2px; }
+.dd__sect ~ .dd__sect { border-top: 1px solid var(--line); margin-top: 6px; }
+.dd__opt--sub { padding-left: 20px; }
 .dd__clear { background: none; border: none; color: var(--gold-deep); font-weight: 600; cursor: pointer; font-size: .88rem; padding: 6px 4px; }
 .dd__clear:hover { text-decoration: underline; }
 /* Denser "quadrant" directory: smaller boxes, more per row (Chamber feedback). */

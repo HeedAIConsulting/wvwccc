@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-/* Index the directory: map the 653 raw ChamberWare categories into ~20 browsable
-   parent groups (keyword match on category + typeOfBusiness), add `group` to each
+/* Index the directory: map the raw ChamberWare categories into ~20 browsable
+   parent groups (word-start keyword match over every category the member carries), add `group` to each
    member, and add searchable `tags`. Keeps the specific category as the subtitle. */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -9,35 +9,19 @@ import { fileURLToPath } from 'node:url';
 const STORE = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'data', '_store');
 const file = path.join(STORE, 'members.json');
 
-// group → keyword fragments (checked against lowercased category + typeOfBusiness)
-const GROUPS = [
-  ['Restaurants & Food', ['restaurant','food','cafe','coffee','bakery','catering','grocery','deli','dining','pizza','bar &','brewery','winery','ice cream','juice','meal']],
-  ['Health & Medical', ['hospital','medical','health','clinic','doctor','physician','dental','dentist','chiropractor','pharmacy','therapy','therapist','urgent care','optometr','vision','mental','nurs','hospice','home care','caregiver','wellness','cryo']],
-  ['Beauty & Personal Care', ['salon','spa','beauty','barber','hair','nail','skin','massage','cosmetic','makeup','lash','esthetic']],
-  ['Professional Services', ['consult','marketing','advertising','public relations','design','print','media','photograph','video','staffing','translation','notary','business serv','employer serv','payroll','hr ']],
-  ['Financial & Insurance', ['insurance','financial','bank','credit union','accountant','accounting','cpa','tax','mortgage','loan','invest','wealth','escrow','bookkeep']],
-  ['Legal', ['attorney','law','legal','lawyer','mediation']],
-  ['Real Estate', ['real estate','realtor','property','apartment','leasing','realty']],
-  ['Automotive', ['auto','car ','vehicle','tire','mechanic','body works','dealership','motors','ford','collision','smog']],
-  ['Home & Trades', ['plumb','electric','hvac','roofing','construct','contractor','handyman','landscap','garden','pest','cleaning','painting','remodel','flooring','solar','locksmith','pool','moving','storage','appliance','furniture','interior']],
-  ['Retail & Shopping', ['retail','store','shop','boutique','jewelry','clothing','apparel','gift','florist','flower','book','hardware','pharmac','specialty','antique','camera']],
-  ['Education', ['school','education','tutor','academy','college','university','learning','childcare','preschool','daycare','montessori','training']],
-  ['Nonprofit & Community', ['non-profit','nonprofit','non profit','foundation','charity','community','association','organization','church','temple','synagogue','religious','club','rotary','volunteer']],
-  ['Hospitality & Events', ['hotel','motel','event','venue','wedding','banquet','catering hall','lodging','travel','tourism']],
-  ['Technology', ['technolog','software','it ','computer','web ','app ','tech ','data','cyber','telecom','internet']],
-  ['Arts & Entertainment', ['art','entertainment','music','theater','theatre','gallery','museum','photography studio','production','film','dance','studio']],
-  ['Fitness & Recreation', ['fitness','gym','yoga','pilates','sport','recreation','golf','bowling','martial','crossfit','athletic','country club']],
-  ['Government & Public', ['government','city ','county','public','council','district','utility','transportation','library','police','fire']],
-  ['Pets & Animals', ['pet','animal','veterinar','vet ','grooming','dog ','cat ']],
-  ['Senior Services', ['senior','retirement','assisted living','elder']],
-];
+// The taxonomy now lives in data/category-groups.json so this script and
+// scripts/import-directory-categories.py can never drift apart.
+const GROUPS = JSON.parse(fs.readFileSync(path.join(STORE, '..', 'category-groups.json'), 'utf8'))
+  .groups.map((g) => [g.name, new RegExp(g.keywords.map((k) => '\\b' + k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|'))]);
 
 const clean = (v) => (v == null ? '' : String(v).toLowerCase());
 function groupOf(m) {
-  const hay = (clean(m.category) + ' ' + clean(m.typeOfBusiness)).trim();
-  if (!hay) return 'Other';
-  for (const [name, kws] of GROUPS) if (kws.some((k) => hay.includes(k))) return name;
-  return 'Other';
+  // Every category the member carries counts, not just the primary one.
+  const hay = [clean(m.category), (m.categories || []).map(clean).join(' '), clean(m.typeOfBusiness)]
+    .join(' ').trim();
+  if (!hay) return m.group || 'Other';
+  for (const [name, re] of GROUPS) if (re.test(hay)) return name;
+  return m.group || 'Other';
 }
 
 const doc = JSON.parse(fs.readFileSync(file, 'utf8'));

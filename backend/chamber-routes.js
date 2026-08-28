@@ -2218,13 +2218,22 @@ async function loadGroups() {
           const cur = live.get(g.id);
           if (!cur) { await repo.upsertGroup(buildGroup(g, g)); continue; }
           const noRoster = !Array.isArray(cur.members) || cur.members.length === 0;
-          const noManager = !cur.manager || !cur.manager.email;
+          // A leader counts as "set" if either a name or an email is on file —
+          // some committee leaders come off the office's flyer with a phone
+          // number and no address (Education Committee, Aug 2026).
+          const noManager = !cur.manager || (!cur.manager.email && !cur.manager.name);
+          // "Contact the Chamber office" is the placeholder we write when the
+          // meeting time is unknown, not a real schedule — so the seed may
+          // replace it, but never a time the office actually set in admin.
+          const isPlaceholder = (v) => !v || /contact the chamber office/i.test(String(v));
           const addRoster = noRoster && Array.isArray(g.members) && g.members.length;
-          const addManager = noManager && g.manager && g.manager.email;
-          if (addRoster || addManager) {
+          const addManager = noManager && g.manager && (g.manager.email || g.manager.name);
+          const addSchedule = !isPlaceholder(g.meetingSchedule) && isPlaceholder(cur.meetingSchedule);
+          if (addRoster || addManager || addSchedule) {
             const merged = { ...cur };
             if (addRoster) merged.members = g.members;
             if (addManager) merged.manager = g.manager;
+            if (addSchedule) { merged.meetingSchedule = g.meetingSchedule; merged.description = g.description || cur.description; }
             await repo.upsertGroup(buildGroup(merged, cur));
           }
         }
