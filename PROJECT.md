@@ -11,6 +11,29 @@ Render Web Service `wvwccc-web` (srv-d8f8pci8qa3s738nsib0) + Postgres `wvwccc-db
 - **ElevenLabs ConvAI** agent `agent_8201kqnjhzyrfpdvtqwgf9e0034y` on all public pages (pulled from POC).
 - Nav adds Deals + Community.
 
+**Chamber Leaders retired + Search Console unblocked (2026-08-27):** ✅ built —
+- *Diana, 2:30 PM:* "Take this page down. Chamber Leaders." `leaders.html` is
+  deleted, along with its nav entry, the admin quick link, and the admin
+  members-screen reference. The sitemap is a walk of the repo's own .html
+  files, so removing the file drops the URL automatically; `/leaders.html`
+  301s to the member directory so the indexed URL and old email links don't
+  dead-end. Tier still drives directory ranking and badges — only the public
+  page is gone.
+- *Nicole Cohen (Hawaiian Movers) via Felicia, 2:50 PM:* her SEO specialist
+  asked us to (1) request indexing in Search Console and (2) confirm the
+  sitemap covers her page and every member profile. (2) is verified: **714 of
+  714** member pages are in the sitemap, hers included, and robots.txt points
+  Google at it. (1) needed a verified Search Console property, so
+  `GSC_VERIFICATION` now serves Google's `/google<token>.html` file straight
+  from an env var — set it on Render, no deploy, no stray file in the repo.
+  Root cause of her original complaint was already fixed on Aug 21 (commit
+  3eb7075): every member page used to ship the same 1,279-byte "Loading…"
+  shell, so Google had no reason to index any of them. Verified today that
+  Googlebot gets the full page, canonical + JSON-LD, no noindex and no
+  X-Robots-Tag.
+Tests: `backend/test/seo-and-retired-pages.test.mjs` (boots the real server).
+Cache-bust: partials.js → 20260827b.
+
 **Education Committee correction + a seed that can carry one (2026-08-27):**
 ✅ built — Felicia confirmed the flyer's duplicate Education Committee entries
 resolve to **Damon Buford, (602) 690-2173, 4th Thursday 9 AM**. The committee
