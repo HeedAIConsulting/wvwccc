@@ -328,7 +328,7 @@
       "employees": "9",
       "leaderStatus": "New Member",
       "logo": "/images/members/m15790.jpg",
-      "group": "Other",
+      "group": "Home & Trades",
       "tags": [
         "heating",
         "air",
@@ -966,7 +966,7 @@
       "yearEstablished": "2008",
       "employees": "5",
       "logo": "/images/members/m2203.jpg",
-      "group": "Technology",
+      "group": "Financial & Insurance",
       "tags": [
         "credit",
         "repair"
@@ -1474,7 +1474,7 @@
       },
       "leaderStatus": "New Member",
       "logo": "/images/members/m13200.jpg",
-      "group": "Beauty & Personal Care",
+      "group": "Real Estate",
       "tags": [
         "office",
         "space",
@@ -1796,7 +1796,7 @@
       "yearEstablished": "1939",
       "employees": "3",
       "leaderStatus": "New Member",
-      "group": "Arts & Entertainment",
+      "group": "Hospitality & Events",
       "tags": [
         "party",
         "rental",
@@ -2112,7 +2112,7 @@
       "website": "https://www.calabasasstyle.com",
       "joinDate": "2013-11-06",
       "seal": "C",
-      "group": "Other",
+      "group": "Media & Press",
       "tags": [
         "magazine"
       ],
@@ -7926,7 +7926,7 @@
       "zip": "90027",
       "joinDate": "1992-11-01",
       "seal": "K",
-      "group": "Other",
+      "group": "Media & Press",
       "tags": [
         "press"
       ],
@@ -8053,7 +8053,7 @@
       "zip": "90028",
       "joinDate": "1992-11-01",
       "seal": "K",
-      "group": "Other",
+      "group": "Media & Press",
       "tags": [
         "press"
       ],
@@ -8075,7 +8075,7 @@
       "zip": "90028",
       "joinDate": "1992-11-01",
       "seal": "K",
-      "group": "Other",
+      "group": "Media & Press",
       "tags": [
         "press"
       ],
@@ -8097,7 +8097,7 @@
       "zip": "90038",
       "joinDate": "1992-11-01",
       "seal": "K",
-      "group": "Other",
+      "group": "Media & Press",
       "tags": [
         "press"
       ],
@@ -8307,7 +8307,7 @@
       "zip": "91523",
       "joinDate": "1992-11-01",
       "seal": "K",
-      "group": "Other",
+      "group": "Media & Press",
       "tags": [
         "press"
       ],
@@ -8408,7 +8408,7 @@
       "yearEstablished": "2022",
       "employees": "4",
       "logo": "/images/members/m15862.jpg",
-      "group": "Beauty & Personal Care",
+      "group": "Real Estate",
       "tags": [
         "office",
         "space",
@@ -8482,7 +8482,7 @@
       "zip": "90028",
       "joinDate": "1992-11-01",
       "seal": "K",
-      "group": "Other",
+      "group": "Media & Press",
       "tags": [
         "press"
       ],
@@ -8531,7 +8531,7 @@
       "phone": "(323)801-0100",
       "joinDate": "1992-10-01",
       "seal": "L",
-      "group": "Other",
+      "group": "Media & Press",
       "tags": [
         "magazine"
       ],
@@ -8554,7 +8554,7 @@
       "phone": "(818)772-3624",
       "joinDate": "1993-04-01",
       "seal": "L",
-      "group": "Other",
+      "group": "Media & Press",
       "tags": [
         "press"
       ],
@@ -9132,7 +9132,7 @@
       "zip": "90046",
       "joinDate": "1992-11-01",
       "seal": "L",
-      "group": "Other",
+      "group": "Media & Press",
       "tags": [
         "press"
       ],
@@ -9184,7 +9184,7 @@
       "seal": "L",
       "yearEstablished": "1887",
       "employees": "3",
-      "group": "Beauty & Personal Care",
+      "group": "Media & Press",
       "tags": [
         "newspaper"
       ],
@@ -9210,7 +9210,7 @@
       "seal": "L",
       "yearEstablished": "1887",
       "employees": "3",
-      "group": "Other",
+      "group": "Media & Press",
       "tags": [
         "press"
       ],
@@ -9526,7 +9526,7 @@
       "phone": "(310)456-5507",
       "joinDate": "1992-11-01",
       "seal": "M",
-      "group": "Other",
+      "group": "Media & Press",
       "tags": [
         "press"
       ],
@@ -11085,7 +11085,7 @@
       "phone": "(323)436-7546",
       "joinDate": "1992-11-01",
       "seal": "O",
-      "group": "Other",
+      "group": "Media & Press",
       "tags": [
         "magazine"
       ],
@@ -11984,7 +11984,7 @@
       "employees": "4",
       "leaderStatus": "New Member",
       "logo": "/images/members/m15937.jpg",
-      "group": "Other",
+      "group": "Media & Press",
       "tags": [
         "magazine",
         "publishing"
@@ -12010,7 +12010,7 @@
       "joinDate": "2014-10-16",
       "seal": "P",
       "logo": "/images/members/m12944.jpg",
-      "group": "Other",
+      "group": "Media & Press",
       "tags": [
         "publisher"
       ],
@@ -12546,7 +12546,7 @@
       "employees": "10",
       "leaderStatus": "New Member",
       "logo": "/images/members/m15999.jpg",
-      "group": "Other",
+      "group": "Media & Press",
       "tags": [
         "radio",
         "network",
@@ -13057,7 +13057,7 @@
       "phone": "(818)710-2731",
       "joinDate": "1998-06-08",
       "seal": "S",
-      "group": "Other",
+      "group": "Media & Press",
       "tags": [
         "press"
       ],
@@ -15110,7 +15110,7 @@
       "phone": "(818)706-0266",
       "joinDate": "1995-05-01",
       "seal": "T",
-      "group": "Beauty & Personal Care",
+      "group": "Media & Press",
       "tags": [
         "newspaper"
       ],
@@ -16303,7 +16303,7 @@
       "website": "https://www.valleynewsgroup.com",
       "joinDate": "1982-10-01",
       "seal": "V",
-      "group": "Beauty & Personal Care",
+      "group": "Media & Press",
       "tags": [
         "newspaper"
       ],
@@ -16329,7 +16329,7 @@
       "seal": "V",
       "tagline": "Valley Scene Magazine: Featuring Entertainment, Leisure, and Lifestyle",
       "employees": "4",
-      "group": "Other",
+      "group": "Media & Press",
       "tags": [
         "magazine"
       ],
@@ -16417,7 +16417,7 @@
       "website": "https://Www.vannuysnewspress.com",
       "joinDate": "2015-10-22",
       "seal": "V",
-      "group": "Beauty & Personal Care",
+      "group": "Media & Press",
       "tags": [
         "newspaper"
       ],
@@ -16583,7 +16583,7 @@
       "phone": "(800)600-0134",
       "joinDate": "2014-01-28",
       "seal": "V",
-      "group": "Other",
+      "group": "Media & Press",
       "tags": [
         "press"
       ],
@@ -16756,7 +16756,7 @@
       "yearEstablished": "2025",
       "employees": "2",
       "leaderStatus": "New Member",
-      "group": "Beauty & Personal Care",
+      "group": "Real Estate",
       "tags": [
         "office",
         "space",
@@ -16795,7 +16795,7 @@
       "employees": "5",
       "leaderStatus": "New Member",
       "logo": "/images/members/m16076.jpg",
-      "group": "Beauty & Personal Care",
+      "group": "Real Estate",
       "tags": [
         "office",
         "space",
@@ -17102,7 +17102,7 @@
       "seal": "W",
       "yearEstablished": "1951",
       "employees": "10",
-      "group": "Health & Medical",
+      "group": "Home & Trades",
       "tags": [
         "nursery"
       ],

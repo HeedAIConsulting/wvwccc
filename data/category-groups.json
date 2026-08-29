@@ -1,7 +1,7 @@
 {
   "_meta": {
     "purpose": "Maps the office's detailed ChamberWare categories onto the short list of browsable parent groups used by the directory filter.",
-    "note": "A keyword matches at a WORD START (regex \\b), so 'spa' no longer matches 'newspaper' and 'pet' no longer matches 'carpet'. Fragments are prefixes, so 'consult' still catches 'consultants'; a fragment ending in a space ('car ') deliberately requires a whole word. First matching group wins, so order matters. Anything that matches nothing lands in \"Other\".",
+    "note": "Two kinds of keyword. `keywords` match at a WORD START and are prefixes, so 'consult' catches 'consultants'; a fragment ending in a space ('car ') requires a whole word followed by more text. `exact` match the WHOLE word only — for short words that are the start of an unrelated one: 'spa' would otherwise claim 'Office Space Leasing', 'media' would claim 'Mediator', and 'nurs' would claim a plant 'Nursery'. First matching group wins, so order matters. Anything that matches nothing lands in \"Other\".",
     "updated": "2026-08-28"
   },
   "groups": [
@@ -45,20 +45,23 @@
         "optometr",
         "vision",
         "mental",
-        "nurs",
         "hospice",
         "home care",
         "caregiver",
         "wellness",
         "cryo",
         "psychotherap"
+      ],
+      "exact": [
+        "nurse",
+        "nurses",
+        "nursing"
       ]
     },
     {
       "name": "Beauty & Personal Care",
       "keywords": [
         "salon",
-        "spa",
         "beauty",
         "barber",
         "hair",
@@ -69,6 +72,9 @@
         "makeup",
         "lash",
         "esthetic"
+      ],
+      "exact": [
+        "spa"
       ]
     },
     {
@@ -80,7 +86,6 @@
         "public relations",
         "design",
         "print",
-        "media",
         "photograph",
         "video",
         "staffing",
@@ -90,6 +95,9 @@
         "employer serv",
         "payroll",
         "hr "
+      ],
+      "exact": [
+        "media"
       ]
     },
     {
@@ -108,7 +116,8 @@
         "invest",
         "wealth",
         "escrow",
-        "bookkeep"
+        "bookkeep",
+        "credit"
       ]
     },
     {
@@ -173,7 +182,11 @@
         "storage",
         "appliance",
         "furniture",
-        "interior"
+        "interior",
+        "heating",
+        "air condition",
+        "ventilat",
+        "nursery"
       ]
     },
     {
@@ -246,7 +259,8 @@
         "catering hall",
         "lodging",
         "travel",
-        "tourism"
+        "tourism",
+        "party"
       ]
     },
     {
@@ -263,6 +277,21 @@
         "cyber",
         "telecom",
         "internet"
+      ]
+    },
+    {
+      "name": "Media & Press",
+      "keywords": [
+        "press",
+        "newspaper",
+        "magazine",
+        "publish",
+        "radio",
+        "television",
+        "tv",
+        "broadcast",
+        "journal",
+        "news"
       ]
     },
     {

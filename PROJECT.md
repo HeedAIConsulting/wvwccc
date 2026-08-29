@@ -27,10 +27,18 @@ Render Web Service `wvwccc-web` (srv-d8f8pci8qa3s738nsib0) + Postgres `wvwccc-db
   broad types lead, the ~250 specific ones sit underneath (both still filter).
 - *Taxonomy de-duplicated + a real bug fixed:* the group keywords moved to
   `data/category-groups.json`, shared by the importer and
-  `scripts/categorize-members.js`, and now match at a word start. Substring
-  matching had been filing "Newspaper" under Beauty & Personal Care (`spa`),
-  "Retirement Plans" under Automotive (`tire`), "Transportation" under
-  Fitness (`sport`) and "Environmental" under Health (`mental`).
+  `scripts/categorize-members.js`. `keywords` now match at a word start and a
+  new `exact` list matches whole words only. Plain substring matching had put
+  **14 listings** in the wrong section: four newspapers AND four "Office Space
+  Leasing" suites under Beauty & Personal Care (`spa`), "Retirement Plans"
+  under Automotive (`tire`), three "Transportation" under Fitness (`sport`),
+  "Environmental Consultant" (`mental`) and a plant "Nursery" (`nurs`) under
+  Health. The fallback that kept a member's stored group when nothing matched
+  was also dropped — it was preserving exactly these stale wrong values, which
+  made the fix a no-op for the four newspapers.
+- *New `Media & Press` group:* the 23 newspaper/magazine/TV/radio members had
+  nowhere to sit and were nearly all in "Other". With that plus keyword gaps
+  filled (credit, party, heating/HVAC, nursery), **"Other" fell 109 → 81**.
 - *Education Committee:* leader Damon Buford, 4th Thursday 9 AM. The add-only
   group seed now also backfills a leader name and replaces the "contact the
   office" placeholder schedule — but never a time the office set in admin.

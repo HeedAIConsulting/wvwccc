@@ -11,17 +11,25 @@ const file = path.join(STORE, 'members.json');
 
 // The taxonomy now lives in data/category-groups.json so this script and
 // scripts/import-directory-categories.py can never drift apart.
+const esc = (k) => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+// `keywords` match at a word start (prefixes); `exact` match a whole word only.
 const GROUPS = JSON.parse(fs.readFileSync(path.join(STORE, '..', 'category-groups.json'), 'utf8'))
-  .groups.map((g) => [g.name, new RegExp(g.keywords.map((k) => '\\b' + k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|'))]);
+  .groups.map((g) => [g.name, new RegExp([
+    ...g.keywords.map((k) => '\\b' + esc(k)),
+    ...(g.exact || []).map((k) => '\\b' + esc(k) + '\\b'),
+  ].join('|'))]);
 
 const clean = (v) => (v == null ? '' : String(v).toLowerCase());
 function groupOf(m) {
   // Every category the member carries counts, not just the primary one.
   const hay = [clean(m.category), (m.categories || []).map(clean).join(' '), clean(m.typeOfBusiness)]
     .join(' ').trim();
-  if (!hay) return m.group || 'Other';
+  // "Other" rather than the stored group — see the note in
+  // scripts/import-directory-categories.py: keeping a value the taxonomy no
+  // longer agrees with would preserve the old substring-matching mistakes.
+  if (!hay) return 'Other';
   for (const [name, re] of GROUPS) if (re.test(hay)) return name;
-  return m.group || 'Other';
+  return 'Other';
 }
 
 const doc = JSON.parse(fs.readFileSync(file, 'utf8'));

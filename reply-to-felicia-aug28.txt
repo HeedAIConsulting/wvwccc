@@ -1,0 +1,121 @@
+REPLY TO FELICIA — paste into Gmail as a reply on the "Directory" thread
+To:  felicia@woodlandhillscc.net
+Cc:  diana@woodlandhillscc.net
+Bcc: 23411980@bcc.hubspot.com
+Subject: RE: Directory
+
+DO NOT SEND YET — the work is on a branch (PR #11), not on the live site. Send
+this once the PR is merged and Render has finished deploying, so "live" is true
+when they read it.
+
+--- body below this line ---
+
+Hi Felicia,
+
+Your directory questions, plus Diana's page and the Education Committee - all
+in one place.
+
+1. Can Wendy find a member by key words, or does it have to be a category?
+
+Key words, and she already could. Every member profile carries a set of search
+keywords behind the scenes, and both Wendy and the directory search box read
+them. Try "braces" in the directory search - you'll get the orthodontists, even
+though not one of them has the word "braces" anywhere a visitor can see. Same
+with "lodging" for the hotels.
+
+So the category is not the only way in. It was the only way in for *browsing*,
+which is what item 2 fixes.
+
+2. Fewer categories.
+
+The category picker now has two levels. It opens on twenty-one broad types -
+Health & Medical, Restaurants & Food, Legal, Real Estate and so on - and the
+full list of specific categories sits underneath them. Pick either level, and
+the type-to-filter box still searches both. Members browsing get the short list
+first; anyone hunting for "Orthodontist" specifically can still get there.
+One of the twenty-one is brand new - see item 5.
+
+3. Your spreadsheet is in.
+
+Thank you for pulling it - the different column order was no trouble. 558 of the
+607 businesses on the site matched a row in your export, and 71 of them now
+carry two or three categories instead of one. That is the real win: a business
+that caters *and* has a banquet hall used to be findable under only one of
+those. Now it's under both.
+
+An example you can check: filter the directory by "Catering". It used to return
+one business. It now returns six - Cavaretta's, Chick-fil-A, Grandi Italiani,
+Jerk Wings, Mort's and Safir. All five of the new ones were already members who
+cater; they were filed as "Restaurant" or "Delicatessen", so a member looking
+for a caterer never saw them.
+
+The other 49 businesses had no matching row in your export, mostly small
+spelling differences between the two lists. They kept the single category they
+already had, so nothing was lost.
+
+4. Join dates - they stayed in place.
+
+To answer the question you asked before you sent the file: yes, they'd have
+stayed either way. I only filled in blanks, never overwrote. As it turned out
+549 of the 555 dates we could compare were already identical, so almost nothing
+moved.
+
+Five differed, and all five are companies that appear more than once in your
+records - the ones where your export's own notes say it fell back to "the latest
+available join date":
+
+  Edward Jones           site 04/02/2026   export 05/28/2024
+  Los Angeles Times      site 02/01/1996   export 11/01/1992
+  McDonald's             site 04/11/2013   export 09/09/2015
+  State Farm Insurance   site 12/19/2011   export 04/24/2006
+  U-Frame-It Gallery     site 01/01/1991   export 04/18/2016
+
+The site is still showing the first column. Tell me which is right for each and
+I'll set them.
+
+5. Fourteen listings were in the wrong section - now fixed.
+
+Sorting your categories turned up a real bug on our side, and it's an amusing
+one. The sorting was matching on letters rather than whole words. So:
+
+- The Los Angeles Times, The Acorn, Valley News Group and Van Nuys News Press
+  were all filed under Beauty & Personal Care - because "new-SPA-per" contains
+  "spa".
+- So were Barrister Executive Suites, Konnekted, W Executive Suites and Warner
+  Center Executive Suites, because "Office SPACE Leasing" does too. They're
+  under Real Estate now.
+- A retirement planner sat under Automotive ("re-TIRE-ment"), three
+  transportation companies under Fitness & Recreation ("tran-SPORT-ation"), an
+  environmental consultant under Health & Medical ("environ-MENTAL"), and West
+  Valley Nursery under Health & Medical as well ("NURSery").
+
+All fourteen are in their right sections now. Beauty & Personal Care is down
+from thirteen listings to the five that actually belong there.
+
+While fixing it I also added a Media & Press section. Your twenty-three
+newspapers, magazines, TV and radio members had nowhere sensible to sit and
+were nearly all in "Other". "Other" is down from 109 members to 81.
+
+6. Education Committee - Damon Buford.
+
+Thank you for confirming. The committee page now lists Damon as the leader and
+meets the 4th Thursday of the month at 9:00 AM. The published contact number is
+still the office - if Damon would rather members reach him directly, send me the
+number from the flyer and I'll swap it in.
+
+7. Chamber Leaders page - down, Diana.
+
+It's off the menu and off the site. Anyone who still has the old link or finds it
+on Google now lands on the About page rather than an error. The Leader levels
+themselves (Friend through Platinum) are untouched in the admin - you just won't
+see them on a public page any more.
+
+Two things still with you from last week: the Event Planning & Hospitality
+Professionals Network you asked about is a live group page on the site - Erin
+Coplan, last Friday of the month at 9:00 AM - it just isn't on the 2026 flyer, so
+tell me whether it stays or goes. And three connection circles are named
+differently on the site than on the flyer (Dynamic Business Networking, Lee's
+Luncheon Connection Circle, Martin's Connection Circle) - say the word and I'll
+rename any of them.
+
+Michael

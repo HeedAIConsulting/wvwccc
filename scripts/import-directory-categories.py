@@ -45,14 +45,15 @@ def norm(s):
 
 
 def load_groups():
-    """[(group, compiled matcher)] -- keywords match at a word start, so 'spa'
-    does not match 'newspaper' and 'pet' does not match 'carpet'."""
+    """[(group, compiled matcher)].  `keywords` match at a word start (so 'pet'
+    misses 'carpet'); `exact` match a whole word (so 'spa' misses 'space')."""
     with open(TAXONOMY, encoding='utf-8') as fh:
         groups = json.load(fh)['groups']
     out = []
     for g in groups:
-        pattern = '|'.join(r'\b' + re.escape(k) for k in g['keywords'])
-        out.append((g['name'], re.compile(pattern)))
+        parts = [r'\b' + re.escape(k) for k in g['keywords']]
+        parts += [r'\b' + re.escape(k) + r'\b' for k in g.get('exact', [])]
+        out.append((g['name'], re.compile('|'.join(parts))))
     return out
 
 
@@ -67,9 +68,13 @@ def group_of(member, groups):
         for name, matcher in groups:
             if matcher.search(hay):
                 return name
-    # Nothing matched: keep a group the office set by hand rather than
-    # demoting a curated member to "Other".
-    return member.get('group') or 'Other'
+    # Nothing matched -> "Other".  Deliberately NOT the stored group: a value
+    # the taxonomy no longer agrees with is usually a leftover from the old
+    # substring matching (it had four newspapers under Beauty & Personal Care,
+    # because "new-SPA-per" contains "spa"), and keeping it would make the fix
+    # a no-op.  A group the office sets by hand is an admin override and is
+    # re-applied on top of the seed at load time, so it survives this.
+    return 'Other'
 
 
 def read_export(path):
