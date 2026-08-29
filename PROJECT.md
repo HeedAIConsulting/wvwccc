@@ -11,7 +11,7 @@ Render Web Service `wvwccc-web` (srv-d8f8pci8qa3s738nsib0) + Postgres `wvwccc-db
 - **ElevenLabs ConvAI** agent `agent_8201kqnjhzyrfpdvtqwgf9e0034y` on all public pages (pulled from POC).
 - Nav adds Deals + Community.
 
-**Felicia + Diana, 2026-08-27/28:** ✅ built
+**Felicia + Diana, 2026-08-27/28:** ✅ **LIVE** 2026-08-29 (PR #11, `cf2c504`)
 - *Chamber Leaders page retired* (Diana: "take this page down") — off the
   menu and the admin sidebar, `/leaders.html` 301s to `/about.html` so the
   indexed URL doesn't dead-end. Tier still doubles as the Leader level for
