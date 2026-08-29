@@ -97,6 +97,11 @@ const LEGACY_REDIRECTS = {
 app.get(Object.keys(LEGACY_REDIRECTS), (req, res) => res.redirect(301, LEGACY_REDIRECTS[req.path.toLowerCase()] || '/'));
 app.get(/^\/[^/]+\.php$/i, (_req, res) => res.redirect(302, '/'));
 
+// ── Chamber Leaders page, retired Aug 2026 (Diana: "take this page down") ──
+// The page is gone, but it was in the site menu for a year and Google has it
+// indexed, so send those hits to About rather than dead-ending them.
+app.get(['/leaders.html', '/leaders'], (_req, res) => res.redirect(301, '/about.html'));
+
 // ── Static site ────────────────────────────────────────────
 // Serve clean URLs (/directory -> members/directory.html handled by links;
 // extensionless handled at host level on Cloudflare; here we keep .html).

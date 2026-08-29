@@ -1536,12 +1536,20 @@ window.Chamber = (function () {
     } catch (e) { /* the directory still works without the circle picker */ }
 
     const uniq = (arr) => [...new Set(arr.filter(Boolean))].sort((a, b) => a.localeCompare(b));
-    // The dropdown lists every real business category from the member records
-    // (the full list that came over from the old site — Merchant Services,
-    // CPA, Insurance Services, …), per the office, Aug 2026. The quick-pick
-    // chips stay on the ~20 broad parent groups, so a facet value can be
-    // either level — catMatch accepts both.
+    // Every real business category from the member records — the full list
+    // that came over from the old site (Merchant Services, CPA, Insurance
+    // Services, …), now including the second and third categories the office's
+    // Aug 2026 export added. These sit in the picker's lower tier; the ~20
+    // broad parent groups lead it, and the quick-pick chips use the same short
+    // list, so a facet value can be either level — catMatch accepts both.
     const cats = uniq(members.flatMap((m) => [m.category, ...(Array.isArray(m.categories) ? m.categories : [])]));
+    // The ~20 broad parent groups, most-populated first — this is the short
+    // list that leads the picker.
+    const groupNames = (() => {
+      const counts = {};
+      members.forEach((m) => { const g = m.group || 'Other'; counts[g] = (counts[g] || 0) + 1; });
+      return Object.keys(counts).filter((g) => g && g !== 'Other').sort((a, b) => counts[b] - counts[a]);
+    })();
     const hoods = uniq(members.map((m) => m.neighborhood));
     const catMatch = (m, v) => (m.group || 'Other') === v || m.category === v
       || (Array.isArray(m.categories) && m.categories.includes(v));
@@ -1551,13 +1559,22 @@ window.Chamber = (function () {
       document.querySelectorAll('.dd__menu').forEach((mn) => { mn.hidden = true; });
       document.querySelectorAll('.dd__btn[aria-expanded="true"]').forEach((b) => b.setAttribute('aria-expanded', 'false'));
     }
+    // `options` is either a flat list of values, or sections:
+    //   [{ label, items:[...] }, …]  — used by the category picker so the short
+    // list of ~20 broad types comes FIRST and the 250-odd specific categories
+    // sit underneath (Felicia, Aug 2026: "if we can have fewer categories…").
     function buildDropdown(elId, allLabel, options, key) {
       const el = document.getElementById(elId);
       if (!el) return;
       const cur = state[key];
-      // Long lists (the full ~230-category dropdown) get a type-to-filter box
+      const sections = Array.isArray(options) && options.length && options[0] && options[0].items
+        ? options.filter((sec) => sec.items.length)
+        : [{ label: '', items: options }];
+      const total = sections.reduce((n, sec) => n + sec.items.length, 0);
+      // Long lists (the full ~250-category dropdown) get a type-to-filter box
       // pinned to the top of the menu so nobody has to scroll the whole list.
-      const filterable = options.length > 24;
+      const filterable = total > 24;
+      const optHtml = (o, sub) => `<button type="button" class="dd__opt${sub ? ' dd__opt--sub' : ''}${cur === o ? ' is-active' : ''}" data-val="${esc(o)}" role="option">${esc(o)}</button>`;
       el.innerHTML = `
         <button type="button" class="dd__btn${cur ? ' is-set' : ''}" aria-expanded="false" aria-haspopup="listbox">
           <span>${esc(cur || allLabel)}</span><span class="dd__caret" aria-hidden="true">▾</span>
@@ -1565,7 +1582,8 @@ window.Chamber = (function () {
         <div class="dd__menu" role="listbox" hidden>
           ${filterable ? `<div style="position:sticky;top:0;background:#fff;padding:8px;border-bottom:1px solid var(--line,#e2dcc9);z-index:1"><input type="search" class="dd__filter" placeholder="${esc(tr('Type to filter…'))}" aria-label="${esc(tr('Filter the list'))}" autocomplete="off" style="width:100%;padding:7px 10px;border:1px solid var(--line,#d8d2c0);border-radius:8px;font:inherit;font-size:.9rem" /></div>` : ''}
           <button type="button" class="dd__opt${!cur ? ' is-active' : ''}" data-val="" role="option">${esc(allLabel)}</button>
-          ${options.map((o) => `<button type="button" class="dd__opt${cur === o ? ' is-active' : ''}" data-val="${esc(o)}" role="option">${esc(o)}</button>`).join('')}
+          ${sections.map((sec) => (sec.label ? `<div class="dd__sect">${esc(sec.label)}</div>` : '')
+            + sec.items.map((o) => optHtml(o, !!sec.sub)).join('')).join('')}
         </div>`;
       const btn = el.querySelector('.dd__btn'); const menu = el.querySelector('.dd__menu');
       btn.addEventListener('click', (e) => {
@@ -1584,6 +1602,12 @@ window.Chamber = (function () {
           menu.querySelectorAll('.dd__opt').forEach((o) => {
             o.hidden = !!q && !!o.dataset.val && !o.dataset.val.toLowerCase().includes(q);
           });
+          // A section heading with nothing left under it is just noise.
+          menu.querySelectorAll('.dd__sect').forEach((h) => {
+            let n = h.nextElementSibling, any = false;
+            while (n && !n.classList.contains('dd__sect')) { if (!n.hidden) { any = true; break; } n = n.nextElementSibling; }
+            h.hidden = !any;
+          });
         });
       }
       menu.querySelectorAll('.dd__opt').forEach((o) => o.addEventListener('click', () => {
@@ -1591,7 +1615,12 @@ window.Chamber = (function () {
       }));
     }
     function buildFacets() {
-      buildDropdown('categoryDD', tr('All categories'), cats, 'category');
+      // Broad types first (the short list the office asked for), then every
+      // specific category — catMatch accepts a value from either tier.
+      buildDropdown('categoryDD', tr('All categories'), [
+        { label: tr('Type of business'), items: groupNames },
+        { label: tr('Specific category'), items: cats, sub: true },
+      ], 'category');
       buildDropdown('hoodDD', tr('All areas'), hoods, 'hood');
       const clr = document.getElementById('clearAll');
       if (clr) clr.hidden = !(state.category || state.hood || state.circle);
@@ -1617,12 +1646,8 @@ window.Chamber = (function () {
     }
     // Quick-pick buttons for the most-populated categories (Chamber feedback:
     // "both the field for the category AND choose from top categories buttons").
-    const topCats = (() => {
-      const counts = {};
-      members.forEach((m) => { const g = m.group || 'Other'; counts[g] = (counts[g] || 0) + 1; });
-      // Surface the most-populated *named* categories — "Other" isn't a useful pick.
-      return Object.keys(counts).filter((g) => g && g !== 'Other').sort((a, b) => counts[b] - counts[a]).slice(0, 8);
-    })();
+    // Same short list that leads the dropdown; "Other" is never a useful pick.
+    const topCats = groupNames.slice(0, 8);
     function buildTopCats() {
       const el = document.getElementById('dirTopCats');
       if (!el) return;

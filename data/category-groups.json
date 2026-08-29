@@ -1,0 +1,369 @@
+{
+  "_meta": {
+    "purpose": "Maps the office's detailed ChamberWare categories onto the short list of browsable parent groups used by the directory filter.",
+    "note": "Two kinds of keyword. `keywords` match at a WORD START and are prefixes, so 'consult' catches 'consultants'; a fragment ending in a space ('car ') requires a whole word followed by more text. `exact` match the WHOLE word only — for short words that are the start of an unrelated one: 'spa' would otherwise claim 'Office Space Leasing', 'media' would claim 'Mediator', and 'nurs' would claim a plant 'Nursery'. First matching group wins, so order matters. Anything that matches nothing lands in \"Other\".",
+    "updated": "2026-08-28"
+  },
+  "groups": [
+    {
+      "name": "Restaurants & Food",
+      "keywords": [
+        "restaurant",
+        "food",
+        "cafe",
+        "coffee",
+        "bakery",
+        "catering",
+        "grocery",
+        "deli",
+        "dining",
+        "pizza",
+        "bar &",
+        "brewery",
+        "winery",
+        "ice cream",
+        "juice",
+        "meal"
+      ]
+    },
+    {
+      "name": "Health & Medical",
+      "keywords": [
+        "hospital",
+        "medical",
+        "health",
+        "clinic",
+        "doctor",
+        "physician",
+        "dental",
+        "dentist",
+        "chiropractor",
+        "pharmacy",
+        "therapy",
+        "therapist",
+        "urgent care",
+        "optometr",
+        "vision",
+        "mental",
+        "hospice",
+        "home care",
+        "caregiver",
+        "wellness",
+        "cryo",
+        "psychotherap"
+      ],
+      "exact": [
+        "nurse",
+        "nurses",
+        "nursing"
+      ]
+    },
+    {
+      "name": "Beauty & Personal Care",
+      "keywords": [
+        "salon",
+        "beauty",
+        "barber",
+        "hair",
+        "nail",
+        "skin",
+        "massage",
+        "cosmetic",
+        "makeup",
+        "lash",
+        "esthetic"
+      ],
+      "exact": [
+        "spa"
+      ]
+    },
+    {
+      "name": "Professional Services",
+      "keywords": [
+        "consult",
+        "marketing",
+        "advertising",
+        "public relations",
+        "design",
+        "print",
+        "photograph",
+        "video",
+        "staffing",
+        "translation",
+        "notary",
+        "business serv",
+        "employer serv",
+        "payroll",
+        "hr "
+      ],
+      "exact": [
+        "media"
+      ]
+    },
+    {
+      "name": "Financial & Insurance",
+      "keywords": [
+        "insurance",
+        "financial",
+        "bank",
+        "credit union",
+        "accountant",
+        "accounting",
+        "cpa",
+        "tax",
+        "mortgage",
+        "loan",
+        "invest",
+        "wealth",
+        "escrow",
+        "bookkeep",
+        "credit"
+      ]
+    },
+    {
+      "name": "Legal",
+      "keywords": [
+        "attorney",
+        "law",
+        "legal",
+        "lawyer",
+        "mediation",
+        "paralegal"
+      ]
+    },
+    {
+      "name": "Real Estate",
+      "keywords": [
+        "real estate",
+        "realtor",
+        "property",
+        "apartment",
+        "leasing",
+        "realty"
+      ]
+    },
+    {
+      "name": "Automotive",
+      "keywords": [
+        "auto",
+        "car ",
+        "vehicle",
+        "tire",
+        "mechanic",
+        "body works",
+        "dealership",
+        "motors",
+        "ford",
+        "collision",
+        "smog"
+      ]
+    },
+    {
+      "name": "Home & Trades",
+      "keywords": [
+        "plumb",
+        "electric",
+        "hvac",
+        "roofing",
+        "construct",
+        "contractor",
+        "handyman",
+        "landscap",
+        "garden",
+        "pest",
+        "cleaning",
+        "painting",
+        "remodel",
+        "flooring",
+        "solar",
+        "locksmith",
+        "pool",
+        "moving",
+        "storage",
+        "appliance",
+        "furniture",
+        "interior",
+        "heating",
+        "air condition",
+        "ventilat",
+        "nursery"
+      ]
+    },
+    {
+      "name": "Retail & Shopping",
+      "keywords": [
+        "retail",
+        "store",
+        "shop",
+        "boutique",
+        "jewelry",
+        "clothing",
+        "apparel",
+        "gift",
+        "florist",
+        "flower",
+        "book",
+        "hardware",
+        "pharmac",
+        "specialty",
+        "antique",
+        "camera"
+      ]
+    },
+    {
+      "name": "Education",
+      "keywords": [
+        "school",
+        "education",
+        "tutor",
+        "academy",
+        "college",
+        "university",
+        "learning",
+        "childcare",
+        "preschool",
+        "daycare",
+        "montessori",
+        "training"
+      ]
+    },
+    {
+      "name": "Nonprofit & Community",
+      "keywords": [
+        "non-profit",
+        "nonprofit",
+        "non profit",
+        "foundation",
+        "charity",
+        "community",
+        "association",
+        "organization",
+        "church",
+        "temple",
+        "synagogue",
+        "religious",
+        "club",
+        "rotary",
+        "volunteer"
+      ]
+    },
+    {
+      "name": "Hospitality & Events",
+      "keywords": [
+        "hotel",
+        "motel",
+        "event",
+        "venue",
+        "wedding",
+        "banquet",
+        "catering hall",
+        "lodging",
+        "travel",
+        "tourism",
+        "party"
+      ]
+    },
+    {
+      "name": "Technology",
+      "keywords": [
+        "technolog",
+        "software",
+        "it ",
+        "computer",
+        "web ",
+        "app ",
+        "tech ",
+        "data",
+        "cyber",
+        "telecom",
+        "internet"
+      ]
+    },
+    {
+      "name": "Media & Press",
+      "keywords": [
+        "press",
+        "newspaper",
+        "magazine",
+        "publish",
+        "radio",
+        "television",
+        "tv",
+        "broadcast",
+        "journal",
+        "news"
+      ]
+    },
+    {
+      "name": "Arts & Entertainment",
+      "keywords": [
+        "art",
+        "entertainment",
+        "music",
+        "theater",
+        "theatre",
+        "gallery",
+        "museum",
+        "photography studio",
+        "production",
+        "film",
+        "dance",
+        "studio"
+      ]
+    },
+    {
+      "name": "Fitness & Recreation",
+      "keywords": [
+        "fitness",
+        "gym",
+        "yoga",
+        "pilates",
+        "sport",
+        "recreation",
+        "golf",
+        "bowling",
+        "martial",
+        "crossfit",
+        "athletic",
+        "country club"
+      ]
+    },
+    {
+      "name": "Government & Public",
+      "keywords": [
+        "government",
+        "city ",
+        "county",
+        "public",
+        "council",
+        "district",
+        "utility",
+        "transportation",
+        "library",
+        "police",
+        "fire"
+      ]
+    },
+    {
+      "name": "Pets & Animals",
+      "keywords": [
+        "pet",
+        "animal",
+        "veterinar",
+        "vet ",
+        "grooming",
+        "dog ",
+        "cat "
+      ]
+    },
+    {
+      "name": "Senior Services",
+      "keywords": [
+        "senior",
+        "retirement",
+        "assisted living",
+        "elder"
+      ]
+    }
+  ]
+}

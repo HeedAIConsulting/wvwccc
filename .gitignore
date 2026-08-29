@@ -30,3 +30,6 @@ local-dev.cjs
 
 # source board headshots + roster PDF (2MB PNGs / 21MB PDF) - processed copies live in images/board/
 2026_board_members/
+
+# Python bytecode from the directory import script
+__pycache__/
