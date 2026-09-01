@@ -11,6 +11,18 @@ Render Web Service `wvwccc-web` (srv-d8f8pci8qa3s738nsib0) + Postgres `wvwccc-db
 - **ElevenLabs ConvAI** agent `agent_8201kqnjhzyrfpdvtqwgf9e0034y` on all public pages (pulled from POC).
 - Nav adds Deals + Community.
 
+**Networks & Committees flyer, 2026-08-31:** Felicia sent the updated PDF (it
+does list Event Planning & Hospitality — Erin Coplan, last Friday 9 AM — so
+that group STAYS). Seed corrected from it: Damon Buford's committee number
+(602)690-2173, Clean Up Crew 8:00 AM, Toastmasters "Zoom and Hornstein Law
+Offices", and co-leader Sara Berthiaume added to Home Improvement.
+**These are seed-only** — the group seed is add-only, so an existing group in
+the live store keeps its own values; they need applying in Admin → Groups →
+Manage (or a targeted DB update). Still open with the office: four leader
+phone numbers differ site-vs-flyer (Priscilla Purganan, Lisa Alexandrian,
+Marcia Israel, and which of Star Tomlinson / Steve Hochman is the published
+contact for Sustainable Professionals), plus the three circle names.
+
 **Felicia + Diana, 2026-08-27/28:** ✅ **LIVE** 2026-08-29 (PR #11, `cf2c504`)
 - *Chamber Leaders page retired* (Diana: "take this page down") — off the
   menu and the admin sidebar, `/leaders.html` 301s to `/about.html` so the

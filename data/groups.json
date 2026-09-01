@@ -31,6 +31,15 @@
           "role": "Leader",
           "status": "active",
           "source": "admin"
+        },
+        {
+          "id": "gm-sara-berthiaume",
+          "name": "Sara Berthiaume",
+          "email": "",
+          "phone": "(818)697-4600",
+          "role": "Leader",
+          "status": "active",
+          "source": "admin"
         }
       ]
     },
@@ -222,7 +231,7 @@
       "description": "Members rolling up their sleeves for organized neighborhood clean-ups and beautification projects across the West Valley · Warner Center community.",
       "heroImage": "",
       "photos": [],
-      "meetingSchedule": "3rd Saturday of the month",
+      "meetingSchedule": "3rd Saturday of the month · 8:00 AM",
       "meetingNotes": "",
       "contactEmail": "felicia@woodlandhillscc.net",
       "eventMatch": "Clean Up",
@@ -330,7 +339,7 @@
       "description": "Build confidence in public speaking and leadership alongside fellow Chamber members in a supportive, structured Toastmasters setting.",
       "heroImage": "",
       "photos": [],
-      "meetingSchedule": "1st & 3rd Friday of the month · 7:30 AM",
+      "meetingSchedule": "1st & 3rd Friday of the month · 7:30 AM · Zoom and Hornstein Law Offices",
       "meetingNotes": "",
       "contactEmail": "felicia@woodlandhillscc.net",
       "eventMatch": "Toastmasters",
@@ -508,7 +517,7 @@
       "manager": {
         "name": "Damon Buford",
         "email": "",
-        "phone": "(818)646-8868"
+        "phone": "(602)690-2173"
       },
       "members": []
     },
