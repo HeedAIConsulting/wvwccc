@@ -4,16 +4,19 @@ Cc:  diana@woodlandhillscc.net
 Bcc: 23411980@bcc.hubspot.com
 Subject: RE: Directory
 
-DO NOT SEND YET — the work is on a branch (PR #11), not on the live site. Send
-this once the PR is merged and Render has finished deploying, so "live" is true
-when they read it.
+LIVE as of 2026-08-29 00:48 — PR #11 merged (cf2c504), Render deploy
+dep-da92o6m7bikc73alh0ng. Every figure below was read back off
+woodlandhillscc.net, not a local copy. Safe to send.
+
+This text is the record; the actual draft is already sitting in Gmail on the
+"Directory" thread (to Felicia, cc Diana, bcc HubSpot).
 
 --- body below this line ---
 
 Hi Felicia,
 
 Your directory questions, plus Diana's page and the Education Committee - all
-in one place.
+in one place. Everything below is live on the site now.
 
 1. Can Wendy find a member by key words, or does it have to be a category?
 
@@ -28,20 +31,20 @@ which is what item 2 fixes.
 
 2. Fewer categories.
 
-The category picker now has two levels. It opens on twenty-one broad types -
+The category picker now has two levels. It opens on twenty-two broad types -
 Health & Medical, Restaurants & Food, Legal, Real Estate and so on - and the
 full list of specific categories sits underneath them. Pick either level, and
 the type-to-filter box still searches both. Members browsing get the short list
 first; anyone hunting for "Orthodontist" specifically can still get there.
-One of the twenty-one is brand new - see item 5.
+One of them is brand new - see item 5.
 
 3. Your spreadsheet is in.
 
-Thank you for pulling it - the different column order was no trouble. 558 of the
-607 businesses on the site matched a row in your export, and 71 of them now
-carry two or three categories instead of one. That is the real win: a business
-that caters *and* has a banquet hall used to be findable under only one of
-those. Now it's under both.
+Thank you for pulling it - the different column order was no trouble. Your
+export matched 558 businesses, and 86 listings in the directory now carry two or
+three categories instead of one. That is the real win: a business that caters
+*and* has a banquet hall used to be findable under only one of those. Now it's
+under both.
 
 An example you can check: filter the directory by "Catering". It used to return
 one business. It now returns six - Cavaretta's, Chick-fil-A, Grandi Italiani,
@@ -49,9 +52,11 @@ Jerk Wings, Mort's and Safir. All five of the new ones were already members who
 cater; they were filed as "Restaurant" or "Delicatessen", so a member looking
 for a caterer never saw them.
 
-The other 49 businesses had no matching row in your export, mostly small
-spelling differences between the two lists. They kept the single category they
-already had, so nothing was lost.
+153 listings still carry a single category - either they had no matching row in
+your export (usually a small spelling difference between the two lists), or
+they've been added to the directory since you pulled it. They kept the category
+they already had, so nothing was lost. If you send me a fresh export down the
+road I can top those up the same way.
 
 4. Join dates - they stayed in place.
 
@@ -89,12 +94,12 @@ one. The sorting was matching on letters rather than whole words. So:
   environmental consultant under Health & Medical ("environ-MENTAL"), and West
   Valley Nursery under Health & Medical as well ("NURSery").
 
-All fourteen are in their right sections now. Beauty & Personal Care is down
-from thirteen listings to the five that actually belong there.
+All fourteen are in their right sections now. Beauty & Personal Care is down to
+the five listings that actually belong there.
 
 While fixing it I also added a Media & Press section. Your twenty-three
 newspapers, magazines, TV and radio members had nowhere sensible to sit and
-were nearly all in "Other". "Other" is down from 109 members to 81.
+were nearly all in "Other". "Other" is down to 78 listings.
 
 6. Education Committee - Damon Buford.
 

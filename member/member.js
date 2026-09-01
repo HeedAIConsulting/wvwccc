@@ -621,9 +621,25 @@ window.MemberPortal = (function () {
     const editId = params.get('edit') || '';
     const groupCtx = params.get('g') || params.get('group') || '';
 
+    // Whose events these are. An empty list used to render absolutely nothing,
+    // so signing in as the wrong account looked identical to "my event has
+    // vanished" (Felicia, Sep 1 2026 — "I am not seeing the event to edit"
+    // after signing in as United Chambers of Commerce). Always say who you are
+    // signed in as, so a wrong identity is visible instead of silent.
+    const whoAmI = () => {
+      const biz = (data.identities || []).find((i) => i.kind === 'business');
+      return (biz && biz.name) || '';
+    };
     function renderMyEvents(events) {
       if (!listEl) return;
-      if (!events || !events.length) { listEl.innerHTML = ''; return; }
+      const who = whoAmI();
+      const whoLine = who ? ` for <strong>${esc(who)}</strong>` : '';
+      if (!events || !events.length) {
+        listEl.innerHTML = `<h3>Your events on the calendar</h3>
+          <p class="member-tile__meta">Nothing on the calendar${whoLine} yet — anything you add above will appear here to edit.
+          ${who ? `If you were expecting an event here, check you are signed in as the right account: you are signed in as <strong>${esc(who)}</strong>.` : ''}</p>`;
+        return;
+      }
       const seen = new Set(); const rows = [];
       for (const ev of events) {
         const key = ev.seriesId || ev.id;
@@ -637,7 +653,7 @@ window.MemberPortal = (function () {
             <button class="btn btn--ghost btn--sm" data-del="${esc(ev.id)}" style="color:var(--red,#b00020)">Remove</button>
           </div></div>`);
       }
-      listEl.innerHTML = '<h3>Your events on the calendar</h3>' + rows.join('');
+      listEl.innerHTML = `<h3>Your events on the calendar</h3>${who ? `<p class="member-tile__meta" style="margin:-4px 0 12px">Signed in as <strong>${esc(who)}</strong>.</p>` : ''}` + rows.join('');
       listEl.querySelectorAll('[data-del]').forEach((b) => b.addEventListener('click', async () => {
         if (!confirm('Remove this event (and all of its repeat dates) from the calendar?')) return;
         b.disabled = true;
@@ -832,6 +848,18 @@ window.MemberPortal = (function () {
         msg.textContent = 'Could not load that event — it may have been removed.';
       }
     }
+    // Same rich editor the office uses (js/rich-editor.js) — members asked for
+    // named links and font control on their own events (Felicia, Sep 1 2026).
+    // No image library here: that is the office's shared asset shelf.
+    const rich = document.getElementById('evRich');
+    RichEditor.mount(rich, document.getElementById('evRichBar'), {
+      esc,
+      uploadImage: async (dataUrl) => (await api('/api/me/asset', { method: 'POST', body: JSON.stringify({ kind: 'photo', dataUrl }) })).url,
+    });
+    // The cards, search and Wendy all read the plain `description`, so the
+    // formatted copy always ships alongside a plain-text mirror of itself.
+    const plainFromRich = () => (rich ? rich.innerText.replace(/\u00a0/g, ' ').trim() : '');
+
     const submitBtn = form.querySelector('button[type="submit"]');
     if (editing) {
       const h1 = document.querySelector('h1'); if (h1) h1.textContent = 'Edit event';
@@ -839,6 +867,11 @@ window.MemberPortal = (function () {
       setIf('title', editing.title); setIf('date', editing.date); setIf('time', editing.time);
       setIf('endTime', editing.endTime); setIf('venue', editing.venue); setIf('address', editing.address);
       setIf('description', editing.description);
+      // Formatted copy wins; fall back to the plain text for older events.
+      if (rich) {
+        if (editing.descriptionHtml) rich.innerHTML = editing.descriptionHtml;
+        else rich.textContent = editing.description || '';
+      }
       const cat = form.querySelector('[data-ev="category"]');
       if (cat && editing.category && ![...cat.options].some((o) => o.value === editing.category)) {
         cat.insertAdjacentHTML('beforeend', `<option>${esc(editing.category)}</option>`);
@@ -880,6 +913,7 @@ window.MemberPortal = (function () {
       e.preventDefault();
       const body = {};
       form.querySelectorAll('[data-ev]').forEach((el) => { body[el.dataset.ev] = el.value.trim(); });
+      if (rich) { body.descriptionHtml = rich.innerHTML; body.description = plainFromRich(); }
       body.actionButton = (form.querySelector('input[name="actionButton"]:checked') || {}).value || 'none';
       if (editing) {
         // Always sent on edit so ✕ Remove actually clears the slot; the flag

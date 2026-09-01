@@ -45,7 +45,30 @@
         </div>
         <div class="field"><label>Location / venue</label><input data-ev="venue" maxlength="160" placeholder="e.g. Warner Center Park" /></div>
         <div class="field"><label>Address <span class="member-tile__meta">(optional)</span></label><input data-ev="address" maxlength="200" /></div>
-        <div class="field"><label>Description</label><textarea data-ev="description" rows="4"></textarea></div>
+        <div class="field">
+          <label>Description <span class="member-tile__meta">(formatting, links &amp; colors carry to the public event page)</span></label>
+          <div id="evRichBar" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;border:1px solid var(--line,#ddd);border-bottom:none;border-radius:8px 8px 0 0;padding:6px 8px;background:#faf8f3">
+            <button type="button" data-rt="bold" title="Bold" style="font-weight:800;min-width:30px">B</button>
+            <button type="button" data-rt="italic" title="Italic" style="font-style:italic;min-width:30px">I</button>
+            <button type="button" data-rt="underline" title="Underline" style="text-decoration:underline;min-width:30px">U</button>
+            <select data-rt-font class="admin-select" title="Font" style="max-width:130px">
+              <option value="">Font…</option><option value="Georgia, serif">Georgia</option><option value="'Times New Roman', serif">Times</option><option value="Arial, sans-serif">Arial</option><option value="'Hanken Grotesk', sans-serif">Hanken (site)</option><option value="'Courier New', monospace">Courier</option>
+            </select>
+            <select data-rt-size class="admin-select" title="Text size" style="max-width:100px">
+              <option value="">Size…</option><option value="0.85rem">Small</option><option value="1rem">Normal</option><option value="1.2rem">Large</option><option value="1.5rem">X-Large</option>
+            </select>
+            <input type="color" data-rt-color title="Text color" value="#1b3326" style="width:34px;height:30px;padding:2px;border:1px solid var(--line,#ddd);border-radius:6px;cursor:pointer">
+            <button type="button" data-rt="justifyLeft" title="Align left">⯇</button>
+            <button type="button" data-rt="justifyCenter" title="Center">≡</button>
+            <button type="button" data-rt="justifyRight" title="Align right">⯈</button>
+            <button type="button" data-rt-link title="Turn the selected text into a link — e.g. “Click Here To Sign Up”">🔗 Link</button>
+            <label title="Insert an image right here in the text" style="cursor:pointer;display:inline-flex;align-items:center;padding:2px 8px;border:1px solid var(--line,#ddd);border-radius:6px;background:#fff">🖼 Image<input type="file" data-rt-img accept="image/*" hidden></label>
+            <button type="button" data-rt="removeFormat" title="Clear formatting">⌫ Clear</button>
+          </div>
+          <div id="evRich" class="rt-typo" contenteditable="true" style="border:1px solid var(--line,#ddd);border-radius:0 0 8px 8px;min-height:130px;max-height:340px;overflow:auto;padding:10px 12px;background:#fff"></div>
+          <p class="member-tile__meta" style="margin-top:6px">Select the words you want to link, then press <strong>🔗 Link</strong> — that is how you get
+            “Click Here To Sign Up” instead of a long web address.</p>
+        </div>
 
         <div id="recurrenceBlock">
           <h3 class="mt-5">Repeats?</h3>
@@ -100,7 +123,8 @@
   <div data-partial="footer"></div>
   <script src="../js/partials.js?v=20260827a"></script>
   <script src="../js/api-base.js?v=20260818a"></script>
-  <script src="member.js?v=20260825d"></script>
+  <script src="../js/rich-editor.js?v=20260901a"></script>
+  <script src="member.js?v=20260901a"></script>
   <script>ChamberPartials.mount({ active: '', depth: 1, lang: 'en' }); MemberPortal.initEventForm();</script>
   <script defer src="/js/support.js?v=20260804c"></script>
 </body>

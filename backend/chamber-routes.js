@@ -710,6 +710,11 @@ router.post('/me/event', auth.requireAuth(), async (req, res) => {
     title: b.title, time: b.time, endTime: b.endTime, venue: b.venue, address: b.address,
     neighborhood: b.neighborhood, category: b.category || 'Community',
     description: b.description, summary: b.summary, flyer: b.flyer, thumbnail: b.thumbnail,
+    // Formatted description (Felicia, Sep 1 2026 — members could only write
+    // flat text, so a sign-up link published as a bare URL instead of "Click
+    // Here To Sign Up"). Same editor and same allowlist sanitizer as the
+    // office's; never trust what the browser sends.
+    descriptionHtml: sanitizeRichHtml(b.descriptionHtml || ''),
     // Always date-confirmed (a valid date is required above); `status` is the
     // public gate, not `confirmed`. A regular member's event sits as 'pending'
     // (hidden) until the office publishes it — and because it's already
@@ -776,12 +781,12 @@ router.get('/me/event/:id', auth.requireAuth(), async (req, res) => {
     const ev = (await loadEvents()).find((e) => e.id === req.params.id);
     if (!(await canManageEvent(req.user, ev))) return res.status(404).json({ error: 'Event not found.' });
     // Only the plain fields the member form edits — never ticketing/admin state.
-    const { id, title, date, time, endTime, venue, address, category, description,
+    const { id, title, date, time, endTime, venue, address, category, description, descriptionHtml,
       summary, flyer, hideCta, rsvpEmail, status, seriesId, groupSlug, groupName, hostKind, hostName } = ev;
     // images ride along read-only (they're public on the event page anyway) so
     // the edit form can show the legacy images[0] picture as the current flyer
     // (Felicia, Aug 25 2026 — form said "no flyer" while the page showed one).
-    res.json({ ok: true, event: { id, title, date, time, endTime, venue, address, category, description: description || '', summary: summary || '', flyer: flyer || '', hideCta: !!hideCta, rsvpEmail: rsvpEmail || '', status, seriesId: seriesId || null, groupSlug: groupSlug || '', groupName: groupName || '', hostKind: hostKind || '', hostName: hostName || '', images: Array.isArray(ev.images) ? ev.images : [] } });
+    res.json({ ok: true, event: { id, title, date, time, endTime, venue, address, category, description: description || '', descriptionHtml: descriptionHtml || '', summary: summary || '', flyer: flyer || '', hideCta: !!hideCta, rsvpEmail: rsvpEmail || '', status, seriesId: seriesId || null, groupSlug: groupSlug || '', groupName: groupName || '', hostKind: hostKind || '', hostName: hostName || '', images: Array.isArray(ev.images) ? ev.images : [] } });
   } catch (e) { console.error('me/event get', e); res.status(500).json({ error: 'Could not load the event.' }); }
 });
 
@@ -807,6 +812,7 @@ router.patch('/me/event/:id', auth.requireAuth(), async (req, res) => {
     for (const k of ['title', 'date', 'time', 'endTime', 'venue', 'address', 'category', 'description', 'summary', 'flyer']) {
       if (b[k] !== undefined) patch[k] = b[k];
     }
+    if (b.descriptionHtml !== undefined) patch.descriptionHtml = sanitizeRichHtml(b.descriptionHtml);
     // One scoped exception to "images stay put" (Felicia, Aug 25 2026): events
     // imported from the old website carry their flyer as a plain-string FIRST
     // entry under images — the public page shows it, the flyer slot is empty.
