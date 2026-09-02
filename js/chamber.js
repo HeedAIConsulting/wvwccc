@@ -370,9 +370,12 @@ window.Chamber = (function () {
     && ev.ticketTypes.some((t) => t.available !== false && t.name);
   const ticketHref = (ev, base, tier, grpQ = '') =>
     `${base}checkout.html?type=ticket&event=${esc(ev.id)}${tier ? '&tier=' + tier : ''}${grpQ}`;
-  const rsvpHrefOf = (ev, base, grpQ = '') => (hasTiers(ev)
-    ? ticketHref(ev, base, 'free', grpQ)
-    : `${base}contact.html?event=${esc(ev.id)}${grpQ}`);
+  // RSVP always goes to the RSVP screen. It used to fall back to the general
+  // contact form when an event had no registration tiers, which is why the
+  // Sep 24 Education Committee meeting showed "RSVP / Notify me" and collected
+  // nothing the office could see (Felicia, Sep 1 2026). checkout.html handles
+  // the tier-less case as a plain RSVP.
+  const rsvpHrefOf = (ev, base, grpQ = '') => ticketHref(ev, base, 'free', grpQ);
 
   // Full detail card for an event — used by the dedicated event page (and by
   // the legacy modal). Per the office, Jul 2026: events open on their OWN page
@@ -460,7 +463,7 @@ window.Chamber = (function () {
     // hideCta = the office picked "None" — this event takes neither an RSVP
     // nor a payment, so it shows no button anywhere (Felicia, Jul 30 2026).
     const cta = ev.hideCta ? ''
-      : (ev.soldOut ? soldOutBtn() : (ev.ticketed ? (ev.alsoRsvp ? rsvpBtn + ' ' + buyBtn : buyBtn) : rsvpBtn.replace('>RSVP<', '>RSVP / Notify me<')));
+      : (ev.soldOut ? soldOutBtn() : (ev.ticketed ? (ev.alsoRsvp ? rsvpBtn + ' ' + buyBtn : buyBtn) : rsvpBtn));
     // A member paid $15 for a free-to-members mixer (Felicia + Diana, Aug 3
     // 2026): with just "RSVP" and a gold "Purchase" side by side, nothing on
     // THIS page says which button is whose — the first hint was a note at
@@ -2413,6 +2416,20 @@ window.Chamber = (function () {
         update();
         // Free-only events read as a registration, not a sale.
         if (types.every((t) => priceOf(t) <= 0)) title.textContent = 'Event registration';
+      } else if (String(params.get('tier') || '').trim().toLowerCase() === 'free') {
+        // No registration tiers, but they arrived on the RSVP button — so this
+        // is an event the office set to take RSVPs and simply never priced.
+        // Register them properly rather than sending them to the office
+        // (Felicia, Sep 1 2026 — RSVPs on the Education Committee meeting were
+        // going nowhere). Same free path a $0 tier uses: it lands in Admin →
+        // Inquiries and on the event's RSVP list.
+        title.textContent = 'Event registration';
+        summary.innerHTML = `${evMeta}<p class="member-tile__meta mt-3">Let us know you are coming — there is nothing to pay.</p>`;
+        extra.eventTitle = ev ? ev.title : '';
+        extra.quantity = 1;
+        label = ev ? `RSVP — ${ev.title}` : 'RSVP';
+        sku = `ticket:${params.get('event') || ''}`;
+        setFreeMode(true);
       } else {
         // No registration tiers configured on this event yet. Rather than an
         // open amount box (Felicia, Jul 29 — "it doesn't say $15, it has all
