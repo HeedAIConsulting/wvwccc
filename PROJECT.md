@@ -11,6 +11,16 @@ Render Web Service `wvwccc-web` (srv-d8f8pci8qa3s738nsib0) + Postgres `wvwccc-db
 - **ElevenLabs ConvAI** agent `agent_8201kqnjhzyrfpdvtqwgf9e0034y` on all public pages (pulled from POC).
 - Nav adds Deals + Community.
 
+**RSVP on tier-less events, 2026-09-01:** Felicia — the Sep 24 Education
+Committee meeting had RSVP selected in admin but showed "RSVP / Notify me" and
+collected nothing. Cause: `rsvpHrefOf` sent an event with no registration tiers
+to `contact.html` instead of the RSVP screen, so it was filed as a general
+inquiry, not an RSVP. RSVP now always goes to checkout; checkout treats a
+`tier=free` arrival with no tiers as a plain registration (same free path a $0
+tier uses — lands in Admin → Inquiries and the event's RSVP list). Label is
+plain "RSVP" again. Fixes every affected event at once, so no per-event
+switching was needed.
+
 **Networks & Committees flyer, 2026-08-31:** Felicia sent the updated PDF (it
 does list Event Planning & Hospitality — Erin Coplan, last Friday 9 AM — so
 that group STAYS). Seed corrected from it: Damon Buford's committee number
