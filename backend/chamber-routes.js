@@ -663,7 +663,13 @@ router.get('/me/events', auth.requireAuth(), async (req, res) => {
     // events skip the office queue (the Diana switch, Aug 20 2026).
     let leaderInstant = false;
     try { leaderInstant = (await repo.getSetting('leaderInstantPublish')) === 'on'; } catch (e) {}
-    res.json({ events: mine, canSubmit: !!mid, isLeader: memberIsLeader(await myMember(mid)) || identities.some((i) => i.kind === 'group'), instantPublish: leaderInstant, identities });
+    // `staff` and `signedInAs` let the portal name the account you are actually
+    // signed in as. Felicia, Sep 2 2026: "I went in to United Chambers incognito
+    // and I am still not seeing the event" — a Chamber staff login carries no
+    // member_id, so this list is empty for it by definition, and nothing on the
+    // screen said which account was being used.
+    res.json({ events: mine, canSubmit: !!mid, staff: req.user.role === 'staff', signedInAs: req.user.sub || '',
+      isLeader: memberIsLeader(await myMember(mid)) || identities.some((i) => i.kind === 'group'), instantPublish: leaderInstant, identities });
   } catch (e) { res.status(500).json({ error: 'failed' }); }
 });
 
@@ -2246,7 +2252,58 @@ async function loadGroups() {
       }
     } catch (e) { console.error('group seed failed', e); }
   }
+  await applyFlyerCorrections();
   return repo.listGroupsStore();
+}
+
+// One-time corrections from the office's updated "Networks and Committees 2026"
+// flyer (Felicia, Aug 31 2026). The group seed is add-only, so it never touches
+// a group that already exists in the live store — which is what protects the
+// office's own admin edits, and also why these four could not ride in on it.
+//
+// Each correction only applies when the live value is still EXACTLY the stale
+// one, so anything the office has since edited by hand is left alone. The
+// settings marker means it runs once; a value the office changes back after
+// this is never re-corrected by a redeploy.
+let _flyerFixChecked = false;
+async function applyFlyerCorrections() {
+  if (_flyerFixChecked) return;
+  _flyerFixChecked = true;
+  const KEY = 'flyerCorrections-20260831';
+  try {
+    if (await repo.getSetting(KEY)) return;
+    const live = await repo.listGroupsStore();
+    const byId = new Map(live.map((g) => [g.id, g]));
+    const changed = [];
+
+    const setSchedule = (id, from, to) => {
+      const g = byId.get(id);
+      if (g && String(g.meetingSchedule || '').trim() === from) { g.meetingSchedule = to; changed.push(g); }
+    };
+    setSchedule('grp-community-cleanup', '3rd Saturday of the month', '3rd Saturday of the month · 8:00 AM');
+    setSchedule('grp-toastmasters', '1st & 3rd Friday of the month · 7:30 AM',
+      '1st & 3rd Friday of the month · 7:30 AM · Zoom and Hornstein Law Offices');
+
+    // Damon's committee number; the one on file was his business listing.
+    const edu = byId.get('grp-education-committee');
+    if (edu && edu.manager && String(edu.manager.phone || '').replace(/\D/g, '') === '8186468868') {
+      edu.manager = { ...edu.manager, phone: '(602)690-2173' };
+      changed.push(edu);
+    }
+    // Co-leader the site has never carried.
+    const hip = byId.get('grp-home-improvement');
+    if (hip && !(hip.members || []).some((m) => /Berthiaume/i.test(m.name || ''))) {
+      hip.members = (hip.members || []).concat([{
+        id: 'gm-sara-berthiaume', name: 'Sara Berthiaume', email: '', phone: '(818)697-4600',
+        role: 'Leader', status: 'active', source: 'admin',
+      }]);
+      changed.push(hip);
+    }
+
+    for (const g of changed) await repo.upsertGroup(buildGroup(g, g));
+    await repo.setSetting(KEY, `applied ${changed.length} on ${new Date().toISOString()}`);
+    if (changed.length) console.log('[groups] flyer corrections applied:', changed.map((g) => g.name).join(', '));
+  } catch (e) { console.error('flyer corrections failed', e); }
 }
 router.get('/groups', async (_req, res) => {
   try { res.json({ groups: (await loadGroups()).filter((g) => g.status === 'approved').map(publicGroup) }); }

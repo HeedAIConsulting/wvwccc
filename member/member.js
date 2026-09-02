@@ -133,9 +133,46 @@ window.MemberPortal = (function () {
           </ul>
         </aside>
       </div>
+      <div id="myEventsBlock" class="mt-6"></div>
       <div id="volunteerBlock" class="mt-6"></div>`;
     bindLogout();
+    mountMyEvents();
     mountVolunteer();
+  }
+
+  /* ── Your events, on the dashboard ──
+     The list of a member's own events lived ONLY on event.html, behind a button
+     labelled "Add an event" — so the way to EDIT an event you had already
+     posted was hidden behind the word "Add". Felicia hunted for the Mayors
+     Luncheon twice and could not find it (Sep 1 and Sep 2 2026). It belongs
+     where people look for it. */
+  async function mountMyEvents() {
+    const host = document.getElementById('myEventsBlock');
+    if (!host) return;
+    let d;
+    try { d = await api('/api/me/events'); } catch (e) { return; }
+    const evs = d.events || [];
+    if (!evs.length && !d.canSubmit) return;          // staff / unlinked: event.html explains it
+    const who = (d.identities || []).find((i) => i.kind === 'business');
+    const seen = new Set();
+    const rows = evs.filter((ev) => {
+      const key = ev.seriesId || ev.id;
+      if (seen.has(key)) return false; seen.add(key); return true;
+    }).map((ev) => {
+      const pending = (ev.status || 'approved') !== 'approved';
+      return `<div style="display:flex;justify-content:space-between;align-items:center;gap:var(--s-3);flex-wrap:wrap;padding:10px 0;border-bottom:1px solid var(--line,#eee)">
+        <div><strong>${esc(ev.title)}</strong>${pending ? ' <span class="badge badge--gold" style="font-size:.62rem;vertical-align:middle">awaiting the office</span>' : ''}
+          <div class="member-tile__meta">${esc(ev.date || '')}${ev.time ? ' · ' + esc(ev.time) : ''}${ev.venue ? ' · ' + esc(ev.venue) : ''}</div></div>
+        <a class="btn btn--ghost btn--sm" href="event.html?edit=${encodeURIComponent(ev.id)}">Edit</a>
+      </div>`;
+    }).join('');
+    host.innerHTML = `<div class="card">
+      <h3 style="margin:0 0 2px">Your events on the calendar</h3>
+      <p class="member-tile__meta" style="margin:0 0 10px">${who ? `Signed in as <strong>${esc(who.name)}</strong>. ` : ''}${
+        evs.length ? 'Press Edit to change one.' : 'Nothing on the calendar yet.'}</p>
+      ${rows}
+      <div class="btn-row mt-4"><a class="btn btn--gold btn--sm" href="event.html">＋ Add an event</a></div>
+    </div>`;
   }
 
   /* ── Volunteer sign-up (ambassador tracker, Felicia Jul 29 2026) ──
@@ -667,7 +704,19 @@ window.MemberPortal = (function () {
     // before it goes live (per the office, Jul 16 — restores the old site's
     // "members post their own events" with a quick approval step).
     if (!data.canSubmit) {
-      if (gate) { gate.hidden = false; gate.innerHTML = 'Your login isn\'t linked to a member listing yet. Call the Chamber office at (818) 347-4737 and we\'ll connect it so you can post events.'; }
+      if (gate) {
+        gate.hidden = false;
+        // A staff login has no member listing by design, so this page is empty
+        // for it — and telling the Chamber office to ring the Chamber office
+        // was no help at all (Felicia, Sep 2 2026).
+        gate.innerHTML = data.staff
+          ? `You are signed in as <strong>${esc(data.signedInAs || 'a Chamber staff account')}</strong> (Chamber staff).
+             Staff logins are not linked to a member listing, so there are no member events to show here — this page
+             only ever lists the events of the account you are signed in as.
+             <br><br>To see or edit <em>a member's</em> events, open their <strong>member view link</strong> from
+             Admin → Members (use a private window), sign in with it, then come back to this page.`
+          : `Your login isn't linked to a member listing yet. Call the Chamber office at (818) 347-4737 and we'll connect it so you can post events.`;
+      }
       renderMyEvents(data.events || []);
       return;
     }

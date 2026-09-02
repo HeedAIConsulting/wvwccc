@@ -11,6 +11,25 @@ Render Web Service `wvwccc-web` (srv-d8f8pci8qa3s738nsib0) + Postgres `wvwccc-db
 - **ElevenLabs ConvAI** agent `agent_8201kqnjhzyrfpdvtqwgf9e0034y` on all public pages (pulled from POC).
 - Nav adds Deals + Community.
 
+**"Still not seeing the event to edit", 2026-09-02:** Felicia tried incognito
+and still could not find the Mayors Luncheon. The record was never the problem
+(one event for m13947, correctly attributed). Two real causes:
+1. A member's own event list lived ONLY on `member/event.html`, behind a button
+   labelled **"Add an event"** — so editing something already posted was hidden
+   behind the word "Add". The dashboard now carries **Your events on the
+   calendar** with Edit on each, and names the account it is showing.
+2. `felicia@` and `diana@` are `role: staff` with **`member_id = NULL`**, so a
+   staff session has no member id and `/me/events` is empty for it by
+   definition. The gate used to tell Chamber staff to phone the Chamber office;
+   it now says which account you are signed in as, that staff logins carry no
+   member listing, and to use a member view link instead.
+
+**Flyer corrections reached production, 2026-09-02:** the add-only group seed
+could not carry them, and the Render Postgres tool is read-only, so they ship as
+a one-time guarded migration (`flyerCorrections-20260831`, same pattern as
+`legacyEventsMerge-20260711`). Each field only changes when the live value is
+still exactly the stale one, so an office edit is never clobbered — verified.
+
 **RSVP on tier-less events, 2026-09-01:** Felicia — the Sep 24 Education
 Committee meeting had RSVP selected in admin but showed "RSVP / Notify me" and
 collected nothing. Cause: `rsvpHrefOf` sent an event with no registration tiers
