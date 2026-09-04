@@ -4941,12 +4941,16 @@ window.Admin = (function () {
         phone: (document.getElementById('grpMgrPhone')?.value || '').trim(),
         memberId: managerMemberId,
       };
-      const btn = form.querySelector('[type="submit"]'); btn.disabled = true;
+      // Both Save buttons: the one at the foot of the form and the one in the
+      // panel header, which lives OUTSIDE the form and reaches it via `form=`,
+      // so form.querySelector would miss it and leave it live during the save.
+      const btns = [...document.querySelectorAll('[type="submit"][form="groupForm"], #groupForm [type="submit"]')];
+      btns.forEach((b) => { b.disabled = true; });
       try {
         await api('/api/admin/groups', { method: 'POST', body: JSON.stringify(body) });
         note('Saved ✓', true); backToList();
       } catch (err) { note('Save failed — check required fields.'); }
-      finally { btn.disabled = false; }
+      finally { btns.forEach((b) => { b.disabled = false; }); }
     });
 
     loadList();
