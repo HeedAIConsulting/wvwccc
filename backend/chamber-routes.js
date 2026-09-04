@@ -2345,6 +2345,7 @@ async function loadGroups() {
   }
   await applyFlyerCorrections();
   await applySustainableAndLegacyPage();
+  await applyVolunteerPointsOn();
   return repo.listGroupsStore();
 }
 
@@ -2379,6 +2380,35 @@ let _flyerFixChecked = false;
       beyond this one line — it lists six groups the Chamber no longer runs
       (Legislative, Home Based Business, HPN, LPN, R & B Realtors, Warner
       Center Property Managers). Hiding is reversible from Admin > Content. */
+/* Diana, Sep 4 2026: "the Ambassadors need to access the tracker." They always
+   could — the sign-up sheet has been on their dashboard since July. What was
+   off is the points and tier half, deliberately: Felicia, Jul 30, "we do not
+   have a point system at this moment". The committee has now decided, so this
+   turns it on once.
+
+   Only when the office has expressed NO opinion (the setting is absent). A
+   stored '0' is a deliberate "off" and is left alone, so this can never undo a
+   decision they make later — and the toggle in Admin > Ambassadors > Points &
+   tiers stays the way they change it from here. Tiers themselves are left
+   unset so the Bronze/Silver/Gold/Platinum defaults apply and the office can
+   rename and renumber them there. */
+let _volPointsChecked = false;
+async function applyVolunteerPointsOn() {
+  if (_volPointsChecked) return;
+  _volPointsChecked = true;
+  const KEY = 'volunteerPointsEnabled-20260904';
+  try {
+    if (await repo.getSetting(KEY)) return;
+    const current = await repo.getSetting(VOL_POINTS_KEY);
+    if (current === null || current === undefined || current === '') {
+      await repo.setSetting(VOL_POINTS_KEY, '1');
+      await repo.setSetting(KEY, `points turned on @ ${new Date().toISOString()}`);
+      console.log('[ambassadors] points and tiers turned on (Diana, Sep 4)');
+    } else {
+      await repo.setSetting(KEY, `left as the office set it ("${current}") @ ${new Date().toISOString()}`);
+    }
+  } catch (e) { _volPointsChecked = false; console.error('volunteer points enable failed (will retry next boot)', e); }
+}
 let _sustainableFixChecked = false;
 async function applySustainableAndLegacyPage() {
   if (_sustainableFixChecked) return;
