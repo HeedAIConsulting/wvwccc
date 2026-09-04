@@ -40,7 +40,18 @@
         <div class="panel" id="grpEditorPanel" hidden>
           <div class="panel__head" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
             <h3 id="grpFormTitle" style="margin:0">New group</h3>
-            <button type="button" class="btn btn--ghost btn--sm" id="grpBackBtn">← All groups</button>
+            <div style="display:flex;gap:8px;align-items:center">
+              <!-- Felicia, Sep 4 2026: "when I try to update Priscilla's number,
+                   there is no Save button." It was there, but Save sits at the
+                   very bottom of the form, AFTER the meetings list — so the more
+                   meetings a group has the further down it goes. DBN has eleven
+                   and the button lands past 2,400px, over three screens down on a
+                   laptop. This one is in the header, visible the moment the group
+                   opens; `form=` lets a button outside the form submit it, so it
+                   is the same save, not a second code path. -->
+              <button type="submit" form="groupForm" class="btn btn--forest btn--sm" id="grpSaveTop">Save group</button>
+              <button type="button" class="btn btn--ghost btn--sm" id="grpBackBtn">← All groups</button>
+            </div>
           </div>
           <form id="groupForm" class="admin-form" style="padding:16px">
             <input type="hidden" name="id" />
@@ -189,7 +200,7 @@
     </div>
   </div>
   <script src="../js/api-base.js"></script>
-  <script src="admin.js?v=20260904a"></script>
+  <script src="admin.js?v=20260904b"></script>
   <script>Admin.initGroups();</script>
   <script defer src="/js/support.js?v=20260804c"></script>
 </body>
