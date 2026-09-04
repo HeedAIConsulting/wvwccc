@@ -874,6 +874,27 @@ function eventsOfGroup(g, evs) {
     || (mm && ((e.title || '').toLowerCase().includes(mm) || (e.category || '').toLowerCase().includes(mm))));
 }
 
+/* The group an RSVP belongs to when the visitor did NOT come from the group
+   page. Felicia, Sep 3 2026: "The Group RSVPs should be going to the group
+   leaders, not me." They never were — an RSVP only carried a group when the
+   link was clicked ON the group page, so the same meeting RSVP'd from the main
+   calendar reached nobody but the office. Three DBN RSVPs were lost that way.
+
+   Deliberately keyed on groupSlug ALONE — the event's "Hosted by" group, which
+   the office sets in Admin — and NOT on the eventMatch keyword that
+   eventsOfGroup also accepts. That keyword is fine for gathering events onto a
+   group page, but far too loose to decide who gets mailed: eventMatch "Mixer"
+   belongs to the Ambassador Committee, so a keyword rule would have routed the
+   Chamber's own September 23rd Networking Mixer to that committee and stopped
+   Felicia receiving it — the exact opposite of what she asked for. Routing on
+   a keyword mails the wrong person; routing on groupSlug cannot. Events that
+   ARE a group's own meeting get their groupSlug backfilled instead (see
+   applyEventGroupHosts). */
+function groupOfEvent(ev, groups) {
+  if (!ev || !ev.groupSlug) return null;
+  return groups.find((g) => g.slug === ev.groupSlug) || null;
+}
+
 // RSVP leads for one event. Recent leads carry the event id in brackets
 // ("Summer Mixer (2026-08-26) [ev-x1]") — exact. Older, title-only leads fall
 // back to title (+ the bracketed date when there is one), so a monthly series
@@ -1497,6 +1518,7 @@ let _foodWineButtonChecked = false;
 let _galaAlbumChecked = false;
 let _galaPopupChecked = false;
 let _circleRsvpChecked = false;
+let _eventGroupHostChecked = false;
 let _confirmDatedChecked = false;
 async function ensureEventsSeeded() {
   if (!(await repo.hasEvents())) {
@@ -1733,6 +1755,55 @@ async function ensureEventsSeeded() {
         console.log(`[events] one-time: RSVP button removed from ${off} connection-circle/group meetings per Felicia (Aug 11)`);
       }
     } catch (e) { _circleRsvpChecked = false; console.error('circle RSVP-button cleanup failed (will retry next boot)', e); }
+  }
+  /* One-time (Sep 4 2026, per Felicia: "The Group RSVPs should be going to the
+     group leaders, not me"). A group's own meeting only routes its RSVPs to
+     that group's leaders when the event carries the group's slug, and almost
+     none did - 64 meetings titled exactly after their group were untagged, so
+     every RSVP to them reached the office and nobody else. Three DBN RSVPs were
+     lost that way before this was spotted.
+
+     Matches on the event title being EXACTLY the group's name or eventMatch,
+     ignoring case, punctuation and a trailing "(DBN)"-style abbreviation. Not a
+     substring test: "September 23rd ... Networking Mixer" must NOT be swept
+     into the Ambassador Committee (whose eventMatch is the single word
+     "Mixer"), because that would divert the Chamber's own mixer RSVPs away
+     from Felicia - the opposite of what she asked for. Verified against live
+     data: 64 tagged, 1 contradiction corrected, 0 ambiguous, and every mixer,
+     board meeting and ribbon cutting untouched.
+
+     A groupSlug the office set themselves is left alone unless the title names
+     a DIFFERENT group outright (one such: a "Martin's Connection Circle"
+     meeting tagged onto the Community Clean Up Crew), since routing that one's
+     RSVPs to the wrong leaders is the very failure this is fixing. */
+  if (!_eventGroupHostChecked) {
+    _eventGroupHostChecked = true;
+    try {
+      const KEY = 'eventGroupHosts-20260904';
+      if (!(await repo.getSetting(KEY))) {
+        const norm = (s) => String(s || '').toLowerCase()
+          .replace(/\(.*?\)/g, ' ').replace(/[^a-z0-9]+/g, ' ').trim();
+        const groups = await loadGroups();
+        let set = 0, fixed = 0;
+        for (const ev of await repo.listEventsStore()) {
+          const t = norm(ev.title);
+          if (!t) continue;
+          const hits = groups.filter((g) => t === norm(g.name) || (g.eventMatch && t === norm(g.eventMatch)));
+          if (hits.length !== 1) continue;          // ambiguous → leave it to the office
+          const g = hits[0];
+          const cur = String(ev.groupSlug || '').trim();
+          if (cur === g.slug) continue;
+          if (cur) fixed++; else set++;
+          // groupSlug ONLY. groupName is a fallback in hostLine(), so setting it
+          // would print a "Hosted by …" line on 66 public listings that do not
+          // have one today — a visible change nobody asked for, on a fix about
+          // where the email goes.
+          await repo.upsertEvent(buildEvent({ groupSlug: g.slug }, ev));
+        }
+        await repo.setSetting(KEY, `set ${set}, corrected ${fixed} @ ${new Date().toISOString()}`);
+        console.log(`[events] one-time: group host set on ${set} meetings, ${fixed} corrected — RSVPs now reach group leaders`);
+      }
+    } catch (e) { _eventGroupHostChecked = false; console.error('event group-host backfill failed (will retry next boot)', e); }
   }
   /* One-time (Aug 19 2026, per Felicia): rescue any dated event left stuck at
      confirmed:false by the ?? bug fixed in buildEvent above. Those events look
@@ -3643,11 +3714,16 @@ router.post('/contact', async (req, res) => {
   // group with no manager email notified nobody, and the Wendy inbox lost its
   // copy. Now every group leader is emailed AND the Wendy inbox always keeps
   // one, as the log of all activity.
+  // An RSVP to a group's own meeting counts as coming from that group even when
+  // it was made from the main events calendar — see groupOfEvent above.
   let notifyTo = email.notifyTo(), groupName = '';
   const leaderTo = [];
-  if (b.group) {
+  if (b.group || rsvpEvent) {
     try {
-      const g = (await loadGroups()).find((x) => x.slug === b.group || x.id === b.group);
+      const groups = await loadGroups();
+      const g = b.group
+        ? groups.find((x) => x.slug === b.group || x.id === b.group)
+        : groupOfEvent(rsvpEvent, groups);
       if (g) {
         groupName = g.name;
         lead.reason = lead.reason || `Group: ${g.name}`;
@@ -3706,9 +3782,17 @@ router.post('/contact', async (req, res) => {
     // her July inquiries-off preference predates this and still applies to the
     // other inquiry kinds — and an event that names its own RSVP address gets
     // a copy there too (the poster or their assistant).
+    //
+    // EXCEPT a group's own RSVPs, which now stop at that group's leaders
+    // (Felicia, Sep 3 2026: "The Group RSVPs should be going to the group
+    // leaders, not me"), narrowing her Aug 11 ask. Only when a leader was
+    // actually found — no leader still means the office, so an RSVP can never
+    // reach nobody. Every one is still filed under Admin → Inquiries and on the
+    // event, so this drops the mail, not the record.
+    const groupRsvp = lead.kind === 'rsvp' && leaderTo.length > 0;
     const recipients = [...leaderTo];
     if (rsvpTo) recipients.push(rsvpTo);
-    if (officeWantsEmail || leaderTo.length || lead.kind === 'rsvp') recipients.push(notifyTo);
+    if (!groupRsvp && (officeWantsEmail || leaderTo.length || lead.kind === 'rsvp')) recipients.push(notifyTo);
     // Screened spam stays out of everyone's inbox — it waits in Admin →
     // Inquiries → Spam instead.
     if (recipients.length && lead.status !== 'spam') {

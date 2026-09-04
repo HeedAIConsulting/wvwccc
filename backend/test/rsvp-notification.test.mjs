@@ -38,8 +38,10 @@ before(async () => {
       company: 'Zolo Insurance Services, Inc.',
       // le-11343 is a real approved seed event — the guest confirmation only
       // goes out when the RSVP resolves to a real event (Aug 20 2026 review).
-      event: 'August 26th Networking Mixer [le-11343]',
-      eventTitle: 'August 26th Networking Mixer',
+      // It is Martin's Connection Circle, i.e. a GROUP meeting, so this RSVP
+      // also exercises the Sep 4 2026 leader routing below.
+      event: "Martin's Connection Circle [le-11343]",
+      eventTitle: "Martin's Connection Circle",
       ticketType: 'Member Free With Pre-registration',
       quantity: 4,
       attendees: [
@@ -58,8 +60,10 @@ const note = () => sent.find((m) => /New RSVP/.test(m.subject || ''));
 
 test('the subject still names the event and who RSVPd', () => {
   const n = note();
-  assert.ok(n, 'the office should get an RSVP notification');
-  assert.match(n.subject, /^New RSVP — August 26th Networking Mixer \(Odelia Samya\)$/);
+  assert.ok(n, 'an RSVP notification should go out');
+  // The [group] prefix is there because this event IS a group meeting; the part
+  // Felicia asked to keep is the event and the name that follow it.
+  assert.match(n.subject, /^\[Martin's Connection Circle\] New RSVP — Martin's Connection Circle \(Odelia Samya\)$/);
 });
 
 test('it is laid out like the old confirmation, not a wall of text', () => {
@@ -114,6 +118,52 @@ test('the raw event id never reaches the inbox', () => {
   const { text, html } = note();
   assert.ok(!text.includes('le-11343'), 'plain text leaked the internal event id');
   assert.ok(!html.includes('le-11343'), 'html leaked the internal event id');
+});
+
+/* Felicia, Sep 3 2026: "All the RSVPs are coming to me again... The Group RSVPs
+   should be going to the group leaders, not me." They had never reached the
+   leaders at all — an RSVP only carried a group when it started ON the group
+   page, so the same meeting RSVP'd from the main calendar mailed the office and
+   no one else. Both halves are pinned here: leaders get it, the office doesn't. */
+test("a group meeting's RSVP goes to that group's leaders, not the office", () => {
+  // One send per recipient, so the whole set has to be checked — looking at any
+  // single message would pass no matter who else was copied. Scoped to THIS
+  // event: other tests in this file post their own RSVPs into the same log.
+  const to = sent
+    .filter((m) => /New RSVP/.test(m.subject || '') && /Martin's Connection Circle/.test(m.subject))
+    .map((m) => m.to);
+  assert.ok(to.includes('martin.carman@synapticsystems.biz'),
+    "Martin's Connection Circle leader should receive his own group's RSVP");
+  assert.ok(!to.includes('felicia@woodlandhillscc.net'),
+    'the office should no longer be copied on a group RSVP (Felicia, Sep 3 2026)');
+});
+
+/* The other half of the same instruction: a Chamber event is NOT a group
+   meeting, and its RSVPs must still reach the office (Felicia, Aug 11 2026).
+   This is the regression guard for matching events to groups by keyword — the
+   Ambassador Committee's eventMatch is the single word "Mixer", so a substring
+   rule would divert the Chamber's own mixers to that committee and away from
+   Felicia. le-11188 is a real Networking Mixer with no group of its own. */
+test('a Chamber event RSVP still reaches the office, and no committee grabs it', async () => {
+  const before = sent.length;
+  await fetch(`${base}/api/contact`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      kind: 'rsvp', reason: 'RSVP', name: 'Pat Attendee',
+      email: 'pat@example.com',
+      event: 'February 25th~Networking Mixer Hosted by Safir Mediterranean Cuisine [le-11188]',
+      eventTitle: 'February 25th~Networking Mixer Hosted by Safir Mediterranean Cuisine',
+      quantity: 1,
+    }),
+  });
+  await new Promise((r) => setTimeout(r, 250));
+  const notes = sent.slice(before).filter((m) => /New RSVP/.test(m.subject || ''));
+  assert.ok(notes.length, 'a mixer RSVP should still notify someone');
+  assert.ok(notes.map((m) => m.to).includes('felicia@woodlandhillscc.net'),
+    'the office must keep receiving RSVPs for the Chamber\'s own events');
+  for (const m of notes) {
+    assert.doesNotMatch(m.subject, /^\[/, 'no group should have claimed a Chamber mixer');
+  }
 });
 
 test('a non-RSVP inquiry keeps the plain generic body', async () => {
