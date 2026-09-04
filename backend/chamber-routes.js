@@ -2255,9 +2255,17 @@ function normalizeGroupMembers(list) {
 }
 
 // The person who runs a group — receives its join requests & meeting RSVPs.
-function normalizeGroupManager(m) {
+/* `prev` is the manager already on file. A caller that omits `phone`
+   ENTIRELY keeps the stored number rather than blanking it — the admin group
+   form left it out of every save, so each time the office edited a group the
+   leader's phone was silently erased (it is office reference data and never
+   shown publicly, so nothing on screen revealed the loss). Sending
+   `phone: ''` still clears it deliberately: absent and empty mean different
+   things here. */
+function normalizeGroupManager(m, prev = {}) {
   m = m || {};
-  return { name: String(m.name || '').slice(0, 160), email: String(m.email || '').slice(0, 160), phone: String(m.phone || '').slice(0, 40), memberId: m.memberId ? String(m.memberId).slice(0, 48) : null };
+  const phone = Object.prototype.hasOwnProperty.call(m, 'phone') ? m.phone : (prev && prev.phone);
+  return { name: String(m.name || '').slice(0, 160), email: String(m.email || '').slice(0, 160), phone: String(phone || '').slice(0, 40), memberId: m.memberId ? String(m.memberId).slice(0, 48) : null };
 }
 // Group photos may carry an optional date + associated event for captions.
 function normalizeGroupPhotos(list) {
@@ -2286,7 +2294,7 @@ function buildGroup(b, existing = {}) {
     description: String(b.description ?? existing.description ?? '').slice(0, 8000),
     heroImage: clampUrl(b.heroImage ?? existing.heroImage ?? ''),
     photos: normalizeGroupPhotos(b.photos ?? existing.photos),
-    manager: normalizeGroupManager(b.manager ?? existing.manager),
+    manager: normalizeGroupManager(b.manager ?? existing.manager, existing.manager),
     meetingSchedule: String(b.meetingSchedule ?? existing.meetingSchedule ?? '').slice(0, 200),
     meetingNotes: String(b.meetingNotes ?? existing.meetingNotes ?? '').slice(0, 12000),
     contactEmail: String(b.contactEmail ?? existing.contactEmail ?? '').slice(0, 160),
