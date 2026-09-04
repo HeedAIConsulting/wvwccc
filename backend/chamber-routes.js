@@ -1386,7 +1386,7 @@ router.get('/admin/tools/image/:id', requireAdmin, async (req, res) => {
 
 // Public posts feed (approved, not expired).
 router.get('/posts', async (req, res) => {
-  const type = ['discount', 'member_post', 'news', 'announcement', 'gallery', 'job', 'listing', 'newsletter'].includes(req.query.type) ? req.query.type : undefined;
+  const type = ['discount', 'member_post', 'news', 'announcement', 'gallery', 'job', 'listing', 'newsletter', 'video'].includes(req.query.type) ? req.query.type : undefined;
   try {
     const now = Date.now();
     const posts = (await repo.listPosts({ type, status: 'approved' }))
@@ -1520,11 +1520,51 @@ let _galaPopupChecked = false;
 let _circleRsvpChecked = false;
 let _eventGroupHostChecked = false;
 let _confirmDatedChecked = false;
+/* Tag each event with the group whose meeting it is, so an RSVP reaches that
+   group's leaders (see groupOfEvent). Matches ONLY when the title is exactly the
+   group's name or eventMatch - ignoring case, punctuation and a trailing
+   "(DBN)" - never a substring, or the Ambassador Committee's eventMatch "Mixer"
+   would swallow the Chamber's own Networking Mixers and divert their RSVPs.
+
+   Runs on a fresh seed as well as on an existing store: the seed file carries no
+   groupSlug at all, so a brand-new deployment would otherwise start life with
+   the very bug this fixes. */
+async function applyEventGroupHosts() {
+  if (_eventGroupHostChecked) return;
+  _eventGroupHostChecked = true;
+  try {
+    const KEY = 'eventGroupHosts-20260904';
+    if (await repo.getSetting(KEY)) return;
+    const norm = (s) => String(s || '').toLowerCase()
+      .replace(/\(.*?\)/g, ' ').replace(/[^a-z0-9]+/g, ' ').trim();
+    const groups = await loadGroups();
+    let set = 0, fixed = 0;
+    for (const ev of await repo.listEventsStore()) {
+      const t = norm(ev.title);
+      if (!t) continue;
+      const hits = groups.filter((g) => t === norm(g.name) || (g.eventMatch && t === norm(g.eventMatch)));
+      if (hits.length !== 1) continue;            // ambiguous -> leave it to the office
+      const g = hits[0];
+      const cur = String(ev.groupSlug || '').trim();
+      if (cur === g.slug) continue;
+      if (cur) fixed++; else set++;
+      // groupSlug ONLY. groupName is a fallback in hostLine(), so setting it
+      // would print a "Hosted by ..." line on 66 public listings that do not
+      // have one today - a visible change nobody asked for, on a fix about
+      // where the email goes.
+      await repo.upsertEvent(buildEvent({ groupSlug: g.slug }, ev));
+    }
+    await repo.setSetting(KEY, `set ${set}, corrected ${fixed} @ ${new Date().toISOString()}`);
+    console.log(`[events] group host set on ${set} meetings, ${fixed} corrected - RSVPs now reach group leaders`);
+  } catch (e) { _eventGroupHostChecked = false; console.error('event group-host backfill failed (will retry next boot)', e); }
+}
 async function ensureEventsSeeded() {
   if (!(await repo.hasEvents())) {
     for (const e of readSeedEvents()) await repo.upsertEvent(buildEvent(e, e));
     _eventImgBackfillDone = true;
     try { await repo.setSetting('legacyEventsMerge-20260711', 'seeded ' + new Date().toISOString()); } catch (e) {}
+    // The seed carries no groupSlug, so a fresh store needs this too.
+    await applyEventGroupHosts();
     return;
   }
   // One-time add-only merge of the Jul 2026 archive recovery (166 legacy
@@ -1776,35 +1816,7 @@ async function ensureEventsSeeded() {
      a DIFFERENT group outright (one such: a "Martin's Connection Circle"
      meeting tagged onto the Community Clean Up Crew), since routing that one's
      RSVPs to the wrong leaders is the very failure this is fixing. */
-  if (!_eventGroupHostChecked) {
-    _eventGroupHostChecked = true;
-    try {
-      const KEY = 'eventGroupHosts-20260904';
-      if (!(await repo.getSetting(KEY))) {
-        const norm = (s) => String(s || '').toLowerCase()
-          .replace(/\(.*?\)/g, ' ').replace(/[^a-z0-9]+/g, ' ').trim();
-        const groups = await loadGroups();
-        let set = 0, fixed = 0;
-        for (const ev of await repo.listEventsStore()) {
-          const t = norm(ev.title);
-          if (!t) continue;
-          const hits = groups.filter((g) => t === norm(g.name) || (g.eventMatch && t === norm(g.eventMatch)));
-          if (hits.length !== 1) continue;          // ambiguous → leave it to the office
-          const g = hits[0];
-          const cur = String(ev.groupSlug || '').trim();
-          if (cur === g.slug) continue;
-          if (cur) fixed++; else set++;
-          // groupSlug ONLY. groupName is a fallback in hostLine(), so setting it
-          // would print a "Hosted by …" line on 66 public listings that do not
-          // have one today — a visible change nobody asked for, on a fix about
-          // where the email goes.
-          await repo.upsertEvent(buildEvent({ groupSlug: g.slug }, ev));
-        }
-        await repo.setSetting(KEY, `set ${set}, corrected ${fixed} @ ${new Date().toISOString()}`);
-        console.log(`[events] one-time: group host set on ${set} meetings, ${fixed} corrected — RSVPs now reach group leaders`);
-      }
-    } catch (e) { _eventGroupHostChecked = false; console.error('event group-host backfill failed (will retry next boot)', e); }
-  }
+  await applyEventGroupHosts();
   /* One-time (Aug 19 2026, per Felicia): rescue any dated event left stuck at
      confirmed:false by the ?? bug fixed in buildEvent above. Those events look
      perfectly normal in Admin - approved, dated, showing on the list - but the
@@ -2677,6 +2689,10 @@ const POPUP_KEY = 'homePopup';
 const POPUP_DEFAULT = {
   enabled: false,
   image: '',
+  // A YouTube/Vimeo link plays in the popup instead of showing the image
+  // (Diana, Sep 2026 — the welcome video). The office pastes the same link they
+  // put on the Videos page; nothing needs uploading and no file is copied here.
+  video: '',
   title: '',
   subtitle: '',
   buttonLabel: '',
@@ -2691,6 +2707,7 @@ function cleanPopup(b) {
   return {
     enabled: !!b.enabled,
     image: clampUrl(b.image),
+    video: clampUrl(b.video),
     title: String(b.title || '').slice(0, 160),
     subtitle: String(b.subtitle || '').slice(0, 240),
     buttonLabel: String(b.buttonLabel || '').slice(0, 80),
@@ -2709,7 +2726,9 @@ router.get('/admin/home-popup', requireAdmin, async (_req, res) => {
 router.post('/admin/home-popup', requireAdmin, async (req, res) => {
   try {
     const popup = cleanPopup(req.body || {});
-    if (popup.enabled && (!popup.image || !popup.title)) return res.status(400).json({ error: 'An enabled popup needs at least an image and a title.' });
+    // A video popup needs no image — the player fills that space instead.
+    if (popup.enabled && !popup.title) return res.status(400).json({ error: 'An enabled popup needs a title.' });
+    if (popup.enabled && !popup.image && !popup.video) return res.status(400).json({ error: 'An enabled popup needs either a picture or a video link.' });
     await repo.setSetting(POPUP_KEY, JSON.stringify(popup));
     res.json({ ok: true, popup });
   } catch (e) { console.error('home-popup save', e); res.status(500).json({ error: 'save failed' }); }
@@ -4866,7 +4885,7 @@ router.get('/admin/posts', requireAdmin, async (req, res) => {
   } catch (e) { res.status(500).json({ error: 'failed' }); }
 });
 
-const ADMIN_POST_TYPES = ['news', 'announcement', 'discount', 'member_post', 'event', 'slide', 'gallery', 'job', 'listing', 'newsletter'];
+const ADMIN_POST_TYPES = ['news', 'announcement', 'discount', 'member_post', 'event', 'slide', 'gallery', 'job', 'listing', 'newsletter', 'video'];
 router.post('/admin/posts', requireAdmin, async (req, res) => {
   const b = req.body || {};
   if (!ADMIN_POST_TYPES.includes(b.type)) return res.status(400).json({ error: 'Invalid type.' });
