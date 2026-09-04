@@ -2,7 +2,7 @@
   "name": "wvwccc-production",
   "version": "1.0.0",
   "private": true,
-  "description": "West Valley · Warner Center Chamber of Commerce — production platform (Heed Business Solutions)",
+  "description": "West Valley \u00b7 Warner Center Chamber of Commerce \u2014 production platform (Heed Business Solutions)",
   "type": "module",
   "engines": {
     "node": ">=20"
@@ -10,7 +10,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
-    "test": "node --experimental-test-module-mocks --test backend/test/*.test.mjs",
+    "test": "node --experimental-test-module-mocks --test-concurrency=1 --test backend/test/*.test.mjs",
     "migrate": "node scripts/migrate.js",
     "create-staff": "node scripts/create-staff.js"
   },
