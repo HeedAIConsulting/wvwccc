@@ -19,7 +19,12 @@ import * as repo from './repo.js';
 // Compress only when the source is heavier than the site would want to
 // serve; smaller PDFs pass through untouched (keeps their selectable text).
 const KEEP_AS_IS_BYTES = 6_500_000;
-const DOWNLOAD_CAP = 100_000_000;   // absolute fetch cap
+/* Absolute fetch cap. Raised from 100MB on Sep 4 2026: Diana's September issue
+   came off Canva at over 100MB and the import refused it — on the one route
+   whose whole point is "any size, we shrink it for you". The service runs on
+   Render Standard (2GB); a 200MB source peaks around 700-800MB through the
+   buffer, the WASM copy and the rasteriser, which leaves real headroom. */
+const DOWNLOAD_CAP = 200_000_000;
 const PAGE_CAP = 80;                // a "newsletter" sanity bound
 const RASTER_DPI = 125;             // crisp on phones, ~250KB/page
 const JPEG_QUALITY = 74;
@@ -66,7 +71,7 @@ function isPrivateAddress(ip) {
 async function fetchBinary(url, redirectsLeft = 5) {
   await assertPublicHost(url);
   const ctl = new AbortController();
-  const timer = setTimeout(() => ctl.abort(), 120_000);
+  const timer = setTimeout(() => ctl.abort(), 300_000);   // 200MB needs longer than 2 minutes
   try {
     // Manual redirect handling so every hop gets the SSRF check.
     const r = await fetch(url, { redirect: 'manual', signal: ctl.signal });
@@ -82,7 +87,13 @@ async function fetchBinary(url, redirectsLeft = 5) {
       const { done, value } = await reader.read();
       if (done) break;
       total += value.length;
-      if (total > DOWNLOAD_CAP) { ctl.abort(); throw new Error('That file is over 100MB — please check it is the right one.'); }
+      if (total > DOWNLOAD_CAP) {
+        ctl.abort();
+        // Say the real limit and what to do about it, rather than implying
+        // they picked the wrong file.
+        throw new Error(`That file is over ${Math.round(DOWNLOAD_CAP / 1e6)}MB, which is bigger than the site will pull in. `
+          + 'In Canva, export again as "PDF Standard" instead of "PDF Print" and paste the new link.');
+      }
       chunks.push(value);
     }
     return { buffer: Buffer.concat(chunks), contentType: r.headers.get('content-type') || '' };

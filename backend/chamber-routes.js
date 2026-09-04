@@ -2344,6 +2344,7 @@ async function loadGroups() {
     } catch (e) { console.error('group seed failed', e); }
   }
   await applyFlyerCorrections();
+  await applySustainableAndLegacyPage();
   return repo.listGroupsStore();
 }
 
@@ -2357,6 +2358,64 @@ async function loadGroups() {
 // settings marker means it runs once; a value the office changes back after
 // this is never re-corrected by a redeploy.
 let _flyerFixChecked = false;
+/* Sep 4 2026, Felicia and Diana, both asking the same thing: "I'm curious where
+   you saw Star and Steve Hochman as Co-Leaders for the Sustainability
+   Committee. The last list I sent you has just Steve Hochman."
+
+   Neither of them sent it. It came off the OLD website. The migrated page
+   "Committees, Connection Circles & Networking Groups" says, word for word:
+   "Contact Co-Leaders: Steve Hochman steve@thesolarhawk.com and Star Tomlinson
+   star@thedrainco.com" — so both names rode in with the migration and became
+   the group's two Leaders.
+
+   Two corrections, both guarded on the stale value so an office edit made in
+   the meantime is never stomped:
+
+   1. The group: Steve becomes the manager (the name the group page publishes)
+      and Star's Leader row goes. She was only ever on the roster as the
+      co-leader that line named.
+   2. That old page: hidden. It is a public duplicate of what now lives under
+      Groups, still reachable from Resources and by search, and stale well
+      beyond this one line — it lists six groups the Chamber no longer runs
+      (Legislative, Home Based Business, HPN, LPN, R & B Realtors, Warner
+      Center Property Managers). Hiding is reversible from Admin > Content. */
+let _sustainableFixChecked = false;
+async function applySustainableAndLegacyPage() {
+  if (_sustainableFixChecked) return;
+  _sustainableFixChecked = true;
+  const KEY = 'sustainableLeaderAndLegacyPage-20260904';
+  try {
+    if (await repo.getSetting(KEY)) return;
+    const notes = [];
+
+    const g = (await repo.listGroupsStore()).find((x) => x.slug === 'sustainable-professionals-network');
+    if (g) {
+      const mgrIsStar = /star/i.test(String((g.manager || {}).name || ''));
+      const star = (g.members || []).find((m) => /star\s+tomlinson/i.test(String(m.name || '')));
+      const steve = (g.members || []).find((m) => /steve\s+hochman/i.test(String(m.name || '')));
+      if (mgrIsStar && steve) {
+        g.manager = { ...(g.manager || {}), name: 'Steve Hochman', email: steve.email || 'steve@thesolarhawk.com', phone: '', memberId: steve.memberId || null };
+        notes.push('manager -> Steve Hochman');
+      }
+      if (star) {
+        g.members = (g.members || []).filter((m) => m !== star);
+        notes.push('removed Star Tomlinson from the roster');
+      }
+      if (notes.length) await repo.upsertGroup(buildGroup(g, g));
+    }
+
+    // Hide the migrated duplicate, unless the office already hid or restored it.
+    const ov = await repo.getPageOverrides();
+    const slug = 'committees-connection-circles-networking-groups';
+    if (!ov[slug]) {
+      await repo.setPageOverride(slug, { hidden: true });
+      notes.push('hid the legacy Committees page');
+    }
+
+    await repo.setSetting(KEY, `${notes.join('; ') || 'nothing to do'} @ ${new Date().toISOString()}`);
+    if (notes.length) console.log('[groups] Sustainable/legacy page:', notes.join('; '));
+  } catch (e) { _sustainableFixChecked = false; console.error('sustainable/legacy-page fix failed (will retry next boot)', e); }
+}
 async function applyFlyerCorrections() {
   if (_flyerFixChecked) return;
   _flyerFixChecked = true;
