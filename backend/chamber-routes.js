@@ -2142,7 +2142,14 @@ function publicEvent(ev) {
 router.get('/events', async (_req, res) => {
   try {
     const all = await loadEvents();
-    res.json({ events: all.filter((e) => (e.status || 'approved') === 'approved').map(publicEvent) });
+    /* "Show on calendar" is the office's own toggle in Admin > Events, and until
+       now nothing read it — they could untick it and the event still appeared,
+       which is worse than the option not existing. Diana asked for exactly this
+       on Sep 4 (via Felicia): an event with a working RSVP link that is not on
+       the website for public view. Unticking it now takes the event off the
+       calendar while leaving it approved, so /api/events/:id still serves it and
+       RSVPs, confirmations and leader routing all work off the shared link. */
+    res.json({ events: all.filter((e) => (e.status || 'approved') === 'approved' && e.showOnCalendar !== false).map(publicEvent) });
   } catch (e) { console.error(e); res.status(500).json({ error: 'events unavailable' }); }
 });
 /* A real .ics download for one event (Aug 20 2026 — group members add the
@@ -5287,7 +5294,7 @@ export async function sitemapEntries() {
        California. */
     const cutoff = new Date(Date.now() - 365 * 864e5).toISOString().slice(0, 10);
     const events = (await loadEvents()).filter((e) =>
-      (e.status || 'approved') === 'approved' && e.confirmed && e.date && e.date >= cutoff);
+      (e.status || 'approved') === 'approved' && e.showOnCalendar !== false && e.confirmed && e.date && e.date >= cutoff);
     for (const ev of events) out.push(`/events/view.html?id=${encodeURIComponent(ev.id)}`);
   } catch (e) { console.error('sitemap: events unavailable —', e.message); }
 
