@@ -4575,6 +4575,8 @@ window.Admin = (function () {
           managerMemberId = m.id;
           document.getElementById('grpMgrName').value = m.contactName || m.name || '';
           document.getElementById('grpMgrEmail').value = m.email || '';
+          const mgrPh = document.getElementById('grpMgrPhone');
+          if (mgrPh && !mgrPh.value) mgrPh.value = m.phone || '';
           mgrSearch.value = ''; mgrSugg.hidden = true;
         }));
       });
@@ -4806,6 +4808,8 @@ window.Admin = (function () {
       managerMemberId = g && g.manager ? (g.manager.memberId || null) : null;
       document.getElementById('grpMgrName').value = g && g.manager ? (g.manager.name || '') : '';
       document.getElementById('grpMgrEmail').value = g && g.manager ? (g.manager.email || '') : '';
+      const grpMgrPhoneEl = document.getElementById('grpMgrPhone');
+      if (grpMgrPhoneEl) grpMgrPhoneEl.value = g && g.manager ? (g.manager.phone || '') : '';
       renderRoster();
       renderPhotos();
       // Meetings need a saved group to hang off (slug + attribution), so the
@@ -4928,7 +4932,15 @@ window.Admin = (function () {
       const body = Object.fromEntries(fd.entries());
       if (!body.id) delete body.id;
       body.heroImage = heroUrl; body.photos = photos; body.members = members;
-      body.manager = { name: document.getElementById('grpMgrName').value.trim(), email: document.getElementById('grpMgrEmail').value.trim(), memberId: managerMemberId };
+      // phone included deliberately: normalizeGroupManager() defaults a missing
+      // phone to '', so leaving it out of this payload silently wiped the
+      // leader's number on every single group save.
+      body.manager = {
+        name: document.getElementById('grpMgrName').value.trim(),
+        email: document.getElementById('grpMgrEmail').value.trim(),
+        phone: (document.getElementById('grpMgrPhone')?.value || '').trim(),
+        memberId: managerMemberId,
+      };
       const btn = form.querySelector('[type="submit"]'); btn.disabled = true;
       try {
         await api('/api/admin/groups', { method: 'POST', body: JSON.stringify(body) });
