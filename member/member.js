@@ -192,8 +192,12 @@ window.MemberPortal = (function () {
     } catch (e) { return; }
     const evs = openings.events || [];
     const mine = me.mine || [];
-    // Nothing to volunteer for and no history → don't clutter the dashboard.
-    if (!evs.length && !mine.length) return;
+    // Nothing to volunteer for and no history → don't clutter the dashboard —
+    // UNLESS this member is an Ambassador, in which case the tracker IS their
+    // dashboard and hiding it is why Diana said (Sep 4 2026) that "the
+    // Ambassadors need to access the tracker". No event has carried volunteer
+    // roles yet, so until now this returned for every single person.
+    if (!evs.length && !mine.length && !me.ambassador) return;
     // Points/tiers only render once the Chamber turns them on (Felicia, Jul 30
     // 2026 — "we do not have a point system at this moment"). Until then this
     // is a plain "who is covering what" sign-up sheet.

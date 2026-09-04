@@ -202,6 +202,7 @@ window.Admin = (function () {
   const HELP = [
     { id: 'group-add-members', t: 'Add members to a group / Connection Circle', kw: 'group network connection circle roster add member leader join', href: 'groups.html', sel: '#grpMemberSearch', tip: 'Open a group, then search your directory here and click a member to add them. You can also “Add someone manually.”' },
     { id: 'group-manager', t: 'Set a group / network manager', kw: 'group manager rsvp join request leader contact', href: 'groups.html', sel: '#grpMgrSearch', tip: 'Search a member to set as the group’s manager — they receive that group’s join requests and meeting RSVPs.' },
+    { id: 'group-leader-access', t: 'Let a group leader run their own group', kw: 'group leader chair manage themselves own members roster access sign in login committee connection circle self', href: 'groups.html', sel: '#grpMgrEmail', tip: 'Put the leader’s email in Manager email and save. They then sign in as a member and get their own Manage group page — roster, group email, meetings and RSVPs. The Groups list shows which leaders can already do this.' },
     { id: 'group-approve', t: 'Approve a “Join this group” request', kw: 'group join request approve pending decline', href: 'groups.html', sel: '#grpPending', tip: 'Edit a group and click Approve or Decline here — it saves right away, no Save group needed.' },
     { id: 'image-library', t: 'Reuse an image you already uploaded', kw: 'image library gallery photo logo reuse upload media council headshot sponsor', href: 'images.html', sel: '#libSearch', tip: 'Every image you have ever uploaded lives here — name and tag them, then pick them anywhere with the 📁 Library button.' },
     { id: 'ambassador-tracker', t: 'See who volunteered and their points', kw: 'ambassador tracker volunteer points tier leaderboard registration check-in greeter shift', href: 'ambassadors.html', sel: '#leaderRows', tip: 'Every volunteer shift with points and tiers. Set the roles you need covered on each event under Events.' },
@@ -4810,6 +4811,7 @@ window.Admin = (function () {
       document.getElementById('grpMgrEmail').value = g && g.manager ? (g.manager.email || '') : '';
       const grpMgrPhoneEl = document.getElementById('grpMgrPhone');
       if (grpMgrPhoneEl) grpMgrPhoneEl.value = g && g.manager ? (g.manager.phone || '') : '';
+      showLeaderAccess(g);
       renderRoster();
       renderPhotos();
       // Meetings need a saved group to hang off (slug + attribution), so the
@@ -4893,6 +4895,35 @@ window.Admin = (function () {
       } catch (err) { note('Could not send: ' + (err.message || 'error')); }
     });
 
+    /* Whether the group's own leader can run it without the office (Diana,
+       Sep 4 2026). The leader portal is already built — this only reports
+       whether THIS group's leader reaches it, because the manager email is
+       what decides that and nothing here ever said so. */
+    function leaderCell(a) {
+      if (!a || !a.email) return '<span class="sub" title="Add a Manager email below and the leader gets their own Manage group page">— no leader email</span>';
+      if (a.canManage === false) return `<span class="pill pill--pending" title="${esc(a.email)} has no sign-in yet — Members → find them → 🔑 Logins → Give them access">no sign-in yet</span>`;
+      if (a.canManage === null) return `<span class="sub">${esc(a.email)}</span>`;
+      return `<span class="pill pill--approved" title="${esc(a.email)} signs in and manages this group themselves">yes</span>`;
+    }
+    function showLeaderAccess(g) {
+      const el = document.getElementById('grpLeaderAccess'); if (!el) return;
+      const a = (g && g.leaderAccess) || null;
+      if (!g || !g.id) { el.textContent = ''; return; }
+      if (!a || !a.email) {
+        el.innerHTML = `<strong>${esc(a && a.name ? a.name : 'This group\u2019s leader')} cannot manage this group yet.</strong> `
+          + 'Put their email address in <strong>Manager email</strong> above and save — they can then add and remove members, '
+          + 'email the roster, post the group\u2019s meetings and see RSVPs, all from their own sign-in.';
+      } else if (a.canManage === false) {
+        el.innerHTML = `<strong>${esc(a.email)} has no sign-in yet.</strong> Give them one under `
+          + '<strong>Members</strong> → find their business → <strong>🔑 Logins</strong> → <strong>Give them access</strong>. '
+          + 'Until then they cannot reach their Manage group page.';
+      } else {
+        el.innerHTML = `<strong>${esc(a.name || a.email)} manages this group themselves.</strong> `
+          + 'They sign in at <strong>Member sign-in</strong> and get <em>Manage group</em> on their dashboard — roster, '
+          + 'group email, meetings and RSVPs. You do not have to do it for them.';
+      }
+    }
+
     async function loadList() {
       try {
         const { groups } = await api('/api/admin/groups');
@@ -4904,6 +4935,7 @@ window.Admin = (function () {
           <tr data-id="${esc(g.id)}">
             <td><a class="name" href="#" data-open>${esc(g.name)}</a><div class="sub">/groups/${esc(g.slug)}</div></td>
             <td><strong>${active}</strong>${pending ? ` <span class="pill pill--pending" title="Join requests waiting for approval — click Manage">${pending} pending</span>` : ''}</td>
+            <td>${leaderCell(g.leaderAccess)}</td>
             <td class="sub">${esc(g.meetingSchedule || '—')}</td>
             <td>${g.status === 'approved' ? '<span class="pill pill--approved">live</span>' : '<span class="pill pill--pending">draft</span>'}</td>
             <td style="white-space:nowrap">
@@ -4912,7 +4944,7 @@ window.Admin = (function () {
               <button type="button" data-del class="btn btn--ghost btn--sm" style="color:var(--red)">Delete</button>
             </td>
           </tr>`;
-        }).join('') : '<tr><td colspan="5" class="sub">No groups yet — click “+ New group”.</td></tr>';
+        }).join('') : '<tr><td colspan="6" class="sub">No groups yet — click “+ New group”.</td></tr>';
         tbody.querySelectorAll('tr[data-id]').forEach((tr) => {
           const g = groups.find((x) => x.id === tr.dataset.id);
           tr.querySelector('[data-open]')?.addEventListener('click', (e) => { e.preventDefault(); fill(g); });

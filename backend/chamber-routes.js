@@ -2534,9 +2534,33 @@ router.post('/groups/:slug/join', async (req, res) => {
     res.json({ ok: true });
   } catch (e) { console.error('group join', e); res.status(500).json({ error: 'Could not submit your request.' }); }
 });
+/* Each group carries whether its leader can actually sign in and run it
+   themselves (Diana, Sep 4 2026: "The group leaders need to be able to add
+   their own members"). They can — /me/group/:slug has been a full management
+   page since August — but ONLY for a leader groupsLedBy() recognises, and that
+   comes down to the manager email. Nine groups have a named leader and no
+   address, so their leader is locked out and nothing on screen said so. The
+   office needs to see which, and that the email is the switch. */
 router.get('/admin/groups', requireAdmin, async (_req, res) => {
-  try { res.json({ groups: await loadGroups() }); }
-  catch (e) { res.status(500).json({ error: 'failed' }); }
+  try {
+    const groups = await loadGroups();
+    let accounts = new Set();
+    try { accounts = new Set((await users.listUsers()).map((u) => String(u.email || '').toLowerCase())); }
+    catch (e) { accounts = null; }   // unknown beats a wrong "locked out"
+    res.json({ groups: groups.map((g) => {
+      const email = String((g.manager && g.manager.email) || '').toLowerCase();
+      // A roster Leader/Chair/Co-Chair with an address counts too — same rule
+      // groupsLedBy() applies, so this reports what the leader will actually get.
+      const rosterLeader = (g.members || []).find((m) => m && m.status !== 'pending'
+        && /^(leader|chair|co-chair)$/i.test(String(m.role || '')) && String(m.email || '').trim());
+      const candidate = email || String((rosterLeader && rosterLeader.email) || '').toLowerCase();
+      return { ...g, leaderAccess: {
+        email: candidate,
+        name: (g.manager && g.manager.name) || (rosterLeader && rosterLeader.name) || '',
+        canManage: candidate ? (accounts ? accounts.has(candidate) : null) : false,
+      } };
+    }) });
+  } catch (e) { res.status(500).json({ error: 'failed' }); }
 });
 router.post('/admin/groups', requireAdmin, async (req, res) => {
   try {
@@ -3143,15 +3167,35 @@ router.get('/me/volunteer/openings', auth.requireAuth(), async (_req, res) => {
   } catch (e) { console.error('volunteer openings', e); res.status(500).json({ error: 'Could not load the volunteer list.' }); }
 });
 
+/* Is this login an Ambassador? Exactly the rule the public Ambassadors page
+   uses (initAmbassadors in js/chamber.js) — the member's own designation, set
+   in Admin > Members. NOT the Ambassador Committee roster, which is empty; 22
+   members carry the designation and they are who Diana means.
+
+   This exists because the tracker card hid itself whenever there was nothing
+   to sign up for, and no event has ever carried volunteer roles — so the card
+   returned early for every member, every time. An ambassador signed in and
+   there was no tracker on the page at all (Diana, Sep 4 2026: "the Ambassadors
+   need to access the tracker"). For them the tracker IS the dashboard, so it
+   shows whether or not anything is open. */
+async function isAmbassador(user) {
+  try {
+    const m = await myMember(user && user.mid);
+    if (!m) return false;
+    return String(m.leaderStatus || '') === 'Ambassador'
+      || (Array.isArray(m.designations) && m.designations.includes('Ambassador'));
+  } catch { return false; }
+}
+
 // My shifts + my running total and tier.
 router.get('/me/volunteer', auth.requireAuth(), async (req, res) => {
   try {
-    if (!req.user.mid) return res.json({ ok: true, mine: [], points: 0, tier: '' });
+    if (!req.user.mid) return res.json({ ok: true, mine: [], points: 0, tier: '', ambassador: false });
     const mine = await repo.listVolunteers({ memberId: req.user.mid });
     const tiers = await loadTiers();
     const points = mine.filter(countsForPoints).reduce((s, v) => s + (Number(v.points) || 0), 0);
     const on = await pointsOn();
-    res.json({ ok: true, mine, points, tier: tierFor(tiers, points), tiers, pointsOn: on });
+    res.json({ ok: true, mine, points, tier: tierFor(tiers, points), tiers, pointsOn: on, ambassador: await isAmbassador(req.user) });
   } catch (e) { res.status(500).json({ error: 'Could not load your volunteer history.' }); }
 });
 

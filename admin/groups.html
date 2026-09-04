@@ -32,7 +32,7 @@
             <button type="button" class="btn btn--gold btn--sm" id="grpNewBtn">+ New group</button>
           </div>
           <table class="admin-table">
-            <thead><tr><th>Group</th><th>Members</th><th>Meets</th><th>Status</th><th></th></tr></thead>
+            <thead><tr><th>Group</th><th>Members</th><th>Leader can manage it</th><th>Meets</th><th>Status</th><th></th></tr></thead>
             <tbody id="groupRows"></tbody>
           </table>
         </div>
@@ -75,7 +75,7 @@
               </div>
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
                 <div class="field" style="margin:0"><label>Manager name</label><input id="grpMgrName" maxlength="160" placeholder="Jane Doe" /></div>
-                <div class="field" style="margin:0"><label>Manager email</label><input id="grpMgrEmail" type="email" maxlength="160" placeholder="jane@example.com" /></div>
+                <div class="field" style="margin:0"><label>Manager email <span class="sub">(the address they sign in with &mdash; this is what gives them their own Manage group page)</span></label><input id="grpMgrEmail" type="email" maxlength="160" placeholder="jane@example.com" /></div>
                 <div class="field" style="margin:0"><label>Manager phone <span class="sub">(office reference — not shown on the public page)</span></label><input id="grpMgrPhone" maxlength="40" placeholder="(818) 555-0134" /></div>
               </div>
               <!-- Leader locked out? One click emails them a reset link (per
@@ -88,6 +88,7 @@
                 <button type="button" class="btn btn--ghost btn--sm" id="grpMgrReset" title="Emails the manager a set-a-new-password link (expires in 1 hour)">✉ Send password-reset email</button>
                 <span class="sub" id="grpMgrResetMsg"></span>
               </div>
+              <p class="sub" id="grpLeaderAccess" style="margin:10px 0 0"></p>
               <p class="sub" style="margin:8px 0 0">Use <strong>👁 See the leader's view</strong> to walk a leader through their page over the phone — it shows you their screen without signing you out of here.</p>
             </div>
 
@@ -200,7 +201,7 @@
     </div>
   </div>
   <script src="../js/api-base.js"></script>
-  <script src="admin.js?v=20260904b"></script>
+  <script src="admin.js?v=20260904c"></script>
   <script>Admin.initGroups();</script>
   <script defer src="/js/support.js?v=20260804c"></script>
 </body>
