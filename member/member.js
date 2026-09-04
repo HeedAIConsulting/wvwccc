@@ -952,6 +952,23 @@ window.MemberPortal = (function () {
       legacyImg = (!flyerUrl && im0) ? (typeof im0 === 'string' ? im0 : (im0.src || '')) : '';
       drawFlyerPrev();
       if (submitBtn) submitBtn.textContent = 'Save changes';
+      /* Felicia, Sep 2 2026: "I did get into the event in admin as United
+         Chambers but now the event is not showing up on the website calendar."
+         A member who does not lead a group has their edit sent back for
+         approval, which takes the event OFF the public calendar until the
+         office clears it. That is the right rule, but the site never said it —
+         so a live listing vanished with no explanation. Say it before they
+         save, not only after. Leaders publish instantly and see none of this. */
+      if (!(data.isLeader && data.instantPublish) && (editing.status || 'approved') === 'approved') {
+        const warn = document.createElement('p');
+        warn.className = 'sub';
+        warn.style.cssText = 'margin:10px 0 0;padding:10px 12px;border-left:3px solid var(--gold,#b8893c);background:var(--wash,#faf7f0)';
+        warn.innerHTML = '<strong>This event is on the public calendar now.</strong> '
+          + 'Saving a change sends it to the Chamber office for a quick review, and it comes off '
+          + 'the calendar until they approve it. You will see it on your dashboard marked '
+          + '<em>awaiting the office</em> in the meantime.';
+        submitBtn.parentNode.insertBefore(warn, submitBtn);
+      }
       if (editing.groupSlug) {
         const back = document.querySelector('[data-back-link]');
         if (back) { back.href = 'group.html?g=' + encodeURIComponent(editing.groupSlug); back.textContent = '← Back to group management'; }
@@ -978,9 +995,15 @@ window.MemberPortal = (function () {
         try {
           const r = await api('/api/me/event/' + encodeURIComponent(editing.id), { method: 'PATCH', body: JSON.stringify(body) });
           msg.hidden = false; msg.style.borderColor = 'var(--green)';
+          // An event that WAS live has now left the calendar — say that, rather
+          // than only that a review is pending. Felicia watched the Mayors
+          // Luncheon disappear and had no way to know this was why.
+          const wasLive = (editing.status || 'approved') === 'approved';
           msg.textContent = r.published
             ? 'Saved — the calendar is updated.'
-            : 'Saved — your change goes to the Chamber office for a quick review, then updates on the calendar.';
+            : wasLive
+              ? 'Saved — and this event has come off the public calendar until the Chamber office approves the change. It is on your dashboard marked “awaiting the office”.'
+              : 'Saved — your change goes to the Chamber office for a quick review, then updates on the calendar.';
         } catch (err) {
           msg.hidden = false; msg.style.borderColor = 'var(--red)';
           msg.textContent = 'Could not save. Check the title and date, then try again.';
