@@ -3948,6 +3948,7 @@ window.Admin = (function () {
     const sub = document.getElementById('popSub');
     const btn = document.getElementById('popBtn');
     const href = document.getElementById('popHref');
+    const video = document.getElementById('popVideo');
     const retire = document.getElementById('popRetire');
     const saveBtn = document.getElementById('popSave');
     const flash = document.getElementById('popFlash');
@@ -3960,6 +3961,7 @@ window.Admin = (function () {
       imageUrl = popup.image || ''; drawImg();
       title.value = popup.title || ''; sub.value = popup.subtitle || '';
       btn.value = popup.buttonLabel || ''; href.value = popup.href || '';
+      if (video) video.value = popup.video || '';
       retire.value = /^\d{4}-\d{2}-\d{2}/.test(popup.retireAt || '') ? popup.retireAt.slice(0, 10) : '';
     } catch (e) { if (msg) msg.textContent = 'Could not load the current popup.'; }
     imgInput?.addEventListener('change', async () => {
@@ -3997,7 +3999,8 @@ window.Admin = (function () {
       saveBtn.disabled = true;
       try {
         await api('/api/admin/home-popup', { method: 'POST', body: JSON.stringify({
-          enabled: enabled.checked, image: imageUrl, title: title.value.trim(), subtitle: sub.value.trim(),
+          enabled: enabled.checked, image: imageUrl, video: video ? video.value.trim() : '',
+          title: title.value.trim(), subtitle: sub.value.trim(),
           buttonLabel: btn.value.trim(), href: href.value.trim(), retireAt: retire.value || '',
         }) });
         if (msg) msg.textContent = ''; flash.classList.add('show'); setTimeout(() => flash.classList.remove('show'), 1400);

@@ -867,6 +867,35 @@ window.Chamber = (function () {
       ${shareMenu(cap, link, true)}
     </figure>`;
   }
+  /* Videos page (Diana, Sep 2026 — the welcome video, and everything after it).
+     The office pastes a YouTube or Vimeo link into Admin → Content as a Video
+     post; nothing is uploaded to the site and no file is copied anywhere. Same
+     embed rules as a member's profile video, so one paste works in both places. */
+  async function initVideos() {
+    const grid = document.getElementById('videoGrid');
+    if (!grid) return;
+    let posts = [];
+    try { posts = ((await getJSON(ChamberAPI.url('/api/posts?type=video'))).posts || []); } catch (e) {}
+    const playable = posts.filter((p) => videoEmbed(p.linkUrl));
+    if (!playable.length) {
+      grid.innerHTML = `<p class="notice"><strong>No videos yet.</strong> The office adds one in
+        Admin → Content → Publish: choose <em>Video</em>, paste the YouTube or Vimeo link, and it appears here.</p>`;
+      return;
+    }
+    // Newest first — `created` is an ISO string on every post.
+    playable.sort((a, b) => String(b.created || '').localeCompare(String(a.created || '')));
+    grid.className = 'grid grid-2';
+    grid.style.gap = 'var(--s-6)';
+    grid.innerHTML = playable.map((p) => `
+      <article class="card" style="padding:0;overflow:hidden">
+        ${videoEmbed(p.linkUrl).replace('class="video-embed mt-5"', 'class="video-embed"')}
+        <div style="padding:var(--s-4)">
+          <h3 style="margin:0 0 6px;font-size:1.05rem">${esc(p.title || 'Chamber video')}</h3>
+          ${p.body ? `<p class="member-tile__meta" style="margin:0">${esc(p.body)}</p>` : ''}
+        </div>
+      </article>`).join('');
+  }
+
   async function initGallery() {
     const grid = document.getElementById('galleryGrid');
     if (!grid) return;
@@ -3407,5 +3436,5 @@ window.Chamber = (function () {
     render();
   }
 
-  return { initHome, initEventView, initDirectory, initProfile, initEvents, initCheckout, initLeadForm, initJobs, initDeals, initCommunity, initNews, initBizBuzz, initBoard, initLeaders, initDining, offerCard, postCard, newsCard, memberTile, eventCard, eventPreviewCard, initLeaderBanner, initGroups, initGroupView, initGallery, initAlbumView, initPayPortal, initAmbassadors, initFeaturedSlot, joinCtaHtml, mountJoinCta, initGuides, initGuideView, initRealEstate, getJSON, esc };
+  return { initHome, initEventView, initDirectory, initProfile, initEvents, initCheckout, initLeadForm, initJobs, initDeals, initCommunity, initNews, initBizBuzz, initBoard, initLeaders, initDining, offerCard, postCard, newsCard, memberTile, eventCard, eventPreviewCard, initLeaderBanner, initGroups, initGroupView, initGallery, initVideos, initAlbumView, initPayPortal, initAmbassadors, initFeaturedSlot, joinCtaHtml, mountJoinCta, initGuides, initGuideView, initRealEstate, getJSON, esc };
 })();
