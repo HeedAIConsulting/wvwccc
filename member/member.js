@@ -204,7 +204,11 @@ window.MemberPortal = (function () {
     const showPoints = !!(me.pointsOn || openings.pointsOn);
 
     const claimed = new Set(mine.map((m) => `${m.eventId}|${m.role}`));
-    const upcomingMine = mine.filter((m) => !m.eventDate || m.eventDate >= new Date().toISOString().slice(0, 10));
+    const logged = mine.filter((m) => m.status === 'logged')
+      .sort((a, b) => String(b.eventDate || '').localeCompare(String(a.eventDate || '')));
+    const upcomingMine = mine.filter((m) => m.status !== 'logged'
+      && (!m.eventDate || m.eventDate >= new Date().toISOString().slice(0, 10)));
+    const cTiers = me.contributionTiers || [];
 
     host.innerHTML = `
       <div class="card">
@@ -246,8 +250,49 @@ window.MemberPortal = (function () {
           </div>`).join('')}
         </div>` : '<p class="member-tile__meta mt-4">No events need volunteers right now — check back soon.</p>'}
 
+        ${cTiers.length ? `
+        <div class="mt-6" style="border-top:1px solid var(--line,#eee);padding-top:var(--s-4)">
+          <h3 style="margin:0 0 4px">Log something you did</h3>
+          <p class="member-tile__meta" style="margin:0 0 12px">Not everything happens at an event. A social post, a review for a member, a Buddy check-in, a business you referred — record it here and the office sees it in the tracker.</p>
+          <div class="grid grid-2" style="gap:10px">
+            <div class="field" style="margin:0"><label>What kind of contribution</label>
+              <select id="volTier" style="width:100%">
+                <option value="">Choose one…</option>
+                ${cTiers.map((t) => `<option value="${esc(t.id)}">${esc(t.name)}</option>`).join('')}
+              </select>
+              <p class="member-tile__meta" id="volTrack" style="margin:4px 0 0"></p>
+            </div>
+            <div class="field" style="margin:0"><label>When</label>
+              <input id="volDate" type="date" max="${esc(new Date().toISOString().slice(0, 10))}" value="${esc(new Date().toISOString().slice(0, 10))}" style="width:100%"></div>
+            <div class="field" style="margin:0;grid-column:1/-1"><label>What you did</label>
+              <input id="volWhat" maxlength="120" placeholder="e.g. Shared the Chamber breakfast post and tagged three members" style="width:100%"></div>
+            <div class="field" style="margin:0;grid-column:1/-1"><label>Anything else <span class="member-tile__meta">(optional)</span></label>
+              <input id="volNote" maxlength="300" placeholder="Names, numbers, how it went" style="width:100%"></div>
+          </div>
+          <div class="btn-row mt-3"><button type="button" class="btn btn--forest btn--sm" id="volLog">Add to my tracker</button></div>
+        </div>
+
+        ${logged.length ? `<div class="mt-5">
+          <h3 style="margin:0 0 4px">What you've logged <span class="member-tile__meta">(${logged.length})</span></h3>
+          ${logged.slice(0, 20).map((m) => `<div data-logrow="${esc(m.id)}" style="display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--line,#eee);flex-wrap:wrap">
+            <span style="flex:1;min-width:220px"><strong>${esc(m.role)}</strong>
+              <div class="member-tile__meta">${esc(m.eventTitle || '')}${m.eventDate ? ' · ' + esc(m.eventDate) : ''}${showPoints && m.points ? ` · ${esc(m.points)} pts` : ''}</div>
+              ${m.note ? `<div class="member-tile__meta">${esc(m.note)}</div>` : ''}</span>
+            <button type="button" data-vcancel="${esc(m.id)}" class="btn btn--ghost btn--sm" style="color:var(--red)">Remove</button>
+          </div>`).join('')}
+          ${showPoints ? '<p class="member-tile__meta mt-3">The office reviews what you log and sets what it is worth, so points can take a few days to appear.</p>' : ''}
+        </div>` : ''}` : ''}
+
         <p id="volMsg" class="notice mt-4" hidden></p>
-        ${mine.length ? `<p class="member-tile__meta mt-4">You've helped at ${mine.length} shift${mine.length === 1 ? '' : 's'}. Thank you 🌿</p>` : ''}
+        ${(() => {
+          // Shifts and logged contributions are both help, but calling a Buddy
+          // check-in a "shift" reads as a mistake to the person who logged it.
+          const shifts = mine.length - logged.length;
+          const bits = [];
+          if (shifts) bits.push(`${shifts} shift${shifts === 1 ? '' : 's'}`);
+          if (logged.length) bits.push(`${logged.length} other contribution${logged.length === 1 ? '' : 's'}`);
+          return bits.length ? `<p class="member-tile__meta mt-4">On your record: ${bits.join(' and ')}. Thank you 🌿</p>` : '';
+        })()}
       </div>`;
 
     const msg = document.getElementById('volMsg');
@@ -268,12 +313,49 @@ window.MemberPortal = (function () {
       } catch (e) { say('Could not reach the Chamber right now.', true); b.disabled = false; }
     }));
     host.querySelectorAll('[data-vcancel]').forEach((b) => b.addEventListener('click', async () => {
-      if (!confirm('Cancel this volunteer shift?')) return;
+      // A logged contribution and a booked shift are removed the same way, but
+      // they are not the same thing to the person doing it.
+      const isLog = !!b.closest('[data-logrow]');
+      if (!confirm(isLog ? 'Remove this from your tracker?' : 'Cancel this volunteer shift?')) return;
       try {
         await api('/api/me/volunteer/' + encodeURIComponent(b.dataset.vcancel), { method: 'DELETE' });
         mountVolunteer();
-      } catch (e) { say('Could not cancel that shift.', true); }
+      } catch (e) { say(isLog ? 'Could not remove that.' : 'Could not cancel that shift.', true); }
     }));
+
+    // ── Log a contribution that did not happen at an event ──
+    const tierSel = document.getElementById('volTier');
+    const track = document.getElementById('volTrack');
+    if (tierSel && track) {
+      // Show Diana's own "What to Track" line for whichever tier is picked, so
+      // the person knows what detail is actually useful to the office.
+      tierSel.addEventListener('change', () => {
+        const t = (me.contributionTiers || []).find((x) => x.id === tierSel.value);
+        track.textContent = t ? 'Worth noting: ' + t.track : '';
+      });
+    }
+    const logBtn = document.getElementById('volLog');
+    if (logBtn) logBtn.addEventListener('click', async () => {
+      const body = {
+        tier: (document.getElementById('volTier') || {}).value || '',
+        activity: ((document.getElementById('volWhat') || {}).value || '').trim(),
+        date: (document.getElementById('volDate') || {}).value || '',
+        note: ((document.getElementById('volNote') || {}).value || '').trim(),
+      };
+      if (!body.tier) return say('Pick which kind of contribution this was.', true);
+      if (!body.activity) return say('Say in a few words what you did.', true);
+      logBtn.disabled = true;
+      try {
+        const r = await fetch(base + '/api/me/volunteer/log', {
+          method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok || d.ok === false) { say(d.error || 'Could not save that.', true); logBtn.disabled = false; return; }
+        say('Added to your tracker — thank you!');
+        mountVolunteer();
+      } catch (e) { say('Could not reach the Chamber right now.', true); logBtn.disabled = false; }
+    });
   }
 
   // ── Image upload helper (file → data URL → /api/me/asset → url) ──

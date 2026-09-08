@@ -56,11 +56,11 @@
         <div class="panel">
           <div class="panel__head" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
             <h3 style="margin-right:auto">Every shift</h3>
-            <select id="volEventFilter" class="admin-select" style="min-width:220px"><option value="">All events</option></select>
+            <select id="volEventFilter" class="admin-select" style="min-width:220px"><option value="">All events &amp; contributions</option><option value="__logged__">Logged by ambassadors (not an event)</option></select>
             <input id="volSearch" class="admin-select" type="search" placeholder="Search a name or task…" style="min-width:200px" />
           </div>
           <table class="admin-table">
-            <thead><tr><th>Date</th><th>Event</th><th>Volunteer</th><th>Task</th><th>Points</th><th>Status</th><th></th></tr></thead>
+            <thead><tr><th>Date</th><th>Event / contribution</th><th>Volunteer</th><th>Task</th><th>Points</th><th>Status</th><th></th></tr></thead>
             <tbody id="volRows"><tr><td colspan="7" class="sub">Loading…</td></tr></tbody>
           </table>
           <p id="volMsg" class="notice" hidden style="margin:10px 16px"></p>
@@ -125,7 +125,7 @@
     </div>
   </div>
   <script src="../js/api-base.js"></script>
-  <script src="admin.js?v=20260904d"></script>
+  <script src="admin.js?v=20260908a"></script>
   <script>Admin.initAmbassadors();</script>
   <script defer src="/js/support.js?v=20260804c"></script>
 </body>
