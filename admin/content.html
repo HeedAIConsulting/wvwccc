@@ -77,6 +77,34 @@
         <!-- Donation projects: the "choose what your gift supports" list on the
              public Donate and Community Benefit Foundation pages. Restored from
              the legacy CBF donation page (Felicia, Jul 29 2026). -->
+        <!-- The welcome letter every new member receives (Felicia, Sep 8 2026:
+             "We would like to add a couple things to the welcome letter... How
+             can we do that?"). Was hardcoded; now theirs to edit. -->
+        <div class="panel">
+          <div class="panel__head">
+            <h3>✉ New member welcome letter</h3>
+            <span class="sub">The email a new member gets when you press <strong>Welcome</strong> on their row under Members.</span>
+          </div>
+          <div class="admin-form" style="padding:16px;display:grid;gap:12px">
+            <p class="sub" style="margin:0" id="wlState"></p>
+            <div class="field" style="margin:0"><label>Subject line</label>
+              <input id="wlSubject" maxlength="200" style="width:100%" /></div>
+            <div class="field" style="margin:0"><label>The letter</label>
+              <textarea id="wlBody" rows="16" style="width:100%;font:inherit"></textarea>
+              <p class="sub" style="margin:6px 0 0">Leave a blank line between paragraphs. The three things in double braces get swapped for the member's own details when it sends:</p>
+              <ul class="sub" id="wlFields" style="margin:6px 0 0;padding-left:20px"></ul>
+            </div>
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+              <button type="button" id="wlSave" class="btn btn--forest btn--sm">Save the letter</button>
+              <button type="button" id="wlPreview" class="btn btn--ghost btn--sm">See it filled in</button>
+              <button type="button" id="wlReset" class="btn btn--ghost btn--sm">Put the original back</button>
+              <span class="saved-flash" id="wlFlash">saved ✓</span>
+              <span id="wlMsg" class="sub"></span>
+            </div>
+            <p class="sub" style="margin:0">Nothing sends from this page. Saving only changes what the next welcome email will say — you still send it per member under <a href="members.html">Members</a>, and you always see the finished letter before it goes.</p>
+          </div>
+        </div>
+
         <div class="panel">
           <div class="panel__head"><h3>♥ Donation projects</h3></div>
           <div class="admin-form" style="padding:16px">
@@ -119,7 +147,7 @@
     </div>
   </div>
   <script src="../js/api-base.js"></script>
-  <script src="admin.js?v=20260908a"></script>
+  <script src="admin.js?v=20260908b"></script>
   <script>Admin.initContent();</script>
   <script defer src="/js/support.js?v=20260804c"></script>
 </body>

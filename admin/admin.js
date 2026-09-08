@@ -214,6 +214,7 @@ window.Admin = (function () {
     { id: 'event-create', t: 'Create or edit an event', kw: 'event create edit add date venue ticket calendar feature homepage', href: 'events.html', sel: '#eventForm', tip: 'Fill in the event here. Toggle “Feature on homepage” to spotlight it.' },
     { id: 'event-flyer', t: 'Make an event from a flyer (AI auto-fill)', kw: 'event flyer poster pdf upload ai autofill', href: 'events.html', sel: '#evFlyer', tip: 'Upload a flyer (image or PDF) and the AI reads it and fills the event form for you to review.' },
     { id: 'member-edit', t: 'Edit a member’s profile / listing', kw: 'member profile edit description services accomplishments associations social logo photos', href: 'members.html', sel: '#memberSearch', tip: 'Search the member, then click their name to edit their public listing (incl. services, accomplishments, associations & social links).' },
+    { id: 'welcome-letter', t: 'Change the new member welcome letter', kw: 'welcome letter email new member onboarding copy wording edit text template greeting', href: 'content.html', sel: '#wlBody', tip: 'Edit the words the new member gets. Keep {{link}} in it — that is their sign-in link. “See it filled in” shows the finished letter before you save.' },
     { id: 'member-second-login', t: 'Give a second person access to one member’s profile', kw: 'second login two logins another rep representative partner admin colleague spouse add email sign in cannot log in access profile', href: 'members.html', sel: '#memberSearch', tip: 'Find the business, click 🔑 Logins, then type their email and click “➕ Give them access”. Each representative gets their own password and both open the same profile — adding one never changes the other’s sign-in.' },
     { id: 'member-password', t: 'Set or reset a member’s password', kw: 'password reset set member login access', href: 'members.html', sel: '#memberSearch', tip: 'Find the member, then use “Set password” or “Reset link.”' },
     { id: 'approve-member', t: 'Approve a new member sign-up', kw: 'approve new member signup pending application', href: 'approvals.html', tip: 'New sign-ups and member-submitted posts wait here for your OK before they go public.' },
@@ -3626,9 +3627,75 @@ window.Admin = (function () {
     api('/api/admin/donation-projects').then((r) => { projects = r.projects || []; draw(); }).catch(() => { projects = []; draw(); });
   }
 
+  /* The welcome letter every new member receives (Felicia, Sep 8 2026).
+     Editing it here changes what the NEXT welcome email says; sending still
+     happens per member under Members, and still shows the letter first. */
+  async function initWelcomeLetter() {
+    const subj = document.getElementById('wlSubject');
+    const body = document.getElementById('wlBody');
+    if (!subj || !body) return;
+    const msg = document.getElementById('wlMsg');
+    const flash = document.getElementById('wlFlash');
+    const state = document.getElementById('wlState');
+    const say = (t, bad) => { if (!msg) return; msg.textContent = t || ''; msg.style.color = bad ? 'var(--red,#b00020)' : 'var(--green,#2b6b3f)'; };
+    const paint = (d) => {
+      subj.value = d.subject || '';
+      body.value = d.body || '';
+      if (state) state.textContent = d.isDefault
+        ? 'This is the original letter, unchanged. Edit it and it becomes yours.'
+        : 'You have edited this letter. “Put the original back” restores the one the site shipped with.';
+      const fl = document.getElementById('wlFields');
+      if (fl) fl.innerHTML = (d.fields || []).map((f) => `<li><code>${esc(f.tag)}</code> — ${esc(f.what)}</li>`).join('');
+    };
+    try { paint(await api('/api/admin/welcome-letter')); }
+    catch (e) { say('Could not load the welcome letter.', true); return; }
+
+    document.getElementById('wlSave')?.addEventListener('click', async () => {
+      say('');
+      const r = await apiRaw('/api/admin/welcome-letter', {
+        method: 'POST', body: JSON.stringify({ subject: subj.value, body: body.value }),
+      });
+      // The {{link}} guard comes back as a plain sentence — show it, do not
+      // swallow it, because it is the one mistake that breaks the letter.
+      if (!r.ok) return say((r.body && r.body.error) || 'Could not save.', true);
+      paint(r.body);
+      if (flash) { flash.classList.add('is-on'); setTimeout(() => flash.classList.remove('is-on'), 1600); }
+      say('Saved — the next welcome email uses this.');
+    });
+
+    document.getElementById('wlReset')?.addEventListener('click', async () => {
+      if (!confirm('Put the original welcome letter back? Your edits are replaced.')) return;
+      try { paint(await api('/api/admin/welcome-letter', { method: 'POST', body: JSON.stringify({ reset: true }) })); say('The original letter is back.'); }
+      catch (e) { say('Could not reset.', true); }
+    });
+
+    // Fill it in against a real member so they see the finished thing.
+    document.getElementById('wlPreview')?.addEventListener('click', async () => {
+      say('');
+      let m = null;
+      try { m = ((await api('/api/admin/members')).members || []).find((x) => x.email); }
+      catch (e) {}
+      if (!m) return say('No member with an email on file to preview against.', true);
+      try {
+        const p = await api(`/api/admin/members/${encodeURIComponent(m.id)}/send-welcome`, { method: 'POST', body: JSON.stringify({ preview: true }) });
+        const ov = document.createElement('div');
+        ov.style.cssText = 'position:fixed;inset:0;background:rgba(14,42,22,.55);display:flex;align-items:flex-start;justify-content:center;padding:6vh 16px;z-index:9999;overflow-y:auto';
+        ov.innerHTML = `<div role="dialog" aria-modal="true" style="max-width:640px;width:100%;background:#fff;border-radius:12px;padding:22px 26px">
+            <h3 style="margin:0 0 4px">This is how it will read</h3>
+            <p class="sub" style="margin:0 0 12px">Filled in for <strong>${esc(m.name || '')}</strong> as an example · Subject: ${esc(p.subject)}</p>
+            <pre style="white-space:pre-wrap;font:inherit;background:var(--cream,#faf6ea);border:1px solid var(--line,#e4dcc8);border-radius:10px;padding:14px 16px;max-height:52vh;overflow:auto">${esc(p.text)}</pre>
+            <div class="btn-row" style="margin-top:14px"><button class="btn btn--ghost btn--sm" data-x>Close</button></div>
+          </div>`;
+        ov.addEventListener('click', (ev) => { if (ev.target === ov || ev.target.closest('[data-x]')) ov.remove(); });
+        document.body.appendChild(ov);
+      } catch (e) { say('Could not build a preview.', true); }
+    });
+  }
+
   async function initContent() {
     mountShell('content');
     initDonationProjects();
+    initWelcomeLetter();
     const TYPES = ['news', 'announcement', 'discount', 'member_post', 'event'];
     const form = document.getElementById('postForm');
     const msg = document.getElementById('postMsg');

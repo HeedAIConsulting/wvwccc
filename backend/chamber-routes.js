@@ -4211,6 +4211,93 @@ router.post('/concierge', async (req, res) => {
   }
 });
 
+/* ── The welcome letter, editable by the office ──────────────
+   Felicia, Sep 8 2026: "We would like to add a couple things to the welcome
+   letter that gets sent out to the new members. How can we do that?" She
+   could not: the copy was hardcoded in THREE places here — the preview, the
+   plain-text send and the HTML send — so only I could change a word of it,
+   and the three could drift apart from each other.
+
+   Now one plain-text template in settings, and the HTML is derived from it,
+   so the letter the office previews is the letter that goes out. The default
+   below is the existing copy verbatim, so nothing changes until they edit it.
+
+   {{link}} is REQUIRED and the save refuses without it: it is the
+   set-your-password link, and a welcome letter that has lost it is a welcome
+   letter that does not work. */
+const WELCOME_KEY = 'welcomeLetter';
+const WELCOME_FIELDS = [
+  { tag: '{{name}}', what: 'Who it is going to — their contact name, or the business name if we have no contact.' },
+  { tag: '{{business}}', what: 'The business name as it appears in the directory.' },
+  { tag: '{{link}}', what: 'Their set-your-password sign-in link. Required — the letter cannot be saved without it.' },
+];
+const WELCOME_DEFAULT = {
+  subject: 'Welcome to the West Valley · Warner Center Chamber of Commerce!',
+  body: [
+    'Welcome, {{name}}!',
+    'Log in to your very own website profile on the Chamber of Commerce website — have your logo, headshot, and headline ready, and update often.',
+    'Set your password and sign in here (link expires in 1 hour; after that use "Forgot password" on the sign-in page):\n{{link}}',
+    'Be sure the Chamber office has all of your preferred contact information for publishing. You will be announced in our newsletter — if you would like a social media campaign to accompany that, it is only $50. Let us know!',
+    'And join our WVWC Group on Facebook.',
+    'Be Connected,\nWest Valley · Warner Center Chamber of Commerce\n(818) 347-4737 · www.woodlandhillscc.net',
+  ].join('\n\n'),
+};
+async function loadWelcomeLetter() {
+  try {
+    const raw = await repo.getSetting(WELCOME_KEY);
+    if (!raw) return { ...WELCOME_DEFAULT, isDefault: true };
+    const t = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    const subject = String((t && t.subject) || '').trim();
+    const body = String((t && t.body) || '').trim();
+    if (!subject || !body || !body.includes('{{link}}')) return { ...WELCOME_DEFAULT, isDefault: true };
+    return { subject, body, isDefault: false };
+  } catch (e) { return { ...WELCOME_DEFAULT, isDefault: true }; }
+}
+// Merge fields → the member's own details. Never leaves a raw {{tag}} behind.
+function fillWelcome(tpl, { name, business, link }) {
+  const map = { '{{name}}': name, '{{business}}': business, '{{link}}': link };
+  const sub = (str) => String(str || '').replace(/\{\{(name|business|link)\}\}/g, (m) => map[m] || '');
+  return { subject: sub(tpl.subject), text: sub(tpl.body) };
+}
+/* The HTML half is GENERATED from the same plain text rather than written
+   separately — blank line = paragraph, and the sign-in link becomes a real
+   anchor. Two hand-kept copies is exactly how the preview and the sent mail
+   drifted apart before. */
+function welcomeHtml(text, link) {
+  return String(text).split(/\n{2,}/).map((para) => {
+    const html = esc(para).replace(/\n/g, '<br>');
+    return `<p>${link ? html.split(esc(link)).join(`<a href="${esc(link)}">${esc(link)}</a>`) : html}</p>`;
+  }).join('\n');
+}
+
+router.get('/admin/welcome-letter', requireAdmin, async (_req, res) => {
+  try { res.json({ ok: true, ...(await loadWelcomeLetter()), fields: WELCOME_FIELDS, defaultBody: WELCOME_DEFAULT.body, defaultSubject: WELCOME_DEFAULT.subject }); }
+  catch (e) { res.status(500).json({ error: 'Could not load the welcome letter.' }); }
+});
+router.post('/admin/welcome-letter', requireAdmin, async (req, res) => {
+  const b = req.body || {};
+  try {
+    if (b.reset) {
+      await repo.setSetting(WELCOME_KEY, '');
+      return res.json({ ok: true, ...(await loadWelcomeLetter()) });
+    }
+    const subject = String(b.subject || '').trim().slice(0, 200);
+    const body = String(b.body || '').trim().slice(0, 8000);
+    if (!subject) return res.status(400).json({ error: 'Give the email a subject line.' });
+    if (!body) return res.status(400).json({ error: 'The letter cannot be empty.' });
+    if (!body.includes('{{link}}')) {
+      return res.status(400).json({ error: 'The letter must keep {{link}} somewhere in it — that is the new member’s set-your-password link, and without it they cannot get into their profile.' });
+    }
+    const unknown = [...body.matchAll(/\{\{\s*([a-z_]+)\s*\}\}/gi)].map((m) => m[1].toLowerCase())
+      .filter((n) => !['name', 'business', 'link'].includes(n));
+    if (unknown.length) {
+      return res.status(400).json({ error: `There is no {{${unknown[0]}}} to fill in. You can use {{name}}, {{business}} and {{link}}.` });
+    }
+    await repo.setSetting(WELCOME_KEY, JSON.stringify({ subject, body }));
+    res.json({ ok: true, ...(await loadWelcomeLetter()) });
+  } catch (e) { console.error('welcome-letter save', e); res.status(500).json({ error: 'Could not save the welcome letter.' }); }
+});
+
 // ── Admin API ───────────────────────────────────────────────
 // Send (or resend) the member welcome email — the office's welcome letter
 // with their website login link (per Felicia, Jul 2026: "I approved a new
@@ -4228,10 +4315,13 @@ router.post('/admin/members/:id/send-welcome', requireAdmin, async (req, res) =>
     // (per the office, Jul 2026 — "we want to see a copy of the welcome
     // letter that is being sent"). The sign-in link shows as a placeholder.
     if (req.body && req.body.preview) {
-      const hi = m.contactName ? `, ${m.contactName}` : '';
-      return res.json({ ok: true, preview: true, to: addr,
-        subject: 'Welcome to the West Valley · Warner Center Chamber of Commerce!',
-        text: `Welcome${hi}!\n\nLog in to your very own website profile on the Chamber of Commerce website — have your logo, headshot, and headline ready, and update often.\n\nSet your password and sign in here (link expires in 1 hour; after that use "Forgot password" on the sign-in page):\n[ their personal sign-in link goes here ]\n\nBe sure the Chamber office has all of your preferred contact information for publishing. You will be announced in our newsletter — if you would like a social media campaign to accompany that, it is only $50. Let us know!\n\nAnd join our WVWC Group on Facebook.\n\nBe Connected,\nWest Valley · Warner Center Chamber of Commerce\n(818) 347-4737 · www.woodlandhillscc.net` });
+      // Same template the send uses, so the preview cannot drift from the mail.
+      const tpl = await loadWelcomeLetter();
+      const filled = fillWelcome(tpl, {
+        name: m.contactName || m.name || 'there', business: m.name || '',
+        link: '[ their personal sign-in link goes here ]',
+      });
+      return res.json({ ok: true, preview: true, to: addr, isDefault: tpl.isDefault, ...filled });
     }
     const existingUser = await users.getUserByEmail(addr);
     if (!existingUser) {
@@ -4240,20 +4330,15 @@ router.post('/admin/members/:id/send-welcome', requireAdmin, async (req, res) =>
     const token = auth.signResetToken(addr);
     const base = process.env.SITE_URL || `${req.protocol}://${req.get('host')}`;
     const link = `${base}/auth/reset.html?token=${encodeURIComponent(token)}`;
-    const hello = m.contactName ? `, ${m.contactName}` : '';
-    // Copy follows the office's longtime welcome letter (Felicia's sample,
-    // Jul 2026): profile setup, publishing info, newsletter announcement +
-    // $50 social campaign, Facebook group.
+    const tpl = await loadWelcomeLetter();
+    const filled = fillWelcome(tpl, {
+      name: m.contactName || m.name || 'there', business: m.name || '', link,
+    });
     const r = await email.send({
       to: addr,
-      subject: `Welcome to the West Valley · Warner Center Chamber of Commerce!`,
-      text: `Welcome${hello}!\n\nLog in to your very own website profile on the Chamber of Commerce website — have your logo, headshot, and headline ready, and update often.\n\nSet your password and sign in here (link expires in 1 hour; after that use "Forgot password" on the sign-in page):\n${link}\n\nBe sure the Chamber office has all of your preferred contact information for publishing. You will be announced in our newsletter — if you would like a social media campaign to accompany that, it is only $50. Let us know!\n\nAnd join our WVWC Group on Facebook.\n\nBe Connected,\nWest Valley · Warner Center Chamber of Commerce\n(818) 347-4737 · www.woodlandhillscc.net`,
-      html: `<p>Welcome${esc(hello)}!</p>
-<p>Log in to your very own website profile on the Chamber of Commerce website — have your logo, headshot, and headline ready, and update often.</p>
-<p><a href="${link}"><strong>Set your password &amp; sign in</strong></a> (link expires in 1 hour; after that use “Forgot password” on the <a href="${base}/auth/login.html">sign-in page</a>).</p>
-<p>Be sure the Chamber office has all of your preferred contact information for publishing. You will be announced in our newsletter — if you would like a social media campaign to accompany that, it is only <strong>$50</strong>. Let us know!</p>
-<p>And join our <strong>WVWC Group on Facebook</strong>.</p>
-<p>Be Connected,<br>West Valley · Warner Center Chamber of Commerce<br>(818) 347-4737 · <a href="https://www.woodlandhillscc.net">www.woodlandhillscc.net</a></p>`,
+      subject: filled.subject,
+      text: filled.text,
+      html: welcomeHtml(filled.text, link),
     });
     if (r && r.ok === false) return res.status(500).json({ error: 'Email could not be sent: ' + (r.error || 'provider error') });
     if (r && r.skipped) return res.status(500).json({ error: 'Email provider is not configured on the server.' });
