@@ -23,6 +23,7 @@ let server, base, cookie, srcId;
 const T = Date.now().toString(36);
 const ADMIN = `office-dup-${T}@test.woodlandhillscc.net`;
 const made = [];
+const sentMail = [];
 const PAST = '2020-03-05';
 const NEW_DATE = '2027-06-11';
 
@@ -43,7 +44,7 @@ before(async () => {
   process.env.ADMIN_BOOTSTRAP = `${ADMIN}|${bcrypt.hashSync('test-passcode-1', 10)}||admin|Test Office`;
   mock.module('../email.js', {
     namedExports: {
-      send: async () => ({ ok: true, id: 'test', provider: 'stub' }),
+      send: async (m) => { sentMail.push(m); return { ok: true, id: 'test', provider: 'stub' }; },
       notifyTo: () => 'felicia@woodlandhillscc.net',
       enabled: () => true, provider: () => 'stub', diagnose: async () => ({}),
     },
@@ -218,4 +219,72 @@ test('past events reach the leader at all — they were filtered out entirely', 
     assert.ok(!(v.events || []).some((e) => e.id === id),
       'and must not muddle the upcoming list');
   });
+});
+
+/* Felicia, Sep 8 2026: "Debra Gordon from Artfully Made added her own event
+   last Friday... I am not seeing the past event in her profile."
+
+   She had used the PUBLIC community-event form, which is unauthenticated and
+   recorded no owner — so the event (ce-mtnimorl, "Labor Day Weekend Sale")
+   belonged to nobody, never appeared in her list, and she could not edit it.
+   The form stays public; it now attributes the event when the person
+   submitting happens to be signed in. */
+test('a community submission from a signed-in member becomes theirs to edit', async () => {
+  const MEMBER = 'm16008';
+  const em = `comm-${T}@example.com`;
+  await adm(`/api/admin/members/${MEMBER}/create-login`, { method: 'POST', body: JSON.stringify({ email: em, sendInvite: false }) });
+  await adm(`/api/admin/users/${encodeURIComponent(em)}/set-password`, { method: 'POST', body: JSON.stringify({ password: 'community-pass-4' }) });
+  const lg = await fetch(`${base}/api/auth/login`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: em, password: 'community-pass-4' }),
+  });
+  const ck = (lg.headers.get('set-cookie') || '').split(';')[0];
+  try {
+    const submitter = `debra-${T}@example.com`;
+    sentMail.length = 0;
+    const codeReq = await fetch(`${base}/api/public/event/verify`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', cookie: ck },
+      body: JSON.stringify({ email: submitter }),
+    });
+    assert.equal(codeReq.status, 200, await codeReq.text());
+    const code = (String((sentMail[0] || {}).text || '').match(/\b(\d{4,8})\b/) || [])[1];
+    assert.ok(code, 'the verification code is emailed');
+
+    const r = await fetch(`${base}/api/public/event`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', cookie: ck },
+      body: JSON.stringify({
+        email: submitter, code, title: `Labor Day style sale ${T}`,
+        date: '2027-09-06', organization: 'Artfully Made', venue: 'The shop',
+      }),
+    });
+    assert.equal(r.status, 200, await r.text());
+
+    const list = (await (await fetch(`${base}/api/me/events`, { headers: { cookie: ck } })).json()).events || [];
+    const found = list.find((e) => e.title === `Labor Day style sale ${T}`);
+    assert.ok(found, 'it must land in the submitting member’s own list — this is exactly what Debra was missing');
+    made.push(found.id);
+    assert.equal(found.submittedBy, MEMBER);
+  } finally {
+    await adm(`/api/admin/members/${MEMBER}/remove-login`, { method: 'POST', body: JSON.stringify({ email: em }) }).catch(() => {});
+  }
+});
+
+test('a signed-out community submission still works and stays ownerless', async () => {
+  const submitter = `stranger-${T}@example.com`;
+  sentMail.length = 0;
+  await fetch(`${base}/api/public/event/verify`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: submitter }),
+  });
+  const code = (String((sentMail[0] || {}).text || '').match(/\b(\d{4,8})\b/) || [])[1];
+  const r = await fetch(`${base}/api/public/event`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: submitter, code, title: `Stranger event ${T}`, date: '2027-09-07', organization: 'A neighbour' }),
+  });
+  assert.equal(r.status, 200, await r.text());
+  const all = (await (await adm('/api/admin/events')).json()).events || [];
+  const found = all.find((e) => e.title === `Stranger event ${T}`);
+  assert.ok(found, 'the form is still open to non-members');
+  made.push(found.id);
+  assert.ok(!found.submittedBy, 'and a stranger owns nothing');
 });
