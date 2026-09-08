@@ -217,6 +217,7 @@ window.MemberPortal = (function () {
             <span class="kicker">Ambassadors</span>
             <h2 style="margin:4px 0">Volunteer at an event</h2>
             <p class="member-tile__meta">Pick a job and we'll put you down for it. The Chamber office sees exactly who's covering what.</p>
+            <a class="btn btn--ghost btn--sm mt-2" href="ambassador-guide.html">📖 Ambassador guide</a>
           </div>
           ${showPoints ? `<div style="text-align:right">
             <div style="font-size:2rem;font-weight:700;color:var(--green-ink,#12241a);line-height:1">${esc(me.points || 0)}</div>
