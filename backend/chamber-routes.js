@@ -547,6 +547,17 @@ router.post('/public/event', async (req, res) => {
     ev.hostKind = 'community';
     ev.hostName = org;
     ev.submittedByName = org;
+    /* A MEMBER who happens to use this form still owns what they posted.
+       Debra Gordon (Artfully Made) submitted her Labor Day sale here on Sep 4
+       and it landed with no owner at all, so it never appeared in her profile
+       and Felicia could not help her swap the image (Felicia, Sep 8 2026: "I
+       am not seeing the past event in her profile"). The form is public and
+       stays public — this only attributes it when the person happens to be
+       signed in, which costs nothing and makes the event theirs to edit. */
+    try {
+      const sess = auth.readSession(req);
+      if (sess && sess.mid) ev.submittedBy = sess.mid;
+    } catch (e) { /* signed out is the normal case */ }
     ev.source = 'community';
     ev.communityEmail = to;
     await repo.upsertEvent(ev);
