@@ -540,7 +540,7 @@ router.post('/public/event', async (req, res) => {
       // Pending until an admin approves; confirmed because a date is required.
       status: 'pending', confirmed: true, showOnCalendar: true,
       imageMode: 'logo',        // no flyer to show, so no giant placeholder
-      links: b.website ? [{ type: 'info', label: 'Event details', url: String(b.website).slice(0, 400) }] : [],
+      links: sanitizeLinkUrl(b.website) ? [{ type: 'info', label: 'Event details', url: sanitizeLinkUrl(b.website) }] : [],
     }, {});
     // Attribution — the listing says who submitted it and that they are not a
     // Chamber member, so making the date visible never reads as an endorsement.
@@ -841,6 +841,71 @@ router.patch('/me/event/:id', auth.requireAuth(), async (req, res) => {
   } catch (e) { console.error('me/event patch', e); res.status(500).json({ error: 'Could not save the event.' }); }
 });
 
+/* Duplicate an event onto a new date (Felicia, Sep 8 2026: "if they have the
+   same type of event for a later date and only need to change a date it is
+   easy for them to go in to edit it so it will repost").
+
+   Editing the old one would have MOVED it — the previous occurrence would
+   vanish from the record along with its RSVPs. Copying keeps both.
+
+   A duplicate is a fresh event, so it deliberately does NOT inherit:
+     • homepage placement — a copy should never silently take a featured slot
+     • ticketing, prices, caps and sold-out — prices change, and a stale price
+       on a live listing takes money at the wrong number
+     • the series it belonged to
+   Everything the office actually retypes — title, venue, address, blurb,
+   description, flyer, links, category — comes across. */
+function duplicateOf(orig, date, status) {
+  // Keep the length of a multi-day event rather than collapsing it to one day.
+  let endDate = date;
+  if (orig.endDate && orig.date && orig.endDate > orig.date) {
+    const span = Math.round((new Date(orig.endDate + 'T00:00:00') - new Date(orig.date + 'T00:00:00')) / 864e5);
+    const d = new Date(date + 'T00:00:00'); d.setDate(d.getDate() + span);
+    endDate = d.toISOString().slice(0, 10);
+  }
+  const copy = buildEvent({
+    ...orig, id: undefined, date, endDate,
+    featured: false, homeOrder: null, homeBlurb: '',
+    ticketed: false, ticketTypes: [], soldOut: false, ticketCap: null, rsvpCutoff: null,
+  }, {});
+  copy.seriesId = null;
+  copy.status = status;
+  copy.created = new Date().toISOString();
+  copy.duplicatedFrom = orig.id;   // so the office can see where a copy came from
+  return copy;
+}
+const DUP_BAD_DATE = 'Pick the date the new one is on (YYYY-MM-DD).';
+
+router.post('/me/event/:id/duplicate', auth.requireAuth(), async (req, res) => {
+  try {
+    const date = String((req.body && req.body.date) || '');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return res.status(400).json({ error: DUP_BAD_DATE });
+    const ev = (await loadEvents()).find((e) => e.id === req.params.id);
+    if (!(await canManageEvent(req.user, ev))) return res.status(404).json({ error: 'Event not found.' });
+    // Same gate a brand-new submission goes through, so duplicating is not a
+    // way around the office's review.
+    let instant = false;
+    try { instant = (await repo.getSetting('leaderInstantPublish')) === 'on'; } catch (e) {}
+    const isLeader = !!ev.groupSlug && (await groupsLedBy(req.user)).some((g) => g.slug === ev.groupSlug);
+    const copy = duplicateOf(ev, date, (isLeader && instant) ? 'approved' : 'pending');
+    copy.submittedBy = req.user.mid || ev.submittedBy || '';
+    await repo.upsertEvent(copy);
+    res.json({ ok: true, event: { id: copy.id, title: copy.title, date: copy.date, status: copy.status } });
+  } catch (e) { console.error('me duplicate event', e); res.status(500).json({ error: 'Could not copy that event.' }); }
+});
+
+router.post('/admin/events/:id/duplicate', requireAdmin, async (req, res) => {
+  try {
+    const date = String((req.body && req.body.date) || '');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return res.status(400).json({ error: DUP_BAD_DATE });
+    const ev = (await loadEvents()).find((e) => e.id === req.params.id);
+    if (!ev) return res.status(404).json({ error: 'Event not found.' });
+    const copy = duplicateOf(ev, date, 'approved');
+    await repo.upsertEvent(copy);
+    res.json({ ok: true, event: copy });
+  } catch (e) { console.error('admin duplicate event', e); res.status(500).json({ error: 'Could not copy that event.' }); }
+});
+
 router.delete('/me/event/:id', auth.requireAuth(), async (req, res) => {
   const mid = req.user.mid;
   try {
@@ -1005,10 +1070,20 @@ router.get('/me/group/:slug', auth.requireAuth(), async (req, res) => {
     const g = await ledGroupOr403(req, res); if (!g) return;
     const today = new Date().toISOString().slice(0, 10);
     const all = await loadEvents();
-    const mine = eventsOfGroup(g, all)
+    const ofGroup = eventsOfGroup(g, all);
+    const mine = ofGroup
       .filter((e) => (e.date && e.date >= today) || e.status === 'pending')
       .sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')))
       .slice(0, 30);
+    /* Past meetings were filtered out entirely, so a leader could not see a
+       single thing their group had already done — 47 of them across the site
+       (Felicia, Sep 8 2026: "Can all members/group leaders see their past
+       events? I tried... but was unable to see it"). Newest first, because
+       last month's meeting is the one you want to copy. */
+    const past = ofGroup
+      .filter((e) => e.date && e.date < today && e.status !== 'pending')
+      .sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')))
+      .slice(0, 60);
     let rsvpLeads = [];
     try { rsvpLeads = (await repo.listLeads()).filter((l) => l.kind === 'rsvp' && l.status !== 'spam'); } catch (e) {}
     const rsvps = {};
@@ -1024,9 +1099,20 @@ router.get('/me/group/:slug', auth.requireAuth(), async (req, res) => {
         groupSlug: e.groupSlug || '', hostName: e.hostName || '', flyer: e.flyer || '',
         hideCta: !!e.hideCta, ticketed: !!e.ticketed, rsvpEmail: e.rsvpEmail || '',
         rsvpCount: list.length, rsvpAttending: list.reduce((t, r) => t + r.qty, 0),
+        /* eventsOfGroup ALSO matches on the group's eventMatch keyword, but
+           canManageEvent honours groupSlug alone — deliberately, so a group
+           whose keyword is "Mixer" can never edit the Chamber's flagship
+           Mixer. The two disagreeing meant Edit and Remove were offered on
+           rows that answer 404. Say which rows are really theirs. */
+        canManage: e.groupSlug === g.slug,
       };
     });
-    res.json({ ok: true,
+    const pastEvents = past.map((e) => ({
+      id: e.id, title: e.title, date: e.date, time: e.time || '', venue: e.venue || '',
+      status: e.status, seriesId: e.seriesId || null, groupSlug: e.groupSlug || '',
+      canManage: e.groupSlug === g.slug,
+    }));
+    res.json({ ok: true, pastEvents,
       group: {
         id: g.id, slug: g.slug, name: g.name, tagline: g.tagline || '',
         meetingSchedule: g.meetingSchedule || '', meetingNotes: g.meetingNotes || '',
@@ -1930,6 +2016,28 @@ function sanitizeRichHref(u) {
   if (/^www\./i.test(u)) return ('https://' + u).slice(0, 600);
   return '';
 }
+/* Event links were stored exactly as typed. clampUrl only trimmed and
+   truncated, so "www.woodlandhillscc.net" was written into href= verbatim,
+   the browser read it as a RELATIVE path, and the link resolved to
+   /events/www.woodlandhillscc.net — a 404. Three live links were broken this
+   way, including one on the Small Business Resource Event.
+
+   It also let any scheme through. Event links reach this from the PUBLIC
+   community submit form, which needs no login, so "javascript:…" was storable
+   and would have rendered as a live href on an approved event page. The
+   allowlist below is the part that matters. */
+function sanitizeLinkUrl(u) {
+  const raw = String(u || '').trim();
+  if (!raw) return '';
+  if (/^(https?:|mailto:|tel:)/i.test(raw)) return raw.slice(0, 600);
+  if (/^[/#]/.test(raw)) return raw.slice(0, 600);              // our own pages
+  if (/^[^\s@/]+@[^\s@/]+\.[^\s@/]+$/.test(raw)) return ('mailto:' + raw).slice(0, 600);
+  // A bare host — "www.example.org", "example.org/page". Anything else (a
+  // scheme we do not allow, or free text) is dropped rather than published.
+  if (/^[a-z0-9-]+(\.[a-z0-9-]+)+(\/|$|\?|#)/i.test(raw)) return ('https://' + raw).slice(0, 600);
+  return '';
+}
+
 function richAttr(attrs, name) {
   const m = String(attrs || '').match(new RegExp(name + `\\s*=\\s*(?:"([^"]*)"|'([^']*)')`, 'i'));
   return m ? (m[1] ?? m[2] ?? '') : '';
@@ -1990,7 +2098,7 @@ export function buildEvent(b, existing = {}) {
   const links = Array.isArray(b.links)
     ? b.links.slice(0, 8).map((l) => ({
         label: String(l.label || '').slice(0, 40),
-        url: clampUrl(l.url),
+        url: sanitizeLinkUrl(l.url),
         type: String(l.type || 'info').slice(0, 20),
       })).filter((l) => l.url)
     : (existing.links || []);

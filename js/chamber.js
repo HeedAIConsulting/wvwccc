@@ -202,6 +202,21 @@ window.Chamber = (function () {
     });
   }
 
+  /* Links already stored without a scheme render as RELATIVE hrefs — a saved
+     "www.woodlandhillscc.net" becomes /events/www.woodlandhillscc.net and 404s.
+     Saving is fixed server-side, but the rows already on live events have to
+     work too, and Postgres is read-only from the tooling, so normalise here as
+     well. Same allowlist: anything else gets no href at all. */
+  function safeHref(u) {
+    const raw = String(u || '').trim();
+    if (!raw) return '';
+    if (/^(https?:|mailto:|tel:)/i.test(raw)) return raw;
+    if (/^[/#]/.test(raw)) return raw;
+    if (/^[^\s@/]+@[^\s@/]+\.[^\s@/]+$/.test(raw)) return 'mailto:' + raw;
+    if (/^[a-z0-9-]+(\.[a-z0-9-]+)+(\/|$|\?|#)/i.test(raw)) return 'https://' + raw;
+    return '';
+  }
+
   // ── Add-to-calendar helpers (Google / Outlook web / Apple .ics) ──
   function _pad(n) { return String(n).padStart(2, '0'); }
   function _parseTime(s) {
@@ -440,11 +455,11 @@ window.Chamber = (function () {
     const featured = (ev.links || []).filter((l) => l.type === 'featured');
     const featuredRow = featured.length
       ? `<div class="ev-card__featured" style="margin:4px 0 16px;display:grid;gap:10px">${featured.map((l) =>
-          `<a href="${esc(l.url)}" target="_blank" rel="noopener" style="display:block;text-align:center;padding:15px 20px;border-radius:12px;background:linear-gradient(135deg,var(--green-ink,#12241a),var(--green,#1b3326));color:#f3e8c8;font-weight:700;font-size:1.08rem;letter-spacing:.01em;text-decoration:none;border:1.5px solid var(--gold,#C9A227);box-shadow:0 4px 16px rgba(18,36,26,.28)">${esc(l.label || 'View')} →</a>`).join('')}</div>`
+          `<a href="${esc(safeHref(l.url))}" target="_blank" rel="noopener" style="display:block;text-align:center;padding:15px 20px;border-radius:12px;background:linear-gradient(135deg,var(--green-ink,#12241a),var(--green,#1b3326));color:#f3e8c8;font-weight:700;font-size:1.08rem;letter-spacing:.01em;text-decoration:none;border:1.5px solid var(--gold,#C9A227);box-shadow:0 4px 16px rgba(18,36,26,.28)">${esc(l.label || 'View')} →</a>`).join('')}</div>`
       : '';
     const plainLinks = (ev.links || []).filter((l) => l.type !== 'featured');
     const links = plainLinks.length
-      ? `<div class="ev-card__row">${plainLinks.map((l) => `<a class="btn btn--gold btn--sm" target="_blank" rel="noopener" href="${esc(l.url)}">${esc(l.label || l.type || 'Details')}</a>`).join('')}</div>` : '';
+      ? `<div class="ev-card__row">${plainLinks.map((l) => `<a class="btn btn--gold btn--sm" target="_blank" rel="noopener" href="${esc(safeHref(l.url))}">${esc(l.label || l.type || 'Details')}</a>`).join('')}</div>` : '';
     // Attached PDFs (donation form, sponsorship levels, …).
     const docs = (ev.documents && ev.documents.length)
       ? `<div class="ev-card__row">${ev.documents.map((dme) => `<a class="btn btn--ghost btn--sm" target="_blank" rel="noopener" href="${esc(evImgSrc(dme.url, base))}">📄 ${esc(dme.label || 'Document')}</a>`).join('')}</div>` : '';
@@ -596,7 +611,7 @@ window.Chamber = (function () {
       ? `<div class="event-imgs" style="display:flex;gap:6px;margin:8px 0 0;flex-wrap:wrap">${ev.images.slice(0, 3).map((u) => `<img src="${esc(evImgSrc(evImgOf(u), base, 200))}" alt="" loading="lazy" style="width:88px;height:64px;object-fit:cover;border-radius:8px">`).join('')}</div>`
       : '';
     const links = (ev.links && ev.links.length)
-      ? `<div class="event-links" style="display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 0">${ev.links.map((l) => `<a class="chip chip--gold" target="_blank" rel="noopener" href="${esc(l.url)}">${esc(l.label || l.type || 'Details')}</a>`).join('')}</div>`
+      ? `<div class="event-links" style="display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 0">${ev.links.map((l) => `<a class="chip chip--gold" target="_blank" rel="noopener" href="${esc(safeHref(l.url))}">${esc(l.label || l.type || 'Details')}</a>`).join('')}</div>`
       : '';
     return `
       <div class="event-row" id="${esc(ev.id)}" data-ev-detail="${esc(ev.id)}"${newTab} style="cursor:pointer">
@@ -2243,6 +2258,26 @@ window.Chamber = (function () {
         const p = ok.querySelector('p');
         if (p) p.innerHTML = `We’ve got your RSVP for <strong>${esc(extra.eventTitle || 'the event')}</strong>. `
           + 'A confirmation is on its way to your email. See you there!';
+        /* Add-to-calendar right here (Michael, Sep 8 2026: "Right now they need
+           to go back and then to the event page to add to the calendar"). The
+           moment someone has said they are coming is the moment they will put
+           it in their diary — sending them back two pages loses most of them.
+           The event is fetched because this page only carries its id and title.
+           Anything that fails here leaves the thank-you exactly as it was. */
+        const evId = params.get('event') || '';
+        if (evId) {
+          (async () => {
+            try {
+              const full = await getJSON(ChamberAPI.url('/api/events/' + encodeURIComponent(evId)));
+              const menu = calendarMenu(full);
+              if (!menu) return;
+              const box = document.createElement('div');
+              box.style.cssText = 'margin-top:14px;padding-top:12px;border-top:1px solid var(--line,#e4dcc8)';
+              box.innerHTML = menu;
+              p.insertAdjacentElement('afterend', box);
+            } catch (e) { /* no calendar row rather than a broken thank-you */ }
+          })();
+        }
       }
       // A free RSVP is still a conversion — filling the room is the point of the
       // event page, so it should show up next to paid tickets in GA4.
@@ -2707,12 +2742,15 @@ window.Chamber = (function () {
     // Resolve ?event=<id> to a human-readable title so the office email says
     // "RSVP — Health & Wellness Network (Jul 27)" instead of a raw "le-11182".
     let eventLabel = '';
+    // Kept whole, not just its label, so the thank-you can offer add-to-calendar
+    // without sending anyone back to the event page (Michael, Sep 8 2026).
+    let eventObj = null;
     if (params.get('event')) {
       (async () => {
         try {
           const evs = (await getJSON(ChamberAPI.url('/api/events'))).events || [];
           const ev = evs.find((x) => x.id === params.get('event'));
-          if (ev) eventLabel = `${ev.title}${ev.month && ev.day ? ` (${ev.month} ${ev.day})` : ''}`;
+          if (ev) { eventObj = ev; eventLabel = `${ev.title}${ev.month && ev.day ? ` (${ev.month} ${ev.day})` : ''}`; }
         } catch (e) { /* raw id still sent as fallback */ }
       })();
     }
@@ -2759,6 +2797,15 @@ window.Chamber = (function () {
           form.reset();
           msg.textContent = 'Thank you — your message has been sent. The Chamber will be in touch.';
           msg.style.borderColor = 'var(--green)';
+          /* An RSVP is not "a message". Say so, and put the calendar links
+             right here: the moment someone says they are coming is the moment
+             they will add it to their diary, and making them navigate back to
+             the event page loses most of them. */
+          if (/rsvp/i.test(payload.reason || '') && eventObj) {
+            const cal = calendarMenu(eventObj);
+            msg.innerHTML = `You’re on the list for <strong>${esc(eventObj.title || 'the event')}</strong> — thank you! `
+              + 'A confirmation is on its way to your email.' + (cal || '');
+          }
           // A membership application is a conversion (GA4 key event) — same
           // signal the free-RSVP path sends.
           if (kind === 'membership-application' && window.wvTrack) {
