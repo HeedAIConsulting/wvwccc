@@ -483,7 +483,15 @@ const volFromRow = (r) => ({
   memberId: r.member_id, name: r.name, email: r.email, phone: r.phone,
   role: r.role, points: r.points, status: r.status, note: r.note, created: r.created,
 });
-export async function listVolunteers({ eventId, memberId } = {}) {
+/* NOTE the difference between an ABSENT filter and a falsy one. listVolunteers({})
+   means "every row" and the admin tracker relies on it; listVolunteers({ memberId:
+   null }) means "this person's rows" for a person who has none, and must return
+   nothing. Collapsing those two let /me/volunteer/:id delete other people's
+   entries. */
+export async function listVolunteers(opts = {}) {
+  const { eventId, memberId } = opts;
+  if ('memberId' in opts && !memberId) return [];
+  if ('eventId' in opts && !eventId) return [];
   let arr;
   if (db.enabled) {
     arr = (await db.query('SELECT * FROM volunteers ORDER BY created DESC')).rows.map(volFromRow);

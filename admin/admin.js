@@ -206,6 +206,7 @@ window.Admin = (function () {
     { id: 'group-approve', t: 'Approve a “Join this group” request', kw: 'group join request approve pending decline', href: 'groups.html', sel: '#grpPending', tip: 'Edit a group and click Approve or Decline here — it saves right away, no Save group needed.' },
     { id: 'image-library', t: 'Reuse an image you already uploaded', kw: 'image library gallery photo logo reuse upload media council headshot sponsor', href: 'images.html', sel: '#libSearch', tip: 'Every image you have ever uploaded lives here — name and tag them, then pick them anywhere with the 📁 Library button.' },
     { id: 'ambassador-tracker', t: 'See who volunteered and their points', kw: 'ambassador tracker volunteer points tier leaderboard registration check-in greeter shift', href: 'ambassadors.html', sel: '#leaderRows', tip: 'Every volunteer shift with points and tiers. Set the roles you need covered on each event under Events.' },
+    { id: 'ambassador-logged', t: 'Ambassadors logging work that was not at an event', kw: 'ambassador log activity contribution tier social post review buddy report referral tlc connect promote grow retain not an event enter their activity', href: 'ambassadors.html', sel: '#volEventFilter', tip: 'Ambassadors record posts, reviews, Buddy check-ins and referrals themselves from their member dashboard. They arrive worth 0 points — you set what each is worth in the Points column here. Filter to “Logged by ambassadors” to see just those.' },
     { id: 'volunteer-roles', t: 'Ask for volunteers at an event', kw: 'volunteer roles ambassador event registration greeter setup points needed', href: 'events.html', sel: '#evVolunteers', tip: 'Add the jobs you need covered and what each is worth — ambassadors sign up for them from their member portal.' },
     { id: 'cbf-donations', t: 'Change what donors can give to', kw: 'donation project cbf community benefit foundation cleanup earth day education adopt a school', href: 'content.html', sel: '#dpRows', tip: 'Edit the list on the Donate and Community Benefit Foundation pages. Tick CBF for Foundation initiatives.' },
     { id: 'payment-link', t: 'Send someone a payment link', kw: 'payment link invoice custom charge sponsorship email amount bill quote', href: 'payments.html', sel: '#plFor', tip: 'Name the charge, set the amount, then copy the link or have the site email it. The amount is locked so they cannot type the wrong number.' },
@@ -3432,7 +3433,10 @@ window.Admin = (function () {
     ambLoad();
     const volMsg = document.getElementById('volMsg');
     const say = (el, t, bad) => { if (!el) return; el.hidden = !t; el.textContent = t || ''; el.style.color = bad ? 'var(--red,#b00020)' : 'var(--green,#2b6b3f)'; };
-    const STATUS = [['signed-up', 'Signed up'], ['confirmed', 'Confirmed'], ['no-show', 'No-show']];
+    // 'logged' is an ambassador's own entry for something that did not happen at
+    // an event (a post, a review, a Buddy check-in, a referral). It arrives worth
+    // 0 points on purpose — what it is worth is the office's call, set right here.
+    const STATUS = [['signed-up', 'Signed up'], ['confirmed', 'Confirmed'], ['logged', 'Logged by them'], ['no-show', 'No-show']];
     let data = { volunteers: [], leaderboard: [], tiers: [], roleSuggestions: [] };
     let events = [];
 
@@ -3450,7 +3454,7 @@ window.Admin = (function () {
       const evFilter = document.getElementById('volEventFilter').value;
       const q = (document.getElementById('volSearch').value || '').toLowerCase();
       const rows = data.volunteers
-        .filter((v) => !evFilter || v.eventId === evFilter)
+        .filter((v) => (evFilter === '__logged__') ? !v.eventId : (!evFilter || v.eventId === evFilter))
         .filter((v) => !q || [v.name, v.role, v.eventTitle, v.email].filter(Boolean).join(' ').toLowerCase().includes(q));
       volRows.innerHTML = rows.length ? rows.map((v) => `<tr data-vol="${esc(v.id)}">
         <td style="white-space:nowrap">${esc(v.eventDate || '—')}</td>
@@ -3566,7 +3570,12 @@ window.Admin = (function () {
       const optHtml = opts.map((e) => `<option value="${esc(e.id)}">${esc(e.date || '—')} · ${esc(e.title || e.id)}</option>`).join('');
       const f = document.getElementById('volEventFilter');
       const keep = f.value;
-      f.innerHTML = '<option value="">All events</option>' + optHtml;
+      // Self-logged contributions have no event, so they need their own row in
+      // this filter or there is no way to see just those.
+      const anyLogged = data.volunteers.some((v) => !v.eventId);
+      f.innerHTML = '<option value="">All events &amp; contributions</option>'
+        + (anyLogged ? '<option value="__logged__">Logged by ambassadors (not an event)</option>' : '')
+        + optHtml;
       f.value = keep;
       document.getElementById('vaEvent').innerHTML = '<option value="">— pick an event —</option>' + optHtml;
       // Role suggestions in the datalist: the roles on the chosen event, plus defaults.

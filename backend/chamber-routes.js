@@ -3111,6 +3111,31 @@ const VOL_TIERS_DEFAULT = [
   { name: 'Gold Ambassador', min: 60 },
   { name: 'Platinum Ambassador', min: 120 },
 ];
+/* The five contribution tiers, verbatim from Diana's "Ambassador Tiers.xlsx"
+   (Sep 4 2026). Her sheet opens with "These tiers describe the type and effort
+   of the contribution—not the value of the person" — so these are KINDS of
+   work, not a ranking, and deliberately have nothing to do with the points
+   ladder in volunteerTiers.
+
+   Tiers 2, 3 and 4 happen at an event and the existing sign-up sheet covers
+   them. Tiers 1 and 5 do not happen at an event at all — a social post, a
+   review, a Buddy check-in, a referral — and until now there was nowhere to
+   record them, which is the real reason an ambassador could not "enter their
+   activity on the tracker". */
+const CONTRIBUTION_TIERS = [
+  { id: 'tier1', name: 'Tier 1 — Connect & Promote',
+    track: 'Posts/engagement • businesses helped • reviews provided' },
+  { id: 'tier2', name: 'Tier 2 — Represent & Engage',
+    track: 'Events represented • ribbon cuttings • breakfasts/mixers' },
+  { id: 'tier3', name: 'Tier 3 — Serve at Events',
+    track: 'Event • role • hours/shift • impact' },
+  { id: 'tier4', name: 'Tier 4 — Hands-on Event Support',
+    track: 'Specific tasks completed • event • time commitment' },
+  { id: 'tier5', name: 'Tier 5 — Grow & Retain (Member TLC)',
+    track: 'Buddy TLC • Buddy Report • member engagement/retention • new members referred' },
+];
+const LOGGED_CAP = 200;   // per member, so the form cannot be used to flood the tracker
+
 // Starting point for events that have no roles set — the tasks Felicia named
 // plus the usual mixer/breakfast jobs. The office edits these per event.
 const VOL_ROLE_SUGGESTIONS = [
@@ -3195,7 +3220,8 @@ router.get('/me/volunteer', auth.requireAuth(), async (req, res) => {
     const tiers = await loadTiers();
     const points = mine.filter(countsForPoints).reduce((s, v) => s + (Number(v.points) || 0), 0);
     const on = await pointsOn();
-    res.json({ ok: true, mine, points, tier: tierFor(tiers, points), tiers, pointsOn: on, ambassador: await isAmbassador(req.user) });
+    res.json({ ok: true, mine, points, tier: tierFor(tiers, points), tiers, pointsOn: on,
+      ambassador: await isAmbassador(req.user), contributionTiers: CONTRIBUTION_TIERS });
   } catch (e) { res.status(500).json({ error: 'Could not load your volunteer history.' }); }
 });
 
@@ -3228,9 +3254,61 @@ router.post('/me/volunteer', auth.requireAuth(), async (req, res) => {
   } catch (e) { console.error('volunteer signup', e); res.status(500).json({ error: 'Could not sign you up — please try again.' }); }
 });
 
+/* Log a contribution that did not happen at an event (Diana, Sep 4 2026:
+   "teach the ambassadors how to enter their activity on the tracker").
+   Two of her five tiers — a social post, a review, a Buddy check-in, a
+   referral — have no event to hang off, so the sign-up sheet could never
+   record them.
+
+   Points are always 0 here and any value in the body is ignored: what a
+   contribution is worth is the office's call, set in Admin > Ambassadors
+   exactly as it is for a shift. Nobody scores themselves. */
+router.post('/me/volunteer/log', auth.requireAuth(), async (req, res) => {
+  const mid = req.user.mid;
+  if (!mid) return res.status(400).json({ error: 'No member listing is linked to this account.' });
+  const b = req.body || {};
+  const tier = CONTRIBUTION_TIERS.find((t) => t.id === b.tier);
+  if (!tier) return res.status(400).json({ error: 'Pick which kind of contribution this was.' });
+  const activity = String(b.activity || '').trim().slice(0, 120);
+  if (!activity) return res.status(400).json({ error: 'Say in a few words what you did.' });
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(String(b.date || '')) ? b.date : new Date().toISOString().slice(0, 10);
+  if (date > new Date().toISOString().slice(0, 10)) {
+    return res.status(400).json({ error: 'That date is in the future — log it once you have done it.' });
+  }
+  try {
+    const bad = flagContent(activity + ' ' + String(b.note || ''));
+    if (bad) return res.status(400).json({ error: bad });
+    const mine = await repo.listVolunteers({ memberId: mid });
+    if (mine.filter((v) => v.status === 'logged').length >= LOGGED_CAP) {
+      return res.status(429).json({ error: 'That is a lot of entries — check with the office before adding more.' });
+    }
+    const m = await myMember(mid);
+    await repo.addVolunteer({
+      id: 'vol-' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36),
+      // No event: the tier name goes in the title column so the office's
+      // tracker reads sensibly next to the event shifts.
+      eventId: '', eventTitle: tier.name, eventDate: date,
+      memberId: mid,
+      name: (m && (m.contactName || m.name)) || req.user.sub,
+      email: (m && m.email) || req.user.sub, phone: (m && m.phone) || '',
+      role: activity, points: 0,
+      status: 'logged', note: String(b.note || '').slice(0, 300),
+    });
+    res.json({ ok: true });
+  } catch (e) { console.error('volunteer log', e); res.status(500).json({ error: 'Could not save that — please try again.' }); }
+});
+
 router.delete('/me/volunteer/:id', auth.requireAuth(), async (req, res) => {
   try {
-    const mine = await repo.listVolunteers({ memberId: req.user.mid });
+    /* No member listing means no shifts of your own — and it MUST be checked
+       here. listVolunteers ignored a falsy memberId and returned every row in
+       the table, so `mine` was the whole tracker and this route would delete
+       anyone's entry for a staff login or any account not linked to a listing.
+       Harmless while the table was empty; not once ambassadors are asked to
+       log their own contributions into it. */
+    const mid = req.user.mid;
+    if (!mid) return res.status(404).json({ error: 'That sign-up is not yours.' });
+    const mine = await repo.listVolunteers({ memberId: mid });
     if (!mine.some((v) => v.id === req.params.id)) return res.status(404).json({ error: 'That sign-up is not yours.' });
     await repo.deleteVolunteer(req.params.id);
     res.json({ ok: true });
