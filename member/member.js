@@ -163,7 +163,10 @@ window.MemberPortal = (function () {
       return `<div style="display:flex;justify-content:space-between;align-items:center;gap:var(--s-3);flex-wrap:wrap;padding:10px 0;border-bottom:1px solid var(--line,#eee)">
         <div><strong>${esc(ev.title)}</strong>${pending ? ' <span class="badge badge--gold" style="font-size:.62rem;vertical-align:middle">awaiting the office</span>' : ''}
           <div class="member-tile__meta">${esc(ev.date || '')}${ev.time ? ' · ' + esc(ev.time) : ''}${ev.venue ? ' · ' + esc(ev.venue) : ''}</div></div>
-        <a class="btn btn--ghost btn--sm" href="event.html?edit=${encodeURIComponent(ev.id)}">Edit</a>
+        <span style="display:flex;gap:6px;flex-wrap:wrap">
+          <button type="button" class="btn btn--gold btn--sm" data-mydup="${esc(ev.id)}" title="Run this again on a new date — the original stays put">Duplicate</button>
+          <a class="btn btn--ghost btn--sm" href="event.html?edit=${encodeURIComponent(ev.id)}">Edit</a>
+        </span>
       </div>`;
     }).join('');
     host.innerHTML = `<div class="card">
@@ -173,6 +176,23 @@ window.MemberPortal = (function () {
       ${rows}
       <div class="btn-row mt-4"><a class="btn btn--gold btn--sm" href="event.html">＋ Add an event</a></div>
     </div>`;
+    // Duplicate, from the dashboard list. Same rule as the leader page: this
+    // COPIES onto a new date, it does not move the original.
+    host.querySelectorAll('[data-mydup]').forEach((b) => b.addEventListener('click', async () => {
+      const name = (b.closest('div').querySelector('strong') || {}).textContent || 'this event';
+      const date = prompt(`Copy "${name}" to which date?\n\nUse YYYY-MM-DD, e.g. ${new Date(Date.now() + 30 * 864e5).toISOString().slice(0, 10)}`, '');
+      if (!date) return;
+      b.disabled = true; const was = b.textContent; b.textContent = 'Copying…';
+      try {
+        const r = await api(`/api/me/event/${encodeURIComponent(b.dataset.mydup)}/duplicate`, {
+          method: 'POST', body: JSON.stringify({ date: date.trim() }),
+        });
+        alert(r.event && r.event.status === 'approved'
+          ? `Copied to ${r.event.date} — it is on the calendar now.`
+          : `Copied to ${(r.event || {}).date || date} — it is with the Chamber office for review.`);
+        mountMyEvents();
+      } catch (e) { alert(e.message || 'Could not copy that event.'); b.disabled = false; b.textContent = was; }
+    }));
   }
 
   /* ── Volunteer sign-up (ambassador tracker, Felicia Jul 29 2026) ──
@@ -1241,13 +1261,29 @@ window.MemberPortal = (function () {
               </div>
               <div style="display:flex;gap:6px;flex-wrap:wrap">
                 ${ev.rsvpCount ? `<button type="button" class="btn btn--gold btn--sm" data-rsvps>RSVPs · ${ev.rsvpAttending} attending</button>` : '<span class="member-tile__meta" style="align-self:center">No RSVPs yet</span>'}
+                ${ev.canManage ? `<button type="button" class="btn btn--gold btn--sm" data-dup="${esc(ev.id)}">Duplicate</button>
                 <a class="btn btn--ghost btn--sm" href="event.html?edit=${encodeURIComponent(ev.id)}">Edit</a>
-                <button type="button" class="btn btn--ghost btn--sm" data-del style="color:var(--red,#b00020)">Remove</button>
+                <button type="button" class="btn btn--ghost btn--sm" data-del style="color:var(--red,#b00020)">Remove</button>` : '<span class="member-tile__meta" style="align-self:center" title="On your page because it matches your group\u2019s name — the Chamber office owns it">office event</span>'}
               </div>
             </div>
             <div data-rsvplist hidden style="margin-top:10px;border-top:1px solid var(--line,#eee);padding-top:8px"></div>
           </div>`).join('') : '<p class="member-tile__meta">Nothing on the calendar yet — use <strong>＋ Add an event</strong> above.</p>'}
         </div>
+
+        ${(data.pastEvents || []).length ? `
+        <div class="card mt-5">
+          <h3 style="margin:0 0 4px">Past events <span class="member-tile__meta">(${(data.pastEvents || []).length})</span></h3>
+          <p class="member-tile__meta" style="margin:0 0 10px">Everything ${esc(g.name)} has already done, newest first. Use <strong>Duplicate</strong> to run one again on a new date — the original stays exactly where it is.</p>
+          ${(data.pastEvents || []).slice(0, 24).map((ev) => `
+          <div data-pastev="${esc(ev.id)}" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:9px 0;border-bottom:1px solid var(--line,#eee)">
+            <span style="flex:1;min-width:220px"><strong>${esc(ev.title)}</strong>
+              <div class="member-tile__meta">${esc(fmtD(ev.date))}${ev.time ? ' · ' + esc(ev.time) : ''}${ev.venue ? ' · ' + esc(ev.venue) : ''}</div></span>
+            ${ev.canManage ? `<span style="display:flex;gap:6px;flex-wrap:wrap">
+              <button type="button" class="btn btn--gold btn--sm" data-dup="${esc(ev.id)}">Duplicate</button>
+              <a class="btn btn--ghost btn--sm" href="event.html?edit=${encodeURIComponent(ev.id)}">Edit</a>
+            </span>` : '<span class="member-tile__meta" title="This one is on your page because it matches your group\u2019s name, but the Chamber office owns it">office event</span>'}
+          </div>`).join('')}
+        </div>` : ''}
 
         <div class="card mt-5">
           <h3 style="margin:0 0 4px">Meeting notes</h3>
@@ -1392,6 +1428,26 @@ window.MemberPortal = (function () {
         } catch (err) { say('Could not send the email — please try again.', true); }
         finally { e.target.disabled = false; }
       });
+      // Duplicate a past event onto a new date. Copying, never moving: the
+      // original and its RSVPs stay put (Felicia, Sep 8 2026).
+      wrap.querySelectorAll('[data-dup]').forEach((b) => b.addEventListener('click', async () => {
+        const row = b.closest('[data-pastev]');
+        const name = row ? (row.querySelector('strong') || {}).textContent : 'this event';
+        const date = prompt(`Copy "${name}" to which date?\n\nUse YYYY-MM-DD, e.g. ${new Date(Date.now() + 30 * 864e5).toISOString().slice(0, 10)}`, '');
+        if (!date) return;
+        b.disabled = true; const was = b.textContent; b.textContent = 'Copying…';
+        try {
+          const r = await api(`/api/me/event/${encodeURIComponent(b.dataset.dup)}/duplicate`, {
+            method: 'POST', body: JSON.stringify({ date: date.trim() }),
+          });
+          say(r.event && r.event.status === 'approved'
+            ? `Copied to ${r.event.date} — it is on the calendar now.`
+            : `Copied to ${(r.event || {}).date || date} — it is with the office for review.`);
+          // Pull the group again so the copy shows up in the right list.
+          try { data = await api('/api/me/group/' + encodeURIComponent(slug)); render(); } catch (e2) {}
+        } catch (e) { say(e.message || 'Could not copy that event.', true); b.disabled = false; b.textContent = was; }
+      }));
+
       // Roster: remove
       wrap.querySelectorAll('#gmRoster [data-mid]').forEach((row) => {
         const m = members.find((x) => x.id === row.dataset.mid);
