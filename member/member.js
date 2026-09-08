@@ -209,6 +209,7 @@ window.MemberPortal = (function () {
     const upcomingMine = mine.filter((m) => m.status !== 'logged'
       && (!m.eventDate || m.eventDate >= new Date().toISOString().slice(0, 10)));
     const cTiers = me.contributionTiers || [];
+    const presets = me.challengePresets || [];
 
     host.innerHTML = `
       <div class="card">
@@ -265,6 +266,11 @@ window.MemberPortal = (function () {
             </div>
             <div class="field" style="margin:0"><label>When</label>
               <input id="volDate" type="date" max="${esc(new Date().toISOString().slice(0, 10))}" value="${esc(new Date().toISOString().slice(0, 10))}" style="width:100%"></div>
+            ${presets.length ? `<div class="field" style="margin:0;grid-column:1/-1"><label>Start from the 30-Day Challenge <span class="member-tile__meta">(optional — fills the box below, and you can edit it)</span></label>
+              <select id="volPreset" style="width:100%">
+                <option value="">Or just type it yourself…</option>
+                ${presets.map((p) => `<option value="${esc(p.id)}">${esc(p.label)}</option>`).join('')}
+              </select></div>` : ''}
             <div class="field" style="margin:0;grid-column:1/-1"><label>What you did</label>
               <input id="volWhat" maxlength="120" placeholder="e.g. Shared the Chamber breakfast post and tagged three members" style="width:100%"></div>
             <div class="field" style="margin:0;grid-column:1/-1"><label>Anything else <span class="member-tile__meta">(optional)</span></label>
@@ -335,6 +341,20 @@ window.MemberPortal = (function () {
         track.textContent = t ? 'Worth noting: ' + t.track : '';
       });
     }
+    // Picking a Challenge item fills the box and preselects its tier. Both stay
+    // editable — the preset is a starting point, not a lock.
+    const presetSel = document.getElementById('volPreset');
+    if (presetSel) presetSel.addEventListener('change', () => {
+      const p = (me.challengePresets || []).find((x) => x.id === presetSel.value);
+      if (!p) return;
+      const what = document.getElementById('volWhat');
+      if (what) what.value = p.label;
+      // A preset with no tier must CLEAR the picker, not leave the last one
+      // standing — otherwise "Learned the Chamber website" silently keeps
+      // whatever tier was chosen before it, and files under the wrong one.
+      if (tierSel) { tierSel.value = p.tier || ''; tierSel.dispatchEvent(new Event('change')); }
+    });
+
     const logBtn = document.getElementById('volLog');
     if (logBtn) logBtn.addEventListener('click', async () => {
       const body = {
