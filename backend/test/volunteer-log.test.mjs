@@ -144,6 +144,35 @@ test('the five tiers reach the portal so the form can offer them', async () => {
     'the "What to Track" line is Diana’s and is what tells someone which detail is useful');
 });
 
+test('the 30-Day Challenge presets reach the portal, in Diana\u2019s order', async () => {
+  const p = (await mine()).challengePresets || [];
+  assert.equal(p.length, 8, 'eight items on page 12 of her deck, one for one');
+  assert.match(p[0].label, /Attended a Chamber event/);
+  assert.match(p[5].label, /Shared a Chamber or member post on social media/);
+  assert.equal(p[5].tier, 'tier1', 'a social post is Connect & Promote');
+  assert.equal(p[1].tier, 'tier5', 'welcoming a member is Grow & Retain');
+  assert.equal(p[6].tier, '', 'learning the website maps to none of the five — no guessed tier');
+  assert.equal(p[7].tier, '');
+});
+
+test('every preset tier that IS set names a real contribution tier', async () => {
+  const r = await mine();
+  const ids = new Set((r.contributionTiers || []).map((t) => t.id));
+  for (const p of r.challengePresets || []) {
+    if (p.tier) assert.ok(ids.has(p.tier), `preset ${p.id} points at a tier that does not exist: ${p.tier}`);
+  }
+});
+
+test('a preset logs like anything else, and still scores zero', async () => {
+  const r = await post({ tier: 'tier1', activity: 'Shared a Chamber or member post on social media', date: today });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  const row = (await mine()).mine.find((v) => v.role === 'Shared a Chamber or member post on social media');
+  assert.ok(row);
+  assert.equal(row.points, 0);
+  assert.equal(row.eventTitle, 'Tier 1 — Connect & Promote');
+  made.push(row.id);
+});
+
 test('a signed-out visitor cannot log anything', async () => {
   const r = await fetch(`${base}/api/me/volunteer/log`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },

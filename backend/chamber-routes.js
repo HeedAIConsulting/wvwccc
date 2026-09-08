@@ -3134,6 +3134,26 @@ const CONTRIBUTION_TIERS = [
   { id: 'tier5', name: 'Tier 5 — Grow & Retain (Member TLC)',
     track: 'Buddy TLC • Buddy Report • member engagement/retention • new members referred' },
 ];
+/* The 30-Day Ambassador Challenge, from page 12 of Diana's Ambassador Training
+   deck (sent to Sheryl Tratner, Aug 25 2026, for the Sept 18 workshop). Her
+   deck states each as a 30-day GOAL with a count — "Welcome 5 members you do
+   not already know" — but the tracker records one thing at a time, so each is
+   phrased here as the single act. Her list, one for one, in her order.
+
+   `tier` is the contribution tier the preset selects by default and the person
+   can change; the last two map to none of the five cleanly, so they set no
+   tier rather than a guessed one. */
+const CHALLENGE_PRESETS = [
+  { id: 'ch1', tier: 'tier2', label: 'Attended a Chamber event or meeting' },
+  { id: 'ch2', tier: 'tier5', label: 'Welcomed a member I did not already know' },
+  { id: 'ch3', tier: 'tier5', label: 'Made a member-to-member introduction' },
+  { id: 'ch4', tier: 'tier5', label: 'Invited a prospective member to a Chamber experience' },
+  { id: 'ch5', tier: 'tier2', label: 'Visited or learned about a Network / Connection Circle' },
+  { id: 'ch6', tier: 'tier1', label: 'Shared a Chamber or member post on social media' },
+  { id: 'ch7', tier: '',      label: 'Learned the Chamber website well enough to help a member' },
+  { id: 'ch8', tier: '',      label: 'Identified a way to strengthen the Ambassador program' },
+];
+
 const LOGGED_CAP = 200;   // per member, so the form cannot be used to flood the tracker
 
 // Starting point for events that have no roles set — the tasks Felicia named
@@ -3221,7 +3241,8 @@ router.get('/me/volunteer', auth.requireAuth(), async (req, res) => {
     const points = mine.filter(countsForPoints).reduce((s, v) => s + (Number(v.points) || 0), 0);
     const on = await pointsOn();
     res.json({ ok: true, mine, points, tier: tierFor(tiers, points), tiers, pointsOn: on,
-      ambassador: await isAmbassador(req.user), contributionTiers: CONTRIBUTION_TIERS });
+      ambassador: await isAmbassador(req.user), contributionTiers: CONTRIBUTION_TIERS,
+      challengePresets: CHALLENGE_PRESETS });
   } catch (e) { res.status(500).json({ error: 'Could not load your volunteer history.' }); }
 });
 
