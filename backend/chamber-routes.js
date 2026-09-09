@@ -4811,9 +4811,26 @@ router.get('/admin/members', requireAdmin, async (req, res) => {
     let { members } = await loadMembersFull();
     if (req.query.status) members = members.filter((m) => (m.status || 'approved') === req.query.status);
     if (req.query.q) {
-      const q = req.query.q.toLowerCase();
-      members = members.filter((m) => [m.name, m.category, m.contactName, m.email, m.neighborhood]
-        .filter(Boolean).join(' ').toLowerCase().includes(q));
+      /* Diana, Sep 9 2026, trying to pull a list of restaurants to invite:
+         she typed "restaurants" and the roster said 2 members. There are 40.
+
+         Two reasons, both here. The categories are stored singular
+         ("Restaurant"), and a substring test means the PLURAL matches nothing —
+         the 2 she saw were businesses with "restaurants" inside their email
+         domain. And only the PRIMARY category was searched, so a caterer who
+         is also a restaurant never showed up.
+
+         So: search every category a member carries, and let a trailing "s"
+         fall off. Both only ever widen the result. */
+      const q = req.query.q.toLowerCase().trim();
+      const alts = [q];
+      if (q.endsWith('s') && q.length > 3) alts.push(q.slice(0, -1));
+      members = members.filter((m) => {
+        const hay = [m.name, m.category, m.contactName, m.email, m.neighborhood,
+          ...(Array.isArray(m.categories) ? m.categories : [])]
+          .filter(Boolean).join(' ').toLowerCase();
+        return alts.some((a) => hay.includes(a));
+      });
     }
     // Every login on each member — a business can have one per representative
     // (Felicia, Aug 25 2026). Admin-only payload; the public /api/members
