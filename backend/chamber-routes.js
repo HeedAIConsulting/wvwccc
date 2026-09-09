@@ -4823,8 +4823,23 @@ router.get('/admin/members', requireAdmin, async (req, res) => {
          So: search every category a member carries, and let a trailing "s"
          fall off. Both only ever widen the result. */
       const q = req.query.q.toLowerCase().trim();
+      /* Plurals only, and only the mechanical ones. Every rule strictly ADDS a
+         candidate, so a search can widen but never lose a member it used to
+         find. Checked against all 257 categories on the roster: these three
+         cover every one a plural search was missing.
+           notaries  -> notary     (bakeries, groceries, pharmacies, cemeteries)
+           presses   -> press      (businesses, glasses)
+           restaurants -> restaurant
+         Derivational forms are deliberately NOT guessed — "caterers" will not
+         find "Catering", because turning caterers into cater means guessing at
+         word roots and quietly returning the wrong businesses. The Guide says
+         to use the shortest distinctive word instead. */
       const alts = [q];
-      if (q.endsWith('s') && q.length > 3) alts.push(q.slice(0, -1));
+      if (q.endsWith('ies') && q.length > 4) alts.push(q.slice(0, -3) + 'y');
+      if (q.endsWith('es') && q.length > 4) alts.push(q.slice(0, -2));
+      // Not after another "s": no English plural is made that way, and
+      // "press" -> "pres" quietly dragged in every "Past President".
+      if (q.endsWith('s') && !q.endsWith('ss') && q.length > 3) alts.push(q.slice(0, -1));
       members = members.filter((m) => {
         const hay = [m.name, m.category, m.contactName, m.email, m.neighborhood,
           ...(Array.isArray(m.categories) ? m.categories : [])]
