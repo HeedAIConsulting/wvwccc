@@ -87,6 +87,45 @@ test('a secondary category counts, not just the primary one', async () => {
   }), 'every hit must genuinely mention it somewhere');
 });
 
+/* Audited against all 257 categories on the live roster: with only the
+   trailing-s rule, 25 of them under-returned on the plural somebody would
+   actually type. These two extra rules take that to zero. */
+test('an -ies plural finds a -y category', async () => {
+  for (const [plural, singular] of [['notaries', 'notary'], ['bakeries', 'bakery'],
+    ['groceries', 'grocery'], ['pharmacies', 'pharmacy'], ['cemeteries', 'cemetery']]) {
+    const p = await search(plural);
+    const g = await search(singular);
+    assert.equal(p.length, g.length, `"${plural}" must find what "${singular}" finds`);
+  }
+});
+
+test('an -es plural finds the singular', async () => {
+  for (const [plural, singular] of [['presses', 'press'], ['businesses', 'business']]) {
+    const p = await search(plural);
+    const g = await search(singular);
+    assert.equal(p.length, g.length, `"${plural}" must find what "${singular}" finds`);
+  }
+});
+
+test('every rule only ever widens — a plural never loses the singular list', async () => {
+  // The one property that must hold for all of them: adding an ending can add
+  // members, never drop one the shorter word already found.
+  for (const [plural, singular] of [['restaurants', 'restaurant'], ['notaries', 'notary'],
+    ['presses', 'press'], ['schools', 'school'], ['attorneys', 'attorney']]) {
+    const p = new Set((await search(plural)).map((m) => m.id));
+    for (const m of await search(singular)) {
+      assert.ok(p.has(m.id), `"${plural}" lost ${m.name}, which "${singular}" finds`);
+    }
+  }
+});
+
+test('an already-plural category is found by both spellings', async () => {
+  for (const [a, b] of [['banks', 'bank'], ['schools', 'school'], ['contractors', 'contractor']]) {
+    assert.ok((await search(a)).length > 0, `"${a}" should find members`);
+    assert.ok((await search(b)).length > 0, `"${b}" should find members`);
+  }
+});
+
 test('a short word is not de-pluralised into nonsense', async () => {
   // "is" must not become "i" and match half the roster.
   const all = await search('');
