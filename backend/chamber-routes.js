@@ -3807,6 +3807,15 @@ router.post('/pay', async (req, res) => {
           x.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40) === m[2]);
         if (t) {
           if (t.available === false) return res.status(400).json({ ok: false, error: 'That ticket type is no longer available.' });
+          /* A link-key price is a SECRET price (Diana, Jul 14 2026 — board
+             members selling $150 gala tickets; again Sep 9 2026 — a $50 rate
+             for Ambassadors only). The checkout dropdown hides it unless the
+             URL carries ?key=, but that is browser-side only, and the sku is
+             just a slug of the tier name — "Ambassador" is "ambassador". So
+             the key is verified HERE, or the secret price is not a secret. */
+          if (t.linkKey && String(b.linkKey || '').trim().toLowerCase() !== String(t.linkKey).toLowerCase()) {
+            return res.status(400).json({ ok: false, error: 'That ticket type is not available at this link.' });
+          }
           const qty = Math.max(1, Math.min(10, parseInt(b.quantity, 10) || 1));
           const unit = (t.earlyPrice != null && t.earlyUntil && Date.now() < Date.parse(t.earlyUntil))
             ? Number(t.earlyPrice) : Number(t.price);

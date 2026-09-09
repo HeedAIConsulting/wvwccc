@@ -2627,6 +2627,12 @@ window.Chamber = (function () {
           const fd = new FormData(form);
           const body = {
             kind, sku,
+            /* The secret-price key rides along so the SERVER can check it.
+               Filtering the dropdown by ?key= only hides the price in the
+               browser; the sku is a slug of the tier name ("Ambassador" ->
+               "ambassador"), so without this the discounted price was
+               purchasable by anyone who guessed it. */
+            linkKey: String(params.get('key') || '').trim().toLowerCase(),
             paymentToken: resp.token,
             amount: amountInput.value,
             firstName: fd.get('firstName'), lastName: fd.get('lastName'), email: fd.get('email'),
