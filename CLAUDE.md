@@ -85,12 +85,22 @@ ticket prices are: a ticket takes it from the event's `fund` (Admin → Events �
 Chamber. Only a custom payment link, which the office builds itself, is taken at
 its word. Do not let a browser-supplied fund decide where money settles.
 
-`AGMS_PROCESSOR_ID_FOUNDATION` is the Foundation's processor. Until it is set,
-Foundation charges still go through, land in the Chamber account, and are marked
-`fundRouted:false` — Admin → Pay Log shows them as **CBF · needs transfer** and
-the office is emailed each time. A donation is only tax-deductible when the fund
-is `foundation`; the checkout copy and the receipt say so per fund, so never
-reword either to claim it unconditionally.
+`AGMS_PROCESSOR_ID_FOUNDATION` is the Foundation's processor — **set on
+production 2026-09-10** to `communitybenefit` (deposits to the account ending
+7345), from Eduardo @ AGMS. `AGMS_PROCESSOR_ID_CHAMBER` is deliberately left
+blank: an omitted `processor_id` routes to the gateway's default processor,
+which is the Chamber's (`westvalleywarner`, account ending 8643) and is the path
+that has always worked. Pinning it explicitly is only worth doing after a live
+$1 Chamber charge proves the id is accepted — a wrong id there breaks the
+Chamber's own checkout, which is worse than what this fixed.
+
+If the processor is ever unset, Foundation charges still go through, land in the
+Chamber account, and are marked `fundRouted:false` — Admin → Pay Log shows them
+as **CBF · needs transfer** and the office is emailed each time.
+
+A donation is only tax-deductible when the fund is `foundation`; the checkout
+copy and the receipt say so per fund, so never reword either to claim it
+unconditionally.
 
 ## One-time migrations
 

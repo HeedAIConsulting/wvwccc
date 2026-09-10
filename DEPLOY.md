@@ -67,17 +67,27 @@ donation on the CBF page, a ticket to an event marked "Money goes to →
 Community Benefit Foundation", or `donate-foundation.html` — is tagged
 `fund: foundation` server-side and sent to the gateway with a `processor_id`.
 
-1. 👤 Ask AGMS (Eduardo) for the **processor id** of the Foundation's processor
-   on the `woodlandhillscc` gateway. The security key and the Collect.js
-   tokenization key do not change.
-2. 👤 Set `AGMS_PROCESSOR_ID_FOUNDATION` on the production service. No deploy
-   or code change is needed — it is read per transaction.
-3. 👤+🔧 Run a $1 donation on the CBF page and confirm it settles into the
-   Foundation account in the gateway report, then refund it there.
+1. ✅ AGMS (Eduardo, 2026-09-10) supplied both processor ids on the
+   `woodlandhillscc` gateway. The security key and the Collect.js tokenization
+   key did not change.
+   - `communitybenefit` → Foundation, bank account ending **7345**
+   - `westvalleywarner` → Chamber, bank account ending **8643**
+2. ✅ `AGMS_PROCESSOR_ID_FOUNDATION=communitybenefit` is set on production. It
+   is read per transaction, so no code change is needed to move it.
+   `AGMS_PROCESSOR_ID_CHAMBER` is left **blank on purpose**: an omitted
+   `processor_id` goes to the gateway's default processor, which is the
+   Chamber's and is the path that has always worked. Pin it only after a live
+   $1 Chamber charge proves `westvalleywarner` is accepted — a wrong id there
+   takes down the Chamber's own checkout.
+3. 👤 **Still to do.** Run a $1 donation on the CBF page and confirm it settles
+   into the Foundation account (7345) in the gateway report, and a $1 Chamber
+   charge to confirm that path still settles into 8643. Refund both there.
+   This is the only proof that the routing works — it needs a real card, so it
+   cannot be done from a test suite.
 
-Until step 2, Foundation charges still go through and settle into the Chamber
-account, but each is marked **CBF · needs transfer** in Admin → Pay Log and the
-office is emailed so the money can be moved. Set
+With the processor unset, Foundation charges still go through and settle into
+the Chamber account, but each is marked **CBF · needs transfer** in Admin → Pay
+Log and the office is emailed so the money can be moved. Set
 `FOUNDATION_PAYMENTS_REQUIRE_ROUTING=1` to refuse those charges instead.
 3. 👤+🔧 Run a $1 test ticket/donation with a real card, confirm it appears in the AGMS
    gateway, then refund it there.
