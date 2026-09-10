@@ -86,12 +86,17 @@ export async function setLeadStatus(id, status) {
 export async function addOrder(order) {
   if (db.enabled) {
     await db.query(
-      `INSERT INTO orders (id, kind, sku, member_id, name, email, amount, transaction_id, status, phone, company, memo, address1, city, state, zip, created)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16, now())`,
+      `INSERT INTO orders (id, kind, sku, member_id, name, email, amount, transaction_id, status, phone, company, memo, address1, city, state, zip, fund, fund_routed, created)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18, now())`,
       [order.id, order.kind, order.sku, order.memberId || null, order.name,
        order.email, order.amount, order.transactionId, order.status || 'paid',
        order.phone || null, order.company || null, order.memo || null,
-       order.address1 || null, order.city || null, order.state || null, order.zip || null]);
+       order.address1 || null, order.city || null, order.state || null, order.zip || null,
+       // Which of the two entities this belongs to. The columns are explicit,
+       // so a field left out here is silently dropped in production while the
+       // JSON store keeps it — the Foundation flag has to be listed by name.
+       order.fund || null,
+       order.fundRouted === undefined ? null : !!order.fundRouted]);
     return;
   }
   store.append('orders.json', order);
@@ -100,7 +105,7 @@ export async function listOrders() {
   if (db.enabled) {
     const r = await db.query('SELECT * FROM orders ORDER BY created DESC');
     // PG rows are snake_case; the admin UI reads camelCase (matches the JSON store).
-    return r.rows.map((o) => ({ ...o, transactionId: o.transaction_id }));
+    return r.rows.map((o) => ({ ...o, transactionId: o.transaction_id, fundRouted: o.fund_routed }));
   }
   return store.read('orders.json', []).slice().reverse();
 }

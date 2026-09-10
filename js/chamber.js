@@ -1233,7 +1233,13 @@ window.Chamber = (function () {
      someone directly to a clean page ... with just the Pay the Chamber any
      amount on that page and nothing else above it." Same logic both places, so
      the two can never drift; each page supplies the markup IDs below. */
-  async function initPayPortal() {
+  /* opts.fund — 'foundation' makes this portal the Community Benefit
+     Foundation's own payment page (Felicia, Sep 9 2026: "we would like a
+     direct payment link for the foundation like you did for the Chamber").
+     Same portal, same checkout; the fund rides through to /api/pay. */
+  async function initPayPortal(opts) {
+    const portalFund = String((opts && opts.fund) || new URLSearchParams(location.search).get('fund') || '')
+      .toLowerCase() === 'foundation' ? 'foundation' : 'chamber';
     const wrap = document.getElementById('payItems');
     const totalEl = document.getElementById('payTotal');
     const msg = document.getElementById('payMsg');
@@ -1323,7 +1329,8 @@ window.Chamber = (function () {
       if (list.some((i) => !i.desc)) { msg.textContent = 'Please describe each item so it appears on your receipt.'; msg.hidden = false; return; }
       const label = list.map((i) => `${i.desc} ($${i.amt.toFixed(2)})`).join(' + ');
       const base = location.pathname.replace(/[^/]*$/, '');
-      location.href = `${base}checkout.html?type=payment&for=${encodeURIComponent(label)}&amount=${encodeURIComponent(t.toFixed(2))}`;
+      location.href = `${base}checkout.html?type=payment&for=${encodeURIComponent(label)}&amount=${encodeURIComponent(t.toFixed(2))}`
+        + (portalFund === 'foundation' ? '&fund=foundation' : '');
     });
 
     // Load the office's list first so the first row already has the menu, then
@@ -2161,6 +2168,13 @@ window.Chamber = (function () {
   async function initCheckout() {
     const params = new URLSearchParams(location.search);
     const kind = params.get('type') || 'donation';
+    /* Chamber or Community Benefit Foundation (Felicia, Sep 9 2026). This is
+       for what the payer READS — who they are paying, and whether the gift is
+       tax-deductible. Where the money actually settles is decided by the
+       server from the event or the donation project, never from this. */
+    let fund = String(params.get('fund') || '').toLowerCase() === 'foundation' ? 'foundation' : 'chamber';
+    const entityName = () => fund === 'foundation'
+      ? 'WVWCCC Community Benefit Foundation' : 'West Valley · Warner Center Chamber of Commerce';
     const summary = document.getElementById('orderSummary');
     const title = document.getElementById('coTitle');
     const amountInput = document.getElementById('amount');
@@ -2314,6 +2328,9 @@ window.Chamber = (function () {
       try { ev = ((await getJSON(ChamberAPI.url('/api/events'))).events || []).find((e) => e.id === id); } catch (e) {}
       if (!ev) { try { ev = (await getJSON('data/events.json')).events.find((e) => e.id === id); } catch (e) {} }
       label = ev ? `Tickets — ${ev.title}` : 'Event tickets';
+      // A Foundation event's ticket money belongs to the 501(c)(3) — the
+      // office sets that per event in Admin → Events → "Money goes to".
+      if (ev && ev.fund === 'foundation') fund = 'foundation';
       const evMeta = ev
         ? `<strong>${esc(ev.title)}</strong><br><span class="member-tile__meta">${esc(ev.month || '')} ${esc(ev.day || '')} · ${esc(ev.venue || ev.neighborhood || '')}</span>`
         : '<strong>Event tickets</strong>';
@@ -2576,8 +2593,29 @@ window.Chamber = (function () {
       title.textContent = 'Make a donation';
       label = `Donation — ${project}`;
       if (item && item.amount != null && !presetAmount) presetAmount = String(item.amount);
-      summary.innerHTML = `<strong>Donation</strong><br><span class="member-tile__meta">${esc(project)}</span><p class="member-tile__meta mt-2">Your tax-deductible gift supports Chamber community programs.</p>`;
+      // Ask the site which project this is: the CBF ones are the 501(c)(3)'s.
+      // Until this, the page told EVERY donor their gift was tax-deductible —
+      // true of the Foundation's projects, not of the Chamber's own (Grateful
+      // Hearts, the Asian Cultural Festival), which are 501(c)(6) income.
+      try {
+        const dp = await getJSON(ChamberAPI.url('/api/donation-projects'));
+        const hit = (dp.projects || []).find((x) => String(x.key).trim().toLowerCase() === project.trim().toLowerCase());
+        if (hit) fund = hit.cbf ? 'foundation' : 'chamber';
+      } catch (e) { /* keep the ?fund= hint from the page they came from */ }
+      summary.innerHTML = `<strong>Donation</strong><br><span class="member-tile__meta">${esc(project)}</span>`
+        + `<p class="member-tile__meta mt-2">${fund === 'foundation'
+          ? 'Your gift goes to the <strong>WVWCCC Community Benefit Foundation</strong>, a 501(c)(3) — it is tax-deductible, and your receipt says so.'
+          : 'Your gift supports this Chamber community program. The Chamber is a 501(c)(6), so a gift to it is not tax-deductible as a charitable contribution.'}</p>`;
       amountLabel.textContent = 'Donation amount (USD)';
+    }
+    // One line under the order summary naming who is actually being paid —
+    // it belongs on the screen before the card, not only on the receipt.
+    if (fund === 'foundation' && summary) {
+      const who = document.createElement('p');
+      who.className = 'member-tile__meta mt-2';
+      who.style.cssText = 'border-top:1px solid var(--line,#e3ded1);padding-top:8px';
+      who.innerHTML = 'Paid to the <strong>WVWCCC Community Benefit Foundation</strong> (501(c)(3)) — a separate charitable organization from the Chamber.';
+      summary.appendChild(who);
     }
     if (presetAmount) amountInput.value = presetAmount;
     syncPayBtn();
@@ -2633,6 +2671,10 @@ window.Chamber = (function () {
                "ambassador"), so without this the discounted price was
                purchasable by anyone who guessed it. */
             linkKey: String(params.get('key') || '').trim().toLowerCase(),
+            /* Which fund this belongs to. The server re-derives it from the
+               event or the donation project and only takes these at face
+               value for a custom payment link the office built itself. */
+            fund, project: params.get('project') || '',
             paymentToken: resp.token,
             amount: amountInput.value,
             firstName: fd.get('firstName'), lastName: fd.get('lastName'), email: fd.get('email'),

@@ -17,6 +17,7 @@ Legend: 🔧 = code/config (done, in repo) · 👤 = **you** must do (account / 
    - `GEMINI_API_KEY` (Heed key) · `ANTHROPIC_API_KEY` (optional)
    - `AGMS_SECURITY_KEY` (gateway → Settings → Security Keys — start with the **sandbox** key)
    - `AGMS_API_BASE` = `https://sandbox.nmi.com` (switch to `https://agms.transactiongateway.com` for live)
+   - `AGMS_PROCESSOR_ID_FOUNDATION` (optional until AGMS supplies it — see below)
    - `DATABASE_URL` and `JWT_SECRET` are wired automatically by the blueprint.
 
 ## 2. Migrate + first deploy (🔧 automatic)
@@ -58,6 +59,26 @@ tokenization key is already embedded in `checkout.html`. Remaining steps:
    - `AGMS_SECURITY_KEY` = the private API key (Key ID 14789275, from local `.env.local`)
    - `AGMS_API_BASE` = `https://agms.transactiongateway.com`
 2. 🔧 Set `WVWCCC_PAY.paused = false` in `checkout.html` and deploy.
+
+### The Community Benefit Foundation's own account
+
+The Foundation is a separate 501(c)(3). Every charge the site takes for it — a
+donation on the CBF page, a ticket to an event marked "Money goes to →
+Community Benefit Foundation", or `donate-foundation.html` — is tagged
+`fund: foundation` server-side and sent to the gateway with a `processor_id`.
+
+1. 👤 Ask AGMS (Eduardo) for the **processor id** of the Foundation's processor
+   on the `woodlandhillscc` gateway. The security key and the Collect.js
+   tokenization key do not change.
+2. 👤 Set `AGMS_PROCESSOR_ID_FOUNDATION` on the production service. No deploy
+   or code change is needed — it is read per transaction.
+3. 👤+🔧 Run a $1 donation on the CBF page and confirm it settles into the
+   Foundation account in the gateway report, then refund it there.
+
+Until step 2, Foundation charges still go through and settle into the Chamber
+account, but each is marked **CBF · needs transfer** in Admin → Pay Log and the
+office is emailed so the money can be moved. Set
+`FOUNDATION_PAYMENTS_REQUIRE_ROUTING=1` to refuse those charges instead.
 3. 👤+🔧 Run a $1 test ticket/donation with a real card, confirm it appears in the AGMS
    gateway, then refund it there.
 4. Refunds: Admin → Payments has a Refund button (settled charges are refunded,

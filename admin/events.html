@@ -126,6 +126,13 @@
                   <option value="Make a payment"></option>
                 </datalist>
               </span>
+              <span style="display:inline-flex;align-items:center;gap:6px" id="evFundWrap">
+                <label style="margin:0">Money goes to</label>
+                <select name="fund" class="admin-select" title="Which bank account ticket and sponsorship money from this event is deposited into. The Foundation is the 501(c)(3); everything else is the Chamber.">
+                  <option value="chamber">Chamber of Commerce</option>
+                  <option value="foundation">Community Benefit Foundation (501(c)(3))</option>
+                </select>
+              </span>
               <span style="display:inline-flex;align-items:center;gap:6px" id="rsvpEmailWrap" hidden>
                 <label style="margin:0">Email RSVPs to</label>
                 <input name="rsvpEmail" type="email" maxlength="160" style="width:230px"
@@ -186,7 +193,7 @@
   </div>
   <script src="../js/api-base.js"></script>
   <script src="../js/rich-editor.js?v=20260901a"></script>
-  <script src="admin.js?v=20260909a"></script>
+  <script src="admin.js?v=20260910a"></script>
   <script>Admin.initEvents();</script>
   <script defer src="/js/support.js?v=20260804c"></script>
 </body>

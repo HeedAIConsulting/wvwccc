@@ -72,6 +72,26 @@ Two traps that have both bitten:
   either changes, across every HTML file. A returning visitor otherwise runs
   cached JS against new pages.
 
+## Two funds, one gateway
+
+The Chamber (501(c)(6)) and the **Community Benefit Foundation** (501(c)(3)) are
+separate legal entities with separate bank accounts, and both take money through
+the one AGMS/NMI gateway. Every charge carries a `fund` — `chamber` or
+`foundation` — which becomes the gateway's `processor_id`.
+
+The fund is resolved **server-side** in `resolveFund()`, for the same reason
+ticket prices are: a ticket takes it from the event's `fund` (Admin → Events →
+"Money goes to"), a donation from the project's `cbf` flag, dues are always the
+Chamber. Only a custom payment link, which the office builds itself, is taken at
+its word. Do not let a browser-supplied fund decide where money settles.
+
+`AGMS_PROCESSOR_ID_FOUNDATION` is the Foundation's processor. Until it is set,
+Foundation charges still go through, land in the Chamber account, and are marked
+`fundRouted:false` — Admin → Pay Log shows them as **CBF · needs transfer** and
+the office is emailed each time. A donation is only tax-deductible when the fund
+is `foundation`; the checkout copy and the receipt say so per fund, so never
+reword either to claim it unconditionally.
+
 ## One-time migrations
 
 Data corrections run once, keyed by a settings marker
