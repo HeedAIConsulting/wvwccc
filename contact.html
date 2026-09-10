@@ -15,6 +15,65 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="css/chamber.css?v=20260826a" />
+  <!-- Who and where the Chamber is, in the form search engines read.
+       Kept in step with the footer address in js/partials.js and the
+       Contact page by backend/test/chamber-address.test.mjs. -->
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": [
+    "LocalBusiness",
+    "NGO"
+  ],
+  "name": "West Valley · Warner Center Chamber of Commerce",
+  "alternateName": "WVWC Chamber of Commerce",
+  "url": "https://woodlandhillscc.net/",
+  "logo": "https://woodlandhillscc.net/images/wvwccc-logo-200.png",
+  "image": "https://woodlandhillscc.net/images/wvwccc-logo-200.png",
+  "telephone": "+1-818-347-4737",
+  "foundingDate": "1930",
+  "address": {
+    "@type": "PostalAddress",
+    "streetAddress": "6351 Owensmouth Avenue, Suite 101A",
+    "addressLocality": "Woodland Hills",
+    "addressRegion": "CA",
+    "postalCode": "91367",
+    "addressCountry": "US"
+  },
+  "areaServed": [
+    {
+      "@type": "Place",
+      "name": "Woodland Hills"
+    },
+    {
+      "@type": "Place",
+      "name": "Warner Center"
+    },
+    {
+      "@type": "Place",
+      "name": "Tarzana"
+    },
+    {
+      "@type": "Place",
+      "name": "Reseda"
+    },
+    {
+      "@type": "Place",
+      "name": "Canoga Park"
+    },
+    {
+      "@type": "Place",
+      "name": "West Hills"
+    }
+  ],
+  "sameAs": [
+    "https://www.facebook.com/westvalleywarnercenterchamber",
+    "https://www.instagram.com/westvalleywcchamber",
+    "https://www.linkedin.com/company/wvwcchamberofcommerce",
+    "https://www.yelp.com/biz/west-valley-warner-center-chamber-of-commerce-woodland-hills-2"
+  ]
+}
+  </script>
 </head>
 <body>
   <div data-partial="header"></div>
@@ -28,7 +87,9 @@
           <p class="lead">Questions about membership, events, sponsorships, or the community? We're here.</p>
           <ul style="list-style:none;display:flex;flex-direction:column;gap:var(--s-3);margin-top:var(--s-5)">
             <li>📞 <strong>(818) 347-4737</strong></li>
-            <li>📍 Serving Tarzana · Woodland Hills · Reseda · Warner Center</li>
+            <li>📍 <address style="font-style:normal;display:inline">6351 Owensmouth Avenue, Suite 101A<br>
+              <span style="margin-left:1.6em">Woodland Hills, CA 91367</span></address></li>
+            <li>🗺️ Serving Tarzana · Woodland Hills · Reseda · Warner Center</li>
             <li>🕒 The West Valley's Chamber since 1930</li>
           </ul>
           <h3 class="mt-6" style="font-size:1.1rem">Specific inquiries</h3>
@@ -65,7 +126,7 @@
 
   <div data-partial="footer"></div>
 
-  <script src="js/partials.js?v=20260904a"></script>
+  <script src="js/partials.js?v=20260910a"></script>
   <script src="js/api-base.js?v=20260818a"></script>
   <script src="js/chamber.js?v=20260910a"></script>
   <script>

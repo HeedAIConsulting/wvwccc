@@ -28,6 +28,65 @@
     .section-sm { padding: var(--s-5) 0; }
     .section .section-head { margin-bottom: var(--s-5); }
   </style>
+  <!-- Who and where the Chamber is, in the form search engines read.
+       Kept in step with the footer address in js/partials.js and the
+       Contact page by backend/test/chamber-address.test.mjs. -->
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": [
+    "LocalBusiness",
+    "NGO"
+  ],
+  "name": "West Valley · Warner Center Chamber of Commerce",
+  "alternateName": "WVWC Chamber of Commerce",
+  "url": "https://woodlandhillscc.net/",
+  "logo": "https://woodlandhillscc.net/images/wvwccc-logo-200.png",
+  "image": "https://woodlandhillscc.net/images/wvwccc-logo-200.png",
+  "telephone": "+1-818-347-4737",
+  "foundingDate": "1930",
+  "address": {
+    "@type": "PostalAddress",
+    "streetAddress": "6351 Owensmouth Avenue, Suite 101A",
+    "addressLocality": "Woodland Hills",
+    "addressRegion": "CA",
+    "postalCode": "91367",
+    "addressCountry": "US"
+  },
+  "areaServed": [
+    {
+      "@type": "Place",
+      "name": "Woodland Hills"
+    },
+    {
+      "@type": "Place",
+      "name": "Warner Center"
+    },
+    {
+      "@type": "Place",
+      "name": "Tarzana"
+    },
+    {
+      "@type": "Place",
+      "name": "Reseda"
+    },
+    {
+      "@type": "Place",
+      "name": "Canoga Park"
+    },
+    {
+      "@type": "Place",
+      "name": "West Hills"
+    }
+  ],
+  "sameAs": [
+    "https://www.facebook.com/westvalleywarnercenterchamber",
+    "https://www.instagram.com/westvalleywcchamber",
+    "https://www.linkedin.com/company/wvwcchamberofcommerce",
+    "https://www.yelp.com/biz/west-valley-warner-center-chamber-of-commerce-woodland-hills-2"
+  ]
+}
+  </script>
 </head>
 <body>
   <div data-partial="header"></div>
@@ -383,7 +442,7 @@
     })();
   </script>
 
-  <script src="js/partials.js?v=20260904a"></script>
+  <script src="js/partials.js?v=20260910a"></script>
   <script src="js/api-base.js?v=20260818a"></script>
   <script src="js/chamber.js?v=20260910a"></script>
   <script src="js/tour.js?v=20260825d"></script>
