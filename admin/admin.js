@@ -209,6 +209,8 @@ window.Admin = (function () {
     { id: 'ambassador-logged', t: 'Ambassadors logging work that was not at an event', kw: 'ambassador log activity contribution tier social post review buddy report referral tlc connect promote grow retain not an event enter their activity', href: 'ambassadors.html', sel: '#volEventFilter', tip: 'Ambassadors record posts, reviews, Buddy check-ins and referrals themselves from their member dashboard. They arrive worth 0 points — you set what each is worth in the Points column here. Filter to “Logged by ambassadors” to see just those.' },
     { id: 'volunteer-roles', t: 'Ask for volunteers at an event', kw: 'volunteer roles ambassador event registration greeter setup points needed', href: 'events.html', sel: '#evVolunteers', tip: 'Add the jobs you need covered and what each is worth — ambassadors sign up for them from their member portal.' },
     { id: 'cbf-donations', t: 'Change what donors can give to', kw: 'donation project cbf community benefit foundation cleanup earth day education adopt a school', href: 'content.html', sel: '#dpRows', tip: 'Edit the list on the Donate and Community Benefit Foundation pages. Tick CBF for Foundation initiatives.' },
+    { id: 'event-fund', t: 'Send an event\u2019s money to the Foundation instead of the Chamber', kw: 'foundation cbf 501c3 chamber event money deposit account bank which account funds ticket sponsorship charitable tax deductible', href: 'events.html', sel: '#evFundWrap', tip: 'On the event, set \u201cMoney goes to\u201d to Community Benefit Foundation. Ticket and sponsorship money from that event is then deposited to the Foundation\u2019s account and the buyer\u2019s receipt names the Foundation. Chamber is the default.' },
+    { id: 'foundation-link', t: 'The Foundation\u2019s own payment link', kw: 'foundation cbf donation link donate 501c3 payment page share email give tax deductible', href: 'payments.html', sel: '#plFund', tip: 'Paste woodlandhillscc.net/donate-foundation.html \u2014 anything paid there goes to the Foundation. For a one-off amount you quoted, use the payment link below and set \u201cDeposit it to\u201d = Community Benefit Foundation.' },
     { id: 'payment-link', t: 'Send someone a payment link', kw: 'payment link invoice custom charge sponsorship email amount bill quote', href: 'payments.html', sel: '#plFor', tip: 'Name the charge, set the amount, then copy the link or have the site email it. The amount is locked so they cannot type the wrong number.' },
     { id: 'pay-menu', t: 'Change what people can pay for online', kw: 'payment list menu dropdown breakfast mixer badge renewal price pay page', href: 'payments.html', sel: '#piRows', tip: 'This is the drop-down on the public Make a payment page. Leave a price blank when the amount varies.' },
     { id: 'event-create', t: 'Create or edit an event', kw: 'event create edit add date venue ticket calendar feature homepage', href: 'events.html', sel: '#eventForm', tip: 'Fill in the event here. Toggle “Feature on homepage” to spotlight it.' },
@@ -1686,6 +1688,8 @@ window.Admin = (function () {
           for: plFor.value.trim(),
           amount: plAmount.value,
           lock: true,
+          // Which account this one settles into (Felicia, Sep 9 2026).
+          fund: (document.getElementById('plFund') || {}).value || 'chamber',
           ...(send ? {
             to: document.getElementById('plTo').value.trim(),
             name: document.getElementById('plName').value.trim(),
@@ -2002,6 +2006,27 @@ window.Admin = (function () {
     try {
       const { orders } = await api('/api/admin/orders');
       const rows = document.getElementById('orderRows');
+      /* Foundation money (Felicia, Sep 9 2026). `fund` is only on payments
+         taken from Sep 2026 on — older rows show nothing rather than claiming
+         a Chamber deposit nobody verified. */
+      const fundTag = (o) => o.fund === 'foundation'
+        ? (o.fundRouted === false
+          ? ' <span class="pill pill--pending" title="Meant for the Foundation, but it settled into the Chamber operating account — this one owes a transfer">CBF · needs transfer</span>'
+          : ' <span class="pill" title="Deposited to the Community Benefit Foundation">CBF</span>')
+        : '';
+      // One line the office can act on: what the Chamber is holding for the
+      // Foundation, and why. Hidden entirely once nothing is mis-routed.
+      const owed = orders.filter((o) => o.fund === 'foundation' && o.fundRouted === false && (o.status || 'paid') === 'paid');
+      const owedBox = document.getElementById('fundNotice');
+      if (owedBox && owed.length) {
+        const total = owed.reduce((t, o) => t + Number(o.amount || 0), 0);
+        owedBox.hidden = false;
+        owedBox.innerHTML = `<strong>$${total.toFixed(2)} of Foundation money is in the Chamber account.</strong>
+          ${owed.length} payment${owed.length === 1 ? '' : 's'} meant for the Community Benefit Foundation were taken before the
+          Foundation's own merchant account was connected, so they settled into the operating account and need to be transferred.
+          They are tagged <span class="pill pill--pending">CBF · needs transfer</span> below.
+          New Foundation payments will go straight to the Foundation once AGMS supplies its processor and it is switched on.`;
+      }
       // Quick-search deep link (?q=) from the global search box filters the log.
       const q = (new URLSearchParams(location.search).get('q') || '').toLowerCase();
       const shown = q ? orders.filter((o) =>
@@ -2014,7 +2039,7 @@ window.Admin = (function () {
       rows.innerHTML = shown.length ? shown.map((o) => `
         <tr data-id="${esc(o.id)}" data-txn="${o.transactionId ? '1' : ''}"><td>${esc(new Date(o.created).toLocaleDateString())}</td>
         <td><a href="#" class="name" data-open title="Open the full receipt — contact info and what it was for">${esc(o.name || o.email || '—')}</a><div class="sub">${esc(o.email || '')}${o.phone ? ' · ' + esc(o.phone) : ''}</div></td>
-        <td>${o.memo ? esc(o.memo) : esc(o.kind) + (o.sku ? ' · ' + esc(o.sku) : '')}</td>
+        <td>${o.memo ? esc(o.memo) : esc(o.kind) + (o.sku ? ' · ' + esc(o.sku) : '')}${fundTag(o)}</td>
         <td>$${Number(o.amount || 0).toFixed(2)}</td>
         <td>${statusPill(o.status || 'paid')}</td>
         <td><span class="sub">${esc(o.transactionId || '')}</span></td>
@@ -2037,6 +2062,11 @@ window.Admin = (function () {
           ${item('Billing address', [o.address1, o.city, o.state, o.zip].filter(Boolean).length
             ? esc([o.address1, [o.city, o.state].filter(Boolean).join(', '), o.zip].filter(Boolean).join(', ')) : '')}
           ${item('For', esc(o.memo || [o.kind, o.sku].filter(Boolean).join(' · ') || '—'))}
+          ${item('Deposited to', o.fund === 'foundation'
+            ? (o.fundRouted === false
+              ? 'Community Benefit Foundation <span class="sub">— but this one settled into the Chamber account and still owes a transfer</span>'
+              : 'Community Benefit Foundation')
+            : (o.fund ? 'Chamber of Commerce' : ''))}
           ${item('Transaction', o.transactionId && `<span class="sub">${esc(o.transactionId)}</span>`)}
           ${(!o.phone && !o.memo) ? '<p class="sub" style="margin-top:6px">Older payments (before Aug 2026) carry no phone or description — those lived only in the receipt email. New payments record both.</p>'
             : (!o.address1 ? '<p class="sub" style="margin-top:6px">Payments from before Aug 25, 2026 don\'t carry a billing address — every new one records it.</p>' : '')}
@@ -2905,6 +2935,7 @@ window.Admin = (function () {
       // Editing an existing event still shows whatever that event already has.
       form.ctaKind.value = (!ev || ev.hideCta) ? 'none'
         : (ev.soldOut ? 'soldout' : (ev.ticketed ? (ev.alsoRsvp ? 'both' : 'buy') : 'rsvp'));
+      if (form.fund) form.fund.value = v('fund', 'chamber') === 'foundation' ? 'foundation' : 'chamber';
       if (form.ctaLabel) form.ctaLabel.value = v('ctaLabel');
       if (form.rsvpEmail) form.rsvpEmail.value = v('rsvpEmail');
       syncRsvpEmail();
@@ -3064,7 +3095,7 @@ window.Admin = (function () {
         <td><span class="name">${esc(e.title)}</span><div class="sub">${esc(e.category || '')}${e.images && e.images.length ? ' · ' + e.images.length + ' img' : ''}${e.links && e.links.length ? ' · ' + e.links.length + ' link' + (e.links.length > 1 ? 's' : '') : ''}</div></td>
         <td>${e.date ? esc((e.month || '') + ' ' + (e.day || '') + (e.date.slice(0, 4) !== String(new Date().getFullYear()) ? ' ' + e.date.slice(0, 4) : '')) : '<span class="pill pill--pending">TBA</span>'}<div class="sub">${esc(e.time || '')}</div></td>
         <td>${esc(e.venue || e.neighborhood || '')}</td>
-        <td>${statusPill(e.status || 'approved')}${e.featured ? ` <span class="pill pill--approved">home${Number.isFinite(Number(e.homeOrder)) && e.homeOrder ? ' #' + e.homeOrder : ''}</span>` : ''}${e.ticketed ? ' 🎟' : ''}${e.soldOut ? ' <span class="pill pill--pending" title="Ticket sales closed — visitors see a Sold Out notice">SOLD OUT</span>' : ''}</td>
+        <td>${statusPill(e.status || 'approved')}${e.featured ? ` <span class="pill pill--approved">home${Number.isFinite(Number(e.homeOrder)) && e.homeOrder ? ' #' + e.homeOrder : ''}</span>` : ''}${e.ticketed ? ' 🎟' : ''}${e.fund === 'foundation' ? ' <span class="pill" title="Ticket money from this event is deposited to the Community Benefit Foundation">CBF</span>' : ''}${e.soldOut ? ' <span class="pill pill--pending" title="Ticket sales closed — visitors see a Sold Out notice">SOLD OUT</span>' : ''}</td>
         <td style="white-space:nowrap">${(e.status || 'approved') !== 'approved' ? '<button class="btn btn--forest btn--sm" data-publish title="Make this event live on the website right now">✓ Publish</button> ' : ''}<button class="btn btn--ghost btn--sm" data-activity title="RSVPs and payments for this event">RSVPs / $</button> <button class="btn btn--ghost btn--sm" data-edit>Edit</button> <button class="btn btn--ghost btn--sm" data-del>Delete</button></td>
       </tr>`).join('') : `<tr><td colspan="5" class="sub">${q ? 'No events match that search.' : (evTab === 'past' ? 'No past events.' : 'No upcoming events. Create one above.')}</td></tr>`;
       rowsEl.querySelectorAll('tr[data-id]').forEach((tr) => {
@@ -3110,6 +3141,9 @@ window.Admin = (function () {
         description: plainFromRich().slice(0, 8000),
         descriptionHtml: rich ? rich.innerHTML : '',
         ticketed: form.ctaKind.value === 'buy' || form.ctaKind.value === 'both',
+        // Chamber event or Foundation event (Felicia, Sep 9 2026) — decides
+        // which of the two bank accounts this event's ticket money lands in.
+        fund: form.fund ? form.fund.value : 'chamber',
         alsoRsvp: form.ctaKind.value === 'both',
         soldOut: form.ctaKind.value === 'soldout',
         // "None" = no button anywhere (Felicia, Jul 30 2026). Some events take

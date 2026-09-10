@@ -84,8 +84,9 @@
         planting, a school program — or to the general fund and we'll put it where the need is greatest.
         The Foundation is a 501(c)(3), so your donation is tax-deductible.</p>
       <div class="grid grid-2 mt-6" id="cbfProjects" style="gap:var(--s-5)"></div>
-      <p class="member-tile__meta mt-5">Prefer to give by check, or want to underwrite a specific event? Call the
-        Chamber office at <strong>(818) 347-4737</strong> and we'll set it up.</p>
+      <p class="member-tile__meta mt-5">Giving another amount, or underwriting a Foundation event?
+        <a href="../donate-foundation.html">Use the Foundation&rsquo;s payment page</a> — it takes any amount and deposits to the
+        Foundation. Prefer to give by check? Call the Chamber office at <strong>(818) 347-4737</strong> and we&rsquo;ll set it up.</p>
     </div>
   </section>
 
@@ -93,7 +94,7 @@
 
   <script src="../js/partials.js?v=20260904a"></script>
   <script src="../js/api-base.js?v=20260818a"></script>
-  <script src="../js/chamber.js?v=20260909a"></script>
+  <script src="../js/chamber.js?v=20260910a"></script>
   <script>
     ChamberPartials.mount({ active: '', depth: 1, lang: 'en' });
     (async () => {
@@ -119,8 +120,8 @@
           <h3>${esc(p.key)}</h3>
           <p>${esc(p.blurb || '')}</p>
           <div class="chips mt-4">
-            ${amounts.map((a) => `<a class="chip" href="../checkout.html?type=donation&sku=${enc(a.sku)}&project=${enc(p.key)}&amount=${a.amount}">$${a.amount}</a>`).join('')}
-            <a class="chip" href="../checkout.html?type=donation&sku=don-custom&project=${enc(p.key)}">Other amount</a>
+            ${amounts.map((a) => `<a class="chip" href="../checkout.html?type=donation&fund=foundation&sku=${enc(a.sku)}&project=${enc(p.key)}&amount=${a.amount}">$${a.amount}</a>`).join('')}
+            <a class="chip" href="../checkout.html?type=donation&fund=foundation&sku=don-custom&project=${enc(p.key)}">Other amount</a>
           </div>
         </article>`).join('');
     })();

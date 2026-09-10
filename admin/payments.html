@@ -20,6 +20,7 @@
       <div class="admin-topbar"><h1>Pay Log</h1></div>
       <div class="admin-content">
         <p id="adminError" class="admin-notice" hidden></p>
+        <p id="fundNotice" class="admin-notice" hidden style="border-left:4px solid #C9A227"></p>
         <p class="admin-notice">Every membership, ticket, and donation processed through AGMS is logged here. Use Refund to send a payment back to the card; charges still awaiting settlement are voided automatically.</p>
         <div class="panel">
           <div class="panel__head"><h3>✉ Send someone a payment link</h3></div>
@@ -33,6 +34,12 @@
               <div class="field" style="margin:0"><label>Amount ($) *</label>
                 <input id="plAmount" type="number" min="1" step="0.01" placeholder="1000.00" /></div>
             </div>
+            <div class="field" style="margin:12px 0 0;max-width:380px"><label>Deposit it to</label>
+              <select id="plFund" class="admin-select">
+                <option value="chamber">Chamber of Commerce</option>
+                <option value="foundation">Community Benefit Foundation (501(c)(3))</option>
+              </select>
+              <span class="sub">Pick the Foundation for a donation, sponsorship, or ticket that belongs to the 501(c)(3).</span></div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
               <div class="field" style="margin:0"><label>Send to <span class="sub">(leave blank to just copy the link)</span></label>
                 <input id="plTo" type="email" placeholder="name@company.com" /></div>
@@ -74,7 +81,7 @@
     </div>
   </div>
   <script src="../js/api-base.js"></script>
-  <script src="admin.js?v=20260909a"></script>
+  <script src="admin.js?v=20260910a"></script>
   <script>Admin.initOrders();</script>
   <script defer src="/js/support.js?v=20260804c"></script>
 </body>

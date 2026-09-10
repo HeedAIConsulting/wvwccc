@@ -57,6 +57,23 @@ services:
         sync: false
       - key: AGMS_USERNAME
         value: woodlandhillscc
+      # ── Community Benefit Foundation: the SECOND processor ──
+      # The Foundation is a separate 501(c)(3) with its own bank account, so its
+      # donations, tickets and sponsorships must not settle into the Chamber's
+      # operating account (Felicia, Sep 9 2026). AGMS adds a second processor
+      # under this same gateway; set its id here and every Foundation charge
+      # routes to it. Until it is set, those charges still go through but are
+      # flagged `fundRouted:false` in the Pay Log and the office is emailed.
+      - key: AGMS_PROCESSOR_ID_FOUNDATION
+        sync: false
+      # Only needed if the Chamber's own processor stops being the gateway
+      # default. Blank = default processor, which is the long-standing behaviour.
+      - key: AGMS_PROCESSOR_ID_CHAMBER
+        sync: false
+      # Set to 1 to REFUSE a Foundation payment rather than let it land in the
+      # Chamber account while the processor above is missing. Off by default.
+      - key: FOUNDATION_PAYMENTS_REQUIRE_ROUTING
+        sync: false
       # ── Bot protection: Cloudflare Turnstile ──
       # SECRET key from the Cloudflare dashboard (Turnstile → the
       # woodlandhillscc.net widget → Settings). The matching SITE key is public

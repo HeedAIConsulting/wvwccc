@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" href="/favicon.ico" sizes="any" />
+  <link rel="icon" type="image/png" href="/images/favicon-32.png" sizes="32x32" />
+  <link rel="apple-touch-icon" href="/images/apple-touch-icon.png" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Give to the Community Benefit Foundation — West Valley · Warner Center Chamber of Commerce</title>
+  <meta name="description" content="Make a donation or payment to the WVWCCC Community Benefit Foundation, a 501(c)(3). Enter what it is for and the amount, and pay securely by card." />
+  <link rel="canonical" href="https://woodlandhillscc.net/donate-foundation.html" />
+  <meta property="og:title" content="Give to the Community Benefit Foundation" />
+  <meta property="og:description" content="Your tax-deductible gift to the WVWCCC Community Benefit Foundation, a 501(c)(3)." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="css/chamber.css?v=20260826a" />
+</head>
+<body>
+  <div data-partial="header"></div>
+
+  <!-- Felicia, Sep 9 2026: "we would like a direct payment link for the
+       foundation like you did for the Chamber of Commerce." This is pay-now.html
+       for the 501(c)(3) — same portal, same secure checkout, but every charge
+       taken here is deposited to the Foundation, not the Chamber's operating
+       account, and the receipt says the Foundation and names the deduction. -->
+  <section class="section">
+    <div class="container" style="max-width:720px">
+      <div class="card" id="customPay" style="border-left:4px solid var(--gold)">
+        <span class="kicker" style="color:var(--gold-deep)">501(c)(3) · tax-deductible</span>
+        <h1 style="margin:4px 0 8px">Give to the Community Benefit Foundation</h1>
+        <p class="member-tile__meta">Your gift goes to the <strong>WVWCCC Community Benefit Foundation</strong> — the Chamber&rsquo;s
+          charitable arm, supporting neighborhood cleanups, Earth Day and tree planting, Adopt-A-School, and education
+          and youth programs across the West Valley. Say what the gift is for, enter the amount, and pay securely by card.</p>
+        <p class="member-tile__meta">Sponsoring a Foundation event or paying an amount the office quoted you? Use this page for that too.
+          Looking for a specific project instead? <a href="community/community-benefit-foundation.html#cbfDonate">Choose a project</a>.</p>
+
+        <div id="payItems" class="mt-5" style="display:flex;flex-direction:column;gap:10px"></div>
+        <button type="button" class="btn btn--ghost btn--sm mt-3" id="addItem">+ Add another item</button>
+
+        <div class="mt-5" style="display:flex;align-items:center;justify-content:space-between;border-top:2px solid var(--gold-soft);padding-top:14px">
+          <strong style="font-size:1.05rem">Total</strong>
+          <strong id="payTotal" style="font-size:1.5rem;color:var(--green-ink)">$0.00</strong>
+        </div>
+        <p id="payMsg" class="notice mt-3" hidden></p>
+        <div class="btn-row mt-4">
+          <button type="button" class="btn btn--gold btn--lg" id="payGo">Continue to secure checkout →</button>
+        </div>
+        <p class="member-tile__meta mt-3" style="font-size:.8rem">
+          The WVWCCC Community Benefit Foundation is a 501(c)(3) charitable organization, separate from the Chamber of
+          Commerce. Your emailed receipt names the Foundation and is your record for tax purposes.
+          Card details are entered on the next screen and never touch our servers.
+          Questions? Call the office at <strong>(818) 347-4737</strong>.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <div data-partial="footer"></div>
+
+  <script src="js/partials.js?v=20260904a"></script>
+  <script src="js/api-base.js?v=20260818a"></script>
+  <script src="js/chamber.js?v=20260910a"></script>
+  <script>
+    ChamberPartials.mount({ active: 'community', depth: 0, lang: 'en' });
+    Chamber.initPayPortal({ fund: 'foundation' });
+  </script>
+</body>
+</html>

@@ -7,7 +7,8 @@ import QRCode from 'qrcode';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { sale, addRecurring, refundTransaction, voidTransaction } from './payments-agms.js';
+import { sale, addRecurring, refundTransaction, voidTransaction,
+  normalizeFund, processorFor, fundRoutable, fundEntity } from './payments-agms.js';
 import * as auth from './auth.js';
 import * as users from './users.js';
 import * as images from './images.js';
@@ -2141,6 +2142,13 @@ export function buildEvent(b, existing = {}) {
     // Rich (formatted) description from the admin editor — sanitized HTML.
     // When present the public site renders this instead of plain `description`.
     descriptionHtml: b.descriptionHtml !== undefined ? sanitizeRichHtml(b.descriptionHtml) : (existing.descriptionHtml ?? ''),
+    /* Which entity's bank account this event's ticket money settles into
+       (Felicia, Sep 9 2026: "as an Admin we need to determine whether an event
+       is a Chamber event or Foundation event so that the funds are deposited
+       in the correct account"). Chamber unless the office says otherwise —
+       the Foundation runs a handful of events a year, the Chamber runs the
+       rest, so the safe default is the common case. */
+    fund: b.fund !== undefined ? normalizeFund(b.fund) : (existing.fund ?? 'chamber'),
     ticketed: b.ticketed !== undefined ? !!b.ticketed : (existing.ticketed ?? false),
     // Show BOTH buttons (RSVP + Buy tickets) — e.g. members RSVP free while
     // guests buy a ticket. Only meaningful when ticketed is true.
@@ -3627,6 +3635,11 @@ router.post('/admin/payment-link', requireAdmin, async (req, res) => {
   const origin = process.env.PUBLIC_ORIGIN || `${req.protocol}://${req.get('host')}`;
   const qs = new URLSearchParams({ type: 'payment', for: what, amount: amount.toFixed(2) });
   if (b.lock !== false) qs.set('lock', '1');
+  // Chamber or Foundation (Felicia, Sep 9 2026). A custom link has no record
+  // to look up, so the fund rides in the link the office built — the same
+  // trust the locked amount already gets.
+  const fund = normalizeFund(b.fund);
+  if (fund === 'foundation') qs.set('fund', 'foundation');
   const url = `${origin}/checkout.html?${qs}`;
 
   // Nothing to send → just hand back the link for the office to paste.
@@ -3644,6 +3657,7 @@ router.post('/admin/payment-link', requireAdmin, async (req, res) => {
     note || `Here is your secure payment link for ${what}.`,
     '',
     `${what} — $${amount.toFixed(2)}`,
+    ...(fund === 'foundation' ? ['Payable to the WVWCCC Community Benefit Foundation, a 501(c)(3).'] : []),
     url,
     '',
     'The link opens our secure checkout. Card details are encrypted and never stored on our site.',
@@ -3776,6 +3790,43 @@ router.delete('/admin/coupons/:code', requireAdmin, async (req, res) => {
 });
 
 // ── Payments (AGMS) ─────────────────────────────────────────
+/* ── Which entity's bank account a payment settles into ──────
+   Felicia, Sep 9 2026: a gift made on the Community Benefit Foundation's own
+   donation page was landing in the Chamber's operating account. The Foundation
+   is a separate 501(c)(3), so that is not a routing preference — it is the
+   wrong entity receiving charitable money.
+
+   The fund is decided HERE, from the Chamber's own records, for the same
+   reason ticket prices are: a value posted by the browser is a value a payer
+   can edit. A ticket takes its fund from the event the office marked; a
+   donation from the project's CBF flag the office set in Admin. Only a custom
+   payment link — which the office builds itself, and which has no record to
+   look up — takes the browser's word for it. */
+async function resolveFund(b) {
+  const hint = normalizeFund(b.fund);
+  if (b.kind === 'ticket') {
+    const m = /^ticket:([^:]+):/.exec(String(b.sku || ''));
+    if (m) {
+      const ev = (await loadEvents()).find((e) => e.id === m[1]);
+      if (ev) return normalizeFund(ev.fund);
+    }
+    return 'chamber';
+  }
+  if (b.kind === 'donation') {
+    const name = String(b.project || '').trim().toLowerCase();
+    const p = name && (await loadDonationProjects()).find((x) => x.key.trim().toLowerCase() === name);
+    // A project the office renamed after the link went out no longer matches.
+    // Falling back to 'chamber' there would recreate exactly the bug being
+    // fixed, so an unmatched donation follows the page the donor gave from.
+    if (p) return p.cbf ? 'foundation' : 'chamber';
+    return hint;
+  }
+  // Membership dues belong to the Chamber, always — the Foundation has no
+  // members. Everything else (a custom payment link) is the office's call.
+  if (b.kind === 'membership') return 'chamber';
+  return hint;
+}
+
 router.post('/pay', async (req, res) => {
   try {
     const b = req.body || {};
@@ -3792,6 +3843,23 @@ router.post('/pay', async (req, res) => {
     }
     if (String(b.phone || '').replace(/\D/g, '').length < 7) {
       return res.status(400).json({ ok: false, error: 'Please enter a phone number so the office can reach you about this payment.' });
+    }
+
+    const fund = await resolveFund(b);
+    const entity = fundEntity(fund);
+    /* Until AGMS stands up the Foundation's own processor there is nowhere for
+       a Foundation charge to settle except the Chamber's account. Two ways to
+       handle that, and the office picks: refuse the charge (set
+       FOUNDATION_PAYMENTS_REQUIRE_ROUTING=1) or take the money and flag it.
+       Flagging is the default — turning the Foundation's donate page off would
+       lose gifts, and the money is recoverable by a transfer between two
+       accounts the Chamber already controls. What was NOT recoverable before
+       was knowing which charges those were, so every one is marked
+       fundRouted:false on the order and the office is emailed. */
+    const routed = fundRoutable(fund);
+    if (!routed && String(process.env.FOUNDATION_PAYMENTS_REQUIRE_ROUTING || '') === '1') {
+      return res.status(503).json({ ok: false,
+        error: 'Foundation payments are temporarily unavailable online. Please call the office at (818) 347-4737.' });
     }
 
     // Server-side price verification: never trust the browser's total for
@@ -3864,9 +3932,12 @@ router.post('/pay', async (req, res) => {
       // AVS: gateway requires billing street + ZIP or it declines "AVS REQUIRED"
       address1: b.address1, city: b.city, state: b.state, zip: b.zip,
       orderId: b.sku || b.kind, description: b.description, productSku: b.sku,
+      fund, processorId: processorFor(fund),
     };
     const result = b.kind === 'membership' && b.recurring
-      ? await addRecurring({ ...common, planAmount: b.amount, ...b.recurring })
+      // `b.recurring` is browser-supplied and spread last, so the processor is
+      // re-applied after it — a posted body must not pick its own processor.
+      ? await addRecurring({ ...common, planAmount: b.amount, ...b.recurring, processorId: processorFor(fund) })
       : await sale({ ...common, amount: b.amount });
 
     if (!result.approved) {
@@ -3885,6 +3956,7 @@ router.post('/pay', async (req, res) => {
           state: String(b.state || '').slice(0, 20), zip: String(b.zip || '').slice(0, 20),
           memo: String(b.description || '').slice(0, 300),
           amount: Number(b.amount), transactionId: result.transactionId || '',
+          fund, fundRouted: routed,
           status: 'declined',
         });
       } catch (e) { console.error('declined-attempt log failed', e); }
@@ -3906,6 +3978,10 @@ router.post('/pay', async (req, res) => {
       state: String(b.state || '').slice(0, 20), zip: String(b.zip || '').slice(0, 20),
       memo: String(b.description || '').slice(0, 300),
       amount: Number(b.amount), transactionId: result.transactionId,
+      // Which entity this belongs to, and whether it actually settled there.
+      // fundRouted:false = the Foundation's money is sitting in the Chamber's
+      // account and owes a transfer (see resolveFund above).
+      fund, fundRouted: routed,
       status: 'paid',
     };
     // The card is ALREADY charged past this point — a logging failure must
@@ -3926,6 +4002,31 @@ router.post('/pay', async (req, res) => {
       } catch (e2) { /* alert only */ }
     }
     if (coupon) repo.incrementCouponUse(coupon.code).catch(() => {});
+    /* A Foundation charge that had nowhere of its own to settle into is money
+       the Chamber is holding FOR the Foundation. Say so while the office can
+       still act on it, rather than leaving it to be discovered at reconcile
+       time — that discoverability is the whole point of the flag. */
+    if (!routed) {
+      email.send({
+        to: email.notifyTo(),
+        subject: `Foundation payment landed in the Chamber account — $${Number(order.amount).toFixed(2)} (txn ${order.transactionId})`,
+        text: [
+          `A payment meant for the ${entity.name} was charged, but the Foundation's own`,
+          'processor is not configured yet, so it settled into the Chamber operating account.',
+          '',
+          `Amount:  $${Number(order.amount).toFixed(2)}`,
+          `Payer:   ${order.name} ${order.email}`,
+          `For:     ${order.kind} ${order.sku}${b.project ? ` — ${b.project}` : ''}`,
+          `Gateway: ${order.transactionId}`,
+          '',
+          'This one needs a transfer to the Foundation account. It is marked in the Pay',
+          'Log as "Foundation (not routed)" so the full list can be pulled at any time.',
+          '',
+          'This stops on its own once AGMS supplies the Foundation processor id and it is',
+          'set as AGMS_PROCESSOR_ID_FOUNDATION on the website — no code change needed.',
+        ].join('\n'),
+      }).catch(() => {});
+    }
     // Email a receipt to the payer + the Chamber office, styled after the legacy
     // ChamberWare receipts (per Felicia): "Paid Receipt For Tickets <ref>" for
     // event tickets, "Paid Receipt <ref>" for everything else; order table +
@@ -3952,6 +4053,7 @@ router.post('/pay', async (req, res) => {
             ${row('City', b.city)}
             ${row('State', b.state)}
             ${row('Postal Code', b.zip)}
+            ${row('Paid to', entity.name)}
             ${row('Payment Type', b.kind || 'payment')}
             ${row('Paid Method', cardMethod)}
             ${isTicket ? row('Event', eventLine) : row('Description', b.description || b.sku)}
@@ -3976,10 +4078,15 @@ router.post('/pay', async (req, res) => {
             ${row(`Discount (${coupon.code})`, '-$' + discount.toFixed(2))}
           </table>` : ''}
           <p style="font-weight:bold;margin:18px 0 0">GRAND TOTAL: ${amt}${b.kind === 'membership' && b.recurring ? ' (annual, recurring)' : ''}</p>
+          ${entity.taxDeductible ? `<p style="font-size:.85rem;color:#5d6b63;margin:14px 0 0;border-top:1px solid #e3ded1;padding-top:10px">
+            The ${h(entity.name)} is a 501(c)(3) charitable organization. No goods or services were provided in
+            exchange for this gift except as described above. Keep this receipt for your tax records.</p>` : ''}
         </div>`;
       const text = `THANK YOU\nOrder #${ref}\n\n`
         + `Name: ${order.name}\n${isTicket ? `Event: ${eventLine}\nTickets Qty: ${b.quantity || 1}\n` : `Description: ${b.description || b.sku || b.kind}\n`}`
-        + `${b.cardLast4 ? `Card Number: XXXX-${b.cardLast4}\n` : ''}GRAND TOTAL: ${amt}\n\nWest Valley · Warner Center Chamber of Commerce`;
+        + `${b.cardLast4 ? `Card Number: XXXX-${b.cardLast4}\n` : ''}GRAND TOTAL: ${amt}\n\nPaid to: ${entity.name}`
+        + `${entity.taxDeductible ? '\nThe Foundation is a 501(c)(3) charitable organization — keep this receipt for your tax records.' : ''}`
+        + `\n\nWest Valley · Warner Center Chamber of Commerce`;
       if (b.email) email.send({ to: b.email, subject, text, html }).catch(() => {});
       email.send({ to: email.notifyTo(), subject, text, html }).catch(() => {});
     } catch (e) { console.error('receipt email', e); }

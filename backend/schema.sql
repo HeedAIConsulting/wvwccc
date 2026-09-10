@@ -92,6 +92,14 @@ ALTER TABLE orders ADD COLUMN IF NOT EXISTS address1 text;
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS city     text;
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS state    text;
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS zip      text;
+-- Which entity the money belongs to, and whether it actually settled there
+-- (Felicia, Sep 9 2026 — Community Benefit Foundation donations were landing
+-- in the Chamber's operating account). fund_routed=false marks a Foundation
+-- charge taken before the Foundation's own processor existed: the money is in
+-- the Chamber account and owes a transfer. Rows from before this migration
+-- have fund NULL, which the Pay Log shows as blank rather than guessing.
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS fund        text;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS fund_routed boolean;
 
 -- ── Coupons (checkout promo codes — ours, not the gateway's) ──
 CREATE TABLE IF NOT EXISTS coupons (
