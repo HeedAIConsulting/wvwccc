@@ -18,6 +18,21 @@ window.ChamberPartials = (function () {
 
   // Verified Chamber accounts only (each visited & confirmed).
   // Icons are static SVG files (official simple-icons paths, cream fill).
+  /* The Chamber's own address, in one place (Diana, Sep 10 2026 — the office
+     moved and the old address was still in the Regional Resource Guide).
+     The footer renders it on every page and the JSON-LD in index.html and
+     contact.html repeats it for search engines; a test asserts all three agree,
+     so a future move is a change here plus those two blocks and nothing else. */
+  const CHAMBER = {
+    name: 'West Valley · Warner Center Chamber of Commerce',
+    street: '6351 Owensmouth Avenue, Suite 101A',
+    city: 'Woodland Hills',
+    state: 'CA',
+    zip: '91367',
+    phone: '(818) 347-4737',
+    tel: '+1-818-347-4737',
+  };
+
   const SOCIALS = [
     { id: 'facebook', label: 'Facebook', url: 'https://www.facebook.com/westvalleywarnercenterchamber' },
     { id: 'instagram', label: 'Instagram', url: 'https://www.instagram.com/westvalleywcchamber' },
@@ -179,6 +194,10 @@ window.ChamberPartials = (function () {
           </span>
         </div>
         <p class="mt-4">${t.tag}</p>
+        <address class="site-footer__addr" style="font-style:normal;margin-top:var(--s-3);line-height:1.5">
+          ${CHAMBER.street}<br>${CHAMBER.city}, ${CHAMBER.state} ${CHAMBER.zip}<br>
+          <a href="tel:${CHAMBER.tel}">${CHAMBER.phone}</a>
+        </address>
         <div class="footer-social" aria-label="${L ? 'Redes sociales' : 'Social media'}">
           ${SOCIALS.map((s) => `<a href="${s.url}" target="_blank" rel="noopener" aria-label="${s.label}" title="${s.label}"><img src="${p(depth, 'images/social/' + s.id + '.svg')}" alt="" width="20" height="20" loading="lazy"></a>`).join('')}
         </div>

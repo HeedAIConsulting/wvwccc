@@ -102,6 +102,26 @@ A donation is only tax-deductible when the fund is `foundation`; the checkout
 copy and the receipt say so per fund, so never reword either to claim it
 unconditionally.
 
+## The Chamber's own address
+
+The office moved and the old address survived in the Regional Resource Guide
+until Diana found it (Sep 2026), because it had been written out by hand in a
+page nobody re-read. It now lives in exactly three places, on purpose:
+
+- `js/partials.js` → `CHAMBER` — the footer renders it on **every** page.
+- `index.html` and `contact.html` → a `LocalBusiness` JSON-LD block in the head.
+  Static markup, deliberately: a search engine should not have to run our
+  JavaScript to learn where the Chamber is, and the footer is JS-mounted.
+- `contact.html` → the visible list under "Contact the Chamber".
+
+`backend/test/chamber-address.test.mjs` fails if those stop agreeing, and if any
+page carries the old `6100 Topanga` again. A future move is one edit in each
+place and nothing missed. Do not publish an email address in the JSON-LD unless
+the office names one — `info@` was assumed once and is not a real inbox.
+
+`PO Box 1` on the Nov 2025 Grateful Hearts event is a mail-in donation address,
+not the office, and is left alone.
+
 ## One-time migrations
 
 Data corrections run once, keyed by a settings marker
