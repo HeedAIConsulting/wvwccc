@@ -209,6 +209,7 @@ window.Admin = (function () {
     { id: 'ambassador-logged', t: 'Ambassadors logging work that was not at an event', kw: 'ambassador log activity contribution tier social post review buddy report referral tlc connect promote grow retain not an event enter their activity', href: 'ambassadors.html', sel: '#volEventFilter', tip: 'Ambassadors record posts, reviews, Buddy check-ins and referrals themselves from their member dashboard. They arrive worth 0 points — you set what each is worth in the Points column here. Filter to “Logged by ambassadors” to see just those.' },
     { id: 'volunteer-roles', t: 'Ask for volunteers at an event', kw: 'volunteer roles ambassador event registration greeter setup points needed', href: 'events.html', sel: '#evVolunteers', tip: 'Add the jobs you need covered and what each is worth — ambassadors sign up for them from their member portal.' },
     { id: 'cbf-donations', t: 'Change what donors can give to', kw: 'donation project cbf community benefit foundation cleanup earth day education adopt a school', href: 'content.html', sel: '#dpRows', tip: 'Edit the list on the Donate and Community Benefit Foundation pages. Tick CBF for Foundation initiatives.' },
+    { id: 'ticket-secret-price', t: 'Hide a ticket price and share it with only some people', kw: 'secret hidden price link key ambassador board member discount special rate invite only share link coupon reveal', href: 'events.html', sel: '#evTickets', tip: 'On the price row, fill in Link key with a word only you share (ambassador2026, not ambassador). Save. The row then shows the exact link to send \u2014 hit Copy. That price is invisible to anyone who opens the event normally.' },
     { id: 'event-fund', t: 'Send an event\u2019s money to the Foundation instead of the Chamber', kw: 'foundation cbf 501c3 chamber event money deposit account bank which account funds ticket sponsorship charitable tax deductible', href: 'events.html', sel: '#evFundWrap', tip: 'On the event, set \u201cMoney goes to\u201d to Community Benefit Foundation. Ticket and sponsorship money from that event is then deposited to the Foundation\u2019s account and the buyer\u2019s receipt names the Foundation. Chamber is the default.' },
     { id: 'foundation-link', t: 'The Foundation\u2019s own payment link', kw: 'foundation cbf donation link donate 501c3 payment page share email give tax deductible', href: 'payments.html', sel: '#plFund', tip: 'Paste woodlandhillscc.net/donate-foundation.html \u2014 anything paid there goes to the Foundation. For a one-off amount you quoted, use the payment link below and set \u201cDeposit it to\u201d = Community Benefit Foundation.' },
     { id: 'payment-link', t: 'Send someone a payment link', kw: 'payment link invoice custom charge sponsorship email amount bill quote', href: 'payments.html', sel: '#plFor', tip: 'Name the charge, set the amount, then copy the link or have the site email it. The amount is locked so they cannot type the wrong number.' },
@@ -2709,6 +2710,7 @@ window.Admin = (function () {
         <button type="button" data-rmtk="${i}" class="btn btn--ghost btn--sm">×</button>
         </div>
         <p class="sub" data-tkwarn="${i}" hidden style="margin:3px 0 0;color:var(--red,#b00020);font-weight:600"></p>
+        <div data-tklink="${i}" hidden style="margin:4px 0 0"></div>
       </div>`).join('')
         + `<button type="button" id="evAddTix" class="btn btn--ghost btn--sm">+ Add a price</button>
            <button type="button" id="evAddMG" class="btn btn--ghost btn--sm" title="Adds a Member price and a Guest price in one click">+ Member &amp; Guest prices</button>
@@ -2724,9 +2726,45 @@ window.Admin = (function () {
         if (f === 'status') { t.available = el.value !== 'hidden'; t.soldOut = el.value === 'soldout'; }
         else t[f] = (f === 'price' ? el.value : (f === 'qty' ? (el.value === '' ? null : el.value) : el.value));
         refreshTicketHints();
+        if (f === 'linkKey' || f === 'name') refreshTicketLinks();
       }));
       tixWrap.querySelectorAll('[data-rmtk]').forEach((b) => b.addEventListener('click', () => { ticketTypes.splice(+b.dataset.rmtk, 1); renderTickets(); }));
       refreshTicketHints();
+      refreshTicketLinks();
+    }
+
+    /* The link for a secret price, built for them (Diana, Sep 10 2026). She
+       set out to share a hidden $50 Ambassador rate, and hand-typed
+       ...&tier=paid&key+discount — a + where the = goes, on an event where
+       she had not added the priced row yet. Nothing on screen had ever shown
+       her what the link should look like, so the only way to get one was to
+       assemble it from an email. Now the row builds its own. */
+    function refreshTicketLinks() {
+      tixWrap.querySelectorAll('[data-tklink]').forEach((box) => {
+        const t = ticketTypes[+box.dataset.tklink];
+        const key = t && String(t.linkKey || '').trim();
+        if (!key) { box.hidden = true; box.innerHTML = ''; return; }
+        box.hidden = false;
+        if (!editingId) {
+          box.innerHTML = '<span class="sub">Save the event and the link to share for this price appears here.</span>';
+          return;
+        }
+        const url = `${location.origin}/checkout.html?type=ticket&event=${encodeURIComponent(editingId)}&key=${encodeURIComponent(key.toLowerCase())}`;
+        box.innerHTML = `<span class="sub">Share this link to reveal “${esc(t.name || 'this price')}” — it is the only way to see or buy it:</span>
+          <span style="display:flex;gap:6px;align-items:center;margin-top:3px;flex-wrap:wrap">
+            <input readonly value="${esc(url)}" data-tklinkurl style="flex:1;min-width:260px;font-size:.85em;background:#faf8f3">
+            <button type="button" class="btn btn--ghost btn--sm" data-tkcopy>Copy</button>
+          </span>`;
+        const input = box.querySelector('[data-tklinkurl]');
+        input.addEventListener('focus', () => input.select());
+        box.querySelector('[data-tkcopy]').addEventListener('click', async (e) => {
+          input.select();
+          try { await navigator.clipboard.writeText(url); }
+          catch (err) { document.execCommand('copy'); }   // older browsers / no permission
+          const b = e.target; const was = b.textContent;
+          b.textContent = 'Copied'; setTimeout(() => { b.textContent = was; }, 1400);
+        });
+      });
     }
     // The unreachable-prices warning depends on the Action button and the
     // custom wording too, so those also refresh the hints.
