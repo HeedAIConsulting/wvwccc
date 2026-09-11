@@ -2760,7 +2760,13 @@ window.Admin = (function () {
            reasonably concluded the feature was broken. A link that does not
            work yet is worse than no link. */
         if (!editingId || !savedLinkKeys.has(key.toLowerCase())) {
-          box.innerHTML = '<span class="sub">Click <b>Save event</b> — your link to share appears here, and in the confirmation at the top.</span>';
+          /* This text sent Diana to the wrong end of the form (Sep 11 2026).
+             It said the confirmation was "at the top"; #eventMsg actually sits
+             at the BOTTOM, immediately above the Save event button. She looked
+             up, found nothing, and reported the link missing. Name the place
+             she has to go, and the button she has to press to get there. */
+          box.innerHTML = '<span class="sub">Not live yet. Scroll to the bottom of this form and click the green '
+            + '<b>Save event</b> button — the link appears there straight away, with a Copy button.</span>';
           return;
         }
         const url = `${location.origin}/checkout.html?type=ticket&event=${encodeURIComponent(editingId)}&key=${encodeURIComponent(key.toLowerCase())}`;
@@ -3291,7 +3297,12 @@ window.Admin = (function () {
         fillForm(null);
         msg.hidden = false;
         msg.textContent = wasEditing ? 'Saved ✓' : 'Event created ✓';
-        if (keyed.length && savedId) showShareLinks(savedId, keyed);
+        if (keyed.length && savedId) {
+          showShareLinks(savedId, keyed);
+          // Saving resets the form, so the page reflows under her. Put the
+          // links on screen rather than trusting where the scroll landed.
+          msg.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
         load();
       } catch (err) { msg.hidden = false; msg.textContent = 'Could not save event.'; }
       finally { btn.disabled = false; }

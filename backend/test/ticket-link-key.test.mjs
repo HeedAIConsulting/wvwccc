@@ -185,3 +185,35 @@ test('the admin never offers a share link for a key the server lacks', async () 
   assert.ok(/savedLinkKeys = new Set\(/.test(src) && src.includes('ev.ticketTypes'),
     'and that set must be refilled from the event whenever the form is opened');
 });
+
+/* Diana again, Sep 11: "I'm not seeing a special link for the hidden ticket."
+
+   Her screenshot showed the Discount Tickets row filled in correctly and my
+   own note underneath it reading "...and in the confirmation at the top".
+   #eventMsg is at the BOTTOM of the form, immediately above the Save event
+   button. She looked where the note sent her, found nothing, and reported the
+   link missing. The event's `updated` was still Sep 9, so it had never been
+   saved either — the note was the only thing standing between her and the
+   link, and it pointed the wrong way. */
+test('the unsaved-key note points at the button, not into space', async () => {
+  const { readFileSync } = await import('node:fs');
+  const src = readFileSync(new URL('../../admin/admin.js', import.meta.url), 'utf8');
+  // Strip comments first: this file explains the mistake, and the explanation
+  // naturally quotes the wrong wording. Assert on what Diana sees, not on the
+  // commentary about it.
+  const fn = src.slice(src.indexOf('function refreshTicketLinks'), src.indexOf('function refreshTicketLinks') + 2400)
+    .replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+  assert.ok(!/at the top/i.test(fn),
+    'the confirmation is at the bottom of the form — never send her to the top');
+  assert.ok(/Save event/.test(fn), 'name the button she has to press');
+  assert.ok(/bottom/i.test(fn), 'and say where that button is');
+});
+
+test('a save that produced links scrolls them into view', async () => {
+  const { readFileSync } = await import('node:fs');
+  const src = readFileSync(new URL('../../admin/admin.js', import.meta.url), 'utf8');
+  const at = src.indexOf('showShareLinks(savedId, keyed)');
+  assert.ok(at > -1, 'the save should still hand over the links');
+  assert.match(src.slice(at, at + 260), /msg\.scrollIntoView/,
+    'saving resets the form and reflows the page — put the links on screen rather than hoping');
+});
