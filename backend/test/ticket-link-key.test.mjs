@@ -130,3 +130,58 @@ test('the key does not let someone pay the secret price for the public tier', as
   assert.match(r.body.error, /showed a different amount/i,
     'server-side price verification still governs — the key is access, not a discount');
 });
+
+/* ── Diana, Sep 10 2026: "Still not there." ──────────────────
+   She had done it right: a Discount Ticket row at $50 with the link key
+   filled in, and the share link the admin built for her. Opening it showed
+   the five ordinary prices.
+
+   The event's `updated` was still two days old. The row had never been
+   saved — and the admin had handed her a link for it anyway, because the
+   first version built the link the instant the key was typed. A link that
+   cannot work yet is worse than no link, so the row now withholds it until
+   the key is saved, and the save hands it over.
+
+   Two things kept her from saving without noticing: the form raises a
+   confirm() over a suspect price, cancelling it saves nothing, and one of
+   that event's existing rows — "Party Pack - Buy 5 get 1 Ticket Free!
+   Early Bird $325" — tripped the "name says free but charges $325" check
+   on every single save. The word belongs to the offer; the name states its
+   own price and charges it.
+
+   The link-building and the warning both live in admin.js and are verified
+   in a browser. What is pinned here is the half that crosses the wire. */
+test('a link key added to an existing event survives the save', async () => {
+  const r = await adm(`/api/admin/events/${encodeURIComponent(evId)}`, {
+    method: 'PATCH',
+    body: JSON.stringify({
+      ticketTypes: [
+        { name: 'General', price: 125 },
+        { name: 'Ambassador', price: 50, linkKey: KEY },
+        { name: 'Discount Ticket', price: 50, qty: 20, linkKey: 'Discount' },
+      ],
+    }),
+  });
+  const txt = await r.text();
+  assert.equal(r.status, 200, txt);
+  const rows = JSON.parse(txt).event.ticketTypes;
+  const row = rows.find((t) => t.name === 'Discount Ticket');
+  assert.ok(row, 'the new row must persist — this is what had not happened');
+  assert.equal(row.linkKey, 'discount', 'stored lower-case, so the URL compares regardless of how it was typed');
+  assert.equal(row.price, 50);
+  // and the key still gates the charge
+  const bad = await pay({ sku: `ticket:${evId}:discount-ticket`, amount: 50 });
+  assert.match(bad.body.error, /not available at this link/i);
+  const ok = await pay({ sku: `ticket:${evId}:discount-ticket`, amount: 50, linkKey: 'discount' });
+  assert.ok(!/not available at this link/i.test(ok.body.error || ''));
+});
+
+test('the admin never offers a share link for a key the server lacks', async () => {
+  const { readFileSync } = await import('node:fs');
+  const src = readFileSync(new URL('../../admin/admin.js', import.meta.url), 'utf8');
+  const fn = src.slice(src.indexOf('function refreshTicketLinks'), src.indexOf('function refreshTicketLinks') + 1800);
+  assert.ok(fn.includes('savedLinkKeys.has'),
+    'the row must check the key against what was actually saved before offering a link');
+  assert.ok(/savedLinkKeys = new Set\(/.test(src) && src.includes('ev.ticketTypes'),
+    'and that set must be refilled from the event whenever the form is opened');
+});
