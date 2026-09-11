@@ -2488,6 +2488,9 @@ window.Admin = (function () {
     let links = [];
     let documents = [];
     let ticketTypes = [];
+    // The link keys as SAVED on the server, so an unsaved row cannot hand out
+    // a link. Refreshed from the event on open and from the body on save.
+    let savedLinkKeys = new Set();
     let flyers = [];       // extra full-size flyers
     let sponsorLogos = []; // {src, href, label}
     let volunteerRoles = []; // {role, points, needed}
@@ -2631,7 +2634,12 @@ window.Admin = (function () {
       if (named != null && Math.abs(named - p) >= 0.005) {
         return `The name promises <b>$${named.toFixed(2)}</b> but this charges <b>${p > 0 ? '$' + p.toFixed(2) : 'nothing'}</b>.`;
       }
-      if (tkSaysFree(name) && p > 0) return `The name says <b>free</b> but this charges <b>$${p.toFixed(2)}</b>.`;
+      /* Only when the name makes no price claim of its own. "Party Pack - Buy
+         5 get 1 Ticket Free! Early Bird $325" says free AND says $325, and
+         charges $325 — the word belongs to the offer, not to the ticket. That
+         false positive put a confirm dialog in front of every save of the Food
+         & Wine event, and a cancelled confirm saves nothing (Diana, Sep 2026). */
+      if (tkSaysFree(name) && p > 0 && named == null) return `The name says <b>free</b> but this charges <b>$${p.toFixed(2)}</b>.`;
       return '';
     }
     // Exactly what the checkout dropdown renders for this row — kept in step
@@ -2745,8 +2753,14 @@ window.Admin = (function () {
         const key = t && String(t.linkKey || '').trim();
         if (!key) { box.hidden = true; box.innerHTML = ''; return; }
         box.hidden = false;
-        if (!editingId) {
-          box.innerHTML = '<span class="sub">Save the event and the link to share for this price appears here.</span>';
+        /* Only ever offer a link for a key the SERVER already has (Diana,
+           Sep 10 2026). The first version built the link the moment she typed
+           the key, so she copied a perfectly formed link to a price the site
+           had never been told about, opened it, saw the ordinary prices, and
+           reasonably concluded the feature was broken. A link that does not
+           work yet is worse than no link. */
+        if (!editingId || !savedLinkKeys.has(key.toLowerCase())) {
+          box.innerHTML = '<span class="sub">Click <b>Save event</b> — your link to share appears here, and in the confirmation at the top.</span>';
           return;
         }
         const url = `${location.origin}/checkout.html?type=ticket&event=${encodeURIComponent(editingId)}&key=${encodeURIComponent(key.toLowerCase())}`;
@@ -2997,6 +3011,8 @@ window.Admin = (function () {
       links = ev && ev.links ? ev.links.map((l) => ({ ...l })) : [];
       documents = ev && ev.documents ? ev.documents.map((d) => ({ ...d })) : [];
       ticketTypes = ev && ev.ticketTypes ? ev.ticketTypes.map((t) => ({ ...t })) : [];
+      savedLinkKeys = new Set((ev && ev.ticketTypes ? ev.ticketTypes : [])
+        .map((t) => String(t.linkKey || '').trim().toLowerCase()).filter(Boolean));
       volunteerRoles = ev && ev.volunteerRoles ? ev.volunteerRoles.map((r) => ({ ...r })) : [];
       renderImages(); renderLinks(); renderDocs(); renderTickets(); renderFlyers(); renderSponsors(); renderVolunteers(); renderQr(); drawFlyer(); drawThumb();
       // The AI "start a new event from a flyer" tool only applies to new events —
@@ -3005,6 +3021,7 @@ window.Admin = (function () {
       document.getElementById('evFormTitle').textContent = editingId ? 'Edit event' : 'New event';
       document.getElementById('evCancel').hidden = !editingId;
       msg.hidden = true;
+      document.querySelectorAll('[data-sharebox]').forEach((n) => n.remove());
     }
     // The form panel starts collapsed (per Felicia, Jul 2026 — the list comes
     // first; "Add Event" opens the form). Editing a row opens it too.
@@ -3255,15 +3272,60 @@ window.Admin = (function () {
       if (badPrices.length && !confirm(
         `Check ${badPrices.length === 1 ? 'this price' : 'these prices'} before saving:\n\n`
         + badPrices.map((x) => `• ${x.t.name}\n   ${x.why.replace(/<\/?b>/g, '')}`).join('\n\n')
-        + '\n\nSave anyway?')) return;
+        + '\n\nSave anyway?')) {
+        msg.hidden = false;
+        msg.textContent = 'Nothing was saved — your changes are still on screen. Fix the price, or hit Save event and choose OK.';
+        return;
+      }
       const btn = form.querySelector('button[type="submit"]'); btn.disabled = true;
       try {
-        if (editingId) await api('/api/admin/events/' + encodeURIComponent(editingId), { method: 'PATCH', body: JSON.stringify(body) });
-        else await api('/api/admin/events', { method: 'POST', body: JSON.stringify(body) });
-        fillForm(null); msg.hidden = false; msg.textContent = editingId ? 'Saved ✓' : 'Event created ✓'; load();
+        const savedId = editingId
+          ? (await api('/api/admin/events/' + encodeURIComponent(editingId), { method: 'PATCH', body: JSON.stringify(body) }), editingId)
+          : ((await api('/api/admin/events', { method: 'POST', body: JSON.stringify(body) })).event || {}).id;
+        /* Hand over the secret-price links HERE, on the save, rather than only
+           on the row. Saving clears the form, so a link that lives only in the
+           row is gone at the moment she has finally earned it — and the row's
+           copy is deliberately withheld until the key is saved. */
+        const keyed = (body.ticketTypes || []).filter((t) => String(t.linkKey || '').trim());
+        const wasEditing = !!editingId;
+        fillForm(null);
+        msg.hidden = false;
+        msg.textContent = wasEditing ? 'Saved ✓' : 'Event created ✓';
+        if (keyed.length && savedId) showShareLinks(savedId, keyed);
+        load();
       } catch (err) { msg.hidden = false; msg.textContent = 'Could not save event.'; }
       finally { btn.disabled = false; }
     });
+    /* One block under the Saved ✓ line, listing the link for every secret
+       price on the event just saved, each with a Copy button. */
+    const clearShareLinks = () => document.querySelectorAll('[data-sharebox]').forEach((n) => n.remove());
+    function showShareLinks(evId, rows) {
+      clearShareLinks();          // one panel, not one per save
+      const box = document.createElement('div');
+      box.setAttribute('data-sharebox', '');
+      box.style.cssText = 'margin-top:10px;padding:10px 12px;border:1px solid var(--line,#ddd);border-left:3px solid var(--gold,#C9A227);border-radius:8px;background:#faf8f3';
+      box.innerHTML = `<p class="sub" style="margin:0 0 6px"><b>${rows.length === 1 ? 'Link' : 'Links'} to share.</b>
+        ${rows.length === 1 ? 'This price is' : 'These prices are'} hidden from everyone who opens the event normally — this is the only way to see or buy ${rows.length === 1 ? 'it' : 'them'}.</p>`
+        + rows.map((t) => {
+          const url = `${location.origin}/checkout.html?type=ticket&event=${encodeURIComponent(evId)}&key=${encodeURIComponent(String(t.linkKey).trim().toLowerCase())}`;
+          return `<div style="margin-top:6px">
+            <span class="sub">${esc(t.name || 'Price')}${t.price != null && t.price !== '' ? ' — $' + Number(t.price).toFixed(2) : ''}</span>
+            <span style="display:flex;gap:6px;align-items:center;margin-top:3px;flex-wrap:wrap">
+              <input readonly value="${esc(url)}" data-shareurl style="flex:1;min-width:260px;font-size:.85em;background:#fff">
+              <button type="button" class="btn btn--ghost btn--sm" data-sharecopy>Copy</button>
+            </span></div>`;
+        }).join('');
+      msg.insertAdjacentElement('afterend', box);
+      box.querySelectorAll('[data-sharecopy]').forEach((b) => b.addEventListener('click', async (e) => {
+        const input = e.target.closest('span').querySelector('[data-shareurl]');
+        input.select();
+        try { await navigator.clipboard.writeText(input.value); } catch (err) { document.execCommand('copy'); }
+        const was = e.target.textContent; e.target.textContent = 'Copied';
+        setTimeout(() => { e.target.textContent = was; }, 1400);
+      }));
+      box.querySelectorAll('[data-shareurl]').forEach((i) => i.addEventListener('focus', () => i.select()));
+    }
+
     document.getElementById('evCancel').addEventListener('click', () => fillForm(null));
 
     // Flyer → event (AI vision prefill)
