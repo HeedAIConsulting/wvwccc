@@ -2625,7 +2625,32 @@ window.Chamber = (function () {
     const cfg = window.WVWCCC_PAY || {};
     const form = document.getElementById('payForm');
     const errEl = document.getElementById('payError');
-    const showErr = (m) => { errEl.textContent = m; errEl.hidden = false; };
+    /* One click, one charge (Sep 11 2026). The free-RSVP branch below has
+       always disabled this button while it worked; the PAID branch never did,
+       so a second click tokenized the card again and posted a second charge.
+       On Sep 10 a member double-clicked a $70 ticket 2 seconds apart — the
+       gateway happened to decline the duplicate, which is luck, not a design.
+
+       Unlocking is the delicate half: Collect.js will not tokenize an invalid
+       card field and then never calls its callback, so a naive lock strands
+       the payer on a dead button — worse than the bug. Three ways back out:
+       showErr (every error path already calls it), validationCallback (a bad
+       field), and a timer that can never leave the button stuck. */
+    let payLocked = false;
+    let payTimer = null;
+    const clearPayTimer = () => { if (payTimer) { clearTimeout(payTimer); payTimer = null; } };
+    const unlockPay = () => {
+      payLocked = false;
+      clearPayTimer();
+      if (payBtnEl) payBtnEl.disabled = false;
+      syncPayBtn();
+    };
+    const lockPay = () => {
+      payLocked = true;
+      if (payBtnEl) { payBtnEl.disabled = true; payBtnEl.textContent = 'Processing…'; }
+      payTimer = setTimeout(unlockPay, 25000);
+    };
+    const showErr = (m) => { errEl.textContent = m; errEl.hidden = false; unlockPay(); };
 
     // No tokenization key yet → show notice, keep UI but block live submit.
     // A FREE RSVP still goes through: it never touches the card gateway.
@@ -2655,6 +2680,9 @@ window.Chamber = (function () {
     if (!window.CollectJS) return;
     window.CollectJS.configure({
       variant: 'inline',
+      // Collect.js refuses to tokenize an invalid field and never fires
+      // `callback`, so this is the only signal that the attempt is over.
+      validationCallback: (field, valid) => { if (!valid) unlockPay(); },
       fields: {
         ccnumber: { selector: '#ccnumber', placeholder: '•••• •••• •••• ••••' },
         ccexp: { selector: '#ccexp', placeholder: 'MM / YY' },
@@ -2703,6 +2731,7 @@ window.Chamber = (function () {
           });
           const data = await r.json();
           if (!data.ok) return showErr(data.error || 'Payment declined.');
+          clearPayTimer();           // charged: nothing left to unlock
           form.hidden = true;
           document.getElementById('paySuccess').hidden = false;
           document.getElementById('txnId').textContent = data.transactionId || '—';
@@ -2740,6 +2769,8 @@ window.Chamber = (function () {
         finally { if (btn) { btn.disabled = false; btn.textContent = was; } }
         return;
       }
+      if (payLocked) return;     // the first charge is still in flight
+      lockPay();
       window.CollectJS.startPaymentRequest();
     });
   }
