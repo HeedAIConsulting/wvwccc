@@ -408,11 +408,23 @@ a.member-tile__name:hover { color: var(--green); }
   padding: var(--s-5); transition: box-shadow var(--tr), border-color var(--tr);
 }
 .event-row:hover { box-shadow: var(--sh-md); border-color: var(--gold-soft); }
+/* A home-page event can carry a picture under its date (Felicia, Sep 14 2026).
+   The lead column widens to give the artwork somewhere to live; rows without a
+   picture are untouched. object-fit: contain so a portrait flyer is never
+   cropped and a wide logo is never stretched. */
+.event-row--thumb { grid-template-columns: 124px 1fr auto; }
+.event-row__lead { display: grid; gap: var(--s-3); align-self: start; }
+.event-thumb {
+  display: block; width: 100%; max-height: 170px; object-fit: contain;
+  border-radius: var(--r-md); background: var(--cream-deep);
+}
 /* Phones: three columns leave no room for the title — date + text share the
    top line, the RSVP/tickets column drops underneath. */
 @media (max-width: 640px) {
   .event-row { grid-template-columns: 64px 1fr; gap: var(--s-4); }
+  .event-row--thumb { grid-template-columns: 96px 1fr; }
   .event-row > div:last-child { grid-column: 1 / -1; justify-self: start; }
+  .event-thumb { max-height: 130px; }
 }
 .event-date { text-align: center; border-radius: var(--r-md); background: var(--cream-deep); padding: var(--s-3) var(--s-2); }
 .event-date__mo { font-family: var(--mono); font-size: .7rem; letter-spacing: .12em; text-transform: uppercase; color: var(--red); }

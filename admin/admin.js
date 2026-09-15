@@ -3152,12 +3152,22 @@ window.Admin = (function () {
           ? 'Past events, most recent first. They stay off the main view but are always here.'
           : 'Upcoming events only — past events are tucked away under <strong>Past events</strong> (or search for one by name).';
       }
+      // Open the event's real page in a new tab. For anything not published yet
+      // the page says so and stays invisible to the public — Felicia asked to
+      // see a pending event in full before publishing it (Sep 14 2026), and the
+      // edit form is not the same as looking at the page.
+      const evPreviewLink = (e) => {
+        const pending = (e.status || 'approved') !== 'approved';
+        return `<a class="btn btn--ghost btn--sm" href="../events/view.html?id=${encodeURIComponent(e.id)}" target="_blank" rel="noopener" title="${pending
+          ? 'See the whole event exactly as it will look — it stays off the website until you press ✓ Publish'
+          : 'Open this event on the website in a new tab'}">👁 ${pending ? 'Preview' : 'View'}</a> `;
+      };
       rowsEl.innerHTML = events.length ? events.map((e) => `<tr data-id="${esc(e.id)}">
         <td><span class="name">${esc(e.title)}</span><div class="sub">${esc(e.category || '')}${e.images && e.images.length ? ' · ' + e.images.length + ' img' : ''}${e.links && e.links.length ? ' · ' + e.links.length + ' link' + (e.links.length > 1 ? 's' : '') : ''}</div></td>
         <td>${e.date ? esc((e.month || '') + ' ' + (e.day || '') + (e.date.slice(0, 4) !== String(new Date().getFullYear()) ? ' ' + e.date.slice(0, 4) : '')) : '<span class="pill pill--pending">TBA</span>'}<div class="sub">${esc(e.time || '')}</div></td>
         <td>${esc(e.venue || e.neighborhood || '')}</td>
         <td>${statusPill(e.status || 'approved')}${e.featured ? ` <span class="pill pill--approved">home${Number.isFinite(Number(e.homeOrder)) && e.homeOrder ? ' #' + e.homeOrder : ''}</span>` : ''}${e.ticketed ? ' 🎟' : ''}${e.fund === 'foundation' ? ' <span class="pill" title="Ticket money from this event is deposited to the Community Benefit Foundation">CBF</span>' : ''}${e.soldOut ? ' <span class="pill pill--pending" title="Ticket sales closed — visitors see a Sold Out notice">SOLD OUT</span>' : ''}</td>
-        <td style="white-space:nowrap">${(e.status || 'approved') !== 'approved' ? '<button class="btn btn--forest btn--sm" data-publish title="Make this event live on the website right now">✓ Publish</button> ' : ''}<button class="btn btn--ghost btn--sm" data-activity title="RSVPs and payments for this event">RSVPs / $</button> <button class="btn btn--ghost btn--sm" data-edit>Edit</button> <button class="btn btn--ghost btn--sm" data-del>Delete</button></td>
+        <td style="white-space:nowrap">${(e.status || 'approved') !== 'approved' ? '<button class="btn btn--forest btn--sm" data-publish title="Make this event live on the website right now">✓ Publish</button> ' : ''}${evPreviewLink(e)}<button class="btn btn--ghost btn--sm" data-activity title="RSVPs and payments for this event">RSVPs / $</button> <button class="btn btn--ghost btn--sm" data-edit>Edit</button> <button class="btn btn--ghost btn--sm" data-del>Delete</button></td>
       </tr>`).join('') : `<tr><td colspan="5" class="sub">${q ? 'No events match that search.' : (evTab === 'past' ? 'No past events.' : 'No upcoming events. Create one above.')}</td></tr>`;
       rowsEl.querySelectorAll('tr[data-id]').forEach((tr) => {
         const id = tr.dataset.id;
