@@ -3337,6 +3337,45 @@ window.Admin = (function () {
       box.querySelectorAll('[data-shareurl]').forEach((i) => i.addEventListener('focus', () => i.select()));
     }
 
+    /* A save the browser refuses must say so (Diana, Sep 9-15 2026).
+
+       This event carried homeOrder 5, and the Home order box was capped at
+       max="4". The browser blocks the submit event outright when a control is
+       out of range — our handler never runs, no request is sent, and the only
+       hint is a bubble on a field she was not looking at. She pressed Save
+       event for six days: no ticket row, no homepage blurb, not even a
+       spelling correction. The server logs show not one PATCH for that event
+       in the whole period, while other events saved fine.
+
+       The cap was the real mistake — homeOrder is a running order, not a slot,
+       and the homepage simply takes the top four — so it is gone. This is the
+       backstop: whatever the browser objects to in future, it gets named here
+       instead of failing in silence. `invalid` fires per control and does not
+       bubble, so it is caught on the way down. */
+    const FIELD_LABELS = {
+      title: 'Title', date: 'Date', endDate: 'End date', homeOrder: 'Home order',
+      ticketCap: 'Ticket cap', rsvpCutoff: 'RSVP / ticket cutoff', rsvpEmail: 'Email RSVPs to',
+      ctaLabel: 'Button says', homeBlurb: 'Home-page blurb', summary: 'Summary',
+    };
+    let invalidSeen = [];
+    form.addEventListener('invalid', (e) => {
+      const el = e.target;
+      const label = FIELD_LABELS[el.name] || el.name || 'a field';
+      if (!invalidSeen.some((x) => x.el === el)) invalidSeen.push({ el, label, why: el.validationMessage });
+      // The browser is about to abandon the submit. Say which box and why,
+      // and put it on screen — it is often well above where she is working.
+      clearTimeout(form._invalidTimer);
+      form._invalidTimer = setTimeout(() => {
+        const first = invalidSeen[0];
+        msg.hidden = false;
+        msg.textContent = invalidSeen.length === 1
+          ? `Not saved — ${first.label} needs fixing: ${first.why}`
+          : `Not saved — ${invalidSeen.length} boxes need fixing, starting with ${first.label}: ${first.why}`;
+        try { first.el.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (err) { /* older browsers */ }
+        invalidSeen = [];
+      }, 0);
+    }, true);
+
     document.getElementById('evCancel').addEventListener('click', () => fillForm(null));
 
     // Flyer → event (AI vision prefill)
