@@ -22,6 +22,109 @@
    there; browser-side HTML is never trusted.
 */
 window.RichEditor = (function () {
+  /* 📋 Paste.
+
+     Two complaints, a month apart, pulling opposite ways. Felicia, Jul 14:
+     sponsor text pasted from Word carried Word's own fonts and styles and then
+     "wouldn't reformat" — the toolbar could not override it. The fix then was
+     to strip every style. Felicia, Sep 14: "when I copy/paste the text
+     formatting doesn't stick and I need to format it in the text box."
+
+     Both are right. What made pasted text unreformattable was Word's junk —
+     its typeface on every span, mso-* declarations, classes, fixed line
+     heights — not the fact that it was bold or centred. So we keep the
+     formatting the toolbar itself can produce (bold, italic, underline,
+     colour, size, alignment), rewritten as the same clean single-property
+     spans the toolbar emits, and still drop everything else. Pasted text
+     arrives looking the way it did in Word, and the toolbar can still change
+     it afterwards. Word's typeface is deliberately NOT kept: the site's own
+     font is the one that belongs on the page, and the foreign typeface was
+     half of what looked wrong in July.
+
+     Split out of the paste listener so it can be tested without a browser —
+     it takes a node and returns HTML. See backend/test/rich-paste.test.mjs. */
+  const escHtml = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const PASTE_TAGS = {
+    P: 'p', DIV: 'p', H1: 'h3', H2: 'h3', H3: 'h4', H4: 'h4', H5: 'h4',
+    UL: 'ul', OL: 'ol', LI: 'li', B: 'b', STRONG: 'b', I: 'i', EM: 'i', U: 'u',
+    S: 's', STRIKE: 's', DEL: 's', A: 'a', BR: 'br', SPAN: 'span', FONT: 'span',
+  };
+  const BLOCK_TAGS = new Set(['p', 'h3', 'h4', 'li', 'blockquote']);
+  // Word's body text is 11-12pt and the site's is 1rem, so anything inside the
+  // band below is ordinary body text and carries no size of its own — without
+  // this every pasted paragraph arrives stamped with a near-1rem font-size.
+  function pastedFontSize(v) {
+    const m = /^([\d.]+)\s*(pt|px|em|rem)$/.exec(String(v || '').trim());
+    if (!m) return '';
+    const n = parseFloat(m[1]);
+    if (!Number.isFinite(n) || n <= 0) return '';
+    const rem = m[2] === 'pt' ? n / 12 : m[2] === 'px' ? n / 16 : n;
+    if (rem >= 0.85 && rem <= 1.15) return '';                  // just body text
+    return Math.min(2.5, Math.max(0.7, Math.round(rem * 100) / 100)) + 'rem';
+  }
+  // Keep a deliberate colour; drop Word's automatic black (the site has its own
+  // ink) and anything near white (invisible on the page). The test is on the
+  // channels, not on brightness: a dark but saturated red like #c00000 is
+  // darker than mid-grey and is exactly the colour the office puts on a
+  // headline, so a brightness cut-off would have thrown it away.
+  function pastedColor(v) {
+    v = String(v || '').trim().toLowerCase();
+    let r; let g; let b;
+    const rgb = /^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/.exec(v);
+    const hex6 = /^#([0-9a-f]{6})$/.exec(v);
+    const hex3 = /^#([0-9a-f]{3})$/.exec(v);
+    if (rgb) { r = +rgb[1]; g = +rgb[2]; b = +rgb[3]; }
+    else if (hex6) [r, g, b] = [0, 2, 4].map((i) => parseInt(hex6[1].slice(i, i + 2), 16));
+    else if (hex3) [r, g, b] = [0, 1, 2].map((i) => parseInt(hex3[1][i] + hex3[1][i], 16));
+    else return '';
+    if (Math.max(r, g, b) < 40) return '';                      // black, or as good as
+    if (Math.min(r, g, b) > 235) return '';                     // white on a white page
+    return '#' + [r, g, b].map((c) => c.toString(16).padStart(2, '0')).join('');
+  }
+  function pastedStyle(el, tag) {
+    const st = el.style || {};
+    const get = (n) => String(st[n] || '').trim().toLowerCase();
+    const attr = (n) => (el.getAttribute ? String(el.getAttribute(n) || '') : '');
+    const out = [];
+    const fw = get('fontWeight');
+    if (fw === 'bold' || fw === 'bolder' || Number(fw) >= 600) out.push('font-weight:bold');
+    if (get('fontStyle') === 'italic') out.push('font-style:italic');
+    const deco = get('textDecoration') + ' ' + get('textDecorationLine');
+    if (/underline/.test(deco)) out.push('text-decoration:underline');
+    else if (/line-through/.test(deco)) out.push('text-decoration:line-through');
+    const col = pastedColor(get('color') || attr('color'));
+    if (col) out.push('color:' + col);
+    const size = pastedFontSize(get('fontSize'));
+    if (size) out.push('font-size:' + size);
+    if (BLOCK_TAGS.has(tag)) {
+      const al = get('textAlign');
+      if (al === 'center' || al === 'right') out.push('text-align:' + al);
+    }
+    return out.join(';');
+  }
+  function cleanPasted(node) {
+    const walk = (parent) => [...(parent.childNodes || [])].map((n) => {
+      if (n.nodeType === 3) return escHtml(n.textContent);
+      if (n.nodeType !== 1) return '';
+      const tag = PASTE_TAGS[n.tagName];
+      const inner = walk(n);
+      if (tag === 'br') return '<br>';
+      if (!tag) return inner;                     // unknown wrapper — keep what's inside
+      if (!inner.trim()) return '';
+      if (tag === 'a') {
+        const href = (n.getAttribute && n.getAttribute('href')) || '';
+        return /^(https?:|mailto:|tel:)/i.test(href) ? `<a href="${escHtml(href)}">${inner}</a>` : inner;
+      }
+      const style = pastedStyle(n, tag);
+      // A span carrying nothing we keep is one of Word's wrappers, not
+      // formatting — unwrap it rather than publishing an empty tag.
+      if (tag === 'span' && !style) return inner;
+      return `<${tag}${style ? ` style="${style}"` : ''}>${inner}</${tag}>`;
+    }).join('');
+    return walk(node).replace(/(?:<br>\s*){3,}/g, '<br><br>');   // Word's stacked spacer breaks
+  }
+
   function mount(rich, richBar, opts) {
     if (!rich || !richBar) return;
     const { esc, uploadImage, pickImages } = opts || {};
@@ -81,10 +184,6 @@ window.RichEditor = (function () {
         if (!/^(https?:|mailto:|tel:|\/)/i.test(url)) url = 'https://' + url;
         focusExec(() => document.execCommand('createLink', false, url));
       });
-      // 📋 Paste cleanup (per Felicia, Jul 14 — sponsor text pasted from Word
-      // carried Word's own fonts/styles and wouldn't reformat). Keep the
-      // structure (paragraphs, bullets, bold/italic/underline, links), drop
-      // the styling, so the toolbar works on whatever was pasted.
       rich.addEventListener('paste', (e) => {
         const html = e.clipboardData && e.clipboardData.getData('text/html');
         const text = e.clipboardData && e.clipboardData.getData('text/plain');
@@ -94,25 +193,9 @@ window.RichEditor = (function () {
         if (html) {
           const doc = new DOMParser().parseFromString(html, 'text/html');
           doc.querySelectorAll('style,script,meta,link,head,title').forEach((n) => n.remove());
-          const KEEP = { P: 'p', DIV: 'p', H1: 'h3', H2: 'h3', H3: 'h4', H4: 'h4', H5: 'h4', UL: 'ul', OL: 'ol', LI: 'li', B: 'b', STRONG: 'b', I: 'i', EM: 'i', U: 'u', A: 'a', BR: 'br' };
-          const walk = (node) => [...node.childNodes].map((n) => {
-            if (n.nodeType === 3) return esc(n.textContent);
-            if (n.nodeType !== 1) return '';
-            const tag = KEEP[n.tagName];
-            const inner = walk(n);
-            if (tag === 'br') return '<br>';
-            if (!tag) return inner;
-            if (!inner.trim()) return '';
-            if (tag === 'a') {
-              const href = n.getAttribute('href') || '';
-              return /^(https?:|mailto:|tel:)/i.test(href) ? `<a href="${esc(href)}">${inner}</a>` : inner;
-            }
-            return `<${tag}>${inner}</${tag}>`;
-          }).join('');
-          out = walk(doc.body)
-            .replace(/(?:<br>\s*){3,}/g, '<br><br>'); // Word's stacked spacer breaks
+          out = cleanPasted(doc.body);
         } else {
-          out = esc(text).replace(/\r?\n/g, '<br>');
+          out = escHtml(text).replace(/\r?\n/g, '<br>');
         }
         if (out) document.execCommand('insertHTML', false, out);
       });
@@ -281,5 +364,5 @@ window.RichEditor = (function () {
         rememberRange();
       });
   }
-  return { mount };
+  return { mount, cleanPasted, pastedFontSize, pastedColor };
 })();

@@ -5,6 +5,20 @@ window.Admin = (function () {
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) =>
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const apiBase = (window.ChamberAPI ? ChamberAPI.url('') : '');
+  /* Artwork imported from the old website is stored as a path relative to the
+     site root — "assets/events/11262.jpg". The public pages resolve that
+     correctly because they know their own depth. The admin pages live under
+     /admin/, so the very same string asked the server for
+     /admin/assets/events/11262.jpg, got a 404, and drew a broken image box on
+     the event — which is what Felicia was looking at on the Oct 21 Food & Wine
+     event while editing it (her session, Sep 15 2026). 23 event images and 2
+     flyers on the live site are stored this way. Anything already absolute,
+     rooted, or a data/blob URL passes through untouched. */
+  const adminSrc = (u) => {
+    const v = String(u == null ? '' : u).trim();
+    if (!v || /^(https?:|data:|blob:|\/)/i.test(v)) return v;
+    return '/' + v.replace(/^\.?\//, '');
+  };
 
   // Downscale an image File to a JPEG data URL (keeps uploads small + within vision limits).
   function downscaleImage(file, maxDim = 1600, quality = 0.85) {
@@ -2497,6 +2511,35 @@ window.Admin = (function () {
     let flyerUrl = '';
     let thumbnail = '';
 
+    /* Every picture and PDF on this form uploads in the background, and nothing
+       used to stop a save landing in the middle of one. The row has no src yet,
+       the payload filters it out, the save succeeds, "Saved ✓" appears — and the
+       logo she just picked is simply not on the event. Save again a few seconds
+       later and it sticks, which is exactly what Felicia reported on Sep 15
+       2026: "I have to hit the save button twice for it to save." The server log
+       shows the shape of it — two successful PATCHes to the same event 34
+       seconds apart, both hers, neither of them refused.
+
+       So the form now knows what is still in flight. Save goes quiet while an
+       upload runs and comes back on its own; it is never a dead end. */
+    const saveBtn = form.querySelector('button[type="submit"]');
+    const saveLabel = saveBtn ? saveBtn.textContent : 'Save event';
+    let uploading = 0;
+    let saving = false;
+    function syncSaveBtn() {
+      if (!saveBtn) return;
+      saveBtn.disabled = uploading > 0 || saving;
+      saveBtn.textContent = saving ? 'Saving…'
+        : uploading > 0 ? (uploading === 1 ? 'Uploading…' : `Uploading ${uploading} files…`)
+        : saveLabel;
+    }
+    // Wrap an upload that is already under way, so the button tracks it. The
+    // finally is the whole point: a failed upload must not leave Save disabled.
+    async function tracked(promise) {
+      uploading += 1; syncSaveBtn();
+      try { return await promise; } finally { uploading -= 1; syncSaveBtn(); }
+    }
+
     // ── The Diana switch (Aug 20 2026): leader events wait for approval
     // unless the office flips this on. Saves on change, right on the page.
     const liToggle = document.getElementById('evLeaderInstant');
@@ -2540,7 +2583,7 @@ window.Admin = (function () {
     const richBar = document.getElementById('evRichBar');
     RichEditor.mount(rich, richBar, {
       esc,
-      uploadImage: async (dataUrl) => (await api('/api/me/asset', { method: 'POST', body: JSON.stringify({ kind: 'photo', dataUrl }) })).url,
+      uploadImage: async (dataUrl) => (await tracked(api('/api/me/asset', { method: 'POST', body: JSON.stringify({ kind: 'photo', dataUrl }) }))).url,
       pickImages: pickImage,
     });
     const plainFromRich = () => (rich ? rich.innerText.replace(/ /g, ' ').trim() : '');
@@ -2564,7 +2607,7 @@ window.Admin = (function () {
         });
         inp.insertAdjacentElement('afterend', b);
       }
-      const draw = () => { if (prev) prev.innerHTML = get() ? `<img src="${esc(get())}" alt="" style="max-width:140px;border-radius:8px"> <button type="button" data-clr class="btn btn--gold btn--sm" title="Delete this image — the upload box then sets a fresh one">✕ Delete</button>` : ''; if (prev) { const c = prev.querySelector('[data-clr]'); if (c) c.addEventListener('click', () => { set(''); draw(); }); } };
+      const draw = () => { if (prev) prev.innerHTML = get() ? `<img src="${esc(adminSrc(get()))}" alt="" style="max-width:140px;border-radius:8px"> <button type="button" data-clr class="btn btn--gold btn--sm" title="Delete this image — the upload box then sets a fresh one">✕ Delete</button>` : ''; if (prev) { const c = prev.querySelector('[data-clr]'); if (c) c.addEventListener('click', () => { set(''); draw(); }); } };
       if (inp) inp.addEventListener('change', async (e) => {
         const f = e.target.files[0]; if (!f) return;
         // Big Canva exports were silently bouncing off the ~2.5MB upload cap
@@ -2573,7 +2616,7 @@ window.Admin = (function () {
         // still fails instead of failing quietly.
         try {
           const dataUrl = await downscaleImage(f, 1800, 0.85);
-          const up = await api('/api/me/asset', { method: 'POST', body: JSON.stringify({ kind: 'photo', dataUrl }) });
+          const up = await tracked(api('/api/me/asset', { method: 'POST', body: JSON.stringify({ kind: 'photo', dataUrl }) }));
           set(up.url); draw();
           if (after) after();
         } catch (err) { alert('That image could not be uploaded (PNG/JPG/WebP). Try exporting it a bit smaller and upload again.'); }
@@ -2603,7 +2646,7 @@ window.Admin = (function () {
       if (inp) inp.addEventListener('change', (e) => {
         const f = e.target.files[0]; if (!f) return;
         const r = new FileReader();
-        r.onload = async () => { try { const up = await api('/api/me/asset', { method: 'POST', body: JSON.stringify({ dataUrl: r.result }) }); documents.push({ label: (f.name || 'Document').replace(/\.pdf$/i, ''), url: up.url }); renderDocs(); } catch (err) { msg.hidden = false; msg.textContent = 'PDF upload failed (max ~6MB).'; } };
+        r.onload = async () => { try { const up = await tracked(api('/api/me/asset', { method: 'POST', body: JSON.stringify({ dataUrl: r.result }) })); documents.push({ label: (f.name || 'Document').replace(/\.pdf$/i, ''), url: up.url }); renderDocs(); } catch (err) { msg.hidden = false; msg.textContent = 'PDF upload failed (max ~6MB).'; } };
         r.readAsDataURL(f);
       });
       docWrap.querySelectorAll('[data-dlbl]').forEach((el) => el.addEventListener('input', () => { documents[+el.dataset.dlbl].label = el.value; }));
@@ -2805,7 +2848,7 @@ window.Admin = (function () {
     const imgHrefOf = (it) => (it && typeof it === 'object' && it.href) || '';
     function renderImages() {
       imgWrap.innerHTML = images.map((it, i) => `<div style="display:flex;gap:8px;margin-bottom:8px;align-items:center;flex-wrap:wrap">
-        <img src="${esc(imgSrcOf(it))}" style="width:88px;height:64px;object-fit:cover;border-radius:8px;border:1px solid var(--line,#ddd)">
+        <img src="${esc(adminSrc(imgSrcOf(it)))}" style="width:88px;height:64px;object-fit:cover;border-radius:8px;border:1px solid var(--line,#ddd)">
         <input data-imghref="${i}" placeholder="Link (optional — makes the image clickable)" value="${esc(imgHrefOf(it))}" style="flex:1;min-width:200px">
         <button type="button" data-rmimg="${i}" title="Remove" class="btn btn--ghost btn--sm">×</button>
       </div>`).join('') + (images.length < 6
@@ -2827,7 +2870,7 @@ window.Admin = (function () {
       const f = e.target.files[0]; if (!f) return;
       const r = new FileReader();
       r.onload = async () => {
-        try { const up = await api('/api/me/asset', { method: 'POST', body: JSON.stringify({ kind: 'photo', dataUrl: r.result }) }); images.push(up.url); renderImages(); }
+        try { const up = await tracked(api('/api/me/asset', { method: 'POST', body: JSON.stringify({ kind: 'photo', dataUrl: r.result }) })); images.push(up.url); renderImages(); }
         catch (err) { msg.hidden = false; msg.textContent = 'Image upload failed (PNG/JPG/GIF/WebP, ≤2.5MB).'; }
       };
       r.readAsDataURL(f);
@@ -2836,7 +2879,7 @@ window.Admin = (function () {
     // ── More flyers (full-size, shown under the main flyer on the detail view) ──
     function renderFlyers() {
       flyersWrap.innerHTML = flyers.map((u, i) => `<span style="position:relative;display:inline-block;margin:0 8px 8px 0">
-        <img src="${esc(u)}" style="width:88px;height:110px;object-fit:cover;border-radius:8px;border:1px solid var(--line,#ddd)">
+        <img src="${esc(adminSrc(u))}" style="width:88px;height:110px;object-fit:cover;border-radius:8px;border:1px solid var(--line,#ddd)">
         <button type="button" data-rmfly="${i}" title="Remove" style="position:absolute;top:-7px;right:-7px;border:none;background:#b00020;color:#fff;border-radius:50%;width:20px;height:20px;line-height:18px;cursor:pointer">×</button>
       </span>`).join('') + (flyers.length < 5
         ? `<label class="btn btn--ghost btn--sm" style="cursor:pointer">+ Flyer<input type="file" accept="image/*" hidden id="evFlyerAdd"></label> ${libraryBtn('evFly')}`
@@ -2850,7 +2893,7 @@ window.Admin = (function () {
         const f = e.target.files[0]; if (!f) return;
         const r = new FileReader();
         r.onload = async () => {
-          try { const up = await api('/api/me/asset', { method: 'POST', body: JSON.stringify({ kind: 'photo', dataUrl: r.result }) }); flyers.push(up.url); renderFlyers(); }
+          try { const up = await tracked(api('/api/me/asset', { method: 'POST', body: JSON.stringify({ kind: 'photo', dataUrl: r.result }) })); flyers.push(up.url); renderFlyers(); }
           catch (err) { msg.hidden = false; msg.textContent = 'Flyer upload failed (PNG/JPG, ≤2.5MB).'; }
         };
         r.readAsDataURL(f);
@@ -2861,7 +2904,7 @@ window.Admin = (function () {
     // ── Sponsor logos (upload several; each can link to the sponsor's site) ──
     function renderSponsors() {
       sponsorWrap.innerHTML = sponsorLogos.map((s, i) => `<div style="display:flex;gap:8px;margin-bottom:8px;align-items:center;flex-wrap:wrap">
-        <img src="${esc(s.src)}" style="width:88px;height:52px;object-fit:contain;border-radius:8px;border:1px solid var(--line,#ddd);background:#fff">
+        <img src="${esc(adminSrc(s.src))}" style="width:88px;height:52px;object-fit:contain;border-radius:8px;border:1px solid var(--line,#ddd);background:#fff">
         <input data-splbl="${i}" placeholder="Sponsor name" value="${esc(s.label || '')}" style="flex:1;min-width:130px">
         <input data-sphref="${i}" placeholder="Sponsor website (optional — makes the logo clickable)" value="${esc(s.href || '')}" style="flex:2;min-width:200px">
         <button type="button" data-rmsp="${i}" class="btn btn--ghost btn--sm">×</button>
@@ -2878,7 +2921,7 @@ window.Admin = (function () {
         const f = e.target.files[0]; if (!f) return;
         const r = new FileReader();
         r.onload = async () => {
-          try { const up = await api('/api/me/asset', { method: 'POST', body: JSON.stringify({ kind: 'photo', dataUrl: r.result }) }); sponsorLogos.push({ src: up.url, href: '', label: '' }); renderSponsors(); }
+          try { const up = await tracked(api('/api/me/asset', { method: 'POST', body: JSON.stringify({ kind: 'photo', dataUrl: r.result }) })); sponsorLogos.push({ src: up.url, href: '', label: '' }); renderSponsors(); }
           catch (err) { msg.hidden = false; msg.textContent = 'Logo upload failed (PNG/JPG, ≤2.5MB).'; }
         };
         r.readAsDataURL(f);
@@ -2964,7 +3007,7 @@ window.Admin = (function () {
             e3.target.disabled = true;
             const m3 = out2.querySelector('[data-qr-add-msg]');
             try {
-              const up = await api('/api/me/asset', { method: 'POST', body: JSON.stringify({ kind: 'photo', dataUrl: out.png }) });
+              const up = await tracked(api('/api/me/asset', { method: 'POST', body: JSON.stringify({ kind: 'photo', dataUrl: out.png }) }));
               images.push(up.url); renderImages();
               m3.textContent = '✓ Added under Images below — hit Save event to keep it.';
             } catch (err) { e3.target.disabled = false; m3.textContent = 'Could not add it — try again.'; }
@@ -3152,12 +3195,22 @@ window.Admin = (function () {
           ? 'Past events, most recent first. They stay off the main view but are always here.'
           : 'Upcoming events only — past events are tucked away under <strong>Past events</strong> (or search for one by name).';
       }
+      // Open the event's real page in a new tab. For anything not published yet
+      // the page says so and stays invisible to the public — Felicia asked to
+      // see a pending event in full before publishing it (Sep 14 2026), and the
+      // edit form is not the same as looking at the page.
+      const evPreviewLink = (e) => {
+        const pending = (e.status || 'approved') !== 'approved';
+        return `<a class="btn btn--ghost btn--sm" href="../events/view.html?id=${encodeURIComponent(e.id)}" target="_blank" rel="noopener" title="${pending
+          ? 'See the whole event exactly as it will look — it stays off the website until you press ✓ Publish'
+          : 'Open this event on the website in a new tab'}">👁 ${pending ? 'Preview' : 'View'}</a> `;
+      };
       rowsEl.innerHTML = events.length ? events.map((e) => `<tr data-id="${esc(e.id)}">
         <td><span class="name">${esc(e.title)}</span><div class="sub">${esc(e.category || '')}${e.images && e.images.length ? ' · ' + e.images.length + ' img' : ''}${e.links && e.links.length ? ' · ' + e.links.length + ' link' + (e.links.length > 1 ? 's' : '') : ''}</div></td>
         <td>${e.date ? esc((e.month || '') + ' ' + (e.day || '') + (e.date.slice(0, 4) !== String(new Date().getFullYear()) ? ' ' + e.date.slice(0, 4) : '')) : '<span class="pill pill--pending">TBA</span>'}<div class="sub">${esc(e.time || '')}</div></td>
         <td>${esc(e.venue || e.neighborhood || '')}</td>
         <td>${statusPill(e.status || 'approved')}${e.featured ? ` <span class="pill pill--approved">home${Number.isFinite(Number(e.homeOrder)) && e.homeOrder ? ' #' + e.homeOrder : ''}</span>` : ''}${e.ticketed ? ' 🎟' : ''}${e.fund === 'foundation' ? ' <span class="pill" title="Ticket money from this event is deposited to the Community Benefit Foundation">CBF</span>' : ''}${e.soldOut ? ' <span class="pill pill--pending" title="Ticket sales closed — visitors see a Sold Out notice">SOLD OUT</span>' : ''}</td>
-        <td style="white-space:nowrap">${(e.status || 'approved') !== 'approved' ? '<button class="btn btn--forest btn--sm" data-publish title="Make this event live on the website right now">✓ Publish</button> ' : ''}<button class="btn btn--ghost btn--sm" data-activity title="RSVPs and payments for this event">RSVPs / $</button> <button class="btn btn--ghost btn--sm" data-edit>Edit</button> <button class="btn btn--ghost btn--sm" data-del>Delete</button></td>
+        <td style="white-space:nowrap">${(e.status || 'approved') !== 'approved' ? '<button class="btn btn--forest btn--sm" data-publish title="Make this event live on the website right now">✓ Publish</button> ' : ''}${evPreviewLink(e)}<button class="btn btn--ghost btn--sm" data-activity title="RSVPs and payments for this event">RSVPs / $</button> <button class="btn btn--ghost btn--sm" data-edit>Edit</button> <button class="btn btn--ghost btn--sm" data-del>Delete</button></td>
       </tr>`).join('') : `<tr><td colspan="5" class="sub">${q ? 'No events match that search.' : (evTab === 'past' ? 'No past events.' : 'No upcoming events. Create one above.')}</td></tr>`;
       rowsEl.querySelectorAll('tr[data-id]').forEach((tr) => {
         const id = tr.dataset.id;
@@ -3193,6 +3246,16 @@ window.Admin = (function () {
     }
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
+      // The Save button is disabled while a picture is uploading, but Enter in
+      // any text box still submits the form — and a save that lands mid-upload
+      // is the one that silently drops what she just added.
+      if (uploading > 0) {
+        msg.hidden = false;
+        msg.textContent = uploading === 1
+          ? 'Not saved yet — a picture is still uploading. Save comes back on its own the moment it lands.'
+          : `Not saved yet — ${uploading} files are still uploading. Save comes back on its own the moment they land.`;
+        return;
+      }
       const body = {
         title: form.title.value.trim(), category: form.category.value.trim(), date: form.date.value,
         time: form.time.value.trim(), endDate: form.endDate.value, endTime: form.endTime.value.trim(),
@@ -3283,7 +3346,9 @@ window.Admin = (function () {
         msg.textContent = 'Nothing was saved — your changes are still on screen. Fix the price, or hit Save event and choose OK.';
         return;
       }
-      const btn = form.querySelector('button[type="submit"]'); btn.disabled = true;
+      // One owner of the button's state, so "Saving…" and "Uploading…" cannot
+      // fight over it and leave it stuck.
+      saving = true; syncSaveBtn();
       try {
         const savedId = editingId
           ? (await api('/api/admin/events/' + encodeURIComponent(editingId), { method: 'PATCH', body: JSON.stringify(body) }), editingId)
@@ -3305,7 +3370,7 @@ window.Admin = (function () {
         }
         load();
       } catch (err) { msg.hidden = false; msg.textContent = 'Could not save event.'; }
-      finally { btn.disabled = false; }
+      finally { saving = false; syncSaveBtn(); }
     });
     /* One block under the Saved ✓ line, listing the link for every secret
        price on the event just saved, each with a Copy button. */
@@ -3395,7 +3460,7 @@ window.Admin = (function () {
         // Attach the flyer as the event image only when it's an actual image —
         // a PDF isn't a usable display image, so the admin adds a square one below.
         let imgs = [];
-        if (!isPdf) { try { const up = await api('/api/me/asset', { method: 'POST', body: JSON.stringify({ kind: 'photo', dataUrl }) }); imgs = [up.url]; } catch (_) {} }
+        if (!isPdf) { try { const up = await tracked(api('/api/me/asset', { method: 'POST', body: JSON.stringify({ kind: 'photo', dataUrl }) })); imgs = [up.url]; } catch (_) {} }
         fillForm({ ...d, images: imgs, links: Array.isArray(d.links) ? d.links : [], status: 'pending' });
         window.scrollTo({ top: 0, behavior: 'smooth' });
         flyerMsg.textContent = isPdf
@@ -5648,5 +5713,5 @@ window.Admin = (function () {
     });
   }
 
-  return { mountShell, initDashboard, initMembers, initBoardManager, initApprovals, initOrders, initLeads, initRibbon, initEvents, initContent, initAssistant, initRenewals, initUsers, initGroups, initSponsorships, initSlides, initTools, initImages, initAlbums, initAmbassadors, initAbout, openHelp, pickImage, libraryBtn, bindLibraryBtn, api, esc };
+  return { mountShell, initDashboard, initMembers, initBoardManager, initApprovals, initOrders, initLeads, initRibbon, initEvents, initContent, initAssistant, initRenewals, initUsers, initGroups, initSponsorships, initSlides, initTools, initImages, initAlbums, initAmbassadors, initAbout, openHelp, pickImage, libraryBtn, bindLibraryBtn, api, esc, adminSrc };
 })();

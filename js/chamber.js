@@ -560,6 +560,13 @@ window.Chamber = (function () {
     let ev = null;
     if (id) {
       try { ev = await getJSON(ChamberAPI.url('/api/events/' + encodeURIComponent(id))); } catch (e) { /* not found */ }
+      // Not public? It may be a pending or draft event, and the office asked to
+      // see one before publishing it (Felicia, Sep 14 2026). Signed in as staff
+      // this returns the event and the page says plainly that it is not live;
+      // to everyone else it is a 401 and the not-found notice below stands.
+      if (!ev || !ev.id) {
+        try { ev = await getAuthed(ChamberAPI.url('/api/admin/events/' + encodeURIComponent(id))); } catch (e) { /* not staff */ }
+      }
     }
     if (!ev || !ev.id) {
       el.innerHTML = '<p class="notice" style="max-width:640px;margin:0 auto">This event could not be found — it may have been removed or unpublished. <a href="index.html">See all upcoming events →</a></p>';
@@ -567,7 +574,15 @@ window.Chamber = (function () {
     }
     _eventReg[ev.id] = ev;
     document.title = `${ev.title} — West Valley · Warner Center Chamber of Commerce`;
-    el.innerHTML = eventDetailCard(ev, '../');
+    const previewNote = ev._preview
+      ? `<p class="notice" style="max-width:860px;margin:0 auto var(--s-5);border-left:4px solid var(--gold,#b8860b)">
+           <strong>Preview — not on the website yet.</strong> This is exactly how the event will look once it is live.
+           Only the Chamber office can see this page. To publish it, go to
+           <a href="../admin/events.html">Admin → Events</a> and press <strong>✓ Publish</strong> on this event's row.
+           ${ev.status && ev.status !== 'approved' ? `<span class="sub" style="display:block;margin-top:4px">Status right now: ${esc(ev.status)}</span>` : ''}
+         </p>`
+      : '';
+    el.innerHTML = previewNote + eventDetailCard(ev, '../');
     sharpenAssetImgs(el);
     // Photos from this event (Diana, Jul 30 2026). Loaded after the card so a
     // slow album fetch never delays the event details themselves.
@@ -613,15 +628,30 @@ window.Chamber = (function () {
     const links = (ev.links && ev.links.length)
       ? `<div class="event-links" style="display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 0">${ev.links.map((l) => `<a class="chip chip--gold" target="_blank" rel="noopener" href="${esc(safeHref(l.url))}">${esc(l.label || l.type || 'Details')}</a>`).join('')}</div>`
       : '';
+    // A picture beside the date on the home page (Felicia, Sep 14 2026 — "a
+    // thumbnail of the featured event or logo on the left side of that event").
+    // The office's square thumbnail wins; failing that we fall back to the
+    // flyer and then the first image, so an event that already has artwork
+    // shows it without anyone re-uploading anything. Nothing to show leaves the
+    // row exactly as it was. When a picture IS on the left, the small strip of
+    // thumbnails that used to sit under the text is dropped — one picture per
+    // row on the home page, not two.
+    const thumbSrc = opts.thumb ? (ev.thumbnail || ev.flyer || evImgOf(ev.images && ev.images[0]) || '') : '';
+    const lead = thumbSrc
+      ? `<div class="event-row__lead">${dateBlock}<img class="event-thumb" src="${esc(evImgSrc(thumbSrc, base, 280))}" alt="" loading="lazy"></div>`
+      : dateBlock;
+    // "Home-page blurb" is the office's shorter line for the home page. It was
+    // saved but never read, so Diana filled it in and nothing changed (Sep 2026).
+    const blurb = (opts.thumb && ev.homeBlurb) ? ev.homeBlurb : (ev.summary || '');
     return `
-      <div class="event-row" id="${esc(ev.id)}" data-ev-detail="${esc(ev.id)}"${newTab} style="cursor:pointer">
-        ${dateBlock}
+      <div class="event-row${thumbSrc ? ' event-row--thumb' : ''}" id="${esc(ev.id)}" data-ev-detail="${esc(ev.id)}"${newTab} style="cursor:pointer">
+        ${lead}
         <div>
           <span class="badge">${esc(ev.category || 'Event')}</span>${ev.featured ? '<span class="badge badge--gold" style="margin-left:6px">★ Featured</span>' : ''}
           <h4 style="margin:6px 0 4px">${esc(ev.title)} <span style="color:var(--gold-bright,#b8860b);font-size:.8rem;font-weight:600">${opts.newTab ? 'Open ↗' : 'Details →'}</span></h4>
           <div class="member-tile__meta">${when} · ${esc(ev.venue || ev.neighborhood || '')}</div>
-          <p style="margin:6px 0 0;color:var(--slate-mid);font-size:.95rem">${esc(ev.summary || '')}</p>
-          ${imgs}
+          <p style="margin:6px 0 0;color:var(--slate-mid);font-size:.95rem">${esc(blurb)}</p>
+          ${thumbSrc ? '' : imgs}
           ${links}
           ${confirmed ? calendarMenu(ev) : ''}
           ${shareMenu(ev.title, location.origin + '/events/view.html?id=' + encodeURIComponent(ev.id))}
@@ -1525,7 +1555,7 @@ window.Chamber = (function () {
         if (!events.length) { if (section) section.hidden = true; }
         else {
           if (section) section.hidden = false;
-          elist.innerHTML = events.map((e) => eventCard(e, 0)).join('');
+          elist.innerHTML = events.map((e) => eventCard(e, 0, { thumb: true })).join('');
         }
       }
     } catch (err) {

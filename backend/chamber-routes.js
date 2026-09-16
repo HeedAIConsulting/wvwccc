@@ -5552,6 +5552,21 @@ router.get('/admin/events', requireAdmin, async (_req, res) => {
   try { await ensureEventsSeeded(); res.json({ events: await loadEvents() }); }
   catch (e) { console.error(e); res.status(500).json({ error: 'events failed' }); }
 });
+/* Look at a pending or draft event exactly as it will appear, before it goes
+   live (Felicia, Sep 14 2026: "we would like to be able to open a pending event
+   to see all the details before we publish it"). The public /events/:id
+   deliberately 404s on anything not approved, so until now the only way to see
+   an unpublished event was the admin edit form — a form is not the page. This
+   serves the same shape the public route does, for the office only; the event
+   view falls back to it and labels the page as a preview. */
+router.get('/admin/events/:id', requireAdmin, async (req, res) => {
+  try {
+    await ensureEventsSeeded();
+    const ev = (await loadEvents()).find((e) => e.id === req.params.id);
+    if (!ev) return res.status(404).json({ error: 'not found' });
+    res.json({ ...publicEvent(ev), _preview: true });
+  } catch (e) { console.error(e); res.status(500).json({ error: 'failed' }); }
+});
 router.post('/admin/events', requireAdmin, async (req, res) => {
   const b = req.body || {};
   if (!b.title) return res.status(400).json({ error: 'Title required.' });

@@ -144,7 +144,7 @@
               <span style="display:inline-flex;align-items:center;gap:6px"><label style="margin:0">Home order</label><input name="homeOrder" type="number" min="1" step="1" style="width:80px" title="Running order for the homepage — 1 is first. The homepage shows the top four; a higher number queues behind them and moves up as those events pass. Only events with 'Show on homepage' appear." /></span>
             </div>
 
-            <div class="field"><label>Home-page blurb <span class="sub">(optional — short text shown with this event on the home page)</span></label><textarea name="homeBlurb" rows="2" maxlength="400"></textarea></div>
+            <div class="field"><label>Home-page blurb <span class="sub">(optional — replaces the Summary for this event on the home page only. Leave blank to use the Summary.)</span></label><textarea name="homeBlurb" rows="2" maxlength="400"></textarea></div>
 
             <div class="field"><label>Picture at the top of the event page</label>
               <select name="imageMode" class="admin-select" style="max-width:420px"
@@ -161,7 +161,7 @@
 
             <div class="grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
               <div class="field"><label>Main flyer <span class="sub">(portrait; shown on the event detail)</span></label><input type="file" id="evFlyerImg" accept="image/*" /><div id="evFlyerPrev" style="margin-top:6px"></div></div>
-              <div class="field"><label>Thumbnail <span class="sub">(square; shown on cards)</span></label><input type="file" id="evThumb" accept="image/*" /><div id="evThumbPrev" style="margin-top:6px"></div></div>
+              <div class="field"><label>Thumbnail <span class="sub">(the picture beside the date on the home page — a logo, or the flyer again. Leave it blank and the flyer is used.)</span></label><input type="file" id="evThumb" accept="image/*" /><div id="evThumbPrev" style="margin-top:6px"></div></div>
             </div>
 
             <div class="field"><label>More flyers <span class="sub">(optional — additional full-size flyers shown under the main one)</span></label><div id="evFlyers" style="margin-top:6px"></div></div>
@@ -192,8 +192,8 @@
     </div>
   </div>
   <script src="../js/api-base.js"></script>
-  <script src="../js/rich-editor.js?v=20260901a"></script>
-  <script src="admin.js?v=20260915a"></script>
+  <script src="../js/rich-editor.js?v=20260915b"></script>
+  <script src="admin.js?v=20260916a"></script>
   <script>Admin.initEvents();</script>
   <script defer src="/js/support.js?v=20260804c"></script>
 </body>

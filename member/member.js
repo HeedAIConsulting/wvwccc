@@ -1000,7 +1000,7 @@ window.MemberPortal = (function () {
       const f = e.target.files[0]; if (!f) return;
       msg.hidden = false; msg.style.borderColor = 'var(--line)'; msg.textContent = 'Uploading flyer…';
       try {
-        flyerUrl = await uploadImage(f, 'photo');
+        flyerUrl = await tracked(uploadImage(f, 'photo'));
         // Replacing the old site's picture: drop it so it can't keep showing
         // under the new flyer ("the flyer will not replace", Jul 15 2026).
         if (legacyImg) dropLegacy = true;
@@ -1030,13 +1030,32 @@ window.MemberPortal = (function () {
     const rich = document.getElementById('evRich');
     RichEditor.mount(rich, document.getElementById('evRichBar'), {
       esc,
-      uploadImage: async (dataUrl) => (await api('/api/me/asset', { method: 'POST', body: JSON.stringify({ kind: 'photo', dataUrl }) })).url,
+      uploadImage: async (dataUrl) => (await tracked(api('/api/me/asset', { method: 'POST', body: JSON.stringify({ kind: 'photo', dataUrl }) }))).url,
     });
     // The cards, search and Wendy all read the plain `description`, so the
     // formatted copy always ships alongside a plain-text mirror of itself.
     const plainFromRich = () => (rich ? rich.innerText.replace(/\u00a0/g, ' ').trim() : '');
 
     const submitBtn = form.querySelector('button[type="submit"]');
+    /* A flyer, or a picture dropped into the description, uploads in the
+       background — and the submit button used to stay live through it, so a save
+       made mid-upload went through without the picture. The office hit the same
+       thing on their side of the form (Felicia, Sep 15 2026: "I have to hit the
+       save button twice for it to save"); this is the member's copy of it. The
+       button goes quiet while an upload runs and comes back by itself. */
+    const submitLabel = submitBtn ? submitBtn.textContent : '';
+    let uploading = 0;
+    let submitting = false;
+    function syncSubmitBtn() {
+      if (!submitBtn) return;
+      submitBtn.disabled = uploading > 0 || submitting;
+      if (!submitting) submitBtn.textContent = uploading > 0 ? 'Uploading…' : submitLabel;
+    }
+    // The finally matters: a failed upload must not leave the button stuck.
+    async function tracked(promise) {
+      uploading += 1; syncSubmitBtn();
+      try { return await promise; } finally { uploading -= 1; syncSubmitBtn(); }
+    }
     if (editing) {
       const h1 = document.querySelector('h1'); if (h1) h1.textContent = 'Edit event';
       const setIf = (k, v) => { const el = form.querySelector(`[data-ev="${k}"]`); if (el) el.value = v || ''; };
@@ -1104,6 +1123,11 @@ window.MemberPortal = (function () {
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
+      if (uploading > 0) {
+        msg.hidden = false; msg.style.borderColor = 'var(--line)';
+        msg.textContent = 'Not saved yet — your picture is still uploading. The button comes back on its own the moment it lands.';
+        return;
+      }
       const body = {};
       form.querySelectorAll('[data-ev]').forEach((el) => { body[el.dataset.ev] = el.value.trim(); });
       if (rich) { body.descriptionHtml = rich.innerHTML; body.description = plainFromRich(); }
@@ -1114,8 +1138,9 @@ window.MemberPortal = (function () {
         body.flyer = flyerUrl;
         if (dropLegacy) body.dropLegacyImage = true;
       } else if (flyerUrl) body.flyer = flyerUrl;
-      const btn = submitBtn; btn.disabled = true;
-      const wasLabel = btn.textContent;
+      const btn = submitBtn;
+      const wasLabel = submitLabel;
+      submitting = true; syncSubmitBtn();
 
       if (editing) {
         btn.textContent = 'Saving…';
@@ -1134,7 +1159,7 @@ window.MemberPortal = (function () {
         } catch (err) {
           msg.hidden = false; msg.style.borderColor = 'var(--red)';
           msg.textContent = 'Could not save. Check the title and date, then try again.';
-        } finally { btn.disabled = false; btn.textContent = wasLabel; }
+        } finally { submitting = false; btn.textContent = wasLabel; syncSubmitBtn(); }
         return;
       }
 
@@ -1160,7 +1185,7 @@ window.MemberPortal = (function () {
       } catch (err) {
         msg.hidden = false; msg.style.borderColor = 'var(--red)';
         msg.textContent = 'Could not add the event. Check the title and date, then try again.';
-      } finally { btn.disabled = false; btn.textContent = wasLabel; }
+      } finally { submitting = false; btn.textContent = wasLabel; syncSubmitBtn(); }
     });
   }
 
