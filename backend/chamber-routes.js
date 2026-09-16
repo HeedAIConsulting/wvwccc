@@ -4956,6 +4956,20 @@ router.get('/admin/members', requireAdmin, async (req, res) => {
       // Not after another "s": no English plural is made that way, and
       // "press" -> "pres" quietly dragged in every "Past President".
       if (q.endsWith('s') && !q.endsWith('ss') && q.length > 3) alts.push(q.slice(0, -1));
+      /* The one derivational pair, added Sep 16 2026. The note above says
+         derivational forms are not guessed, and that still holds for stems in
+         general — but the trade categories (Plumbing, Catering, Roofing) versus
+         the tradesperson the office types (plumber, caterer, roofer) is a real
+         and recurring mismatch, not a guess: Felicia got 3 of the 6 plumbers.
+         -er/-ers and -ing are paired in both directions, so "plumber" returns
+         exactly what "plumbing" returns. The public directory does the same,
+         see tradeForms() in js/chamber.js. */
+      const stem = /ers$/.test(q) ? q.slice(0, -3)
+        : /er$/.test(q) ? q.slice(0, -2)
+        : /ing$/.test(q) ? q.slice(0, -3) : '';
+      if (stem.length >= 4) {
+        for (const f of [stem + 'ing', stem + 'er', stem + 'ers']) if (f !== q) alts.push(f);
+      }
       members = members.filter((m) => {
         const hay = [m.name, m.category, m.contactName, m.email, m.neighborhood,
           ...(Array.isArray(m.categories) ? m.categories : [])]
@@ -5010,6 +5024,20 @@ router.patch('/admin/members/:id/profile', requireAdmin, async (req, res) => {
     // boardTitle is ADMIN-ONLY (members must not grant themselves an office) —
     // accepted here, never in the member self-edit sanitizer.
     if (req.body && req.body.boardTitle !== undefined) patch.boardTitle = String(req.body.boardTitle || '').slice(0, 80);
+    /* leaderLogo is ADMIN-ONLY for the same reason: it is the logo on the
+       public Leader wall, not the member's own branding, and a member must not
+       be able to put anything they like on it.
+
+       It also OVERRIDES the profile logo on that wall, which is what made it
+       worth exposing at all — Felicia uploaded a new logo to Marriott Warner
+       Center's profile on Sep 16 2026 and the wall did not change, because 36
+       of the 37 members on it carry one of these and nothing in Admin showed it.
+       An empty string clears the override and hands the wall back to the
+       member's own logo. */
+    if (req.body && req.body.leaderLogo !== undefined) {
+      const v = String(req.body.leaderLogo || '').trim().slice(0, 600);
+      patch.leaderLogo = (!v || /^(https?:\/\/|\/)/i.test(v)) ? v : '';
+    }
     await repo.setMemberEdit(id, patch);
     res.json({ ok: true, id, applied: patch });
   } catch (e) { console.error(e); res.status(500).json({ error: 'update failed' }); }
