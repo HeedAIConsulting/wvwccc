@@ -76,6 +76,7 @@ window.Admin = (function () {
     { href: 'albums.html', icon: '📸', label: 'Photo Albums', key: 'albums' },
     { href: 'slides.html', icon: '▭', label: 'Homepage Management', key: 'slides' },
     { href: 'sponsorships.html', icon: '★', label: 'Sponsorships', key: 'sponsorships' },
+    { href: 'leader-banner.html', icon: '▦', label: 'Leader Banner', key: 'leader-banner' },
     { href: 'ai-assistant.html', icon: '✦', label: 'AI Assistant', key: 'assistant' },
     { href: 'ai-assistant.html?tpl=1', icon: '❏', label: 'Email Templates', key: 'templates' },
     { href: 'tools.html', icon: '⚒', label: 'Tools', key: 'tools' },
@@ -243,6 +244,7 @@ window.Admin = (function () {
     { id: 'newsletter-publish', t: 'Publish the Valley Biz Connect newsletter', kw: 'newsletter valley biz connect magazine issue pdf monthly publish upload canva drive link', href: 'content.html', sel: '#nlUrl', tip: 'In Google Drive: Share → “Anyone with the link” → Copy link, then paste it here with the issue title and click “Fetch & publish”. Any size — the site shrinks the PDF and makes the cover for you.' },
     { id: 'video-publish', t: 'Put a video on the website', kw: 'video youtube vimeo watch welcome film clip media publish embed', href: 'content.html', sel: '#postForm', tip: 'Set Type to “Video”, paste the YouTube or Vimeo link into Link, add a title, and Publish. It appears on the public Videos page.' },
     { id: 'home-popup', t: 'Show a popup on the home page (picture or video)', kw: 'popup pop up homepage promo announcement video welcome gala flyer modal', href: 'slides.html', sel: '#popEnabled', tip: 'Fill in the headline, add a picture OR paste a video link to play it in the popup, set “Auto-hide after” so it retires itself, then tick “Show the popup on the homepage”.' },
+    { id: 'leader-banner', t: 'Change a logo on the leader banner at the bottom of the site', kw: 'leader banner logo bottom wall platinum gold silver bronze supporter friend sponsor level update change', href: 'leader-banner.html', tip: 'Every logo on that banner, in the order it appears. Replace one, or remove its banner logo so the member\u2019s own profile logo is used — editing the profile alone does not change the banner.' },
     { id: 'sponsors', t: 'Manage sponsors & featured placements', kw: 'sponsor sponsorship featured placement logo advertise', href: 'sponsorships.html', tip: 'Manage featured placements and sponsor logos.' },
     { id: 'users', t: 'Create a login / set staff roles', kw: 'user role staff admin login create account super', href: 'users.html', tip: 'Create logins; Super Admins can set roles and member expirations.' },
     { id: 'payments', t: 'See payments & receipts (and refund)', kw: 'payment pay log receipt dues ticket donation revenue order refund', href: 'payments.html', tip: 'Every payment through the site, with receipts and a Refund button on each paid order.' },
@@ -4161,6 +4163,131 @@ window.Admin = (function () {
   }
 
   // ── Sponsorships: featured-member placements per page/guide ──
+  /* ── Leader level banner ──────────────────────────────────────────────
+     Felicia, Sep 16 2026: "I was trying to update a Logo that resides on the
+     static leader banner at the bottom of the website but not seeing where to
+     do that. I went in to the Marriott profile and updated it there thinking it
+     would populate it but it didn't. Can you please create a Leader Level
+     Banner page in admin so we can make updates there?"
+
+     She did everything right. The banner renders leaderLogo || logo (see
+     initLeaderBanner in js/chamber.js), and 36 of the 37 members on it carry a
+     leaderLogo left over from the build — so the profile logo she replaced was
+     never going to be read, and no screen anywhere showed the field that was
+     winning. This is that screen: what the banner is actually using, where it
+     came from, and a way to replace or remove it.
+
+     Removing the override is the important half. It hands the banner back to
+     the member's own logo, which is the one the member keeps up to date. */
+  async function initLeaderBanner() {
+    mountShell('leader-banner');
+    const rowsEl = document.getElementById('lbRows');
+    if (!rowsEl) return;
+    const msg = document.getElementById('lbMsg');
+    const search = document.getElementById('lbSearch');
+    // Same ranks and labels the public banner sorts by, so this page lists the
+    // logos in the order they actually appear down there.
+    const RANK = { platinum: 1, gold: 2, silver: 3, bronze: 4, supporter: 5, friend: 6 };
+    const LABEL = { platinum: 'Platinum', gold: 'Gold', silver: 'Silver', bronze: 'Bronze', supporter: 'Supporter', friend: 'Friend Leader' };
+    let leaders = [];
+
+    async function load() {
+      let members = [];
+      try { members = (await api('/api/admin/members')).members || []; }
+      catch (e) { rowsEl.textContent = 'Could not load the roster.'; return; }
+      leaders = members
+        .filter((m) => RANK[String(m.tier || '').toLowerCase()])
+        .sort((a, b) => RANK[a.tier.toLowerCase()] - RANK[b.tier.toLowerCase()]
+          || String(a.name).localeCompare(String(b.name)));
+      render();
+    }
+
+    function render() {
+      const q = (search && search.value || '').trim().toLowerCase();
+      const list = q ? leaders.filter((m) => String(m.name || '').toLowerCase().includes(q)) : leaders;
+      if (!list.length) {
+        rowsEl.innerHTML = `<p class="sub">${q ? 'Nobody on the banner matches that.' : 'Nobody has a Leader level set, so the banner is hidden.'}</p>`;
+        return;
+      }
+      rowsEl.innerHTML = `<table class="admin-table">
+        <thead><tr><th>On the banner</th><th>Member</th><th>Where it comes from</th><th></th></tr></thead>
+        <tbody>${list.map(rowHtml).join('')}</tbody></table>`;
+      list.forEach((m) => bindRow(m));
+    }
+
+    // What the banner shows for this member, and which field it came from.
+    const shown = (m) => m.leaderLogo || m.logo || (m.photos && m.photos[0]) || '';
+    /* What the banner would fall back to if the override went away. Nothing
+       here means clearing takes the member OFF the banner rather than handing
+       it to their own logo, and the button has to say so — found in a browser:
+       Bob Blumenfield has a banner logo and no profile logo, so "Use profile
+       logo" would have quietly removed him from the wall. */
+    const fallbackOf = (m) => m.logo || (m.photos && m.photos[0]) || '';
+    const source = (m) => (m.leaderLogo ? 'banner' : m.logo ? 'profile' : (m.photos && m.photos[0]) ? 'photo' : 'none');
+
+    function rowHtml(m) {
+      const src = shown(m);
+      const from = source(m);
+      const tier = String(m.tier || '').toLowerCase();
+      const note = {
+        banner: 'A banner logo set here. It overrides the member’s profile logo.',
+        profile: 'The member’s own profile logo.',
+        photo: 'The first photo on the member’s profile — no logo uploaded.',
+        none: 'Nothing to show, so this member is left off the banner.',
+      }[from];
+      return `<tr data-lb="${esc(m.id)}">
+        <td style="width:120px">${src
+          ? `<img src="${esc(adminSrc(src))}" alt="" style="width:104px;height:64px;object-fit:contain;border-radius:8px;border:1px solid var(--line,#ddd);background:#fff">`
+          : '<span class="pill pill--pending">no logo</span>'}</td>
+        <td><span class="name">${esc(m.name)}</span><div class="sub">${esc(LABEL[tier] || tier)}</div></td>
+        <td class="sub">${from === 'banner' ? '<span class="pill pill--approved">banner logo</span> ' : ''}${esc(note)}</td>
+        <td style="white-space:nowrap">
+          <label class="btn btn--gold btn--sm" style="cursor:pointer">Replace<input type="file" accept="image/png,image/jpeg,image/webp" hidden data-lb-file></label>
+          ${m.leaderLogo ? ` <button type="button" class="btn btn--ghost btn--sm" data-lb-clear title="${fallbackOf(m)
+            ? 'Remove the banner logo so this member’s own profile logo is used instead'
+            : 'This member has no profile logo, so removing the banner logo takes them off the banner'}">${fallbackOf(m) ? 'Use profile logo' : 'Remove from banner'}</button>` : ''}
+        </td>
+      </tr>`;
+    }
+
+    async function save(id, leaderLogo, saying) {
+      msg.textContent = saying;
+      try {
+        await api(`/api/admin/members/${encodeURIComponent(id)}/profile`, {
+          method: 'PATCH', body: JSON.stringify({ leaderLogo }),
+        });
+        msg.textContent = 'Saved ✓ — the banner updates on the next page load.';
+        await load();
+      } catch (e) { msg.textContent = 'Could not save that — try again.'; }
+    }
+
+    function bindRow(m) {
+      const tr = rowsEl.querySelector(`tr[data-lb="${CSS.escape(m.id)}"]`);
+      if (!tr) return;
+      tr.querySelector('[data-lb-file]')?.addEventListener('change', async (e) => {
+        const f = e.target.files[0]; if (!f) return;
+        msg.textContent = 'Uploading…';
+        try {
+          const dataUrl = await new Promise((res, rej) => {
+            const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(f);
+          });
+          const up = await api('/api/me/asset', { method: 'POST', body: JSON.stringify({ kind: 'logo', dataUrl }) });
+          await save(m.id, up.url, 'Saving…');
+        } catch (err) { msg.textContent = 'That picture would not upload (PNG/JPG, up to about 2.5MB).'; }
+      });
+      tr.querySelector('[data-lb-clear]')?.addEventListener('click', () => {
+        const ask = fallbackOf(m)
+          ? `Remove ${m.name}'s banner logo?\n\nThe banner will use their own profile logo instead, and will follow it whenever they change it.`
+          : `Remove ${m.name} from the banner?\n\nThey have no logo on their profile, so there is nothing for the banner to fall back to — they will disappear from it until a logo is uploaded to their profile.`;
+        if (!confirm(ask)) return;
+        save(m.id, '', 'Removing…');
+      });
+    }
+
+    search?.addEventListener('input', render);
+    load();
+  }
+
   async function initSponsorships() {
     mountShell('sponsorships');
     const tbody = document.getElementById('placementRows');
@@ -5713,5 +5840,5 @@ window.Admin = (function () {
     });
   }
 
-  return { mountShell, initDashboard, initMembers, initBoardManager, initApprovals, initOrders, initLeads, initRibbon, initEvents, initContent, initAssistant, initRenewals, initUsers, initGroups, initSponsorships, initSlides, initTools, initImages, initAlbums, initAmbassadors, initAbout, openHelp, pickImage, libraryBtn, bindLibraryBtn, api, esc, adminSrc };
+  return { mountShell, initDashboard, initMembers, initBoardManager, initApprovals, initOrders, initLeads, initRibbon, initEvents, initContent, initAssistant, initRenewals, initUsers, initGroups, initSponsorships, initLeaderBanner, initSlides, initTools, initImages, initAlbums, initAmbassadors, initAbout, openHelp, pickImage, libraryBtn, bindLibraryBtn, api, esc, adminSrc };
 })();

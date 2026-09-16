@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" href="/favicon.ico" sizes="any" />
+  <link rel="icon" type="image/png" href="/images/favicon-32.png" sizes="32x32" />
+  <link rel="apple-touch-icon" href="/images/apple-touch-icon.png" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex" />
+  <title>Leader Banner — WVWCCC Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="../css/chamber.css" />
+  <link rel="stylesheet" href="admin.css?v=20260825d" />
+</head>
+<body class="admin">
+  <div class="admin-shell">
+    <aside class="admin-sidebar" data-admin-nav></aside>
+    <div class="admin-main">
+      <div class="admin-topbar"><h1>Leader Level Banner</h1></div>
+      <div class="admin-content">
+        <p id="adminError" class="admin-notice" hidden></p>
+        <p class="admin-notice">Every logo on the leader banner at the bottom of the website, in the order it appears there. A member joins this banner by having a Leader level set on their row in <a href="members.html">Members</a> — Friend through Platinum.</p>
+
+        <div class="panel">
+          <div class="panel__head">
+            <h3>The logos on the banner</h3>
+            <span class="sub">Most of these carry a banner logo of their own, set when the site was built. That picture wins over the member's profile logo, which is why updating a profile does not change the banner. Remove it and the member's own logo takes over.</span>
+          </div>
+          <div style="padding:16px">
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
+              <input id="lbSearch" class="admin-select" type="search" placeholder="Search this banner…" style="min-width:240px" />
+              <a class="btn btn--ghost btn--sm" href="../index.html#leadersWall" target="_blank" rel="noopener">See the banner on the website ↗</a>
+              <span id="lbMsg" class="sub"></span>
+            </div>
+            <div id="lbRows" class="sub">Loading…</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="../js/api-base.js"></script>
+  <script src="admin.js?v=20260916b"></script>
+  <script>Admin.initLeaderBanner();</script>
+  <script defer src="/js/support.js?v=20260804c"></script>
+</body>
+</html>

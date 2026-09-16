@@ -32,9 +32,38 @@ test('the home page asks for the picture; the all-events list does not', () => {
 });
 
 test('the thumbnail falls back to artwork the event already has', () => {
-  assert.match(card, /opts\.thumb \?/, 'opt-in, so only the home page changes');
+  assert.match(card, /opts\.thumb\s*\?/, 'opt-in, so only the home page changes');
   assert.match(card, /ev\.thumbnail \|\| ev\.flyer \|\| evImgOf\(ev\.images && ev\.images\[0\]\)/,
     'an event with a flyer should show one without anyone re-uploading it as a thumbnail');
+});
+
+/* Felicia, Sep 16 2026: "we do have an image for Danny's corner. We like to put
+   images in the text box a lot because we can break up text. If we add another
+   flyer to the main flyer I believe it will reside twice on the event,
+   correct?"
+
+   Right on both counts. Danny's Corner carries one picture and it is inside the
+   description — thumbnail, flyer, images and flyers are all empty — so the four
+   fields above found nothing. And the event page's hero falls back to the
+   thumbnail when there is no flyer, so uploading the same picture to either
+   field really would show it twice. Reading the picture she has already placed
+   costs her nothing and duplicates nothing. Two of the four events on the home
+   page keep their only picture this way. */
+test("the picture in the text box counts as artwork too", () => {
+  assert.match(card, /firstImgInHtml\(ev\.descriptionHtml\)/);
+  const at = js.indexOf('function firstImgInHtml');
+  const fn = js.slice(at, at + 400);
+  assert.match(fn, /<img/, 'it reads the first image out of the stored description');
+  assert.ok(/\|\| ev\.thumbnail/.test(card) || card.indexOf('ev.thumbnail') < card.indexOf('firstImgInHtml'),
+    'last in the chain — an uploaded thumbnail still wins');
+});
+
+test('the event page is left alone, or the picture WOULD appear twice', () => {
+  // The detail hero is flyer -> thumbnail -> images[0]. Adding the description
+  // to THAT chain would put the same picture above the text it already sits in.
+  const detail = js.slice(js.indexOf('function eventDetailCard'), js.indexOf('function eventCard(ev'));
+  assert.ok(!/firstImgInHtml/.test(detail),
+    'the detail hero must not read the description — that is the duplication she asked about');
 });
 
 test('an event with no artwork renders exactly as before', () => {

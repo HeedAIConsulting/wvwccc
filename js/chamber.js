@@ -320,6 +320,13 @@ window.Chamber = (function () {
   // Event images may be plain URL strings or {src, href, label} objects (admin
   // can hyperlink an image, e.g. a sponsor logo → sponsor's site).
   function evImgOf(it) { return typeof it === 'string' ? it : String((it && it.src) || ''); }
+  // First <img> inside a rich description. Display only — the value is escaped
+  // and size-hinted by the caller exactly like any other event picture, and the
+  // HTML itself was sanitised server-side before it was ever stored.
+  function firstImgInHtml(html) {
+    const m = /<img\b[^>]*\bsrc\s*=\s*(?:"([^"]*)"|'([^']*)')/i.exec(String(html || ''));
+    return m ? (m[1] || m[2] || '') : '';
+  }
   function evImgHref(it) { return (it && typeof it === 'object' && it.href) ? String(it.href) : ''; }
   // Escape text, then turn URLs and "Click here"-style bare links into real
   // anchors so links pasted into event descriptions are clickable.
@@ -636,7 +643,18 @@ window.Chamber = (function () {
     // row exactly as it was. When a picture IS on the left, the small strip of
     // thumbnails that used to sit under the text is dropped — one picture per
     // row on the home page, not two.
-    const thumbSrc = opts.thumb ? (ev.thumbnail || ev.flyer || evImgOf(ev.images && ev.images[0]) || '') : '';
+    //
+    // Last in the chain is the description itself, and it is the one that
+    // actually earns its keep. Felicia, Sep 16 2026: "We like to put images in
+    // the text box a lot because we can break up text" — and she is right that
+    // uploading the same picture to Thumbnail or Main flyer would then show it
+    // twice on the event page, because the detail hero falls back to those
+    // fields. Reading the picture she has already placed means she sets
+    // nothing and nothing is duplicated. Two of the four events on the home
+    // page today keep their only picture this way.
+    const thumbSrc = opts.thumb
+      ? (ev.thumbnail || ev.flyer || evImgOf(ev.images && ev.images[0]) || firstImgInHtml(ev.descriptionHtml) || '')
+      : '';
     const lead = thumbSrc
       ? `<div class="event-row__lead">${dateBlock}<img class="event-thumb" src="${esc(evImgSrc(thumbSrc, base, 280))}" alt="" loading="lazy"></div>`
       : dateBlock;
@@ -1748,6 +1766,34 @@ window.Chamber = (function () {
     // Connector words ("and", "the", "for"…) are dropped so "health and wellness"
     // matches the "Health & Wellness" category; "&" and "and" are interchangeable.
     const STOP = new Set('a an and the of for in on at to or with near my our your find looking need want best top'.split(' '));
+    /* Felicia, Sep 16 2026: "When we look up the word Plumber on the directory
+       it only shows 3 of our members. When we type in plumbing, it show them
+       all."
+
+       The categories are trades — Plumbing, Catering, Roofing — and members
+       search for the tradesperson. Neither spelling contains the other, so a
+       substring test can never connect them; the three she did get were the
+       businesses with "plumber" typed into their keywords by hand.
+
+       So -er/-ers and -ing are treated as the same word. It is a derivation,
+       not a loose stem, and that distinction is the whole design: matching any
+       field that merely STARTS with "clean" returned eight dentists, because
+       "teeth cleaning" sits in their keywords. Pairing the two spellings
+       instead makes "cleaner" return exactly what "cleaning" already returns —
+       the two agree and nothing new is invented. Measured on the live roster:
+       plumber 3 -> 6, caterer 0 -> 7, roofer 0 -> 2, each matching its own
+       -ing spelling exactly.
+
+       Four letters of stem minimum, so "other" and "water" are left alone, and
+       every form is only ever ADDED — a search can widen, never lose someone it
+       used to find. */
+    function tradeForms(w) {
+      const stem = /ers$/.test(w) ? w.slice(0, -3)
+        : /er$/.test(w) ? w.slice(0, -2)
+        : /ing$/.test(w) ? w.slice(0, -3) : '';
+      if (stem.length < 4) return [];
+      return [stem + 'ing', stem + 'er', stem + 'ers'].filter((f) => f !== w);
+    }
     function scoreOf(m) {
       if (state.category && !catMatch(m, state.category)) return -1;
       if (state.hood && m.neighborhood !== state.hood) return -1;
@@ -1777,10 +1823,17 @@ window.Chamber = (function () {
       };
       let total = 0;
       for (const w of words) {
-        const wb = new RegExp('\\b' + w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b');
-        const best = scoreIn(w, wb, fields);
+        // Try the word the office typed and its trade twin (see tradeForms).
+        const forms = [w, ...tradeForms(w)];
+        let best = 0;
+        let boost = 0;
+        for (const f of forms) {
+          const wb = new RegExp('\\b' + f.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b');
+          best = Math.max(best, scoreIn(f, wb, fields));
+          boost = Math.max(boost, scoreIn(f, wb, boosters));
+        }
         if (best === 0) return -1;   // a query word hit no curated field → not a result
-        total += best + scoreIn(w, wb, boosters);   // description only sweetens ranking
+        total += best + boost;       // description only sweetens ranking
       }
       return total;
     }
