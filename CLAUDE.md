@@ -56,6 +56,35 @@ see on screen, and check the labels in the admin HTML rather than guessing.
   `get_thread` before concluding what is unanswered; a reply was missed this way
   on 2026-09-02.
 
+### The two lines Michael cuts
+
+Every draft is sent as written except for these, and he has now cut both.
+They are the same habit pointing two ways: narrating how somebody should feel
+about the work instead of reporting it.
+
+- **Telling the client she was right, as a warm-up.** Cut from the Sep 16
+  reply: *"You were right on both counts, and it turned into a better fix than
+  the one I described."* The rest of that email went verbatim. Say it only when
+  it is the news — Diana had been told twice that Save Event was her mistake,
+  so *"You were right. Save Event was broken"* is the first line of that reply
+  and belongs there. Opening a section with it when nobody doubted her is
+  praise, not information. Same for "you did it right", "good catch", "thank
+  you for reporting it rather than assuming".
+- **Grading my own work.** "it turned into a better fix than the one I
+  described", "this is cleaner than what I proposed". Nobody asked how the
+  result compares to an earlier plan of mine.
+
+He also cut the salutation and the whole paragraph about my two wrong
+diagnoses from the Sep 15 note to Diana, which opened cold on the verdict.
+Owning a mistake survives when it is one clause of fact inside the
+explanation — *"The problem is the line underneath it, which I wrote"* — and
+is cut when it becomes its own paragraph.
+
+The shape that ships unedited: verdict first, mechanism in plain words,
+evidence when there is any ("there is not one save from you on that event
+since Tuesday"), one line clearing the client if they were blamed, numbered
+steps naming what is on screen, and the limits of what changed at the end.
+
 ## Verify against production, not against a local assumption
 
 Work is not done at a merged PR. Merge, watch the Render deploy, then check the
