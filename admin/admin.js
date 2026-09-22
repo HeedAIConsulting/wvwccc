@@ -2545,8 +2545,31 @@ window.Admin = (function () {
     // ── The Diana switch (Aug 20 2026): leader events wait for approval
     // unless the office flips this on. Saves on change, right on the page.
     const liToggle = document.getElementById('evLeaderInstant');
+    // ── The line at the top of the public events page. It used to be typed
+    // into events/index.html, which is why Felicia went looking for the edit
+    // box in September and found none while the page still advertised July.
+    const introEl = document.getElementById('evIntro');
+    const introMsg = document.getElementById('evIntroMsg');
+    const introBtn = document.getElementById('evIntroSave');
+    if (introEl && introBtn) {
+      introBtn.addEventListener('click', async () => {
+        introBtn.disabled = true; const was = introBtn.textContent; introBtn.textContent = 'Saving…';
+        try {
+          const r = await api('/api/admin/event-settings', { method: 'POST', body: JSON.stringify({ intro: introEl.value }) });
+          introEl.value = r.intro || '';
+          if (introMsg) { introMsg.style.color = 'var(--green)'; introMsg.textContent = 'Saved — the events page says this now.'; }
+        } catch (e) {
+          if (introMsg) { introMsg.style.color = 'var(--red)'; introMsg.textContent = 'Could not save that line.'; }
+        } finally { introBtn.disabled = false; introBtn.textContent = was; }
+      });
+    }
+    if (liToggle || introEl) {
+      api('/api/admin/event-settings').then((s) => {
+        if (liToggle) liToggle.checked = !!s.leaderInstantPublish;
+        if (introEl) introEl.value = s.intro || '';
+      }).catch(() => {});
+    }
     if (liToggle) {
-      api('/api/admin/event-settings').then((s) => { liToggle.checked = !!s.leaderInstantPublish; }).catch(() => {});
       liToggle.addEventListener('change', async () => {
         const on = liToggle.checked;
         if (on && !confirm('Let group leaders publish events instantly, with no office review?\n\nOK — leaders skip the Needs publish queue\nCancel — keep approval required')) { liToggle.checked = false; return; }

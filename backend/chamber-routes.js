@@ -690,17 +690,49 @@ router.get('/me/events', auth.requireAuth(), async (req, res) => {
   } catch (e) { res.status(500).json({ error: 'failed' }); }
 });
 
+/* The sentence under the heading on /events/. It was written into the page by
+   hand in July and still read "Black, White & Bold! on July 25" in late
+   September, because there was nowhere for the office to change it — Diana
+   spotted it and Felicia went looking for the edit box and found none
+   (Sep 18 2026). The default below is her sentence with the dated half
+   removed; Admin → Events is where it is changed from now on.
+
+   The page carries the default in its own markup too, so a visitor sees the
+   right words before this ever loads and a search engine sees them at all. */
+const EVENTS_INTRO_KEY = 'eventsIntro';
+const EVENTS_INTRO_DEFAULT =
+  'Monthly breakfasts, networking groups, ribbon cuttings, and our signature Gala. RSVP and buy tickets right here.';
+const cleanIntro = (v) => String(v == null ? '' : v).replace(/\s+/g, ' ').trim().slice(0, 400);
+async function loadEventsIntro() {
+  try { const raw = await repo.getSetting(EVENTS_INTRO_KEY); return cleanIntro(raw) || EVENTS_INTRO_DEFAULT; }
+  catch { return EVENTS_INTRO_DEFAULT; }
+}
+router.get('/events-intro', async (_req, res) => {
+  try { res.json({ intro: await loadEventsIntro() }); }
+  catch (e) { res.json({ intro: EVENTS_INTRO_DEFAULT }); }
+});
+
 // The Diana switch (Aug 20 2026): do group-leader events publish instantly,
 // or wait in "Needs publish" like everyone else's? Office-controlled from the
 // admin Events page. Default OFF — approval required.
 router.get('/admin/event-settings', requireAdmin, async (_req, res) => {
-  try { res.json({ ok: true, leaderInstantPublish: (await repo.getSetting('leaderInstantPublish')) === 'on' }); }
-  catch (e) { res.json({ ok: true, leaderInstantPublish: false }); }
+  try {
+    res.json({
+      ok: true,
+      leaderInstantPublish: (await repo.getSetting('leaderInstantPublish')) === 'on',
+      intro: await loadEventsIntro(),
+      introDefault: EVENTS_INTRO_DEFAULT,
+    });
+  } catch (e) { res.json({ ok: true, leaderInstantPublish: false, intro: EVENTS_INTRO_DEFAULT, introDefault: EVENTS_INTRO_DEFAULT }); }
 });
 router.post('/admin/event-settings', requireAdmin, async (req, res) => {
   try {
-    await repo.setSetting('leaderInstantPublish', req.body && req.body.leaderInstantPublish ? 'on' : 'off');
-    res.json({ ok: true, leaderInstantPublish: !!(req.body && req.body.leaderInstantPublish) });
+    const b = req.body || {};
+    if (b.leaderInstantPublish !== undefined) await repo.setSetting('leaderInstantPublish', b.leaderInstantPublish ? 'on' : 'off');
+    // Emptying the box puts the standing sentence back rather than leaving the
+    // page with a blank space where the description was.
+    if (b.intro !== undefined) await repo.setSetting(EVENTS_INTRO_KEY, cleanIntro(b.intro) || EVENTS_INTRO_DEFAULT);
+    res.json({ ok: true, leaderInstantPublish: (await repo.getSetting('leaderInstantPublish')) === 'on', intro: await loadEventsIntro() });
   } catch (e) { res.status(500).json({ error: 'could not save' }); }
 });
 

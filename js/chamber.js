@@ -2070,6 +2070,17 @@ window.Chamber = (function () {
     const listEl = document.getElementById('eventsList');
     const gridEl = document.getElementById('eventsGrid');
     if (!listEl) return;
+
+    /* The sentence under the heading, if the office has changed it from the
+       one written into the page. Its own failure is silent on purpose: the
+       markup already holds readable words, so a slow or failed call leaves the
+       page looking exactly as it did. */
+    const introEl = document.querySelector('[data-events-intro]');
+    if (introEl) {
+      getJSON(ChamberAPI.url('/api/events-intro'))
+        .then((r) => { const t = String((r && r.intro) || '').trim(); if (t) introEl.textContent = t; })
+        .catch(() => {});
+    }
     let events = [];
     const pickSort = (data) => (data.events || []).filter((e) => e.confirmed && e.date)
       .sort((a, b) => a.date.localeCompare(b.date));
