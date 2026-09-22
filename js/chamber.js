@@ -6,6 +6,24 @@ window.Chamber = (function () {
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) =>
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
+  /* Every member-supplied address lands in an href, so decide here what is
+     allowed to be one. Addresses saved before Sep 22 2026 can be bare hosts
+     (the profile form used to store whatever survived the browser), so give
+     those the https:// they are missing rather than emitting a link that
+     resolves against woodlandhillscc.net. Anything that is not http(s),
+     mailto/tel or one of our own rooted paths renders as no link at all. */
+  function safeHref(u) {
+    const raw = String(u == null ? '' : u).trim();
+    if (!raw) return '';
+    if (/^\/\//.test(raw)) return 'https:' + raw;
+    if (/^\//.test(raw)) return raw;
+    if (/^https?:\/\//i.test(raw)) return raw;
+    if (/^(mailto|tel):/i.test(raw)) return raw;
+    if (/^[a-z][a-z0-9+.-]*:/i.test(raw)) return '';
+    if (/^[^\s/]+\.[^\s/]+/.test(raw)) return 'https://' + raw;
+    return '';
+  }
+
   async function getJSON(path) {
     const res = await fetch(path, { cache: 'no-cache' });
     if (!res.ok) throw new Error(`${path} → ${res.status}`);
@@ -1900,13 +1918,13 @@ window.Chamber = (function () {
     const webLabel = (u) => { const s = String(u).replace(/^https?:\/\//i, '').replace(/\/$/, ''); return s.length > 28 ? s.slice(0, 27) + '…' : s; };
     const SOCIAL = { facebook: 'Facebook', instagram: 'Instagram', linkedin: 'LinkedIn', linkedinPersonal: 'LinkedIn (personal)', x: 'X', youtube: 'YouTube', tiktok: 'TikTok', nextdoor: 'Nextdoor' };
     const social = m.social && typeof m.social === 'object'
-      ? Object.entries(SOCIAL).filter(([k]) => m.social[k]).map(([k, label]) =>
-          `<a class="chip" href="${esc(m.social[k])}" target="_blank" rel="noopener">${label}</a>`).join('') : '';
+      ? Object.entries(SOCIAL).filter(([k]) => safeHref(m.social[k])).map(([k, label]) =>
+          `<a class="chip" href="${esc(safeHref(m.social[k]))}" target="_blank" rel="noopener">${label}</a>`).join('') : '';
     const reviews = m.reviewLinks && typeof m.reviewLinks === 'object'
-      ? ['google', 'yelp'].filter((k) => m.reviewLinks[k]).map((k) =>
-          `<a class="chip" href="${esc(m.reviewLinks[k])}" target="_blank" rel="noopener">★ ${k === 'google' ? 'Google' : 'Yelp'} reviews</a>`).join('') : '';
-    const ctas = Array.isArray(m.ctaLinks) ? m.ctaLinks.map((c) =>
-      `<a class="btn btn--gold btn--sm" href="${esc(c.url)}" target="_blank" rel="noopener">${esc(c.label)}</a>`).join('') : '';
+      ? ['google', 'yelp'].filter((k) => safeHref(m.reviewLinks[k])).map((k) =>
+          `<a class="chip" href="${esc(safeHref(m.reviewLinks[k]))}" target="_blank" rel="noopener">★ ${k === 'google' ? 'Google' : 'Yelp'} reviews</a>`).join('') : '';
+    const ctas = Array.isArray(m.ctaLinks) ? m.ctaLinks.filter((c) => safeHref(c.url)).map((c) =>
+      `<a class="btn btn--gold btn--sm" href="${esc(safeHref(c.url))}" target="_blank" rel="noopener">${esc(c.label)}</a>`).join('') : '';
     const photos = Array.isArray(m.photos) && m.photos.length
       ? `<div class="grid grid-3 mt-5">${m.photos.map((p) => `<img src="${esc(p)}" alt="" loading="lazy" style="border-radius:var(--r-md);aspect-ratio:4/3;object-fit:cover;width:100%">`).join('')}</div>` : '';
     const facts = [
@@ -1923,7 +1941,7 @@ window.Chamber = (function () {
     const fullAddr = [m.address, m.city, m.state].filter(Boolean).join(', ');
     const contactRows = [
       m.phone && `<li>📞 <a href="tel:${phoneDigits}">${esc(m.phone)}</a></li>`,
-      m.website && `<li>🌐 <a href="${esc(m.website)}" target="_blank" rel="noopener" title="${esc(m.website)}">${esc(webLabel(m.website))}</a></li>`,
+      safeHref(m.website) && `<li>🌐 <a href="${esc(safeHref(m.website))}" target="_blank" rel="noopener" title="${esc(m.website)}">${esc(webLabel(m.website))}</a></li>`,
       m.address && `<li>📍 <a href="${esc(mapUrl(m))}" target="_blank" rel="noopener" title="Open in maps">${esc(fullAddr)}</a></li>`,
     ].filter(Boolean).join('');
     // Member video (YouTube/Vimeo URL → responsive embed; else native <video>).

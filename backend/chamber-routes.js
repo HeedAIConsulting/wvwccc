@@ -16,7 +16,7 @@ import * as repo from './repo.js';
 import * as llm from './llm.js';
 import * as turnstile from './turnstile.js';
 import * as email from './email.js';
-import { SOCIAL_KEYS, sanitizePrimaryImage, sanitizeTeam, buildRewritePrompt, parseRewriteResponse } from './profile-helpers.js';
+import { SOCIAL_KEYS, normalizeUrl, sanitizePrimaryImage, sanitizeTeam, buildRewritePrompt, parseRewriteResponse } from './profile-helpers.js';
 import { registerNewsletterImport } from './newsletter-import.js';
 
 const router = express.Router();
@@ -219,9 +219,14 @@ const MEMBER_STR_FIELDS = ['name', 'category', 'neighborhood', 'contactName', 'p
   'occupation', 'typeOfBusiness', 'yearEstablished', 'employees', 'logo', 'pageImage', 'video',
   'services', 'accomplishments', 'associations'];
 const clampUrl = (s) => String(s || '').trim().slice(0, 600);
+// Fields on the profile that end up inside an href or a src. Every one of them
+// goes through normalizeUrl, so a member may type a bare domain and nothing
+// but http(s), mailto/tel or one of our own rooted paths is ever stored.
+const MEMBER_URL_FIELDS = ['website', 'video', 'logo', 'pageImage'];
 function sanitizeProfile(b) {
   const patch = {};
   for (const f of MEMBER_STR_FIELDS) if (b[f] !== undefined) patch[f] = String(b[f]).slice(0, 5000);
+  for (const f of MEMBER_URL_FIELDS) if (patch[f] !== undefined) patch[f] = normalizeUrl(patch[f]);
   // Member-selectable categories (up to 3). First one is the primary `category`.
   if (Array.isArray(b.categories)) {
     const cats = [...new Set(b.categories.map((c) => String(c || '').trim()).filter(Boolean))].slice(0, 3);
@@ -230,18 +235,18 @@ function sanitizeProfile(b) {
   }
   if (b.social && typeof b.social === 'object') {
     const out = {};
-    for (const k of SOCIAL_KEYS) if (b.social[k]) out[k] = clampUrl(b.social[k]);
+    for (const k of SOCIAL_KEYS) if (b.social[k]) { const u = normalizeUrl(b.social[k]); if (u) out[k] = u; }
     patch.social = out;
   }
   if (b.reviewLinks && typeof b.reviewLinks === 'object') {
     const out = {};
-    for (const k of ['google', 'yelp']) if (b.reviewLinks[k]) out[k] = clampUrl(b.reviewLinks[k]);
+    for (const k of ['google', 'yelp']) if (b.reviewLinks[k]) { const u = normalizeUrl(b.reviewLinks[k]); if (u) out[k] = u; }
     patch.reviewLinks = out;
   }
   if (Array.isArray(b.ctaLinks)) patch.ctaLinks = b.ctaLinks.slice(0, 4)
-    .map((c) => ({ label: String(c.label || '').slice(0, 40), url: clampUrl(c.url) }))
+    .map((c) => ({ label: String(c.label || '').slice(0, 40), url: normalizeUrl(c.url) }))
     .filter((c) => c.label && c.url);
-  if (Array.isArray(b.photos)) patch.photos = b.photos.slice(0, 8).map(clampUrl).filter(Boolean);
+  if (Array.isArray(b.photos)) patch.photos = b.photos.slice(0, 8).map(normalizeUrl).filter(Boolean);
   if (Array.isArray(b.contacts)) patch.contacts = b.contacts.slice(0, 3)
     .map((c) => ({ name: String(c.name || '').slice(0, 80), email: String(c.email || '').slice(0, 160) }))
     .filter((c) => c.name || c.email);
