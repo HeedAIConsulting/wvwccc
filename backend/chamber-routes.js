@@ -1292,6 +1292,68 @@ router.get('/assets/:id', async (req, res) => {
   } catch (e) { res.status(500).end(); }
 });
 
+/* ── Is this logo big enough for the banner? ────────────────────────────────
+
+   Diana, Sep 18 2026, via Felicia: "Diana would like logos consistent in size.
+   Example: Heights to all be 200 or all to be 150."
+
+   She is looking at a real thing and it cannot be fixed on our side. The cells
+   are already identical; so are the files — 35 of the 37 logos down there are
+   legacy 100x60 exports from the old website. What differs is how much of each
+   file is the logo: from 10 pixels of artwork (Kaiser Permanente) to 45, the
+   full frame (FIREHAWK, Maguire & Hart, and three others). Evening them out
+   would mean blowing the small ones up four to fifteen times, which turns a
+   logo into a smear. They need new artwork from the member, and that is the
+   office's call to make, member by member.
+
+   So measure each one and say so plainly on the Leader Banner page, next to
+   the Replace button that already exists. Measuring costs a decode per logo,
+   which is why it is its own call and not part of loading the roster.
+
+   Reading bytes off disk from a name in a query string is the sort of thing
+   that goes wrong quietly, so: the only paths accepted are ones this site
+   itself serves under /images, resolved and then checked to still be inside
+   that directory. Anything else is reported as unreadable. */
+// The same six the public banner draws (LEADER_RANK in js/chamber.js).
+const LEADER_TIERS = new Set(['platinum', 'gold', 'silver', 'bronze', 'supporter', 'friend']);
+const LOGO_DIR = path.join(ROOT, 'images');
+async function logoBytes(src) {
+  const u = String(src || '').trim();
+  const asset = u.match(/^\/api\/assets\/([A-Za-z0-9_-]+)$/);
+  if (asset) {
+    const a = await repo.getAsset(asset[1]);
+    return a ? { mime: a.mime, buffer: a.buffer } : null;
+  }
+  const m = u.match(/^\/?(images\/[^?#]*)$/);
+  if (!m) return null;                       // off-site, or somewhere we do not serve
+  const file = path.resolve(ROOT, m[1]);
+  const inside = path.relative(LOGO_DIR, file);
+  if (inside.startsWith('..') || path.isAbsolute(inside)) return null;
+  let buffer;
+  try { buffer = await fs.promises.readFile(file); } catch { return null; }
+  const ext = path.extname(file).toLowerCase();
+  const mime = ext === '.png' ? 'image/png' : ext === '.gif' ? 'image/gif'
+    : ext === '.webp' ? 'image/webp' : /^\.jpe?g$/.test(ext) ? 'image/jpeg' : '';
+  return mime ? { mime, buffer } : null;
+}
+
+router.get('/admin/leader-logo-health', requireAdmin, async (_req, res) => {
+  try {
+    const { members } = await loadMembersFull();
+    const leaders = members.filter((m) => LEADER_TIERS.has(String(m.tier || '').toLowerCase()));
+    const out = {};
+    for (const m of leaders) {
+      const src = m.leaderLogo || m.logo || (m.photos && m.photos[0]) || '';
+      if (!src) continue;
+      try {
+        const bytes = await logoBytes(src);
+        out[m.id] = bytes ? (images.logoHealth(bytes.mime, bytes.buffer) || null) : null;
+      } catch (e) { out[m.id] = null; }
+    }
+    res.json({ ok: true, minInkHeight: images.LOGO_MIN_INK_H, goodInkHeight: images.LOGO_GOOD_INK_H, health: out });
+  } catch (e) { console.error('leader-logo-health', e); res.status(500).json({ error: 'failed' }); }
+});
+
 // ── Member-to-member messages (Felicia, Aug 27 2026) ────────
 // A member at the mixer was "unable to use the messaging feature to message
 // a member" — there wasn't one: the public directory strips email addresses

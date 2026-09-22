@@ -4213,6 +4213,16 @@ window.Admin = (function () {
     const RANK = { platinum: 1, gold: 2, silver: 3, bronze: 4, supporter: 5, friend: 6 };
     const LABEL = { platinum: 'Platinum', gold: 'Gold', silver: 'Silver', bronze: 'Bronze', supporter: 'Supporter', friend: 'Friend Leader' };
     let leaders = [];
+    /* How much of each logo file is the logo, keyed by member id. Diana asked
+       for the logos on the banner to be the same size; they cannot be made so
+       from the files we have, because a third of them are old 100x60 exports
+       holding ten or twenty pixels of artwork. Rather than blow those up into
+       a smear, say which ones they are so the office can ask those members for
+       a better picture. Measuring means decoding every logo, so it arrives
+       after the table rather than holding it up. */
+    let health = {};
+    let minInk = 60;
+    let goodInk = 300;
 
     async function load() {
       let members = [];
@@ -4223,6 +4233,7 @@ window.Admin = (function () {
         .sort((a, b) => RANK[a.tier.toLowerCase()] - RANK[b.tier.toLowerCase()]
           || String(a.name).localeCompare(String(b.name)));
       render();
+      loadHealth();
     }
 
     function render() {
@@ -4233,9 +4244,34 @@ window.Admin = (function () {
         return;
       }
       rowsEl.innerHTML = `<table class="admin-table">
-        <thead><tr><th>On the banner</th><th>Member</th><th>Where it comes from</th><th></th></tr></thead>
+        <thead><tr><th>On the banner</th><th>Member</th><th>Where it comes from</th><th>Size on the page</th><th></th></tr></thead>
         <tbody>${list.map(rowHtml).join('')}</tbody></table>`;
       list.forEach((m) => bindRow(m));
+      paintHealth();
+    }
+
+    // Write each measurement into its row once it lands. Silent on failure:
+    // an unmeasured logo shows nothing rather than a false all-clear.
+    function paintHealth() {
+      rowsEl.querySelectorAll('[data-lb-size]').forEach((cell) => {
+        const h = health[cell.getAttribute('data-lb-size')];
+        if (!h) return;
+        const ask = `Ask this member for the logo at ${goodInk}px tall or more &mdash; a PNG with a transparent background is ideal, and they do not need to crop or resize it.`;
+        cell.innerHTML = h.ok
+          ? `<span class="sub">${h.inkH}px of logo in a ${h.frameH}px file &mdash; fills ${h.fills}%.${h.inkH < goodInk ? ` Usable, though ${goodInk}px would be sharper.` : ''}</span>`
+          : `<span class="pill pill--pending">draws small</span>
+             <div class="sub">Only ${h.inkH}px of this ${h.frameH}px file is the logo &mdash; it fills ${h.fills}% of its own frame, so it sits smaller than its neighbours on the banner. ${ask}</div>`;
+      });
+    }
+
+    async function loadHealth() {
+      try {
+        const r = await api('/api/admin/leader-logo-health');
+        health = r.health || {};
+        if (r.minInkHeight) minInk = r.minInkHeight;
+        if (r.goodInkHeight) goodInk = r.goodInkHeight;
+        paintHealth();
+      } catch (e) { /* leave the column blank rather than guess */ }
     }
 
     // What the banner shows for this member, and which field it came from.
@@ -4264,6 +4300,7 @@ window.Admin = (function () {
           : '<span class="pill pill--pending">no logo</span>'}</td>
         <td><span class="name">${esc(m.name)}</span><div class="sub">${esc(LABEL[tier] || tier)}</div></td>
         <td class="sub">${from === 'banner' ? '<span class="pill pill--approved">banner logo</span> ' : ''}${esc(note)}</td>
+        <td class="sub" data-lb-size="${esc(m.id)}" style="max-width:26ch">${src ? '<span class="sub">measuring…</span>' : ''}</td>
         <td style="white-space:nowrap">
           <label class="btn btn--gold btn--sm" style="cursor:pointer">Replace<input type="file" accept="image/png,image/jpeg,image/webp" hidden data-lb-file></label>
           ${m.leaderLogo ? ` <button type="button" class="btn btn--ghost btn--sm" data-lb-clear title="${fallbackOf(m)
