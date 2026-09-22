@@ -12,6 +12,26 @@ window.Chamber = (function () {
      those the https:// they are missing rather than emitting a link that
      resolves against woodlandhillscc.net. Anything that is not http(s),
      mailto/tel or one of our own rooted paths renders as no link at all. */
+  /* "Member since March 2024". Felicia, Sep 18 2026: where one company holds
+     more than one listing — Edward Jones for Savannah and Vahan, two
+     McDonald's, two U-Frame-It Gallery — "We would like those as individual
+     entries on the directory with their respective join dates." They already
+     were separate entries; what was missing was the date that tells them
+     apart, so it goes on the card and on the profile.
+
+     Month and year, not the day: a directory reads as a directory, and the
+     five pairs that share a name all joined in different years anyway. Parsed
+     as plain numbers rather than through Date(), which would read a bare
+     "2024-05-28" as UTC midnight and show the month before it in California. */
+  const JOIN_MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'];
+  function memberSince(joinDate) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(joinDate || ''));
+    if (!m) return '';
+    const month = JOIN_MONTHS[Number(m[2]) - 1];
+    return month ? `${month} ${m[1]}` : m[1];
+  }
+
   function safeHref(u) {
     const raw = String(u == null ? '' : u).trim();
     if (!raw) return '';
@@ -78,6 +98,7 @@ window.Chamber = (function () {
   const LANG = (typeof document !== 'undefined' && document.documentElement.lang === 'es') ? 'es' : 'en';
   const ES = {
     'View profile →': 'Ver perfil →', 'View profile': 'Ver perfil', 'View details →': 'Ver detalles →',
+    'Member since': 'Miembro desde',
     'Website': 'Sitio web', 'Directions': 'Cómo llegar', 'Call': 'Llamar', 'Email': 'Correo',
     'Search': 'Buscar', 'All categories': 'Todas las categorías', 'All areas': 'Todas las áreas',
     'Type to filter…': 'Escriba para filtrar…', 'Filter the list': 'Filtrar la lista',
@@ -165,6 +186,7 @@ window.Chamber = (function () {
     const addrLink = addr
       ? `<a class="member-tile__row" href="${esc(mapUrl(m))}" target="_blank" rel="noopener" aria-label="Map ${esc(m.name)}"><span aria-hidden="true">📍</span> ${esc(addr)}</a>` : '';
     const meta = [m.category, m.neighborhood].filter(Boolean).map(esc).join(' · ');
+    const since = memberSince(m.joinDate);
     const photo = cardImage(m);
     const seal = photo
       ? `<div class="member-tile__seal" style="padding:0;overflow:hidden"><img src="${esc(photo)}" alt="${esc(m.name || '')} logo" loading="lazy" style="width:100%;height:100%;object-fit:cover"></div>`
@@ -183,6 +205,7 @@ window.Chamber = (function () {
         ${(addrLink || phone) && !opts.compact ? `<div class="member-tile__facts">${addrLink}${phone}</div>` : ''}
         <div class="member-tile__foot">
           <span class="badge badge--${tier}">${esc(tierLabel)}</span>
+          ${since ? `<span class="member-tile__meta" style="margin-right:auto">${tr('Member since')} ${esc(since)}</span>` : ''}
           <a class="btn btn--forest btn--sm" href="${href}">${tr('View profile →')}</a>
         </div>
       </article>`;
@@ -1973,6 +1996,9 @@ window.Chamber = (function () {
       m.occupation && ['Occupation', m.occupation],
       m.typeOfBusiness && ['Type of business', m.typeOfBusiness],
       m.yearEstablished && ['Established', m.yearEstablished],
+      // Two listings for the same company are told apart by this (Felicia,
+      // Sep 18 2026), so it belongs on the profile as well as the card.
+      memberSince(m.joinDate) && ['Chamber member since', memberSince(m.joinDate)],
       m.employees && ['Employees', m.employees],
       m.hours && ['Hours', m.hours],
     ].filter(Boolean).map(([k, v]) => `<li><span class="member-tile__meta">${esc(k)}</span><br>${esc(v)}</li>`).join('');
