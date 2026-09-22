@@ -51,6 +51,20 @@
           </form>
         </div>
 
+        <!-- Felicia, Sep 18 2026: "Yes, we still want a new member page. We
+             would like the duration of the new members staying on it for 30
+             days." Nobody has to take anyone down; they drop off by date. -->
+        <div class="panel">
+          <div class="panel__head"><h3>The New Members page</h3></div>
+          <div style="padding:16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+            <label class="sub" for="nmDays">A member appears on <a href="../members/new.html" target="_blank" rel="noopener">the New Members page</a> for</label>
+            <input id="nmDays" class="admin-select" type="number" min="1" max="365" step="1" style="width:88px">
+            <span class="sub">days after they join, then comes off on their own.</span>
+            <button type="button" class="btn btn--forest btn--sm" id="nmDaysSave">Save</button>
+            <span class="sub" id="nmDaysMsg"></span>
+          </div>
+        </div>
+
         <div class="panel">
           <div class="panel__head" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
             <h3 style="margin-right:auto">Member roster</h3>

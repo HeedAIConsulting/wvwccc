@@ -136,6 +136,7 @@ window.ChamberPartials = (function () {
           <button type="button" aria-haspopup="true">${t.about} <span aria-hidden="true">▾</span></button>
           <div class="nav-dd__menu" data-dd="About & Membership">
             <a href="${nv('/about.html')}">${L?'Acerca de':'About Us'}</a>
+            <a href="${nv('/members/new.html')}">${L?'Miembros Nuevos':'New Members'}</a>
             <a href="/leadership.html">${L?'Junta y Liderazgo':'Board & Leadership'}</a>
             <a href="/ambassadors.html">${L?'Embajadores':'Ambassadors'}</a>
             <a href="/groups/index.html">${L?'Grupos y Círculos de Conexión':'Groups & Connection Circles'}</a>
@@ -207,6 +208,7 @@ window.ChamberPartials = (function () {
         <ul>
           <li><a href="${nv('/join.html')}">${t.join}</a></li>
           <li><a href="${nv('/members/directory.html')}">${t.dir}</a></li>
+          <li><a href="${nv('/members/new.html')}">${L?'Miembros Nuevos':'New Members'}</a></li>
           <li><a href="/auth/login.html">${t.login}</a></li>
           <li><a href="/auth/login.html">${L?'Acceso Personal / Admin':'Staff / Admin'}</a></li>
         </ul>

@@ -829,7 +829,31 @@ window.Admin = (function () {
   }
 
   // ── Members (status radios) ──
+  /* How long a member stays on the New Members page (Felicia, Sep 18 2026:
+     "the duration of the new members staying on it for 30 days"). Kept as a
+     setting rather than a constant so the office can change its mind without
+     asking anyone. */
+  async function initNewMemberWindow() {
+    const input = document.getElementById('nmDays');
+    const btn = document.getElementById('nmDaysSave');
+    const msg = document.getElementById('nmDaysMsg');
+    if (!input || !btn) return;
+    try { input.value = (await api('/api/admin/new-member-window')).days; }
+    catch (e) { input.placeholder = '30'; }
+    btn.addEventListener('click', async () => {
+      btn.disabled = true; const was = btn.textContent; btn.textContent = 'Saving…';
+      try {
+        const r = await api('/api/admin/new-member-window', { method: 'POST', body: JSON.stringify({ days: input.value }) });
+        input.value = r.days;
+        if (msg) { msg.style.color = 'var(--green)'; msg.textContent = `Saved — members show for ${r.days} days.`; }
+      } catch (e) {
+        if (msg) { msg.style.color = 'var(--red)'; msg.textContent = 'Choose a number between 1 and 365.'; }
+      } finally { btn.disabled = false; btn.textContent = was; }
+    });
+  }
+
   async function initMembers() {
+    initNewMemberWindow();
     mountShell('members');
     let opts = { leaderOptions: ['', 'Leader', 'Board Member', 'New Member', 'Past President', 'Ambassador', 'Staff'], statusOptions: ['approved', 'pending', 'suspended', 'inactive'] };
     try { opts = await api('/api/admin/options'); } catch (e) {}

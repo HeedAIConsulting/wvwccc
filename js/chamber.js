@@ -797,6 +797,48 @@ window.Chamber = (function () {
     section?.removeAttribute('hidden');
   }
 
+  /* ── The newest members ────────────────────────────────────────────────
+     Felicia, Sep 18 2026: "Yes, we still want a new member page. We would like
+     the duration of the new members staying on it for 30 days."
+
+     The server decides who is new and how long the window is, so this page
+     cannot drift out of step with the number the office set. A member drops
+     off on their own thirty-first day; nobody has to take anyone down. */
+  async function initNewMembers() {
+    const grid = document.getElementById('newMemberGrid');
+    if (!grid) return;
+    const note = document.getElementById('newMembersNote');
+    const empty = document.getElementById('newMembersEmpty');
+    let data;
+    try { data = await getJSON(ChamberAPI.url('/api/members/new')); }
+    catch (e) {
+      grid.innerHTML = '';
+      if (empty) { empty.hidden = false; empty.textContent = 'The member list is loading slowly — please refresh.'; }
+      return;
+    }
+    const members = data.members || [];
+    const days = data.days || 30;
+    if (!members.length) {
+      grid.innerHTML = '';
+      if (note) note.textContent = '';
+      if (empty) {
+        empty.hidden = false;
+        // Say which window is empty. "No new members" on its own reads like the
+        // page is broken; "none in the last 30 days" reads like news.
+        empty.innerHTML = `No new members in the last ${days} days. `
+          + '<a href="directory.html">The full directory</a> has every member.';
+      }
+      return;
+    }
+    if (empty) empty.hidden = true;
+    if (note) {
+      note.textContent = members.length === 1
+        ? `One business has joined in the last ${days} days.`
+        : `${members.length} businesses have joined in the last ${days} days.`;
+    }
+    grid.innerHTML = members.map((m) => memberTile(m, 1)).join('');
+  }
+
   // ── Groups & networks (YPN, Home Improvement, …) ─────────
   async function initGroups() {
     const grid = document.getElementById('groupGrid');
@@ -3674,5 +3716,5 @@ window.Chamber = (function () {
     render();
   }
 
-  return { initHome, initEventView, initDirectory, initProfile, initEvents, initCheckout, initLeadForm, initJobs, initDeals, initCommunity, initNews, initBizBuzz, initBoard, initLeaders, initDining, offerCard, postCard, newsCard, memberTile, eventCard, eventPreviewCard, initLeaderBanner, initGroups, initGroupView, initGallery, initVideos, initAlbumView, initPayPortal, initAmbassadors, initFeaturedSlot, joinCtaHtml, mountJoinCta, initGuides, initGuideView, initRealEstate, getJSON, esc };
+  return { initHome, initEventView, initDirectory, initNewMembers, initProfile, initEvents, initCheckout, initLeadForm, initJobs, initDeals, initCommunity, initNews, initBizBuzz, initBoard, initLeaders, initDining, offerCard, postCard, newsCard, memberTile, eventCard, eventPreviewCard, initLeaderBanner, initGroups, initGroupView, initGallery, initVideos, initAlbumView, initPayPortal, initAmbassadors, initFeaturedSlot, joinCtaHtml, mountJoinCta, initGuides, initGuideView, initRealEstate, getJSON, esc };
 })();

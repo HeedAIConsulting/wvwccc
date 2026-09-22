@@ -167,7 +167,13 @@ const PUBLIC_FIELDS = ['id', 'slug', 'name', 'category', 'group', 'tier', 'neigh
   // richer profile (member-managed)
   'hours', 'occupation', 'typeOfBusiness', 'yearEstablished', 'employees',
   'logo', 'pageImage', 'photos', 'social', 'reviewLinks', 'ctaLinks', 'video',
-  'services', 'accomplishments', 'associations', 'team', 'primaryImage'];
+  'services', 'accomplishments', 'associations', 'team', 'primaryImage',
+  /* joinDate went public on Sep 22 2026. Felicia asked for it twice in one
+     message: a New Members page, and the join date shown against each listing
+     where a company has more than one of them. These are business listings the
+     Chamber publishes anyway, and how long a member has been a member is the
+     sort of thing the directory is for. */
+  'joinDate'];
 
 let _kw = null;
 function readKeywords() {
@@ -1290,6 +1296,59 @@ router.get('/assets/:id', async (req, res) => {
     }
     res.type(a.mime).set('Cache-Control', 'public, max-age=86400').send(a.buffer);
   } catch (e) { res.status(500).end(); }
+});
+
+/* ── Who joined lately ──────────────────────────────────────────────────────
+
+   Felicia, Sep 18 2026: "Yes, we still want a new member page. We would like
+   the duration of the new members staying on it for 30 days."
+
+   Thirty days from the join date, then a member drops off by itself — nobody
+   has to remember to take anyone down, which is the whole point of doing it
+   here rather than on a page somebody edits by hand. The office can change the
+   thirty in Admin → Members if it turns out to be the wrong number. */
+const NEW_MEMBER_DAYS_KEY = 'newMemberDays';
+const NEW_MEMBER_DAYS_DEFAULT = 30;
+async function newMemberDays() {
+  try {
+    const raw = parseInt(await repo.getSetting(NEW_MEMBER_DAYS_KEY), 10);
+    return Number.isFinite(raw) && raw >= 1 && raw <= 365 ? raw : NEW_MEMBER_DAYS_DEFAULT;
+  } catch { return NEW_MEMBER_DAYS_DEFAULT; }
+}
+
+/* Newest first. A member with no join date is not new — it means we never knew
+   when they joined, which is true of anyone carried over from the old system,
+   and putting those on this page would fill it with the 1966 intake. */
+export function pickNewMembers(members, days, today = new Date()) {
+  const cutoff = new Date(today.getTime() - days * 86400000).toISOString().slice(0, 10);
+  const todayStr = today.toISOString().slice(0, 10);
+  return (members || [])
+    .filter((m) => /^\d{4}-\d{2}-\d{2}$/.test(String(m.joinDate || '')))
+    .filter((m) => m.joinDate >= cutoff && m.joinDate <= todayStr)
+    .sort((a, b) => b.joinDate.localeCompare(a.joinDate) || String(a.name).localeCompare(String(b.name)));
+}
+
+router.get('/members/new', async (_req, res) => {
+  try {
+    const days = await newMemberDays();
+    // The same shape and the same approved-only filter the directory serves,
+    // so this page can never show a listing the directory would not.
+    const { members } = await loadMembersPublic();
+    res.json({ ok: true, days, members: pickNewMembers(members, days) });
+  } catch (e) { console.error('members/new', e); res.status(500).json({ error: 'failed' }); }
+});
+
+router.get('/admin/new-member-window', requireAdmin, async (_req, res) => {
+  try { res.json({ ok: true, days: await newMemberDays(), defaultDays: NEW_MEMBER_DAYS_DEFAULT }); }
+  catch (e) { res.json({ ok: true, days: NEW_MEMBER_DAYS_DEFAULT, defaultDays: NEW_MEMBER_DAYS_DEFAULT }); }
+});
+router.post('/admin/new-member-window', requireAdmin, async (req, res) => {
+  try {
+    const d = parseInt((req.body || {}).days, 10);
+    if (!Number.isFinite(d) || d < 1 || d > 365) return res.status(400).json({ error: 'Choose between 1 and 365 days.' });
+    await repo.setSetting(NEW_MEMBER_DAYS_KEY, String(d));
+    res.json({ ok: true, days: d });
+  } catch (e) { res.status(500).json({ error: 'could not save' }); }
 });
 
 /* ── Is this logo big enough for the banner? ────────────────────────────────
