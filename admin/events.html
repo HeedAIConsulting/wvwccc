@@ -38,6 +38,20 @@
             <input type="checkbox" id="evLeaderInstant" style="margin-top:2px">
             <span><strong>Group leader events publish instantly</strong> — when this is off (the usual setting), events posted by group leaders wait under <strong>Needs publish</strong> for your ✓, just like everyone else's. Turn it on only if you want leaders to skip the review.</span>
           </label>
+          <!-- Felicia, Sep 18 2026: "Diana noticed on our event page at the top
+               that the text still says Black, White & Bold! On July 25th... I
+               couldn't find where to edit that text." It was written into the
+               page by hand, so there was nothing to find. Here it is. -->
+          <div class="field" style="margin:0 0 14px;max-width:70ch">
+            <label for="evIntro"><strong>What this page says at the top</strong></label>
+            <p class="sub" style="margin:2px 0 6px">The sentence under &ldquo;Chamber events &amp; tickets&rdquo; on the public events page. Change it whenever what you are promoting changes. Leave it empty to go back to the standing sentence.</p>
+            <textarea id="evIntro" class="admin-select" rows="2" maxlength="400" style="width:100%" placeholder="Monthly breakfasts, networking groups, ribbon cuttings…"></textarea>
+            <div class="btn-row" style="margin-top:6px;align-items:center;gap:10px">
+              <button type="button" class="btn btn--forest btn--sm" id="evIntroSave">Save this line</button>
+              <a class="btn btn--ghost btn--sm" href="../events/index.html" target="_blank" rel="noopener">👁 See the page</a>
+              <span class="sub" id="evIntroMsg"></span>
+            </div>
+          </div>
           <table class="admin-table"><thead><tr><th>Event</th><th>Date</th><th>Venue</th><th>Status</th><th></th></tr></thead><tbody id="eventRows"></tbody></table>
         </div>
 
@@ -193,7 +207,7 @@
   </div>
   <script src="../js/api-base.js"></script>
   <script src="../js/rich-editor.js?v=20260915b"></script>
-  <script src="admin.js?v=20260916b"></script>
+  <script src="admin.js?v=20260922a"></script>
   <script>Admin.initEvents();</script>
   <script defer src="/js/support.js?v=20260804c"></script>
 </body>

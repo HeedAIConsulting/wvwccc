@@ -14,6 +14,30 @@ window.MemberPortal = (function () {
     return res.json();
   }
 
+  /* Take an address the way a member actually types it. Mirrors normalizeUrl
+     in backend/profile-helpers.js; the server normalises again on save, this
+     copy is here so the member watches the https:// appear and never wonders
+     whether the box took it. See that function for what went wrong on Sep 22. */
+  function tidyUrl(s) {
+    const raw = String(s == null ? '' : s).trim();
+    if (!raw) return '';
+    if (/^\/\//.test(raw)) return 'https:' + raw;
+    if (/^\//.test(raw)) return raw;
+    if (/^https?:\/\//i.test(raw)) return raw;
+    if (/^(mailto|tel):/i.test(raw)) return raw;
+    if (/^[a-z][a-z0-9+.-]*:/i.test(raw)) return raw;   // leave it; the server drops it
+    if (/^[^\s/]+\.[^\s/]+/.test(raw)) return 'https://' + raw;
+    return raw;
+  }
+
+  /* Fix link boxes up as soon as the member leaves them, and again on the way
+     out, so Save is never the first place they find out something was wrong. */
+  function wireUrlFields(form) {
+    form.querySelectorAll('[inputmode="url"]').forEach((el) => {
+      el.addEventListener('blur', () => { const v = tidyUrl(el.value); if (v !== el.value) el.value = v; });
+    });
+  }
+
   async function logout() { try { await api('/api/auth/logout', { method: 'POST' }); } catch (e) {} location.href = '../index.html'; }
 
   const TIER_LABEL = (t) => (t || 'member').charAt(0).toUpperCase() + (t || 'member').slice(1);
@@ -595,8 +619,20 @@ window.MemberPortal = (function () {
       } finally { aiBtn.disabled = false; aiBtn.textContent = orig; }
     });
 
+    wireUrlFields(form);
+    /* A form the browser refuses to submit fires no submit event at all, which
+       is exactly how the LinkedIn box swallowed a save in silence. Nothing on
+       this form is constrained any more, but if that ever changes again, say so
+       rather than leaving the member pressing a button that does nothing. */
+    form.addEventListener('invalid', (ev) => {
+      msg.hidden = false; msg.style.borderColor = 'var(--red)';
+      msg.textContent = 'One of the boxes above needs another look before this can save.';
+      if (ev.target && ev.target.scrollIntoView) ev.target.scrollIntoView({ block: 'center' });
+    }, true);
+
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
+      form.querySelectorAll('[inputmode="url"]').forEach((el) => { el.value = tidyUrl(el.value); });
       const patch = {};
       form.querySelectorAll('[data-field]').forEach((el) => { patch[el.dataset.field] = el.value; });
       patch.categories = [...new Set([0, 1, 2].map((i) => (picker && picker.querySelector(`[data-cat="${i}"]`) ? picker.querySelector(`[data-cat="${i}"]`).value : '').trim()).filter(Boolean))];

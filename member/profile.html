@@ -32,7 +32,7 @@
         </div>
         <div class="grid grid-2" style="gap:var(--s-3)">
           <div class="field"><label>Phone</label><input data-field="phone" /></div>
-          <div class="field"><label>Website</label><input data-field="website" type="url" placeholder="https://" /></div>
+          <div class="field"><label>Website</label><input data-field="website" type="text" inputmode="url" placeholder="https://" /></div>
         </div>
         <div class="field"><label>Address</label><input data-field="address" /></div>
         <div class="grid grid-2" style="gap:var(--s-3)">
@@ -73,7 +73,7 @@
         <div class="field"><label>Photos (up to 3)</label><input id="photoFile" type="file" accept="image/*" multiple /></div>
         <div id="photoPreview" style="display:flex;gap:8px;flex-wrap:wrap"></div>
         <div class="field"><label>Video <span class="member-tile__meta">(paste a YouTube or Vimeo link — it embeds on your profile)</span></label>
-          <input data-field="video" type="url" placeholder="https://youtube.com/watch?v=…" />
+          <input data-field="video" type="text" inputmode="url" placeholder="https://youtube.com/watch?v=…" />
         </div>
         <div id="videoPreview" class="mt-3"></div>
 
@@ -87,33 +87,33 @@
 
         <h3 class="mt-5">Links &amp; social</h3>
         <div class="grid grid-2" style="gap:var(--s-3)">
-          <div class="field"><label>Facebook</label><input data-social="facebook" type="url" placeholder="https://" /></div>
-          <div class="field"><label>Instagram</label><input data-social="instagram" type="url" placeholder="https://" /></div>
-          <div class="field"><label>LinkedIn (business)</label><input data-social="linkedin" type="url" placeholder="https://" /></div>
-          <div class="field"><label>YouTube</label><input data-social="youtube" type="url" placeholder="https://" /></div>
+          <div class="field"><label>Facebook</label><input data-social="facebook" type="text" inputmode="url" placeholder="https://" /></div>
+          <div class="field"><label>Instagram</label><input data-social="instagram" type="text" inputmode="url" placeholder="https://" /></div>
+          <div class="field"><label>LinkedIn (business)</label><input data-social="linkedin" type="text" inputmode="url" placeholder="https://" /></div>
+          <div class="field"><label>YouTube</label><input data-social="youtube" type="text" inputmode="url" placeholder="https://" /></div>
         </div>
         <div class="grid grid-2" style="gap:var(--s-3)">
-          <div class="field"><label>X (Twitter)</label><input data-social="x" type="url" placeholder="https://" /></div>
-          <div class="field"><label>TikTok</label><input data-social="tiktok" type="url" placeholder="https://" /></div>
+          <div class="field"><label>X (Twitter)</label><input data-social="x" type="text" inputmode="url" placeholder="https://" /></div>
+          <div class="field"><label>TikTok</label><input data-social="tiktok" type="text" inputmode="url" placeholder="https://" /></div>
         </div>
         <div class="grid grid-2" style="gap:var(--s-3)">
-          <div class="field"><label>LinkedIn (personal)</label><input data-social="linkedinPersonal" type="url" placeholder="https://" /></div>
-          <div class="field"><label>Nextdoor</label><input data-social="nextdoor" type="url" placeholder="https://" /></div>
+          <div class="field"><label>LinkedIn (personal)</label><input data-social="linkedinPersonal" type="text" inputmode="url" placeholder="https://" /></div>
+          <div class="field"><label>Nextdoor</label><input data-social="nextdoor" type="text" inputmode="url" placeholder="https://" /></div>
         </div>
         <div class="grid grid-2" style="gap:var(--s-3)">
-          <div class="field"><label>Google reviews link</label><input data-review="google" type="url" placeholder="https://" /></div>
-          <div class="field"><label>Yelp reviews link</label><input data-review="yelp" type="url" placeholder="https://" /></div>
+          <div class="field"><label>Google reviews link</label><input data-review="google" type="text" inputmode="url" placeholder="https://" /></div>
+          <div class="field"><label>Yelp reviews link</label><input data-review="yelp" type="text" inputmode="url" placeholder="https://" /></div>
         </div>
 
         <h3 class="mt-5">Call-to-action buttons</h3>
         <p class="member-tile__meta">e.g. "Book now", "Get a quote", "Order online".</p>
         <div class="grid grid-2" style="gap:var(--s-3)">
           <div class="field"><label>Button 1 label</label><input data-cta-label /></div>
-          <div class="field"><label>Button 1 link</label><input data-cta-url type="url" placeholder="https://" /></div>
+          <div class="field"><label>Button 1 link</label><input data-cta-url type="text" inputmode="url" placeholder="https://" /></div>
         </div>
         <div class="grid grid-2" style="gap:var(--s-3)">
           <div class="field"><label>Button 2 label</label><input data-cta-label /></div>
-          <div class="field"><label>Button 2 link</label><input data-cta-url type="url" placeholder="https://" /></div>
+          <div class="field"><label>Button 2 link</label><input data-cta-url type="text" inputmode="url" placeholder="https://" /></div>
         </div>
 
         <h3 class="mt-5">Team members <span class="member-tile__meta">(optional)</span></h3>
@@ -127,9 +127,9 @@
     </div>
   </section>
   <div data-partial="footer"></div>
-  <script src="../js/partials.js?v=20260910a"></script>
+  <script src="../js/partials.js?v=20260922a"></script>
   <script src="../js/api-base.js?v=20260818a"></script>
-  <script src="member.js?v=20260916a"></script>
+  <script src="member.js?v=20260922a"></script>
   <script>ChamberPartials.mount({ active: '', depth: 1, lang: 'en' }); MemberPortal.initProfile();</script>
   <script defer src="/js/support.js?v=20260804c"></script>
 </body>

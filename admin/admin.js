@@ -829,7 +829,31 @@ window.Admin = (function () {
   }
 
   // ── Members (status radios) ──
+  /* How long a member stays on the New Members page (Felicia, Sep 18 2026:
+     "the duration of the new members staying on it for 30 days"). Kept as a
+     setting rather than a constant so the office can change its mind without
+     asking anyone. */
+  async function initNewMemberWindow() {
+    const input = document.getElementById('nmDays');
+    const btn = document.getElementById('nmDaysSave');
+    const msg = document.getElementById('nmDaysMsg');
+    if (!input || !btn) return;
+    try { input.value = (await api('/api/admin/new-member-window')).days; }
+    catch (e) { input.placeholder = '30'; }
+    btn.addEventListener('click', async () => {
+      btn.disabled = true; const was = btn.textContent; btn.textContent = 'Saving…';
+      try {
+        const r = await api('/api/admin/new-member-window', { method: 'POST', body: JSON.stringify({ days: input.value }) });
+        input.value = r.days;
+        if (msg) { msg.style.color = 'var(--green)'; msg.textContent = `Saved — members show for ${r.days} days.`; }
+      } catch (e) {
+        if (msg) { msg.style.color = 'var(--red)'; msg.textContent = 'Choose a number between 1 and 365.'; }
+      } finally { btn.disabled = false; btn.textContent = was; }
+    });
+  }
+
   async function initMembers() {
+    initNewMemberWindow();
     mountShell('members');
     let opts = { leaderOptions: ['', 'Leader', 'Board Member', 'New Member', 'Past President', 'Ambassador', 'Staff'], statusOptions: ['approved', 'pending', 'suspended', 'inactive'] };
     try { opts = await api('/api/admin/options'); } catch (e) {}
@@ -2545,8 +2569,31 @@ window.Admin = (function () {
     // ── The Diana switch (Aug 20 2026): leader events wait for approval
     // unless the office flips this on. Saves on change, right on the page.
     const liToggle = document.getElementById('evLeaderInstant');
+    // ── The line at the top of the public events page. It used to be typed
+    // into events/index.html, which is why Felicia went looking for the edit
+    // box in September and found none while the page still advertised July.
+    const introEl = document.getElementById('evIntro');
+    const introMsg = document.getElementById('evIntroMsg');
+    const introBtn = document.getElementById('evIntroSave');
+    if (introEl && introBtn) {
+      introBtn.addEventListener('click', async () => {
+        introBtn.disabled = true; const was = introBtn.textContent; introBtn.textContent = 'Saving…';
+        try {
+          const r = await api('/api/admin/event-settings', { method: 'POST', body: JSON.stringify({ intro: introEl.value }) });
+          introEl.value = r.intro || '';
+          if (introMsg) { introMsg.style.color = 'var(--green)'; introMsg.textContent = 'Saved — the events page says this now.'; }
+        } catch (e) {
+          if (introMsg) { introMsg.style.color = 'var(--red)'; introMsg.textContent = 'Could not save that line.'; }
+        } finally { introBtn.disabled = false; introBtn.textContent = was; }
+      });
+    }
+    if (liToggle || introEl) {
+      api('/api/admin/event-settings').then((s) => {
+        if (liToggle) liToggle.checked = !!s.leaderInstantPublish;
+        if (introEl) introEl.value = s.intro || '';
+      }).catch(() => {});
+    }
     if (liToggle) {
-      api('/api/admin/event-settings').then((s) => { liToggle.checked = !!s.leaderInstantPublish; }).catch(() => {});
       liToggle.addEventListener('change', async () => {
         const on = liToggle.checked;
         if (on && !confirm('Let group leaders publish events instantly, with no office review?\n\nOK — leaders skip the Needs publish queue\nCancel — keep approval required')) { liToggle.checked = false; return; }
@@ -4190,6 +4237,16 @@ window.Admin = (function () {
     const RANK = { platinum: 1, gold: 2, silver: 3, bronze: 4, supporter: 5, friend: 6 };
     const LABEL = { platinum: 'Platinum', gold: 'Gold', silver: 'Silver', bronze: 'Bronze', supporter: 'Supporter', friend: 'Friend Leader' };
     let leaders = [];
+    /* How much of each logo file is the logo, keyed by member id. Diana asked
+       for the logos on the banner to be the same size; they cannot be made so
+       from the files we have, because a third of them are old 100x60 exports
+       holding ten or twenty pixels of artwork. Rather than blow those up into
+       a smear, say which ones they are so the office can ask those members for
+       a better picture. Measuring means decoding every logo, so it arrives
+       after the table rather than holding it up. */
+    let health = {};
+    let minInk = 60;
+    let goodInk = 300;
 
     async function load() {
       let members = [];
@@ -4200,6 +4257,7 @@ window.Admin = (function () {
         .sort((a, b) => RANK[a.tier.toLowerCase()] - RANK[b.tier.toLowerCase()]
           || String(a.name).localeCompare(String(b.name)));
       render();
+      loadHealth();
     }
 
     function render() {
@@ -4210,9 +4268,34 @@ window.Admin = (function () {
         return;
       }
       rowsEl.innerHTML = `<table class="admin-table">
-        <thead><tr><th>On the banner</th><th>Member</th><th>Where it comes from</th><th></th></tr></thead>
+        <thead><tr><th>On the banner</th><th>Member</th><th>Where it comes from</th><th>Size on the page</th><th></th></tr></thead>
         <tbody>${list.map(rowHtml).join('')}</tbody></table>`;
       list.forEach((m) => bindRow(m));
+      paintHealth();
+    }
+
+    // Write each measurement into its row once it lands. Silent on failure:
+    // an unmeasured logo shows nothing rather than a false all-clear.
+    function paintHealth() {
+      rowsEl.querySelectorAll('[data-lb-size]').forEach((cell) => {
+        const h = health[cell.getAttribute('data-lb-size')];
+        if (!h) return;
+        const ask = `Ask this member for the logo at ${goodInk}px tall or more &mdash; a PNG with a transparent background is ideal, and they do not need to crop or resize it.`;
+        cell.innerHTML = h.ok
+          ? `<span class="sub">${h.inkH}px of logo in a ${h.frameH}px file &mdash; fills ${h.fills}%.${h.inkH < goodInk ? ` Usable, though ${goodInk}px would be sharper.` : ''}</span>`
+          : `<span class="pill pill--pending">draws small</span>
+             <div class="sub">Only ${h.inkH}px of this ${h.frameH}px file is the logo &mdash; it fills ${h.fills}% of its own frame, so it sits smaller than its neighbours on the banner. ${ask}</div>`;
+      });
+    }
+
+    async function loadHealth() {
+      try {
+        const r = await api('/api/admin/leader-logo-health');
+        health = r.health || {};
+        if (r.minInkHeight) minInk = r.minInkHeight;
+        if (r.goodInkHeight) goodInk = r.goodInkHeight;
+        paintHealth();
+      } catch (e) { /* leave the column blank rather than guess */ }
     }
 
     // What the banner shows for this member, and which field it came from.
@@ -4241,6 +4324,7 @@ window.Admin = (function () {
           : '<span class="pill pill--pending">no logo</span>'}</td>
         <td><span class="name">${esc(m.name)}</span><div class="sub">${esc(LABEL[tier] || tier)}</div></td>
         <td class="sub">${from === 'banner' ? '<span class="pill pill--approved">banner logo</span> ' : ''}${esc(note)}</td>
+        <td class="sub" data-lb-size="${esc(m.id)}" style="max-width:26ch">${src ? '<span class="sub">measuring…</span>' : ''}</td>
         <td style="white-space:nowrap">
           <label class="btn btn--gold btn--sm" style="cursor:pointer">Replace<input type="file" accept="image/png,image/jpeg,image/webp" hidden data-lb-file></label>
           ${m.leaderLogo ? ` <button type="button" class="btn btn--ghost btn--sm" data-lb-clear title="${fallbackOf(m)

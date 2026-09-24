@@ -11,6 +11,31 @@ export const SOCIAL_KEYS = ['facebook', 'instagram', 'linkedin', 'linkedinPerson
 
 export const clampUrl = (s) => String(s == null ? '' : s).trim().slice(0, 600);
 
+// Turn what a member actually types into a link the site can use.
+//
+// Felicia, Sep 22 2026: a new member "is trying to add his LinkedIn url to his
+// profile but it is not sticking after he hits save", and she reproduced it.
+// He had typed linkedin.com/in/dagan-klipfel-94a238167 into an
+// <input type="url">, so the browser refused to submit the form before our own
+// submit handler ever ran: no request, no error message, nothing saved. People
+// say addresses without the https:// and the site should take them that way.
+//
+// This is also the one place that decides a stored link is safe to put in an
+// href on the public profile, so anything that is not http(s), mailto/tel, or
+// one of our own rooted asset paths is dropped rather than stored.
+export function normalizeUrl(s) {
+  const raw = String(s == null ? '' : s).trim();
+  if (!raw) return '';
+  if (/^\/\//.test(raw)) return clampUrl('https:' + raw);   // //host/path
+  if (/^\//.test(raw)) return clampUrl(raw);                 // /api/assets/… , our own files
+  if (/^https?:\/\//i.test(raw)) return clampUrl(raw);
+  if (/^(mailto|tel):/i.test(raw)) return clampUrl(raw);
+  if (/^[a-z][a-z0-9+.-]*:/i.test(raw)) return '';          // javascript:, data:, anything else
+  // A bare host: it needs a dot, and no whitespace before the first slash.
+  if (/^[^\s/]+\.[^\s/]+/.test(raw)) return clampUrl('https://' + raw);
+  return '';
+}
+
 export function sanitizePrimaryImage(v) {
   return (v === 'logo' || v === 'person') ? v : undefined;
 }

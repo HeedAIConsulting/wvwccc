@@ -6,6 +6,44 @@ window.Chamber = (function () {
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) =>
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
+  /* Every member-supplied address lands in an href, so decide here what is
+     allowed to be one. Addresses saved before Sep 22 2026 can be bare hosts
+     (the profile form used to store whatever survived the browser), so give
+     those the https:// they are missing rather than emitting a link that
+     resolves against woodlandhillscc.net. Anything that is not http(s),
+     mailto/tel or one of our own rooted paths renders as no link at all. */
+  /* "Member since March 2024". Felicia, Sep 18 2026: where one company holds
+     more than one listing — Edward Jones for Savannah and Vahan, two
+     McDonald's, two U-Frame-It Gallery — "We would like those as individual
+     entries on the directory with their respective join dates." They already
+     were separate entries; what was missing was the date that tells them
+     apart, so it goes on the card and on the profile.
+
+     Month and year, not the day: a directory reads as a directory, and the
+     five pairs that share a name all joined in different years anyway. Parsed
+     as plain numbers rather than through Date(), which would read a bare
+     "2024-05-28" as UTC midnight and show the month before it in California. */
+  const JOIN_MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'];
+  function memberSince(joinDate) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(joinDate || ''));
+    if (!m) return '';
+    const month = JOIN_MONTHS[Number(m[2]) - 1];
+    return month ? `${month} ${m[1]}` : m[1];
+  }
+
+  function safeHref(u) {
+    const raw = String(u == null ? '' : u).trim();
+    if (!raw) return '';
+    if (/^\/\//.test(raw)) return 'https:' + raw;
+    if (/^\//.test(raw)) return raw;
+    if (/^https?:\/\//i.test(raw)) return raw;
+    if (/^(mailto|tel):/i.test(raw)) return raw;
+    if (/^[a-z][a-z0-9+.-]*:/i.test(raw)) return '';
+    if (/^[^\s/]+\.[^\s/]+/.test(raw)) return 'https://' + raw;
+    return '';
+  }
+
   async function getJSON(path) {
     const res = await fetch(path, { cache: 'no-cache' });
     if (!res.ok) throw new Error(`${path} → ${res.status}`);
@@ -60,6 +98,7 @@ window.Chamber = (function () {
   const LANG = (typeof document !== 'undefined' && document.documentElement.lang === 'es') ? 'es' : 'en';
   const ES = {
     'View profile →': 'Ver perfil →', 'View profile': 'Ver perfil', 'View details →': 'Ver detalles →',
+    'Member since': 'Miembro desde',
     'Website': 'Sitio web', 'Directions': 'Cómo llegar', 'Call': 'Llamar', 'Email': 'Correo',
     'Search': 'Buscar', 'All categories': 'Todas las categorías', 'All areas': 'Todas las áreas',
     'Type to filter…': 'Escriba para filtrar…', 'Filter the list': 'Filtrar la lista',
@@ -147,6 +186,7 @@ window.Chamber = (function () {
     const addrLink = addr
       ? `<a class="member-tile__row" href="${esc(mapUrl(m))}" target="_blank" rel="noopener" aria-label="Map ${esc(m.name)}"><span aria-hidden="true">📍</span> ${esc(addr)}</a>` : '';
     const meta = [m.category, m.neighborhood].filter(Boolean).map(esc).join(' · ');
+    const since = memberSince(m.joinDate);
     const photo = cardImage(m);
     const seal = photo
       ? `<div class="member-tile__seal" style="padding:0;overflow:hidden"><img src="${esc(photo)}" alt="${esc(m.name || '')} logo" loading="lazy" style="width:100%;height:100%;object-fit:cover"></div>`
@@ -165,6 +205,7 @@ window.Chamber = (function () {
         ${(addrLink || phone) && !opts.compact ? `<div class="member-tile__facts">${addrLink}${phone}</div>` : ''}
         <div class="member-tile__foot">
           <span class="badge badge--${tier}">${esc(tierLabel)}</span>
+          ${since ? `<span class="member-tile__meta" style="margin-right:auto">${tr('Member since')} ${esc(since)}</span>` : ''}
           <a class="btn btn--forest btn--sm" href="${href}">${tr('View profile →')}</a>
         </div>
       </article>`;
@@ -777,6 +818,48 @@ window.Chamber = (function () {
       `<div class="leader-wall-grid">${main.map(cell).join('')}</div>` +
       (friends.length ? `<hr class="leader-wall__rule"><div class="leader-wall-grid">${friends.map(cell).join('')}</div>` : '');
     section?.removeAttribute('hidden');
+  }
+
+  /* ── The newest members ────────────────────────────────────────────────
+     Felicia, Sep 18 2026: "Yes, we still want a new member page. We would like
+     the duration of the new members staying on it for 30 days."
+
+     The server decides who is new and how long the window is, so this page
+     cannot drift out of step with the number the office set. A member drops
+     off on their own thirty-first day; nobody has to take anyone down. */
+  async function initNewMembers() {
+    const grid = document.getElementById('newMemberGrid');
+    if (!grid) return;
+    const note = document.getElementById('newMembersNote');
+    const empty = document.getElementById('newMembersEmpty');
+    let data;
+    try { data = await getJSON(ChamberAPI.url('/api/members/new')); }
+    catch (e) {
+      grid.innerHTML = '';
+      if (empty) { empty.hidden = false; empty.textContent = 'The member list is loading slowly — please refresh.'; }
+      return;
+    }
+    const members = data.members || [];
+    const days = data.days || 30;
+    if (!members.length) {
+      grid.innerHTML = '';
+      if (note) note.textContent = '';
+      if (empty) {
+        empty.hidden = false;
+        // Say which window is empty. "No new members" on its own reads like the
+        // page is broken; "none in the last 30 days" reads like news.
+        empty.innerHTML = `No new members in the last ${days} days. `
+          + '<a href="directory.html">The full directory</a> has every member.';
+      }
+      return;
+    }
+    if (empty) empty.hidden = true;
+    if (note) {
+      note.textContent = members.length === 1
+        ? `One business has joined in the last ${days} days.`
+        : `${members.length} businesses have joined in the last ${days} days.`;
+    }
+    grid.innerHTML = members.map((m) => memberTile(m, 1)).join('');
   }
 
   // ── Groups & networks (YPN, Home Improvement, …) ─────────
@@ -1900,19 +1983,22 @@ window.Chamber = (function () {
     const webLabel = (u) => { const s = String(u).replace(/^https?:\/\//i, '').replace(/\/$/, ''); return s.length > 28 ? s.slice(0, 27) + '…' : s; };
     const SOCIAL = { facebook: 'Facebook', instagram: 'Instagram', linkedin: 'LinkedIn', linkedinPersonal: 'LinkedIn (personal)', x: 'X', youtube: 'YouTube', tiktok: 'TikTok', nextdoor: 'Nextdoor' };
     const social = m.social && typeof m.social === 'object'
-      ? Object.entries(SOCIAL).filter(([k]) => m.social[k]).map(([k, label]) =>
-          `<a class="chip" href="${esc(m.social[k])}" target="_blank" rel="noopener">${label}</a>`).join('') : '';
+      ? Object.entries(SOCIAL).filter(([k]) => safeHref(m.social[k])).map(([k, label]) =>
+          `<a class="chip" href="${esc(safeHref(m.social[k]))}" target="_blank" rel="noopener">${label}</a>`).join('') : '';
     const reviews = m.reviewLinks && typeof m.reviewLinks === 'object'
-      ? ['google', 'yelp'].filter((k) => m.reviewLinks[k]).map((k) =>
-          `<a class="chip" href="${esc(m.reviewLinks[k])}" target="_blank" rel="noopener">★ ${k === 'google' ? 'Google' : 'Yelp'} reviews</a>`).join('') : '';
-    const ctas = Array.isArray(m.ctaLinks) ? m.ctaLinks.map((c) =>
-      `<a class="btn btn--gold btn--sm" href="${esc(c.url)}" target="_blank" rel="noopener">${esc(c.label)}</a>`).join('') : '';
+      ? ['google', 'yelp'].filter((k) => safeHref(m.reviewLinks[k])).map((k) =>
+          `<a class="chip" href="${esc(safeHref(m.reviewLinks[k]))}" target="_blank" rel="noopener">★ ${k === 'google' ? 'Google' : 'Yelp'} reviews</a>`).join('') : '';
+    const ctas = Array.isArray(m.ctaLinks) ? m.ctaLinks.filter((c) => safeHref(c.url)).map((c) =>
+      `<a class="btn btn--gold btn--sm" href="${esc(safeHref(c.url))}" target="_blank" rel="noopener">${esc(c.label)}</a>`).join('') : '';
     const photos = Array.isArray(m.photos) && m.photos.length
       ? `<div class="grid grid-3 mt-5">${m.photos.map((p) => `<img src="${esc(p)}" alt="" loading="lazy" style="border-radius:var(--r-md);aspect-ratio:4/3;object-fit:cover;width:100%">`).join('')}</div>` : '';
     const facts = [
       m.occupation && ['Occupation', m.occupation],
       m.typeOfBusiness && ['Type of business', m.typeOfBusiness],
       m.yearEstablished && ['Established', m.yearEstablished],
+      // Two listings for the same company are told apart by this (Felicia,
+      // Sep 18 2026), so it belongs on the profile as well as the card.
+      memberSince(m.joinDate) && ['Chamber member since', memberSince(m.joinDate)],
       m.employees && ['Employees', m.employees],
       m.hours && ['Hours', m.hours],
     ].filter(Boolean).map(([k, v]) => `<li><span class="member-tile__meta">${esc(k)}</span><br>${esc(v)}</li>`).join('');
@@ -1923,7 +2009,7 @@ window.Chamber = (function () {
     const fullAddr = [m.address, m.city, m.state].filter(Boolean).join(', ');
     const contactRows = [
       m.phone && `<li>📞 <a href="tel:${phoneDigits}">${esc(m.phone)}</a></li>`,
-      m.website && `<li>🌐 <a href="${esc(m.website)}" target="_blank" rel="noopener" title="${esc(m.website)}">${esc(webLabel(m.website))}</a></li>`,
+      safeHref(m.website) && `<li>🌐 <a href="${esc(safeHref(m.website))}" target="_blank" rel="noopener" title="${esc(m.website)}">${esc(webLabel(m.website))}</a></li>`,
       m.address && `<li>📍 <a href="${esc(mapUrl(m))}" target="_blank" rel="noopener" title="Open in maps">${esc(fullAddr)}</a></li>`,
     ].filter(Boolean).join('');
     // Member video (YouTube/Vimeo URL → responsive embed; else native <video>).
@@ -2052,6 +2138,17 @@ window.Chamber = (function () {
     const listEl = document.getElementById('eventsList');
     const gridEl = document.getElementById('eventsGrid');
     if (!listEl) return;
+
+    /* The sentence under the heading, if the office has changed it from the
+       one written into the page. Its own failure is silent on purpose: the
+       markup already holds readable words, so a slow or failed call leaves the
+       page looking exactly as it did. */
+    const introEl = document.querySelector('[data-events-intro]');
+    if (introEl) {
+      getJSON(ChamberAPI.url('/api/events-intro'))
+        .then((r) => { const t = String((r && r.intro) || '').trim(); if (t) introEl.textContent = t; })
+        .catch(() => {});
+    }
     let events = [];
     const pickSort = (data) => (data.events || []).filter((e) => e.confirmed && e.date)
       .sort((a, b) => a.date.localeCompare(b.date));
@@ -3645,5 +3742,5 @@ window.Chamber = (function () {
     render();
   }
 
-  return { initHome, initEventView, initDirectory, initProfile, initEvents, initCheckout, initLeadForm, initJobs, initDeals, initCommunity, initNews, initBizBuzz, initBoard, initLeaders, initDining, offerCard, postCard, newsCard, memberTile, eventCard, eventPreviewCard, initLeaderBanner, initGroups, initGroupView, initGallery, initVideos, initAlbumView, initPayPortal, initAmbassadors, initFeaturedSlot, joinCtaHtml, mountJoinCta, initGuides, initGuideView, initRealEstate, getJSON, esc };
+  return { initHome, initEventView, initDirectory, initNewMembers, initProfile, initEvents, initCheckout, initLeadForm, initJobs, initDeals, initCommunity, initNews, initBizBuzz, initBoard, initLeaders, initDining, offerCard, postCard, newsCard, memberTile, eventCard, eventPreviewCard, initLeaderBanner, initGroups, initGroupView, initGallery, initVideos, initAlbumView, initPayPortal, initAmbassadors, initFeaturedSlot, joinCtaHtml, mountJoinCta, initGuides, initGuideView, initRealEstate, getJSON, esc };
 })();

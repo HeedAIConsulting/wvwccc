@@ -16,7 +16,7 @@ import * as repo from './repo.js';
 import * as llm from './llm.js';
 import * as turnstile from './turnstile.js';
 import * as email from './email.js';
-import { SOCIAL_KEYS, sanitizePrimaryImage, sanitizeTeam, buildRewritePrompt, parseRewriteResponse } from './profile-helpers.js';
+import { SOCIAL_KEYS, normalizeUrl, sanitizePrimaryImage, sanitizeTeam, buildRewritePrompt, parseRewriteResponse } from './profile-helpers.js';
 import { registerNewsletterImport } from './newsletter-import.js';
 
 const router = express.Router();
@@ -167,7 +167,13 @@ const PUBLIC_FIELDS = ['id', 'slug', 'name', 'category', 'group', 'tier', 'neigh
   // richer profile (member-managed)
   'hours', 'occupation', 'typeOfBusiness', 'yearEstablished', 'employees',
   'logo', 'pageImage', 'photos', 'social', 'reviewLinks', 'ctaLinks', 'video',
-  'services', 'accomplishments', 'associations', 'team', 'primaryImage'];
+  'services', 'accomplishments', 'associations', 'team', 'primaryImage',
+  /* joinDate went public on Sep 22 2026. Felicia asked for it twice in one
+     message: a New Members page, and the join date shown against each listing
+     where a company has more than one of them. These are business listings the
+     Chamber publishes anyway, and how long a member has been a member is the
+     sort of thing the directory is for. */
+  'joinDate'];
 
 let _kw = null;
 function readKeywords() {
@@ -219,9 +225,14 @@ const MEMBER_STR_FIELDS = ['name', 'category', 'neighborhood', 'contactName', 'p
   'occupation', 'typeOfBusiness', 'yearEstablished', 'employees', 'logo', 'pageImage', 'video',
   'services', 'accomplishments', 'associations'];
 const clampUrl = (s) => String(s || '').trim().slice(0, 600);
+// Fields on the profile that end up inside an href or a src. Every one of them
+// goes through normalizeUrl, so a member may type a bare domain and nothing
+// but http(s), mailto/tel or one of our own rooted paths is ever stored.
+const MEMBER_URL_FIELDS = ['website', 'video', 'logo', 'pageImage'];
 function sanitizeProfile(b) {
   const patch = {};
   for (const f of MEMBER_STR_FIELDS) if (b[f] !== undefined) patch[f] = String(b[f]).slice(0, 5000);
+  for (const f of MEMBER_URL_FIELDS) if (patch[f] !== undefined) patch[f] = normalizeUrl(patch[f]);
   // Member-selectable categories (up to 3). First one is the primary `category`.
   if (Array.isArray(b.categories)) {
     const cats = [...new Set(b.categories.map((c) => String(c || '').trim()).filter(Boolean))].slice(0, 3);
@@ -230,18 +241,18 @@ function sanitizeProfile(b) {
   }
   if (b.social && typeof b.social === 'object') {
     const out = {};
-    for (const k of SOCIAL_KEYS) if (b.social[k]) out[k] = clampUrl(b.social[k]);
+    for (const k of SOCIAL_KEYS) if (b.social[k]) { const u = normalizeUrl(b.social[k]); if (u) out[k] = u; }
     patch.social = out;
   }
   if (b.reviewLinks && typeof b.reviewLinks === 'object') {
     const out = {};
-    for (const k of ['google', 'yelp']) if (b.reviewLinks[k]) out[k] = clampUrl(b.reviewLinks[k]);
+    for (const k of ['google', 'yelp']) if (b.reviewLinks[k]) { const u = normalizeUrl(b.reviewLinks[k]); if (u) out[k] = u; }
     patch.reviewLinks = out;
   }
   if (Array.isArray(b.ctaLinks)) patch.ctaLinks = b.ctaLinks.slice(0, 4)
-    .map((c) => ({ label: String(c.label || '').slice(0, 40), url: clampUrl(c.url) }))
+    .map((c) => ({ label: String(c.label || '').slice(0, 40), url: normalizeUrl(c.url) }))
     .filter((c) => c.label && c.url);
-  if (Array.isArray(b.photos)) patch.photos = b.photos.slice(0, 8).map(clampUrl).filter(Boolean);
+  if (Array.isArray(b.photos)) patch.photos = b.photos.slice(0, 8).map(normalizeUrl).filter(Boolean);
   if (Array.isArray(b.contacts)) patch.contacts = b.contacts.slice(0, 3)
     .map((c) => ({ name: String(c.name || '').slice(0, 80), email: String(c.email || '').slice(0, 160) }))
     .filter((c) => c.name || c.email);
@@ -685,17 +696,49 @@ router.get('/me/events', auth.requireAuth(), async (req, res) => {
   } catch (e) { res.status(500).json({ error: 'failed' }); }
 });
 
+/* The sentence under the heading on /events/. It was written into the page by
+   hand in July and still read "Black, White & Bold! on July 25" in late
+   September, because there was nowhere for the office to change it — Diana
+   spotted it and Felicia went looking for the edit box and found none
+   (Sep 18 2026). The default below is her sentence with the dated half
+   removed; Admin → Events is where it is changed from now on.
+
+   The page carries the default in its own markup too, so a visitor sees the
+   right words before this ever loads and a search engine sees them at all. */
+const EVENTS_INTRO_KEY = 'eventsIntro';
+const EVENTS_INTRO_DEFAULT =
+  'Monthly breakfasts, networking groups, ribbon cuttings, and our signature Gala. RSVP and buy tickets right here.';
+const cleanIntro = (v) => String(v == null ? '' : v).replace(/\s+/g, ' ').trim().slice(0, 400);
+async function loadEventsIntro() {
+  try { const raw = await repo.getSetting(EVENTS_INTRO_KEY); return cleanIntro(raw) || EVENTS_INTRO_DEFAULT; }
+  catch { return EVENTS_INTRO_DEFAULT; }
+}
+router.get('/events-intro', async (_req, res) => {
+  try { res.json({ intro: await loadEventsIntro() }); }
+  catch (e) { res.json({ intro: EVENTS_INTRO_DEFAULT }); }
+});
+
 // The Diana switch (Aug 20 2026): do group-leader events publish instantly,
 // or wait in "Needs publish" like everyone else's? Office-controlled from the
 // admin Events page. Default OFF — approval required.
 router.get('/admin/event-settings', requireAdmin, async (_req, res) => {
-  try { res.json({ ok: true, leaderInstantPublish: (await repo.getSetting('leaderInstantPublish')) === 'on' }); }
-  catch (e) { res.json({ ok: true, leaderInstantPublish: false }); }
+  try {
+    res.json({
+      ok: true,
+      leaderInstantPublish: (await repo.getSetting('leaderInstantPublish')) === 'on',
+      intro: await loadEventsIntro(),
+      introDefault: EVENTS_INTRO_DEFAULT,
+    });
+  } catch (e) { res.json({ ok: true, leaderInstantPublish: false, intro: EVENTS_INTRO_DEFAULT, introDefault: EVENTS_INTRO_DEFAULT }); }
 });
 router.post('/admin/event-settings', requireAdmin, async (req, res) => {
   try {
-    await repo.setSetting('leaderInstantPublish', req.body && req.body.leaderInstantPublish ? 'on' : 'off');
-    res.json({ ok: true, leaderInstantPublish: !!(req.body && req.body.leaderInstantPublish) });
+    const b = req.body || {};
+    if (b.leaderInstantPublish !== undefined) await repo.setSetting('leaderInstantPublish', b.leaderInstantPublish ? 'on' : 'off');
+    // Emptying the box puts the standing sentence back rather than leaving the
+    // page with a blank space where the description was.
+    if (b.intro !== undefined) await repo.setSetting(EVENTS_INTRO_KEY, cleanIntro(b.intro) || EVENTS_INTRO_DEFAULT);
+    res.json({ ok: true, leaderInstantPublish: (await repo.getSetting('leaderInstantPublish')) === 'on', intro: await loadEventsIntro() });
   } catch (e) { res.status(500).json({ error: 'could not save' }); }
 });
 
@@ -1253,6 +1296,121 @@ router.get('/assets/:id', async (req, res) => {
     }
     res.type(a.mime).set('Cache-Control', 'public, max-age=86400').send(a.buffer);
   } catch (e) { res.status(500).end(); }
+});
+
+/* ── Who joined lately ──────────────────────────────────────────────────────
+
+   Felicia, Sep 18 2026: "Yes, we still want a new member page. We would like
+   the duration of the new members staying on it for 30 days."
+
+   Thirty days from the join date, then a member drops off by itself — nobody
+   has to remember to take anyone down, which is the whole point of doing it
+   here rather than on a page somebody edits by hand. The office can change the
+   thirty in Admin → Members if it turns out to be the wrong number. */
+const NEW_MEMBER_DAYS_KEY = 'newMemberDays';
+const NEW_MEMBER_DAYS_DEFAULT = 30;
+async function newMemberDays() {
+  try {
+    const raw = parseInt(await repo.getSetting(NEW_MEMBER_DAYS_KEY), 10);
+    return Number.isFinite(raw) && raw >= 1 && raw <= 365 ? raw : NEW_MEMBER_DAYS_DEFAULT;
+  } catch { return NEW_MEMBER_DAYS_DEFAULT; }
+}
+
+/* Newest first. A member with no join date is not new — it means we never knew
+   when they joined, which is true of anyone carried over from the old system,
+   and putting those on this page would fill it with the 1966 intake. */
+export function pickNewMembers(members, days, today = new Date()) {
+  const cutoff = new Date(today.getTime() - days * 86400000).toISOString().slice(0, 10);
+  const todayStr = today.toISOString().slice(0, 10);
+  return (members || [])
+    .filter((m) => /^\d{4}-\d{2}-\d{2}$/.test(String(m.joinDate || '')))
+    .filter((m) => m.joinDate >= cutoff && m.joinDate <= todayStr)
+    .sort((a, b) => b.joinDate.localeCompare(a.joinDate) || String(a.name).localeCompare(String(b.name)));
+}
+
+router.get('/members/new', async (_req, res) => {
+  try {
+    const days = await newMemberDays();
+    // The same shape and the same approved-only filter the directory serves,
+    // so this page can never show a listing the directory would not.
+    const { members } = await loadMembersPublic();
+    res.json({ ok: true, days, members: pickNewMembers(members, days) });
+  } catch (e) { console.error('members/new', e); res.status(500).json({ error: 'failed' }); }
+});
+
+router.get('/admin/new-member-window', requireAdmin, async (_req, res) => {
+  try { res.json({ ok: true, days: await newMemberDays(), defaultDays: NEW_MEMBER_DAYS_DEFAULT }); }
+  catch (e) { res.json({ ok: true, days: NEW_MEMBER_DAYS_DEFAULT, defaultDays: NEW_MEMBER_DAYS_DEFAULT }); }
+});
+router.post('/admin/new-member-window', requireAdmin, async (req, res) => {
+  try {
+    const d = parseInt((req.body || {}).days, 10);
+    if (!Number.isFinite(d) || d < 1 || d > 365) return res.status(400).json({ error: 'Choose between 1 and 365 days.' });
+    await repo.setSetting(NEW_MEMBER_DAYS_KEY, String(d));
+    res.json({ ok: true, days: d });
+  } catch (e) { res.status(500).json({ error: 'could not save' }); }
+});
+
+/* ── Is this logo big enough for the banner? ────────────────────────────────
+
+   Diana, Sep 18 2026, via Felicia: "Diana would like logos consistent in size.
+   Example: Heights to all be 200 or all to be 150."
+
+   She is looking at a real thing and it cannot be fixed on our side. The cells
+   are already identical; so are the files — 35 of the 37 logos down there are
+   legacy 100x60 exports from the old website. What differs is how much of each
+   file is the logo: from 10 pixels of artwork (Kaiser Permanente) to 45, the
+   full frame (FIREHAWK, Maguire & Hart, and three others). Evening them out
+   would mean blowing the small ones up four to fifteen times, which turns a
+   logo into a smear. They need new artwork from the member, and that is the
+   office's call to make, member by member.
+
+   So measure each one and say so plainly on the Leader Banner page, next to
+   the Replace button that already exists. Measuring costs a decode per logo,
+   which is why it is its own call and not part of loading the roster.
+
+   Reading bytes off disk from a name in a query string is the sort of thing
+   that goes wrong quietly, so: the only paths accepted are ones this site
+   itself serves under /images, resolved and then checked to still be inside
+   that directory. Anything else is reported as unreadable. */
+// The same six the public banner draws (LEADER_RANK in js/chamber.js).
+const LEADER_TIERS = new Set(['platinum', 'gold', 'silver', 'bronze', 'supporter', 'friend']);
+const LOGO_DIR = path.join(ROOT, 'images');
+async function logoBytes(src) {
+  const u = String(src || '').trim();
+  const asset = u.match(/^\/api\/assets\/([A-Za-z0-9_-]+)$/);
+  if (asset) {
+    const a = await repo.getAsset(asset[1]);
+    return a ? { mime: a.mime, buffer: a.buffer } : null;
+  }
+  const m = u.match(/^\/?(images\/[^?#]*)$/);
+  if (!m) return null;                       // off-site, or somewhere we do not serve
+  const file = path.resolve(ROOT, m[1]);
+  const inside = path.relative(LOGO_DIR, file);
+  if (inside.startsWith('..') || path.isAbsolute(inside)) return null;
+  let buffer;
+  try { buffer = await fs.promises.readFile(file); } catch { return null; }
+  const ext = path.extname(file).toLowerCase();
+  const mime = ext === '.png' ? 'image/png' : ext === '.gif' ? 'image/gif'
+    : ext === '.webp' ? 'image/webp' : /^\.jpe?g$/.test(ext) ? 'image/jpeg' : '';
+  return mime ? { mime, buffer } : null;
+}
+
+router.get('/admin/leader-logo-health', requireAdmin, async (_req, res) => {
+  try {
+    const { members } = await loadMembersFull();
+    const leaders = members.filter((m) => LEADER_TIERS.has(String(m.tier || '').toLowerCase()));
+    const out = {};
+    for (const m of leaders) {
+      const src = m.leaderLogo || m.logo || (m.photos && m.photos[0]) || '';
+      if (!src) continue;
+      try {
+        const bytes = await logoBytes(src);
+        out[m.id] = bytes ? (images.logoHealth(bytes.mime, bytes.buffer) || null) : null;
+      } catch (e) { out[m.id] = null; }
+    }
+    res.json({ ok: true, minInkHeight: images.LOGO_MIN_INK_H, goodInkHeight: images.LOGO_GOOD_INK_H, health: out });
+  } catch (e) { console.error('leader-logo-health', e); res.status(500).json({ error: 'failed' }); }
 });
 
 // ── Member-to-member messages (Felicia, Aug 27 2026) ────────
