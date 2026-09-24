@@ -88,7 +88,7 @@
                 <button type="button" class="btn btn--ghost btn--sm" id="grpMgrReset" title="Emails the manager a set-a-new-password link (expires in 1 hour)">✉ Send password-reset email</button>
                 <span class="sub" id="grpMgrResetMsg"></span>
               </div>
-              <p class="sub" id="grpLeaderAccess" style="margin:10px 0 0"></p>
+              <div class="sub" id="grpLeaderAccess" style="margin:10px 0 0"></div>
               <p class="sub" style="margin:8px 0 0">Use <strong>👁 See the leader's view</strong> to walk a leader through their page over the phone — it shows you their screen without signing you out of here.</p>
             </div>
 
@@ -171,6 +171,10 @@
                 <button type="button" class="btn btn--gold btn--sm" id="grpAnnounce" title="Email everyone in this group — meeting reminders, agendas, announcements">📣 Email group members</button>
               </div>
               <div id="grpPending"></div>
+              <!-- Diana, Sep 24 2026, via Felicia: two co-leaders should each
+                   sign in with their own address. Setting a role to Leader,
+                   Chair or Co-Chair opens a sign-in box on that row. -->
+              <p class="sub" style="margin:0 0 8px;max-width:78ch">Set somebody&rsquo;s role to <strong>Leader</strong>, <strong>Chair</strong> or <strong>Co-Chair</strong> and a <strong>Sign-in email</strong> box appears on their row. Fill it in and that person gets their own <em>Manage group</em> page &mdash; roster, group email, meetings and RSVPs. As many co-leaders as you like, each with their own address. Somebody added from the directory already signs in with their member login, so their row asks for nothing.</p>
               <div id="grpRoster"></div>
               <div class="field" style="position:relative;margin:12px 0 0">
                 <label>Add an existing member <span class="sub">(from your directory)</span></label>
@@ -201,7 +205,7 @@
     </div>
   </div>
   <script src="../js/api-base.js"></script>
-  <script src="admin.js?v=20260922a"></script>
+  <script src="admin.js?v=20260924a"></script>
   <script>Admin.initGroups();</script>
   <script defer src="/js/support.js?v=20260804c"></script>
 </body>

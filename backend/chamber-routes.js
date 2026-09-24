@@ -2830,19 +2830,54 @@ router.get('/admin/groups', requireAdmin, async (_req, res) => {
   try {
     const groups = await loadGroups();
     let accounts = new Set();
-    try { accounts = new Set((await users.listUsers()).map((u) => String(u.email || '').toLowerCase())); }
-    catch (e) { accounts = null; }   // unknown beats a wrong "locked out"
+    let accountsByMember = new Set();
+    try {
+      const list = await users.listUsers();
+      accounts = new Set(list.map((u) => String(u.email || '').toLowerCase()).filter(Boolean));
+      // A roster leader picked from the directory signs in with their own
+      // member login, which has no address on the group at all.
+      accountsByMember = new Set(list.map((u) => u.memberId).filter(Boolean));
+    } catch (e) { accounts = null; accountsByMember = null; }   // unknown beats a wrong "locked out"
     res.json({ groups: groups.map((g) => {
       const email = String((g.manager && g.manager.email) || '').toLowerCase();
       // A roster Leader/Chair/Co-Chair with an address counts too — same rule
       // groupsLedBy() applies, so this reports what the leader will actually get.
-      const rosterLeader = (g.members || []).find((m) => m && m.status !== 'pending'
-        && /^(leader|chair|co-chair)$/i.test(String(m.role || '')) && String(m.email || '').trim());
+      const rosterLeaders = (g.members || []).filter((m) => m && m.status !== 'pending'
+        && /^(leader|chair|co-chair)$/i.test(String(m.role || '')));
+      const rosterLeader = rosterLeaders.find((m) => String(m.email || '').trim());
       const candidate = email || String((rosterLeader && rosterLeader.email) || '').toLowerCase();
+
+      /* Everyone who can run this group, not just the first one found.
+         Diana, Sep 24 2026, via Felicia: "If there are 2 co-leaders, Diana
+         would like them to both be able to sign in with their own email
+         address." They can — groupsLedBy() has always taken any number of
+         roster leaders — but the office had no way to see whether the second
+         one was actually set, so this reports each of them. */
+      const seen = new Set();
+      const leaders = [];
+      const add = (name, addr, memberId, via) => {
+        const key = addr ? 'e:' + addr : memberId ? 'm:' + memberId : '';
+        if (!key || seen.has(key)) return;
+        seen.add(key);
+        leaders.push({
+          name: name || '',
+          email: addr || '',
+          via,
+          canManage: addr
+            ? (accounts ? accounts.has(addr) : null)
+            : (accountsByMember ? accountsByMember.has(memberId) : null),
+        });
+      };
+      if (email) add((g.manager && g.manager.name) || '', email, null, 'manager');
+      for (const m of rosterLeaders) {
+        add(m.name, String(m.email || '').trim().toLowerCase(), m.memberId || null, m.memberId ? 'listing' : 'roster');
+      }
+
       return { ...g, leaderAccess: {
         email: candidate,
         name: (g.manager && g.manager.name) || (rosterLeader && rosterLeader.name) || '',
         canManage: candidate ? (accounts ? accounts.has(candidate) : null) : false,
+        leaders,
       } };
     }) });
   } catch (e) { res.status(500).json({ error: 'failed' }); }

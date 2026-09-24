@@ -5056,14 +5056,43 @@ window.Admin = (function () {
         });
       }
       if (rosEl) {
-        rosEl.innerHTML = active.length ? active.map((m) => `<div data-mid="${esc(m.id)}" style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--line,#eee)">
-          <span style="flex:1"><strong>${esc(m.name)}</strong>${m.business ? ` <span class="sub">· ${esc(m.business)}</span>` : ''}${m.memberId ? '' : ' <span class="sub">(manual)</span>'}</span>
-          <select class="admin-select" data-role style="padding:3px 6px">${roleOpts(m.role)}</select>
-          <button type="button" class="btn btn--ghost btn--sm" data-remove style="color:var(--red)">Remove</button>
+        /* Diana, Sep 24 2026, via Felicia: "If there are 2 co-leaders, Diana
+           would like them to both be able to sign in with their own email
+           address." Any number of them always could — groupsLedBy() takes
+           every roster Leader/Chair/Co-Chair, and normalizeGroupMembers has
+           always stored an email on each one. This row was simply the only
+           place that never asked for it, so a leader typed in by hand had no
+           address anywhere and was locked out. Valley Senior Resource Network
+           is the case in point: Marcia and Sandy both sit on it as Leaders
+           with nothing to sign in with.
+
+           The box appears only on the leader roles, because a group of sixty
+           members does not need sixty email boxes. Somebody added from the
+           directory already signs in with their own member login, so their
+           row says so rather than asking for an address it does not need. */
+        const LEADS = (role) => /^(leader|chair|co-chair)$/i.test(String(role || ''));
+        rosEl.innerHTML = active.length ? active.map((m) => `<div data-mid="${esc(m.id)}" style="padding:6px 0;border-bottom:1px solid var(--line,#eee)">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="flex:1"><strong>${esc(m.name)}</strong>${m.business ? ` <span class="sub">· ${esc(m.business)}</span>` : ''}${m.memberId ? '' : ' <span class="sub">(manual)</span>'}</span>
+            <select class="admin-select" data-role style="padding:3px 6px">${roleOpts(m.role)}</select>
+            <button type="button" class="btn btn--ghost btn--sm" data-remove style="color:var(--red)">Remove</button>
+          </div>
+          ${LEADS(m.role) ? (m.memberId
+            ? `<div class="sub" style="margin:4px 0 2px 2px">Signs in with their own member login — nothing to add here.</div>`
+            : `<div style="display:flex;align-items:center;gap:8px;margin:4px 0 2px 2px">
+                 <label class="sub" for="gmEmail-${esc(m.id)}" style="flex:none">Sign-in email</label>
+                 <input id="gmEmail-${esc(m.id)}" class="admin-select" data-email type="email" maxlength="160"
+                        style="flex:1;max-width:320px;padding:3px 6px" placeholder="name@example.com"
+                        value="${esc(m.email || '')}">
+                 ${m.email ? '' : '<span class="sub" style="color:var(--red)">No address — they cannot open their Manage group page.</span>'}
+               </div>`) : ''}
         </div>`).join('') : '<p class="sub" style="margin:4px 0">No members yet — add from the directory or manually below.</p>';
         rosEl.querySelectorAll('[data-mid]').forEach((row) => {
           const m = members.find((x) => x.id === row.dataset.mid);
-          row.querySelector('[data-role]')?.addEventListener('change', (e) => { m.role = e.target.value; });
+          // Re-render on a role change so the email box appears the moment
+          // somebody is made a leader, and goes away when they are not.
+          row.querySelector('[data-role]')?.addEventListener('change', (e) => { m.role = e.target.value; renderRoster(); });
+          row.querySelector('[data-email]')?.addEventListener('input', (e) => { m.email = e.target.value.trim(); });
           row.querySelector('[data-remove]')?.addEventListener('click', () => { members = members.filter((x) => x.id !== m.id); renderRoster(); });
         });
       }
@@ -5447,10 +5476,36 @@ window.Admin = (function () {
       const el = document.getElementById('grpLeaderAccess'); if (!el) return;
       const a = (g && g.leaderAccess) || null;
       if (!g || !g.id) { el.textContent = ''; return; }
+
+      /* With co-leaders, naming only the first one is worse than saying
+         nothing: the office sets the second address and the panel keeps
+         reporting the first, so there is no way to tell it took. List them. */
+      const leaders = (a && Array.isArray(a.leaders)) ? a.leaders : [];
+      if (leaders.length > 1) {
+        const line = (l) => {
+          const who = esc(l.name || l.email || 'This leader');
+          const how = l.via === 'listing' ? 'their own member login' : esc(l.email);
+          if (l.canManage === false) {
+            return `<li><strong>${who}</strong> — ${how} has no sign-in yet. `
+              + 'Give them one under <strong>Members</strong> → their business → <strong>🔑 Logins</strong>.</li>';
+          }
+          if (l.canManage === null) return `<li><strong>${who}</strong> — ${how}.</li>`;
+          return `<li><strong>${who}</strong> manages this group with ${how}. ✓</li>`;
+        };
+        el.innerHTML = `<strong>${leaders.length} people can manage this group.</strong>`
+          + `<ul style="margin:6px 0 0 18px">${leaders.map(line).join('')}</ul>`;
+        return;
+      }
+
       if (!a || !a.email) {
         el.innerHTML = `<strong>${esc(a && a.name ? a.name : 'This group\u2019s leader')} cannot manage this group yet.</strong> `
           + 'Put their email address in <strong>Manager email</strong> above and save — they can then add and remove members, '
-          + 'email the roster, post the group\u2019s meetings and see RSVPs, all from their own sign-in.';
+          + 'email the roster, post the group\u2019s meetings and see RSVPs, all from their own sign-in. '
+          // Manager email holds one person. Co-leaders go on the roster, which
+          // is the route the office reaches for when there are two of them.
+          + 'For a second or third leader, set their role to <strong>Leader</strong>, <strong>Chair</strong> or '
+          + '<strong>Co-Chair</strong> in <strong>Members</strong> below and fill in the <strong>Sign-in email</strong> '
+          + 'box that appears on their row.';
       } else if (a.canManage === false) {
         el.innerHTML = `<strong>${esc(a.email)} has no sign-in yet.</strong> Give them one under `
           + '<strong>Members</strong> → find their business → <strong>🔑 Logins</strong> → <strong>Give them access</strong>. '
