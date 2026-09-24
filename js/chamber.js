@@ -862,6 +862,25 @@ window.Chamber = (function () {
     grid.innerHTML = members.map((m) => memberTile(m, 1)).join('');
   }
 
+  /* The date under the "Featured this week" picture, when the picture links to
+     an event. Returns quietly for anything else — a spotlight may just as well
+     point at a member page or an outside site. */
+  async function spotlightEventDate(href, slot) {
+    if (!slot) return;
+    const m = /[?&]id=([^&#]+)/.exec(String(href || ''));
+    if (!m || !/events\/view\.html/.test(String(href))) return;
+    let ev;
+    try { ev = await getJSON(ChamberAPI.url('/api/events/' + encodeURIComponent(decodeURIComponent(m[1])))); }
+    catch (e) { return; }
+    if (!ev || !ev.id || !ev.month || !ev.day) return;   // undated or unpublished
+    slot.className = 'spotlight-when';
+    slot.innerHTML =
+      `<div class="event-date"><div class="event-date__mo">${esc(ev.month)}</div><div class="event-date__day">${esc(ev.day)}</div></div>`
+      + `<div><div class="spotlight-when__title">${esc(ev.title || '')}</div>`
+      + (ev.time ? `<div class="spotlight-when__time">${esc(ev.time)}</div>` : '')
+      + '</div>';
+  }
+
   // ── Groups & networks (YPN, Home Improvement, …) ─────────
   async function initGroups() {
     const grid = document.getElementById('groupGrid');
@@ -1609,10 +1628,21 @@ window.Chamber = (function () {
         const { spotlight } = await getJSON(ChamberAPI.url('/api/home-spotlight'));
         if (spotlight && hero) {
           if (spotlight.type === 'image' && spotlight.image) {
-            const inner = `<img src="${esc(spotlight.image)}" alt="${esc(spotlight.caption || 'Featured this week')}" style="width:100%;border-radius:var(--r-md);display:block">`
+            /* Bounded rather than stretched to the column — see .spotlight-img.
+               The office uploads whatever it has, and a portrait flyer used to
+               run the height of the hero. */
+            const inner = `<img class="spotlight-img" src="${esc(spotlight.image)}" alt="${esc(spotlight.caption || 'Featured this week')}">`
+              + '<div data-spotlight-when></div>'
               + (spotlight.caption ? `<p style="color:var(--green-ink,#143C20);font-weight:600;margin:10px 0 0">${esc(spotlight.caption)}</p>` : '');
             hero.innerHTML = spotlight.href ? `<a href="${esc(spotlight.href)}" style="text-decoration:none">${inner}</a>` : inner;
             heroAside.hidden = false;
+            /* "Diana also likes that if we feature an event, the date will be
+               displayed" (Felicia, Sep 18 2026). The spotlight is a picture and
+               a link, so the only way to know it is an event is the link — when
+               it names one, fetch it and show its date in the same block the
+               event rows use. Failure is silent: the picture is the point and
+               it is already on the page. */
+            spotlightEventDate(spotlight.href, hero.querySelector('[data-spotlight-when]'));
           } else if (spotlight.member) {
             const m = spotlight.member;
             const photo = m.logo || (m.photos && m.photos[0]) || '';

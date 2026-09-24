@@ -360,6 +360,30 @@ a.member-tile__name:hover { color: var(--green); }
 .hero__stat-num { font-family: var(--display); font-size: 1.55rem; font-weight: 600; color: var(--gold-bright); line-height: 1; }
 .hero__stat-lbl { font-size: .78rem; color: rgba(255,255,255,.7); margin-top: 4px; }
 
+/* The picture in "Featured this week".
+   Diana, Sep 22 2026: "The size you had it the first time around was
+   proportionate to the page. Landscape 600 by 300px Portrait 300 by 600px",
+   after Felicia asked (Sep 18) for it "much smaller like our thumbnails for the
+   4 featured events".
+
+   It used to be width:100% and nothing else, so the card stretched whatever was
+   uploaded to the full width of the column and a portrait flyer ran hundreds of
+   pixels down the page — the one on there now is 280x522. Bounding the height
+   instead means a 600x300 lands across the card at about half that tall, and a
+   300x600 comes down to 150x300: near the 170px the four featured events use,
+   which is the size Felicia was pointing at. The hero column is hidden below
+   920px, so there is no phone case to carry. */
+.spotlight-img {
+  display: block; margin: 0 auto; max-width: 100%; max-height: 300px;
+  width: auto; height: auto; object-fit: contain; border-radius: var(--r-md);
+}
+/* Date beside the picture when the spotlight points at an event, using the same
+   block the event rows use so the two read as the same thing. */
+.spotlight-when { display: flex; gap: var(--s-3); align-items: center; margin-top: 10px; }
+.spotlight-when .event-date { flex: none; min-width: 58px; }
+.spotlight-when__title { font-weight: 600; color: var(--green-ink, #143C20); line-height: 1.3; }
+.spotlight-when__time { font-size: .82rem; color: var(--slate-mid); }
+
 /* Hero feature card (right column) */
 .hero__feature {
   background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.12);
