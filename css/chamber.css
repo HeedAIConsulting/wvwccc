@@ -666,13 +666,34 @@ a.member-tile__name:hover { color: var(--green); }
 .leaders-wall { background: var(--paper); padding: var(--s-7) 0 var(--s-8); border-top: 1px solid var(--line-soft); }
 .leaders-wall__title { font-family: var(--display); font-size: 1.5rem; color: var(--green-deep); margin: 0 0 var(--s-3); padding-bottom: var(--s-3); border-bottom: 2px solid var(--green); }
 .leader-wall-grid { display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-end; gap: var(--s-6) var(--s-5); }
-.leader-cell { flex: none; width: 132px; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
+/* Diana, Sep 28 2026, through Felicia: "Regardless of the width being square or
+   rectangular they will all be the same height."
+
+   Every cell used to be 132 by 78 with the whole FILE fitted inside it, and
+   almost every file is a 100x60 export from the old website. So the cells were
+   identical and the logos were not: the artwork inside those files fills from
+   22% of its frame to 100%, which drew Kaiser Permanente 14 CSS pixels tall
+   beside Mulholland Hills at 66. The server now crops each file to its own
+   artwork (/api/logo-trim, backend/images.js), so the height below is the
+   height of the logo rather than the height of whatever margin it was exported
+   with, and the width is left to the shape of the mark.
+
+   The plate keeps a floor so a narrow logo still sits on a card the size of the
+   name beneath it, and a ceiling so one very wide mark cannot take a row to
+   itself — at 44px tall nothing on the banner today reaches 360 wide. A logo
+   that did would come out shorter than the rest, which is the one case this
+   cannot honour. */
+.leader-cell { flex: none; width: auto; max-width: 384px; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
 .leader-cell__tier { font-family: var(--display); font-size: .82rem; font-weight: 600; color: var(--green-deep); }
-.leader-cell__logo { width: 132px; height: 78px; display: grid; place-items: center; background: #fff; border-radius: var(--r-sm); padding: 6px 10px; transition: transform .2s; }
+.leader-cell__logo { min-width: 132px; height: 60px; display: grid; place-items: center; background: #fff; border-radius: var(--r-sm); padding: 8px 12px; transition: transform .2s; }
 .leader-cell:hover .leader-cell__logo { transform: translateY(-3px); }
-.leader-cell__logo img { max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; }
+.leader-cell__logo img { height: 44px; width: auto; max-width: 360px; object-fit: contain; }
 .leader-wall__rule { border: none; border-top: 2px solid var(--green); margin: var(--s-6) 0; }
-@media (max-width: 560px) { .leader-cell, .leader-cell__logo { width: 108px; } .leader-cell__logo { height: 66px; } }
+@media (max-width: 560px) {
+  .leader-cell { max-width: 264px; }
+  .leader-cell__logo { min-width: 108px; height: 50px; padding: 7px 10px; }
+  .leader-cell__logo img { height: 36px; max-width: 244px; }
+}
 
 /* ════════ Eye-comfort & UX polish pass ════════ */
 
