@@ -2637,6 +2637,27 @@ window.Admin = (function () {
     });
     const plainFromRich = () => (rich ? rich.innerText.replace(/ /g, ' ').trim() : '');
 
+    /* Home-page blurb — the same editor, cut down (Felicia, Sep 28). The
+       toolbar in events.html carries only the marks she named; mount() hides
+       the picture buttons on its own when they are not there. */
+    const blurb = document.getElementById('evBlurb');
+    const blurbCount = document.getElementById('evBlurbCount');
+    const BLURB_MAX = 400;
+    RichEditor.mount(blurb, document.getElementById('evBlurbBar'), { esc });
+    const blurbPlain = () => (blurb ? blurb.innerText.replace(/ /g, ' ').replace(/\s+/g, ' ').trim() : '');
+    const paintBlurbCount = () => {
+      if (!blurbCount) return;
+      const n = blurbPlain().length;
+      blurbCount.textContent = n ? `${n} of ${BLURB_MAX} characters.` : '';
+      blurbCount.style.color = n > BLURB_MAX ? 'var(--red,#b3261e)' : '';
+      blurbCount.style.fontWeight = n > BLURB_MAX ? '600' : '';
+    };
+    // One paragraph means one paragraph: Enter would open a second one the card
+    // has no room for, and the server folds it back to a space anyway.
+    blurb?.addEventListener('keydown', (e) => { if (e.key === 'Enter') e.preventDefault(); });
+    blurb?.addEventListener('input', paintBlurbCount);
+    blurb?.addEventListener('paste', () => setTimeout(paintBlurbCount, 0));
+
     // Single-image uploader factory (flyer, thumbnail).
     function bindSingleImage(inputId, prevId, set, get, after) {
       const inp = document.getElementById(inputId);
@@ -3094,7 +3115,11 @@ window.Admin = (function () {
       form.featured.checked = !!(ev && ev.featured);
       form.showOnCalendar.checked = ev ? (ev.showOnCalendar !== false) : true;
       form.homeOrder.value = ev && ev.homeOrder != null ? ev.homeOrder : '';
-      form.homeBlurb.value = v('homeBlurb');
+      if (blurb) {
+        if (ev && ev.homeBlurbHtml) blurb.innerHTML = ev.homeBlurbHtml;
+        else blurb.textContent = v('homeBlurb');
+        paintBlurbCount();
+      }
       flyerUrl = ev && ev.flyer ? ev.flyer : '';
       thumbnail = ev && ev.thumbnail ? ev.thumbnail : '';
       images = ev && ev.images ? ev.images.map((it) => (typeof it === 'string' ? it : { ...it })) : [];
@@ -3305,6 +3330,15 @@ window.Admin = (function () {
           : `Not saved yet — ${uploading} files are still uploading. Save comes back on its own the moment they land.`;
         return;
       }
+      // The blurb box has no maxlength to enforce — it is a contenteditable, not
+      // a textarea. Say so here rather than letting the server quietly cut the
+      // end off a line she just wrote.
+      if (blurbPlain().length > BLURB_MAX) {
+        msg.hidden = false;
+        msg.textContent = `Not saved — the home-page blurb is ${blurbPlain().length} characters and the card holds ${BLURB_MAX}. Shorten it and save again.`;
+        blurb?.focus();
+        return;
+      }
       const body = {
         title: form.title.value.trim(), category: form.category.value.trim(), date: form.date.value,
         time: form.time.value.trim(), endDate: form.endDate.value, endTime: form.endTime.value.trim(),
@@ -3335,7 +3369,9 @@ window.Admin = (function () {
         rsvpCutoff: form.rsvpCutoff.value || null, featured: form.featured.checked, status: form.status.value,
         showOnCalendar: form.showOnCalendar.checked,
         homeOrder: form.homeOrder.value === '' ? null : Number(form.homeOrder.value),
-        homeBlurb: form.homeBlurb.value.trim(),
+        // The server derives the plain homeBlurb from this, so there is one
+        // source of truth for what the home page says.
+        homeBlurbHtml: blurb ? blurb.innerHTML : '',
         flyer: flyerUrl, thumbnail, flyers,
         sponsorLogos: sponsorLogos.filter((s) => s.src),
         documents: documents.filter((d) => d.url),
@@ -3469,7 +3505,7 @@ window.Admin = (function () {
     const FIELD_LABELS = {
       title: 'Title', date: 'Date', endDate: 'End date', homeOrder: 'Home order',
       ticketCap: 'Ticket cap', rsvpCutoff: 'RSVP / ticket cutoff', rsvpEmail: 'Email RSVPs to',
-      ctaLabel: 'Button says', homeBlurb: 'Home-page blurb', summary: 'Summary',
+      ctaLabel: 'Button says', summary: 'Summary',
     };
     let invalidSeen = [];
     form.addEventListener('invalid', (e) => {

@@ -920,7 +920,7 @@ function duplicateOf(orig, date, status) {
   }
   const copy = buildEvent({
     ...orig, id: undefined, date, endDate,
-    featured: false, homeOrder: null, homeBlurb: '',
+    featured: false, homeOrder: null, homeBlurb: '', homeBlurbHtml: '',
     ticketed: false, ticketTypes: [], soldOut: false, ticketCap: null, rsvpCutoff: null,
   }, {});
   copy.seriesId = null;
@@ -2251,7 +2251,91 @@ function sanitizeRichHtml(html) {
   return s;
 }
 
+/* Felicia, Sep 28 2026: "Can we have tools to change the font size, bold,
+   italicize, link the text in the home page blurb box? (As the old site was)"
+
+   The blurb is one line inside a small card in a four-across row, so it takes a
+   narrower slice of the editor than an event description does: the marks she
+   named, and nothing that owns a block or a picture of its own. sanitizeRichHtml
+   is still the security boundary — everything below runs after it and only
+   takes things away.
+
+   A size is clamped rather than refused. The card cannot grow, so a 2.5rem
+   blurb would push the four events out of line for every visitor; the office
+   would have no way to see that from the admin panel, and it is not the kind of
+   mistake that should need a phone call to undo. */
+const BLURB_TAGS = new Set(['a', 'b', 'strong', 'i', 'em', 'u', 's', 'span', 'br']);
+const BLURB_BLOCKS = /<\/(?:p|div|li|ul|ol|h3|h4|blockquote)\s*>/gi;
+const BLURB_MIN_REM = 0.7;
+const BLURB_MAX_REM = 1.4;
+export const BLURB_MAX_CHARS = 400;
+
+/* The plain text behind a blurb — what the old textarea held, and still what
+   anything that is not the home page reads. */
+export function blurbText(html) {
+  return String(html || '')
+    .replace(BLURB_BLOCKS, ' ')
+    .replace(/<[^>]*>/g, '')
+    .replace(/&nbsp;|&#160;/gi, ' ')
+    .replace(/&lt;/gi, '<').replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"').replace(/&#0?39;|&apos;/gi, "'")
+    .replace(/&amp;/gi, '&')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/* Cut to a character budget without cutting through a tag or leaving one open.
+   Counts what a reader sees: an entity is one character, markup is none. */
+function clampBlurbHtml(s, max) {
+  let budget = max;
+  const open = [];
+  let out = '';
+  for (const part of String(s).match(/<[^>]*>|[^<]+/g) || []) {
+    if (part[0] === '<') {
+      const m = /^<(\/?)([a-z0-9]+)/i.exec(part);
+      if (!m) continue;
+      const tag = m[2].toLowerCase();
+      if (m[1]) {
+        const i = open.lastIndexOf(tag);
+        if (i === -1) continue;                       // a close with no open
+        open.splice(i, 1);
+      } else if (tag !== 'br') open.push(tag);
+      out += part;
+      continue;
+    }
+    const seen = part.match(/&[a-z]+;|&#\d+;|[\s\S]/gi) || [];
+    if (seen.length <= budget) { out += part; budget -= seen.length; continue; }
+    out += seen.slice(0, budget).join('');
+    break;
+  }
+  while (open.length) out += '</' + open.pop() + '>';
+  return out;
+}
+
+export function sanitizeBlurbHtml(html) {
+  let s = sanitizeRichHtml(html);
+  if (!s.trim()) return '';
+  s = s.replace(BLURB_BLOCKS, ' ');                   // a paragraph break is a space here
+  s = s.replace(/<\/?([a-z0-9]+)[^>]*>/gi, (m0, tag) =>
+    (BLURB_TAGS.has(tag.toLowerCase()) ? m0 : ''));
+  // A link whose address the sanitizer refused comes back as a bare <a>. Unwrap
+  // it: the words stay, and nothing on the page pretends to be a link.
+  s = s.replace(/<a(?![^>]*\shref=)[^>]*>([\s\S]*?)<\/a>/gi, '$1');
+  s = s.replace(/font-size:\s*([\d.]+)\s*(rem|em|px|pt)/gi, (m0, n, unit) => {
+    const u = unit.toLowerCase();
+    const v = Number(n);
+    const rem = u === 'px' ? v / 16 : u === 'pt' ? v / 12 : v;
+    if (!Number.isFinite(rem) || rem <= 0) return 'font-size:1rem';
+    return 'font-size:' + Math.min(BLURB_MAX_REM, Math.max(BLURB_MIN_REM,
+      Math.round(rem * 100) / 100)) + 'rem';
+  });
+  s = s.replace(/\s{2,}/g, ' ');
+  return clampBlurbHtml(s, BLURB_MAX_CHARS).trim();
+}
+
 export function buildEvent(b, existing = {}) {
+  const blurbHtml = b.homeBlurbHtml !== undefined
+    ? sanitizeBlurbHtml(b.homeBlurbHtml) : (existing.homeBlurbHtml ?? '');
   const date = b.date ?? existing.date ?? '';
   const d = date ? new Date(date + 'T12:00:00') : null;
   // Images may be plain URLs or {src, href, label} (hyperlinked image, e.g. a
@@ -2370,7 +2454,15 @@ export function buildEvent(b, existing = {}) {
           return { src, href: s && s.href ? sanitizeRichHref(s.href) : '', label: String((s && s.label) || '').slice(0, 80) };
         }).filter(Boolean)
       : (existing.sponsorLogos || []),
-    homeBlurb: String(b.homeBlurb ?? existing.homeBlurb ?? '').slice(0, 400),
+    /* Two fields, one source. The office writes the formatted one; the plain
+       one is derived from it so nothing that reads homeBlurb — a card outside
+       the home page, a search index — can go stale against what is published.
+       An event saved before the toolbar existed has only the plain one, and
+       keeps it. */
+    homeBlurbHtml: blurbHtml,
+    homeBlurb: b.homeBlurbHtml !== undefined
+      ? blurbText(blurbHtml).slice(0, BLURB_MAX_CHARS)
+      : String(b.homeBlurb ?? existing.homeBlurb ?? '').slice(0, BLURB_MAX_CHARS),
     showOnCalendar: b.showOnCalendar !== undefined ? !!b.showOnCalendar : (existing.showOnCalendar ?? true),
     // Up to 6 attached PDFs (forms: donation, sponsorship levels, menus, …).
     documents: Array.isArray(b.documents)

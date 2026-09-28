@@ -158,7 +158,26 @@
               <span style="display:inline-flex;align-items:center;gap:6px"><label style="margin:0">Home order</label><input name="homeOrder" type="number" min="1" step="1" style="width:80px" title="Running order for the homepage — 1 is first. The homepage shows the top four; a higher number queues behind them and moves up as those events pass. Only events with 'Show on homepage' appear." /></span>
             </div>
 
-            <div class="field"><label>Home-page blurb <span class="sub">(optional — replaces the Summary for this event on the home page only. Leave blank to use the Summary.)</span></label><textarea name="homeBlurb" rows="2" maxlength="400"></textarea></div>
+            <!-- Felicia, Sep 28 2026: "Can we have tools to change the font size,
+                 bold, italicize, link the text in the home page blurb box?" Same
+                 editor as Full details (js/rich-editor.js), with only the marks she
+                 named — the blurb sits in a small card in a four-across row, so
+                 there is nowhere for a picture, a heading or a bullet list to go. -->
+            <div class="field"><label>Home-page blurb <span class="sub">(optional — replaces the Summary for this event on the home page only. Leave blank to use the Summary.)</span></label>
+              <div id="evBlurbBar" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;border:1px solid var(--line,#ddd);border-bottom:none;border-radius:8px 8px 0 0;padding:6px 8px;background:#faf8f3">
+                <button type="button" data-rt="bold" title="Bold" style="font-weight:800;min-width:30px">B</button>
+                <button type="button" data-rt="italic" title="Italic" style="font-style:italic;min-width:30px">I</button>
+                <button type="button" data-rt="underline" title="Underline" style="text-decoration:underline;min-width:30px">U</button>
+                <select data-rt-size class="admin-select" title="Text size" style="max-width:100px">
+                  <option value="">Size…</option><option value="0.85rem">Small</option><option value="0.95rem">Normal</option><option value="1.1rem">Large</option>
+                </select>
+                <button type="button" data-rt-link title="Select the words first, then press this to link them">🔗 Link</button>
+                <button type="button" data-rt="removeFormat" title="Clear formatting">⌫ Clear</button>
+              </div>
+              <div id="evBlurb" class="rt-typo" contenteditable="true" style="border:1px solid var(--line,#ddd);border-radius:0 0 8px 8px;min-height:52px;max-height:150px;overflow:auto;padding:8px 12px;background:#fff;font-size:.95rem"></div>
+              <p class="sub" style="margin:4px 0 0">This line sits in a small card beside three other events, so it stays one
+                short paragraph — Enter is off, and Large is as big as the card takes. <span id="evBlurbCount"></span></p>
+            </div>
 
             <div class="field"><label>Picture at the top of the event page</label>
               <select name="imageMode" class="admin-select" style="max-width:420px"

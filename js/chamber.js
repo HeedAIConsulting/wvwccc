@@ -702,6 +702,12 @@ window.Chamber = (function () {
     // "Home-page blurb" is the office's shorter line for the home page. It was
     // saved but never read, so Diana filled it in and nothing changed (Sep 2026).
     const blurb = (opts.thumb && ev.homeBlurb) ? ev.homeBlurb : (ev.summary || '');
+    /* Felicia, Sep 28: the blurb can carry bold, italic, a size and a link.
+       homeBlurbHtml is written by sanitizeBlurbHtml on the server and by
+       nothing else — the browser's own HTML is never trusted here, exactly as
+       with descriptionHtml. An event saved before the toolbar has only the
+       plain line, which is escaped as it always was. */
+    const blurbOut = (opts.thumb && ev.homeBlurbHtml) ? ev.homeBlurbHtml : esc(blurb);
     return `
       <div class="event-row${thumbSrc ? ' event-row--thumb' : ''}" id="${esc(ev.id)}" data-ev-detail="${esc(ev.id)}"${newTab} style="cursor:pointer">
         ${lead}
@@ -709,7 +715,7 @@ window.Chamber = (function () {
           <span class="badge">${esc(ev.category || 'Event')}</span>${ev.featured ? '<span class="badge badge--gold" style="margin-left:6px">★ Featured</span>' : ''}
           <h4 style="margin:6px 0 4px">${esc(ev.title)} <span style="color:var(--gold-bright,#b8860b);font-size:.8rem;font-weight:600">${opts.newTab ? 'Open ↗' : 'Details →'}</span></h4>
           <div class="member-tile__meta">${when} · ${esc(ev.venue || ev.neighborhood || '')}</div>
-          <p style="margin:6px 0 0;color:var(--slate-mid);font-size:.95rem">${esc(blurb)}</p>
+          <p style="margin:6px 0 0;color:var(--slate-mid);font-size:.95rem">${blurbOut}</p>
           ${thumbSrc ? '' : imgs}
           ${links}
           ${confirmed ? calendarMenu(ev) : ''}

@@ -59,11 +59,15 @@ test('the button reflects what is happening, and is never left stuck', () => {
 test('a save that arrives mid-upload is refused, not silently emptied', () => {
   // The button is disabled, but Enter in any text box still submits a form.
   const at = eventsForm.indexOf("form.addEventListener('submit'");
-  const head = eventsForm.slice(at, at + 900);
-  assert.match(head, /if \(uploading > 0\)/, 'the guard has to be inside the submit handler too');
+  // Everything the handler does BEFORE it starts building the payload. Other
+  // guards have since joined this one, so the window is where the payload
+  // starts rather than a character count that has to keep being widened.
+  const bodyAt = eventsForm.indexOf('const body = {', at);
+  assert.ok(bodyAt > at, 'the submit handler still builds a payload');
+  const head = eventsForm.slice(at, bodyAt);
+  assert.match(head, /if \(uploading > 0\)/,
+    'the guard has to be inside the submit handler too, and ahead of the payload');
   assert.match(head, /Not saved yet/, 'and say so — "Saved ✓" on a save that dropped her file is the whole complaint');
-  assert.ok(head.indexOf('if (uploading > 0)') < head.indexOf('const body = {'),
-    'refuse before building the payload, not after');
 });
 
 test('the save path no longer touches the button behind syncSaveBtn\'s back', () => {

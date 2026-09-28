@@ -94,7 +94,9 @@ test('the home-page blurb is finally read', () => {
 test('the server still stores both fields', () => {
   const routes = read('backend/chamber-routes.js');
   assert.match(routes, /thumbnail: b\.thumbnail !== undefined/);
-  assert.match(routes, /homeBlurb: String\(b\.homeBlurb/);
+  // The blurb gained a formatted twin in Sep 2026 (see home-blurb-format); the
+  // plain one it falls back to is still the field this card was built on.
+  assert.match(routes, /String\(b\.homeBlurb \?\? existing\.homeBlurb/);
 });
 
 test('the layout has somewhere to put the picture', () => {
