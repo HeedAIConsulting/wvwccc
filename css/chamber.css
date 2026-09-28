@@ -393,8 +393,39 @@ a.member-tile__name:hover { color: var(--green); }
 /* Homepage "Featured this week" box: solid card for readability over the busy
    hero. Scoped to .hero so the reused .hero__feature on dark sections (e.g.
    "Support the community") keeps its translucent, light-text treatment. */
-.hero .hero__feature { background: #fff; border-color: var(--gold-soft, #e6dcbf);
-  box-shadow: 0 18px 44px rgba(0,0,0,.34); backdrop-filter: none; }
+/* Felicia, Sep 25 2026: "Can you please make the featured image box (including
+   the outer white area) so it is the same size as the 'New To The Area Box'?"
+
+   That box is the floating guide promo built in js/partials.js: 340px wide,
+   18px/20px of padding, a 14px radius, and 228px tall from its own content.
+   This card was 485 by 525 beside it, because nothing bounded it — it took the
+   width of the hero column and whatever height the uploaded picture wanted, so
+   a portrait flyer made it twice the promo's height.
+
+   --feature-h is that measured 228px. The card is pinned to it and laid out as
+   a column, and the picture takes whatever the label, date and title leave, so
+   the outer white area is the same size on every spotlight instead of being
+   decided by the file the office happens to upload. object-fit: contain is
+   inherited from .spotlight-img on purpose — Diana's rule is that a flyer is
+   letterboxed, never cropped, so the frame is fixed and the picture sits
+   inside it. If the promo's copy changes, re-measure and move this one number;
+   backend/test/home-spotlight-size.test.mjs keeps the two written down
+   together. */
+.hero .hero__feature { --feature-h: 228px;
+  background: #fff; border-color: var(--gold-soft, #e6dcbf);
+  box-shadow: 0 18px 44px rgba(0,0,0,.34); backdrop-filter: none;
+  max-width: 340px; margin-left: auto; padding: 18px 20px; border-radius: 14px;
+  height: var(--feature-h); display: flex; flex-direction: column; }
+/* Every pixel this gap gives back goes to the picture, which is the tightest
+   thing in a 228px card. */
+.hero .hero__feature > .mt-4 { flex: 1; min-height: 0; margin-top: 10px; }
+.hero .hero__feature > .mt-4 > a { display: flex; flex-direction: column; height: 100%; }
+.hero .hero__feature .spotlight-img { flex: 1; min-height: 0; max-height: none; }
+.hero .hero__feature .spotlight-when { flex: none; }
+/* A long event name would otherwise eat the frame the picture is sitting in;
+   two lines, then the card's own link carries the rest. */
+.hero .hero__feature .spotlight-when__title { display: -webkit-box;
+  -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .hero .hero__feature .hero__feature-label { color: var(--gold-deep, #b8860b); }
 @media (max-width: 920px) {
   .hero__inner { grid-template-columns: 1fr; padding: var(--s-6) 0 var(--s-5); }

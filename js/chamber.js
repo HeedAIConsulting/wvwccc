@@ -1655,8 +1655,8 @@ window.Chamber = (function () {
                 <div class="member-tile__head">
                   ${seal}
                   <div>
-                    <a class="member-tile__name" href="${href}" style="color:#fff">${esc(m.name)}</a>
-                    <div class="member-tile__meta" style="color:rgba(255,255,255,.65)">${esc(m.category || '')}${m.neighborhood ? ' · ' + esc(m.neighborhood) : ''}</div>
+                    <a class="member-tile__name" href="${href}">${esc(m.name)}</a>
+                    <div class="member-tile__meta">${esc(m.category || '')}${m.neighborhood ? ' · ' + esc(m.neighborhood) : ''}</div>
                   </div>
                 </div>
                 <div class="btn-row mt-3"><a class="btn btn--gold btn--sm" href="${href}">View profile →</a></div>

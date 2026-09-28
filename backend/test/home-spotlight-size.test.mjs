@@ -75,3 +75,91 @@ test('the picture still renders before the date lookup finishes', () => {
     'the card is filled first, then decorated');
   assert.ok(!/await spotlightEventDate/.test(branch), 'and the page never waits on it');
 });
+
+/* Felicia, Sep 25 2026: "Can you please make the featured image box (including
+   the outer white area) so it is the same size as the 'New To The Area Box'?
+   (As the old site was)"
+
+   Nothing bounded that card: it took the width of the hero column and whatever
+   height the uploaded picture asked for, so it measured 485 by 525 next to a
+   promo box of 340 by 228. Four of the five numbers are written down on both
+   sides now and the tests below hold them together; the height is the one that
+   has to be measured, because the promo's is its own content's. */
+const promoRule = () => {
+  const js = read('js/partials.js');
+  const from = js.indexOf(".guide-promo{position:fixed");
+  const to = js.indexOf("document.head.appendChild(st)", from);
+  return js.slice(from, to);
+};
+const cardRule = () => {
+  const css = read('css/chamber.css');
+  const from = css.indexOf('.hero .hero__feature { --feature-h');
+  return css.slice(from, css.indexOf('}', from));
+};
+
+test('the card carries the promo box\'s width, padding and corner', () => {
+  const promo = promoRule();
+  const card = cardRule();
+  const pair = (re, label) => {
+    const a = re.exec(promo), b = re.exec(card);
+    assert.ok(a, `the guide promo no longer sets ${label} — re-measure the box`);
+    assert.ok(b, `the featured card no longer sets ${label}`);
+    assert.equal(b[1].trim(), a[1].trim(),
+      `${label}: card has ${b[1].trim()}, promo has ${a[1].trim()}`);
+  };
+  pair(/max-width:\s*([^;]+);/, 'max-width');
+  pair(/padding:\s*([^;]+);/, 'padding');
+  pair(/border-radius:\s*([^;]+);/, 'border-radius');
+});
+
+test('the card is pinned to a height rather than following the picture', () => {
+  const card = cardRule();
+  assert.match(card, /--feature-h:\s*228px/,
+    'the promo box measures 228px tall at 1440 — see the comment above the rule');
+  assert.match(card, /height:\s*var\(--feature-h\)/, 'and the card is held to it');
+  assert.match(card, /display:\s*flex/);
+  assert.match(card, /flex-direction:\s*column/);
+});
+
+test('the picture is what absorbs the slack inside that height', () => {
+  // Otherwise a tall flyer pushes the date and title out of a fixed-height box.
+  const css = read('css/chamber.css');
+  const img = /\.hero \.hero__feature \.spotlight-img \{([^}]*)\}/.exec(css);
+  assert.ok(img, 'the card still bounds its own picture');
+  assert.match(img[1], /flex:\s*1/, 'the frame takes what the label, date and title leave');
+  assert.match(img[1], /min-height:\s*0/, 'and may shrink below the picture, or it overflows');
+  assert.match(img[1], /max-height:\s*none/, 'the 300px cap outside the card would win otherwise');
+  assert.match(css, /\.hero \.hero__feature \.spotlight-when \{[^}]*flex:\s*none/,
+    'the date block keeps its size while the picture gives way');
+  assert.match(css, /\.hero \.hero__feature > \.mt-4 > a \{[^}]*height:\s*100%/,
+    'the link between the card and the picture has to pass the height down');
+});
+
+test('a long event name is clamped instead of eating the picture', () => {
+  const css = read('css/chamber.css');
+  const rule = /\.hero \.hero__feature \.spotlight-when__title \{([^}]*)\}/.exec(css);
+  assert.ok(rule, 'a two-line clamp on the title');
+  assert.match(rule[1], /-webkit-line-clamp:\s*2/);
+  assert.match(rule[1], /overflow:\s*hidden/);
+});
+
+test('nothing in the card is white text on the white card', () => {
+  /* The card went solid white for readability over the hero photo; three
+     colours were left behind from the translucent version. "Spotlights are
+     chosen by Chamber staff and rotate weekly." was white on white — invisible,
+     and two lines of a 228px box — so it is gone rather than restyled. */
+  const html = read('index.html');
+  const aside = html.slice(html.indexOf('<aside class="hero__feature'),
+    html.indexOf('</aside>', html.indexOf('<aside class="hero__feature')));
+  assert.ok(!/color:\s*#fff/i.test(aside), 'no white text left in the featured card');
+  assert.ok(!/Spotlights are chosen by Chamber staff/.test(html),
+    'the invisible standing line is gone, not merely restyled');
+
+  const js = read('js/chamber.js');
+  const branch = js.slice(js.indexOf('} else if (spotlight.member)'),
+    js.indexOf('heroAside.hidden = false;', js.indexOf('} else if (spotlight.member)')));
+  assert.ok(!/color:\s*#fff/i.test(branch),
+    'a featured member used to render its name in white on the white card');
+  assert.ok(!/rgba\(255,\s*255,\s*255/.test(branch),
+    'and its category line in white at 65%');
+});
