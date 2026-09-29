@@ -11,17 +11,11 @@
    others). Two logos in boxes that match to the pixel can therefore draw at
    very different sizes, and no CSS reaches inside a JPEG.
 
-   Evening them out means upscaling Kaiser more than three times to match its
-   neighbours, and more again to hold up on a phone. That was reported back to
-   Diana with the measurements; on Sep 28, through Felicia, she asked for it
-   anyway: "Regardless of the width being square or rectangular they will all
-   be the same height."
-
-   So there are two jobs here and both are tested. The banner crops each file
-   to its own artwork and draws them all one height — see images.trimmedLogo,
-   /api/logo-trim and .leader-cell__logo img. And the Leader Banner page still
-   measures every logo and says which ones are being stretched to get there,
-   because only a better file from the member fixes that.
+   Evening them out would mean upscaling Kaiser more than four times to match
+   its neighbours, fifteen times to hold up on a phone. That is a smear, not a
+   fix. The small ones need new artwork from the member, which is the office's
+   call, member by member — so the job here is to measure each logo and say
+   which ones those are, on the page where the office already replaces them.
 
    Run: npm test */
 import { test } from 'node:test';
@@ -123,10 +117,7 @@ test('the office is told which logos to replace, where it replaces them', () => 
   const js = read('admin/admin.js');
   assert.match(js, /\/api\/admin\/leader-logo-health/);
   assert.match(js, /data-lb-size/, 'a column on the Leader Banner table');
-  assert.match(js, /pill--pending">looks soft</,
-    'and the badge says so in words the office can act on');
-  assert.ok(!/sits smaller than its neighbours|draws small/.test(js),
-    'that was true before the crop; every logo is drawn the same height now');
+  assert.match(js, /draws small/, 'and it says so in words the office can act on');
   assert.match(js, /Ask this member for the logo at \$\{goodInk\}px tall or more/,
     'naming the next step, since the office is the one who asks the member');
   /* The number in the advice is the one that would actually look right on the
@@ -146,22 +137,9 @@ test('the office is told which logos to replace, where it replaces them', () => 
   assert.ok(!/fine|ok\b/i.test(paint.split('if (!h)')[1].split('\n')[0]),
     'and it must not fall through to a reassuring word');
 
-  /* On the flagged branch specifically. The all-clear branch names the height
-     too, so an unscoped match passes with the explanation gone from the one
-     row that needs it. */
-  const flagged = paint.slice(paint.indexOf('pill--pending'));
-  assert.match(flagged, /draws it \$\{BANNER_H\}px tall/,
-    'the office is told what the logo is being stretched TO');
-  assert.match(flagged, /\$\{times\}&times; bigger than the file holds/,
-    'and by how much, which is the number that decides whether to ask the member');
-
   const html = read('admin/leader-banner.html');
-  assert.match(html, /Every logo is drawn the same height/,
-    'the page leads with what changed');
-  assert.match(html, /Size on the page/,
-    'and points at the column that says what it cost');
-  assert.match(html, /coloured square|printed border/,
-    'including the one case cropping cannot help');
+  assert.match(html, /Size on the page|Why some logos look smaller/,
+    'and the page explains why they differ, so this reads as an answer and not a new problem');
 });
 
 test('reading a logo off disk cannot be talked into leaving the images folder', () => {

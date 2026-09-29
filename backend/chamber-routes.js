@@ -1396,31 +1396,6 @@ async function logoBytes(src) {
   return mime ? { mime, buffer } : null;
 }
 
-/* The leader banner's logos, cropped to their own artwork (Diana, Sep 28:
-   "Regardless of the width being square or rectangular they will all be the
-   same height" — see backend/images.js). Public, because the banner is on
-   every public page, and it opens nothing new: `src` goes through logoBytes,
-   which serves only /images under the logo directory and /api/assets/:id, and
-   both of those are already public URLs. Anything else, or anything that will
-   not crop, falls back to the file itself so the banner never shows a gap. */
-router.get('/logo-trim', async (req, res) => {
-  const src = String(req.query.src || '');
-  try {
-    const bytes = await logoBytes(src);
-    // 404 rather than a guess: the banner's <img> falls back to the file it
-    // was going to load anyway, so a miss here costs a round trip, not a gap.
-    if (!bytes) return res.status(404).end();
-    const cut = images.trimmedLogo(src, bytes.mime, bytes.buffer);
-    const out = cut || bytes;
-    res.set('Content-Type', out.mime);
-    res.set('Cache-Control', 'public, max-age=86400');
-    res.send(out.buffer);
-  } catch (e) {
-    console.error('logo-trim', e.message);
-    res.status(404).end();
-  }
-});
-
 router.get('/admin/leader-logo-health', requireAdmin, async (_req, res) => {
   try {
     const { members } = await loadMembersFull();
@@ -1434,8 +1409,7 @@ router.get('/admin/leader-logo-health', requireAdmin, async (_req, res) => {
         out[m.id] = bytes ? (images.logoHealth(bytes.mime, bytes.buffer) || null) : null;
       } catch (e) { out[m.id] = null; }
     }
-    res.json({ ok: true, bannerHeight: images.LOGO_BANNER_H,
-      minInkHeight: images.LOGO_MIN_INK_H, goodInkHeight: images.LOGO_GOOD_INK_H, health: out });
+    res.json({ ok: true, minInkHeight: images.LOGO_MIN_INK_H, goodInkHeight: images.LOGO_GOOD_INK_H, health: out });
   } catch (e) { console.error('leader-logo-health', e); res.status(500).json({ error: 'failed' }); }
 });
 

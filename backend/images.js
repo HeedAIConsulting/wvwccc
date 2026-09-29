@@ -115,22 +115,17 @@ export function resizedRender(id, mime, buffer, width) {
 // ringing around the artwork without eating a pale logo on a white field.
 const INK_THRESHOLD = 40;
 
-/* The height the banner draws every logo at, since Diana asked for one height
-   (css/chamber.css, .leader-cell__logo img). Every judgement below is made
-   against it, and backend/test/leader-logo-trim.test.mjs fails if the two
-   numbers drift apart.
+/* Where to draw the line. 60 is the height of the legacy frame every one of
+   these files came in, so a logo under it does not even fill the thumbnail it
+   was exported into — that is the objective, explainable test, and it is the
+   one this flags.
 
-   Under LOGO_MIN_INK_H the banner is enlarging the artwork by half again or
-   more, which is where soft stops being a word only a designer would use.
-   Above it the stretch is small enough that nobody should be asked for a new
-   file over it — the old bar of 60 flagged a logo holding 41 pixels, which is
-   being drawn 1.07 times bigger and looks perfectly fine.
-
-   Neither is the size to ask a member FOR. 44 CSS pixels is 88 real ones on
-   the phones most people read the site on, and a logo wants more than that in
-   hand, so the advice quotes LOGO_GOOD_INK_H and the flag uses the low bar. */
-export const LOGO_BANNER_H = 44;
-export const LOGO_MIN_INK_H = Math.round(LOGO_BANNER_H / 1.5);
+   It is not the size to ask a member for. The banner draws a logo 78 CSS px
+   tall, which is 156 real pixels on the phones most people read the site on,
+   so anything under about 300px tall has nothing in hand for a retina screen.
+   Almost none of the legacy files clear that, which is why the flag uses the
+   lower bar and the advice quotes the higher one. */
+export const LOGO_MIN_INK_H = 60;
 export const LOGO_GOOD_INK_H = 300;
 
 export function inkBox(pix) {
@@ -194,101 +189,4 @@ export function logoHealth(mime, buffer) {
     try { page && page.destroy(); } catch (e) { /* ditto */ }
     try { doc && doc.destroy(); } catch (e) { /* ditto */ }
   }
-}
-
-/* ── Cropping a logo to its own artwork ─────────────────────────────────────
-
-   Diana, Sep 28 2026, through Felicia, after reading the measurements above:
-   "Regardless of the width being square or rectangular they will all be the
-   same height."
-
-   The cells on the banner were already identical; the margin baked into each
-   file is not. Across the 37 live logos the artwork fills anywhere from 22% of
-   its frame (Kaiser Permanente) to 100% (Mulholland Hills, FIREHAWK, three
-   others), so at one box height they render anywhere from 14 to 66 CSS pixels
-   tall. No stylesheet reaches inside a JPEG, so the file is cropped to its ink
-   here and the banner then sets one height and lets the width fall where the
-   shape of the logo puts it.
-
-   What this does not do is make a small logo sharp. Kaiser's artwork is 13
-   pixels tall; drawn 44 tall on a retina screen it is an eight-times blow-up
-   and it looks like one. Diana has the measurements and asked for equal heights
-   anyway — only a new file from the member fixes the softness.
-
-   Rendered with alpha off on purpose: mupdf flattens transparency to white,
-   which is what the plate behind the logo is, and a premultiplied RGBA pixmap
-   cannot tell black artwork from a transparent background at all. */
-const trimCache = new Map();  // src → { mime, buffer } | null ("nothing to do")
-const TRIM_CACHE_MAX = 80;
-
-// A crop of under this much of the frame is not worth a second file: the
-// browser would download two images to save a couple of pixels of margin.
-const TRIM_WORTH_IT = 0.94;
-
-/* Rasterising is the expensive half of this, and the route in front of it is
-   public. A logo is a small file — the largest on the banner is 1001px wide —
-   so anything past these is refused here and served as it is, rather than
-   given a share of the CPU on every request. */
-const TRIM_MAX_BYTES = 3 * 1024 * 1024;
-const TRIM_MAX_WIDTH = 2400;
-
-function buildTrim(mime, buffer) {
-  if (mime === 'image/gif') return null;         // cropping freezes frame one
-  if (buffer.length > TRIM_MAX_BYTES) return null;
-  // Also the scale factor below: an unreadable header is a file we cannot
-  // put back into its own pixels, so there is nothing to gain by rendering it.
-  const nw = nativeWidth(mime, buffer);
-  if (!nw || nw > TRIM_MAX_WIDTH) return null;
-  let doc; let page; let probe; let full; let cut;
-  try {
-    doc = mupdf.Document.openDocument(buffer, mime);
-    page = doc.loadPage(0);
-    probe = page.toPixmap(mupdf.Matrix.identity, mupdf.ColorSpace.DeviceRGB, false);
-    /* mupdf measures the page in points, so identity renders at 75% of the
-       file. Render again at the file's own resolution — the banner is already
-       enlarging most of these and there is no detail to give away. The probe
-       is only for that ratio; the box is measured on the real render, so a
-       flat file falls out at the inkBox below rather than being scanned twice. */
-    const scale = probe.getWidth() ? nw / probe.getWidth() : 1;
-    full = scale === 1 ? probe : page.toPixmap(mupdf.Matrix.scale(scale, scale), mupdf.ColorSpace.DeviceRGB, false);
-    const box = inkBox(full);
-    if (!box) return null;
-    if (box.w / box.W > TRIM_WORTH_IT && box.h / box.H > TRIM_WORTH_IT) return null;
-    // One pixel back on each side, for the anti-aliased edge the ink threshold
-    // does not count as ink.
-    const x0 = Math.max(0, box.x0 - 1);
-    const y0 = Math.max(0, box.y0 - 1);
-    const x1 = Math.min(box.W - 1, box.x1 + 1);
-    const y1 = Math.min(box.H - 1, box.y1 + 1);
-    const w = x1 - x0 + 1;
-    const h = y1 - y0 + 1;
-    cut = full.warp([[x0, y0], [x1 + 1, y0], [x1 + 1, y1 + 1], [x0, y1 + 1]], w, h);
-    return /^image\/jpe?g$/.test(mime)
-      ? { mime: 'image/jpeg', buffer: Buffer.from(cut.asJPEG(88, false)) }
-      : { mime: 'image/png', buffer: Buffer.from(cut.asPNG()) };
-  } catch (e) {
-    return null;                                 // unreadable file → serve the original
-  } finally {
-    try { cut && cut.destroy(); } catch (e) { /* native handle already gone */ }
-    try { full && full !== probe && full.destroy(); } catch (e) { /* ditto */ }
-    try { probe && probe.destroy(); } catch (e) { /* ditto */ }
-    try { page && page.destroy(); } catch (e) { /* ditto */ }
-    try { doc && doc.destroy(); } catch (e) { /* ditto */ }
-  }
-}
-
-/* { mime, buffer } of the logo cropped to its artwork, or null when there is
-   nothing to crop or nothing readable. `key` identifies the source file; a
-   stored asset's bytes never change for an id, and a file under /images is
-   replaced by deploying a new one, so caching on it is safe. */
-export function trimmedLogo(key, mime, buffer) {
-  if (trimCache.has(key)) {
-    const hit = trimCache.get(key);
-    trimCache.delete(key); trimCache.set(key, hit);
-    return hit;
-  }
-  const out = buildTrim(mime, buffer);
-  trimCache.set(key, out);
-  if (trimCache.size > TRIM_CACHE_MAX) trimCache.delete(trimCache.keys().next().value);
-  return out;
 }
