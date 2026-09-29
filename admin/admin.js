@@ -2637,6 +2637,27 @@ window.Admin = (function () {
     });
     const plainFromRich = () => (rich ? rich.innerText.replace(/ /g, ' ').trim() : '');
 
+    /* Home-page blurb — the same editor, cut down (Felicia, Sep 28). The
+       toolbar in events.html carries only the marks she named; mount() hides
+       the picture buttons on its own when they are not there. */
+    const blurb = document.getElementById('evBlurb');
+    const blurbCount = document.getElementById('evBlurbCount');
+    const BLURB_MAX = 400;
+    RichEditor.mount(blurb, document.getElementById('evBlurbBar'), { esc });
+    const blurbPlain = () => (blurb ? blurb.innerText.replace(/ /g, ' ').replace(/\s+/g, ' ').trim() : '');
+    const paintBlurbCount = () => {
+      if (!blurbCount) return;
+      const n = blurbPlain().length;
+      blurbCount.textContent = n ? `${n} of ${BLURB_MAX} characters.` : '';
+      blurbCount.style.color = n > BLURB_MAX ? 'var(--red,#b3261e)' : '';
+      blurbCount.style.fontWeight = n > BLURB_MAX ? '600' : '';
+    };
+    // One paragraph means one paragraph: Enter would open a second one the card
+    // has no room for, and the server folds it back to a space anyway.
+    blurb?.addEventListener('keydown', (e) => { if (e.key === 'Enter') e.preventDefault(); });
+    blurb?.addEventListener('input', paintBlurbCount);
+    blurb?.addEventListener('paste', () => setTimeout(paintBlurbCount, 0));
+
     // Single-image uploader factory (flyer, thumbnail).
     function bindSingleImage(inputId, prevId, set, get, after) {
       const inp = document.getElementById(inputId);
@@ -3094,7 +3115,11 @@ window.Admin = (function () {
       form.featured.checked = !!(ev && ev.featured);
       form.showOnCalendar.checked = ev ? (ev.showOnCalendar !== false) : true;
       form.homeOrder.value = ev && ev.homeOrder != null ? ev.homeOrder : '';
-      form.homeBlurb.value = v('homeBlurb');
+      if (blurb) {
+        if (ev && ev.homeBlurbHtml) blurb.innerHTML = ev.homeBlurbHtml;
+        else blurb.textContent = v('homeBlurb');
+        paintBlurbCount();
+      }
       flyerUrl = ev && ev.flyer ? ev.flyer : '';
       thumbnail = ev && ev.thumbnail ? ev.thumbnail : '';
       images = ev && ev.images ? ev.images.map((it) => (typeof it === 'string' ? it : { ...it })) : [];
@@ -3305,6 +3330,15 @@ window.Admin = (function () {
           : `Not saved yet — ${uploading} files are still uploading. Save comes back on its own the moment they land.`;
         return;
       }
+      // The blurb box has no maxlength to enforce — it is a contenteditable, not
+      // a textarea. Say so here rather than letting the server quietly cut the
+      // end off a line she just wrote.
+      if (blurbPlain().length > BLURB_MAX) {
+        msg.hidden = false;
+        msg.textContent = `Not saved — the home-page blurb is ${blurbPlain().length} characters and the card holds ${BLURB_MAX}. Shorten it and save again.`;
+        blurb?.focus();
+        return;
+      }
       const body = {
         title: form.title.value.trim(), category: form.category.value.trim(), date: form.date.value,
         time: form.time.value.trim(), endDate: form.endDate.value, endTime: form.endTime.value.trim(),
@@ -3335,7 +3369,9 @@ window.Admin = (function () {
         rsvpCutoff: form.rsvpCutoff.value || null, featured: form.featured.checked, status: form.status.value,
         showOnCalendar: form.showOnCalendar.checked,
         homeOrder: form.homeOrder.value === '' ? null : Number(form.homeOrder.value),
-        homeBlurb: form.homeBlurb.value.trim(),
+        // The server derives the plain homeBlurb from this, so there is one
+        // source of truth for what the home page says.
+        homeBlurbHtml: blurb ? blurb.innerHTML : '',
         flyer: flyerUrl, thumbnail, flyers,
         sponsorLogos: sponsorLogos.filter((s) => s.src),
         documents: documents.filter((d) => d.url),
@@ -3469,7 +3505,7 @@ window.Admin = (function () {
     const FIELD_LABELS = {
       title: 'Title', date: 'Date', endDate: 'End date', homeOrder: 'Home order',
       ticketCap: 'Ticket cap', rsvpCutoff: 'RSVP / ticket cutoff', rsvpEmail: 'Email RSVPs to',
-      ctaLabel: 'Button says', homeBlurb: 'Home-page blurb', summary: 'Summary',
+      ctaLabel: 'Button says', summary: 'Summary',
     };
     let invalidSeen = [];
     form.addEventListener('invalid', (e) => {
@@ -4247,6 +4283,10 @@ window.Admin = (function () {
     let health = {};
     let minInk = 60;
     let goodInk = 300;
+    // The height the banner draws every logo at. The server owns the number
+    // (images.LOGO_BANNER_H, which css/chamber.css matches); this is only the
+    // value to show before the measurements land.
+    let BANNER_H = 44;
 
     async function load() {
       let members = [];
@@ -4281,10 +4321,14 @@ window.Admin = (function () {
         const h = health[cell.getAttribute('data-lb-size')];
         if (!h) return;
         const ask = `Ask this member for the logo at ${goodInk}px tall or more &mdash; a PNG with a transparent background is ideal, and they do not need to crop or resize it.`;
+        // Every logo is drawn BANNER_H tall now (see .leader-cell__logo img), so
+        // the question the office needs answering is no longer "is this one
+        // smaller than the rest" — it is "how far is this one being stretched".
+        const times = h.inkH ? Math.round((BANNER_H / h.inkH) * 10) / 10 : 0;
         cell.innerHTML = h.ok
-          ? `<span class="sub">${h.inkH}px of logo in a ${h.frameH}px file &mdash; fills ${h.fills}%.${h.inkH < goodInk ? ` Usable, though ${goodInk}px would be sharper.` : ''}</span>`
-          : `<span class="pill pill--pending">draws small</span>
-             <div class="sub">Only ${h.inkH}px of this ${h.frameH}px file is the logo &mdash; it fills ${h.fills}% of its own frame, so it sits smaller than its neighbours on the banner. ${ask}</div>`;
+          ? `<span class="sub">${h.inkH}px of logo in a ${h.frameH}px file &mdash; fills ${h.fills}%.${h.inkH < goodInk ? ` Drawn ${BANNER_H}px tall; ${goodInk}px would be sharper.` : ''}</span>`
+          : `<span class="pill pill--pending">looks soft</span>
+             <div class="sub">Only ${h.inkH}px of this ${h.frameH}px file is the logo &mdash; it fills ${h.fills}% of its own frame. The banner draws it ${BANNER_H}px tall like every other, which is ${times}&times; bigger than the file holds, so it looks soft. ${ask}</div>`;
       });
     }
 
@@ -4294,9 +4338,17 @@ window.Admin = (function () {
         health = r.health || {};
         if (r.minInkHeight) minInk = r.minInkHeight;
         if (r.goodInkHeight) goodInk = r.goodInkHeight;
+        if (r.bannerHeight) BANNER_H = r.bannerHeight;
         paintHealth();
       } catch (e) { /* leave the column blank rather than guess */ }
     }
+
+    /* The same URL the public banner loads: cropped to the artwork by
+       /api/logo-trim, or the file itself when it is not a path we serve. */
+    const lbShownSrc = (u) => {
+      const v = adminSrc(u);
+      return /^\//.test(v) ? '/api/logo-trim?src=' + encodeURIComponent(v) : v;
+    };
 
     // What the banner shows for this member, and which field it came from.
     const shown = (m) => m.leaderLogo || m.logo || (m.photos && m.photos[0]) || '';
@@ -4320,7 +4372,10 @@ window.Admin = (function () {
       }[from];
       return `<tr data-lb="${esc(m.id)}">
         <td style="width:120px">${src
-          ? `<img src="${esc(adminSrc(src))}" alt="" style="width:104px;height:64px;object-fit:contain;border-radius:8px;border:1px solid var(--line,#ddd);background:#fff">`
+          // Cropped exactly as the banner crops it, at the height the banner
+          // draws it, so this column is what a visitor sees rather than what
+          // the file happens to look like.
+          ? `<img src="${esc(lbShownSrc(src))}" alt="" style="height:44px;width:auto;max-width:160px;object-fit:contain;border-radius:6px;border:1px solid var(--line,#ddd);background:#fff;padding:6px 8px">`
           : '<span class="pill pill--pending">no logo</span>'}</td>
         <td><span class="name">${esc(m.name)}</span><div class="sub">${esc(LABEL[tier] || tier)}</div></td>
         <td class="sub">${from === 'banner' ? '<span class="pill pill--approved">banner logo</span> ' : ''}${esc(note)}</td>
@@ -4348,6 +4403,10 @@ window.Admin = (function () {
     function bindRow(m) {
       const tr = rowsEl.querySelector(`tr[data-lb="${CSS.escape(m.id)}"]`);
       if (!tr) return;
+      // Same fallback the public banner has: if the crop cannot be served,
+      // show the file rather than a broken picture.
+      const pic = tr.querySelector('td img');
+      if (pic) pic.addEventListener('error', () => { pic.src = adminSrc(shown(m)); }, { once: true });
       tr.querySelector('[data-lb-file]')?.addEventListener('change', async (e) => {
         const f = e.target.files[0]; if (!f) return;
         msg.textContent = 'Uploading…';

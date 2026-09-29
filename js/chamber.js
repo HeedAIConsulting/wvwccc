@@ -702,6 +702,12 @@ window.Chamber = (function () {
     // "Home-page blurb" is the office's shorter line for the home page. It was
     // saved but never read, so Diana filled it in and nothing changed (Sep 2026).
     const blurb = (opts.thumb && ev.homeBlurb) ? ev.homeBlurb : (ev.summary || '');
+    /* Felicia, Sep 28: the blurb can carry bold, italic, a size and a link.
+       homeBlurbHtml is written by sanitizeBlurbHtml on the server and by
+       nothing else — the browser's own HTML is never trusted here, exactly as
+       with descriptionHtml. An event saved before the toolbar has only the
+       plain line, which is escaped as it always was. */
+    const blurbOut = (opts.thumb && ev.homeBlurbHtml) ? ev.homeBlurbHtml : esc(blurb);
     return `
       <div class="event-row${thumbSrc ? ' event-row--thumb' : ''}" id="${esc(ev.id)}" data-ev-detail="${esc(ev.id)}"${newTab} style="cursor:pointer">
         ${lead}
@@ -709,7 +715,7 @@ window.Chamber = (function () {
           <span class="badge">${esc(ev.category || 'Event')}</span>${ev.featured ? '<span class="badge badge--gold" style="margin-left:6px">★ Featured</span>' : ''}
           <h4 style="margin:6px 0 4px">${esc(ev.title)} <span style="color:var(--gold-bright,#b8860b);font-size:.8rem;font-weight:600">${opts.newTab ? 'Open ↗' : 'Details →'}</span></h4>
           <div class="member-tile__meta">${when} · ${esc(ev.venue || ev.neighborhood || '')}</div>
-          <p style="margin:6px 0 0;color:var(--slate-mid);font-size:.95rem">${esc(blurb)}</p>
+          <p style="margin:6px 0 0;color:var(--slate-mid);font-size:.95rem">${blurbOut}</p>
           ${thumbSrc ? '' : imgs}
           ${links}
           ${confirmed ? calendarMenu(ev) : ''}
@@ -801,13 +807,21 @@ window.Chamber = (function () {
       .sort((a, b) => LEADER_RANK[a.tier.toLowerCase()] - LEADER_RANK[b.tier.toLowerCase()] || String(a.name).localeCompare(String(b.name)));
     if (!leaders.length) { section?.setAttribute('hidden', ''); return; }
     const fixUrl = (u) => (/^(https?:|\/)/.test(u) ? u : (depth ? '../' : '') + u);
+    /* Diana, Sep 28, via Felicia: "Regardless of the width being square or
+       rectangular they will all be the same height." The cells always were the
+       same; the margin inside each file is not, so the server crops each logo
+       to its own artwork and the stylesheet then sets one height. Only a path
+       we serve can be cropped — an off-site logo is loaded as it is. */
+    const trimUrl = (u) => (/^\//.test(u)
+      ? ChamberAPI.url('/api/logo-trim?src=' + encodeURIComponent(u))
+      : fixUrl(u));
     const hrefOf = (m) => m.slug ? `${depth ? '../' : ''}members/${m.slug}` : `${depth ? '../' : ''}members/profile.html?id=${encodeURIComponent(m.id)}`;
     const cell = (m) => {
       const tier = (m.tier || '').toLowerCase();
       const logo = m.leaderLogo || m.logo || (m.photos && m.photos[0]);
       return `<a class="leader-cell" href="${hrefOf(m)}" title="${esc(m.name)} · ${esc(LEADER_LABEL[tier] || tier)}">
         <span class="leader-cell__tier">${esc(LEADER_LABEL[tier] || tier)}</span>
-        <span class="leader-cell__logo"><img src="${esc(fixUrl(logo))}" alt="${esc(m.name)}" loading="lazy"></span>
+        <span class="leader-cell__logo"><img src="${esc(trimUrl(logo))}" data-logo-raw="${esc(fixUrl(logo))}" alt="${esc(m.name)}" loading="lazy"></span>
         <span class="leader-cell__name">${esc(m.name)}</span>
       </a>`;
     };
@@ -817,6 +831,15 @@ window.Chamber = (function () {
     el.innerHTML =
       `<div class="leader-wall-grid">${main.map(cell).join('')}</div>` +
       (friends.length ? `<hr class="leader-wall__rule"><div class="leader-wall-grid">${friends.map(cell).join('')}</div>` : '');
+    // If the crop cannot be served — an unreadable file, the route missing on a
+    // split API host — load the original rather than leaving a hole in the row.
+    el.querySelectorAll('.leader-cell__logo img[data-logo-raw]').forEach((img) => {
+      img.addEventListener('error', () => {
+        const raw = img.getAttribute('data-logo-raw');
+        img.removeAttribute('data-logo-raw');
+        if (raw) img.src = raw;
+      }, { once: true });
+    });
     section?.removeAttribute('hidden');
   }
 
@@ -1655,8 +1678,8 @@ window.Chamber = (function () {
                 <div class="member-tile__head">
                   ${seal}
                   <div>
-                    <a class="member-tile__name" href="${href}" style="color:#fff">${esc(m.name)}</a>
-                    <div class="member-tile__meta" style="color:rgba(255,255,255,.65)">${esc(m.category || '')}${m.neighborhood ? ' · ' + esc(m.neighborhood) : ''}</div>
+                    <a class="member-tile__name" href="${href}">${esc(m.name)}</a>
+                    <div class="member-tile__meta">${esc(m.category || '')}${m.neighborhood ? ' · ' + esc(m.neighborhood) : ''}</div>
                   </div>
                 </div>
                 <div class="btn-row mt-3"><a class="btn btn--gold btn--sm" href="${href}">View profile →</a></div>
