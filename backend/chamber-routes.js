@@ -2730,6 +2730,7 @@ async function loadGroups() {
   await applyFlyerCorrections();
   await applySustainableAndLegacyPage();
   await applyVolunteerPointsOn();
+  await repairLoginUsernames();
   return repo.listGroupsStore();
 }
 
@@ -2743,6 +2744,22 @@ async function loadGroups() {
 // settings marker means it runs once; a value the office changes back after
 // this is never re-corrected by a redeploy.
 let _flyerFixChecked = false;
+/* Sep 29 2026: usernames left holding a departed rep's address by an email
+   change (see users.updateEmailByMemberId). Premier America's was the one
+   Felicia saw; this catches any other. Guarded: only a username that is an
+   email address other than the login's own is touched. */
+let _usernameFixChecked = false;
+async function repairLoginUsernames() {
+  if (_usernameFixChecked) return;
+  _usernameFixChecked = true;
+  const KEY = 'loginUsernames-20260929';
+  try {
+    if (await repo.getSetting(KEY)) return;
+    const fixed = await users.repairStaleUsernames();
+    await repo.setSetting(KEY, `repaired ${fixed.length} on ${new Date().toISOString()}`);
+    if (fixed.length) console.log('[users] stale usernames repaired:', fixed.join(', '));
+  } catch (e) { _usernameFixChecked = false; console.error('login username repair failed (will retry next boot)', e); }
+}
 /* Sep 4 2026, Felicia and Diana, both asking the same thing: "I'm curious where
    you saw Star and Steve Hochman as Co-Leaders for the Sustainability
    Committee. The last list I sent you has just Steve Hochman."

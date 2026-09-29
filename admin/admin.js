@@ -964,10 +964,13 @@ window.Admin = (function () {
           const isMemberLogin = (u.role || 'member') === 'member' && u.source !== 'bootstrap';
           const when = u.lastLogin ? 'last signed in ' + new Date(u.lastLogin).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'hasn\'t signed in yet';
           const state = u.needsReset ? ' · still needs to set their password' : '';
+          // A login created without a name carries its email as its username;
+          // printing the address twice on one card says nothing.
+          const who = u.username && String(u.username).toLowerCase() !== String(u.email).toLowerCase() ? u.username : '';
           return `<div style="border:1px solid var(--line,#e4dcc8);border-radius:10px;padding:10px 14px;display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between">
             <div style="min-width:180px">
               <strong style="word-break:break-all">${esc(u.email)}</strong>${isMemberLogin ? '' : ' <span class="sub">(' + esc(u.role || 'staff') + ' account)</span>'}
-              <div class="sub">${esc(u.username || '')}${u.username ? ' · ' : ''}${when}${state}</div>
+              <div class="sub">${esc(who)}${who ? ' · ' : ''}${when}${state}</div>
             </div>
             ${isMemberLogin ? `<div style="display:flex;gap:6px;flex-wrap:wrap">
               <button type="button" data-lg-view="${esc(u.email)}" title="See the website exactly as this person sees it" style="${btn};background:var(--green-deep,#1E5631);color:#fff;border:none;font-weight:700">👁 View as</button>
