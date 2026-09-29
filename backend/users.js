@@ -143,8 +143,17 @@ export async function updateEmailByMemberId(memberId, newEmail, oldEmail) {
   let target = oldEmail ? logins.find((u) => u.email === oldEmail) : null;
   if (!target && logins.length === 1) target = logins[0];
   if (!target || target.source === 'bootstrap') return false;
+  /* Felicia, Sep 28 2026: "I updated emails for the Premier America Credit
+     Union and even though it shows Erin and Wens as the new additions it is
+     still showing Shawn's email." A login created without a name gets its
+     email as its username (upsertMember, bulkImportMembers), and this moved
+     the email and left the username where it was — so the departed rep's
+     address kept showing under the new rep's login in 🔑 Logins. A username
+     that was only ever the old address follows the move; a real name stays. */
   if (db.enabled) {
-    const r = await db.query('UPDATE users SET email=$1 WHERE member_id=$2 AND lower(email)=$3 RETURNING email',
+    const r = await db.query(
+      'UPDATE users SET email=$1, username=CASE WHEN lower(username)=$3 THEN $1 ELSE username END'
+      + ' WHERE member_id=$2 AND lower(email)=$3 RETURNING email',
       [newEmail, memberId, target.email]);
     return r.rows.length > 0;
   }
@@ -152,9 +161,37 @@ export async function updateEmailByMemberId(memberId, newEmail, oldEmail) {
   const arr = mu.users || [];
   const i = arr.findIndex((u) => u.memberId === memberId && lc(u.email) === target.email);
   if (i < 0) return false;
-  arr[i] = { ...arr[i], email: newEmail };
+  const username = lc(arr[i].username) === target.email ? newEmail : arr[i].username;
+  arr[i] = { ...arr[i], email: newEmail, username };
   store.write('users.json', { ...mu, users: arr });
   return true;
+}
+
+/* One-time repair for logins already moved before the fix above: a username
+   that is an email address other than the login's own is a stale placeholder
+   from an earlier move, and becomes the login's email. A real name is never
+   touched, and neither is a username that already matches. Returns the emails
+   of the logins changed. Idempotent; the settings-marker wrapper in
+   chamber-routes.js keeps it to one run. */
+const EMAIL_SHAPED = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+export async function repairStaleUsernames() {
+  const stale = (email, username) => EMAIL_SHAPED.test(String(username || '')) && lc(username) !== lc(email);
+  if (db.enabled) {
+    const r = await db.query(
+      "UPDATE users SET username=email WHERE username ~ '^[^[:space:]@]+@[^[:space:]@]+\\.[^[:space:]@]+$'"
+      + ' AND lower(username) <> lower(email) RETURNING email');
+    return r.rows.map((x) => lc(x.email));
+  }
+  const mu = store.read('users.json', { users: [] });
+  const arr = Array.isArray(mu) ? mu : (mu.users || []);
+  const fixed = [];
+  const next = arr.map((u) => {
+    if (!stale(u.email, u.username)) return u;
+    fixed.push(lc(u.email));
+    return { ...u, username: u.email };
+  });
+  if (fixed.length) store.write('users.json', Array.isArray(mu) ? next : { ...mu, users: next });
+  return fixed;
 }
 
 // Admin-triggered: force a member to set a new password on next login.
