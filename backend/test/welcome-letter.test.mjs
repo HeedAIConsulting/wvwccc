@@ -74,9 +74,23 @@ before(async () => {
   cookie = (login.headers.get('set-cookie') || '').split(';')[0];
 });
 
+const ADDED = [];   // members this file adds by hand, removed again in after()
+
 after(async () => {
   // leave the shared dev store the way we found it
   await save({ reset: true }).catch(() => {});
+  if (ADDED.length) {
+    const store = await import('../store.js');
+    const drop = new Set(ADDED);
+    store.write('added-members.json', store.read('added-members.json', []).filter((m) => !drop.has(m.id)));
+    const ov = store.read('member-admin.json', {});
+    for (const id of ADDED) delete ov[id];
+    store.write('member-admin.json', ov);
+    const mu = store.read('users.json', { users: [] });
+    const arr = Array.isArray(mu) ? mu : (mu.users || []);
+    const next = arr.filter((u) => !drop.has(u.memberId));
+    store.write('users.json', Array.isArray(mu) ? next : { ...mu, users: next });
+  }
   server && server.close();
   mock.reset();
 });
@@ -149,4 +163,64 @@ test('a stored letter that lost its link falls back to the original', async () =
   const d = await get();
   assert.equal(d.isDefault, true, 'unusable stored copy is ignored');
   assert.ok(d.body.includes('{{link}}'));
+});
+
+/* Felicia, Sep 30 2026, sending new wording for "our welcome email that goes
+   out to everyone". It did not go out to everyone: adding a member by hand
+   under Members sent its own hardcoded note, so a member added that way got
+   the old wording whatever the office saved under Content. */
+test('a member added by hand gets the office\'s letter, not a separate note', async () => {
+  const body = 'Welcome, {{name}}!\n\n{{business}} is on the to-do list.\n\nYour sign-in link: {{link}}';
+  assert.equal((await save({ subject: 'Welcome to the Chamber! Your New Member To-Do List', body })).status, 200);
+  sent.length = 0;
+  const addr = `added-${T}@example.com`;
+  const r = await adm('/api/admin/members', { method: 'POST', body: JSON.stringify({
+    name: `Hand Added Co ${T}`, contactName: 'Pat Example', email: addr,
+  }) });
+  const out = await r.json();
+  assert.equal(r.status, 200, JSON.stringify(out));
+  ADDED.push(out.member.id);
+
+  assert.equal(sent.length, 1, 'one email, not the letter and a note');
+  const mail = sent[0];
+  assert.equal(mail.to, addr);
+  assert.equal(mail.subject, 'Welcome to the Chamber! Your New Member To-Do List', 'the subject the office saved');
+  assert.match(mail.text, /^Welcome, Pat Example!/, '{{name}} is the contact');
+  assert.match(mail.text, new RegExp(`Hand Added Co ${T} is on the to-do list`), '{{business}} is the listing');
+  assert.ok(!mail.text.includes('{{'), 'no merge field left raw');
+  assert.ok(!/set up your account/i.test(mail.subject + mail.text), 'the old hardcoded note is gone');
+  const link = (mail.text.match(/https?:\/\/\S+reset\.html\?token=\S+/) || [])[0];
+  assert.ok(link, 'it still carries the set-your-password link');
+  assert.ok(mail.html.includes(`href="${link}"`), 'as a real anchor');
+  assert.match(out.login, /welcome letter sent/);
+});
+
+test('the row reads "Welcome sent", so nobody sends a second copy', async () => {
+  const id = ADDED[ADDED.length - 1];
+  assert.ok(id, 'the previous test added a member');
+  const members = (await (await adm('/api/admin/members')).json()).members || [];
+  const m = members.find((x) => x.id === id);
+  assert.ok(m, 'the added member is on the roster');
+  assert.ok(m.welcomeSent, 'stamped the same way the Welcome button stamps it');
+});
+
+test('a member added with no email is added, and nothing is sent', async () => {
+  sent.length = 0;
+  const r = await adm('/api/admin/members', { method: 'POST', body: JSON.stringify({ name: `No Email Co ${T}` }) });
+  const out = await r.json();
+  assert.equal(r.status, 200);
+  ADDED.push(out.member.id);
+  assert.equal(sent.length, 0);
+  assert.equal(out.login, null);
+});
+
+test('both paths go through the one helper', async () => {
+  const { readFileSync } = await import('node:fs');
+  const routes = readFileSync(new URL('../chamber-routes.js', import.meta.url), 'utf8');
+  const button = routes.slice(routes.indexOf("router.post('/admin/members/:id/send-welcome'"), routes.indexOf('// Force a member to reset their password'));
+  const add = routes.slice(routes.indexOf("router.post('/admin/members', requireAdmin"));
+  assert.match(button, /await sendWelcomeLetter\(m, addr, link\)/, 'the Welcome button');
+  const addFn = add.slice(0, add.indexOf('\n});') + 4);
+  assert.match(addFn, /await sendWelcomeLetter\(m, m\.email, link\)/, 'adding a member by hand');
+  assert.ok(!/email\.send\(/.test(addFn), 'and no second, hand-written email in that route');
 });
