@@ -4807,6 +4807,19 @@ function welcomeHtml(text, link) {
   }).join('\n');
 }
 
+/* The office's letter, filled in and sent. Every path that welcomes a new
+   member goes through here, so the letter edited under Admin → Content is the
+   letter every one of them gets. Adding a member by hand under Members used
+   to send its own hardcoded note instead (Felicia, Sep 30 2026, updating
+   "our welcome email that goes out to everyone"). */
+async function sendWelcomeLetter(m, addr, link) {
+  const tpl = await loadWelcomeLetter();
+  const filled = fillWelcome(tpl, {
+    name: m.contactName || m.name || 'there', business: m.name || '', link,
+  });
+  return email.send({ to: addr, subject: filled.subject, text: filled.text, html: welcomeHtml(filled.text, link) });
+}
+
 router.get('/admin/welcome-letter', requireAdmin, async (_req, res) => {
   try { res.json({ ok: true, ...(await loadWelcomeLetter()), fields: WELCOME_FIELDS, defaultBody: WELCOME_DEFAULT.body, defaultSubject: WELCOME_DEFAULT.subject }); }
   catch (e) { res.status(500).json({ error: 'Could not load the welcome letter.' }); }
@@ -4867,16 +4880,7 @@ router.post('/admin/members/:id/send-welcome', requireAdmin, async (req, res) =>
     const token = auth.signResetToken(addr);
     const base = process.env.SITE_URL || `${req.protocol}://${req.get('host')}`;
     const link = `${base}/auth/reset.html?token=${encodeURIComponent(token)}`;
-    const tpl = await loadWelcomeLetter();
-    const filled = fillWelcome(tpl, {
-      name: m.contactName || m.name || 'there', business: m.name || '', link,
-    });
-    const r = await email.send({
-      to: addr,
-      subject: filled.subject,
-      text: filled.text,
-      html: welcomeHtml(filled.text, link),
-    });
+    const r = await sendWelcomeLetter(m, addr, link);
     if (r && r.ok === false) return res.status(500).json({ error: 'Email could not be sent: ' + (r.error || 'provider error') });
     if (r && r.skipped) return res.status(500).json({ error: 'Email provider is not configured on the server.' });
     // Stamp the member so the panel shows "welcome sent <date>" instead of
@@ -5409,13 +5413,15 @@ router.post('/admin/members', requireAdmin, async (req, res) => {
         const token = auth.signResetToken(m.email);
         const base = process.env.SITE_URL || `${req.protocol}://${req.get('host')}`;
         const link = `${base}/auth/reset.html?token=${encodeURIComponent(token)}`;
-        const r = await email.send({
-          to: m.email,
-          subject: 'Welcome to the West Valley · Warner Center Chamber — set up your account',
-          text: `Welcome${m.contactName ? ', ' + m.contactName : ''}!\n\nYour Chamber member listing for ${m.name} is set up. Create your password to manage your listing:\n${link}\n\n(This link expires in 1 hour — if it expires, just use "Forgot password" on the sign-in page.)\n\n— West Valley · Warner Center Chamber of Commerce`,
-          html: `<p>Welcome${m.contactName ? ', ' + esc(m.contactName) : ''}!</p><p>Your Chamber member listing for <strong>${esc(m.name)}</strong> is set up. Create your password to manage your listing:</p><p><a href="${link}">Set up your account</a> (link expires in 1 hour — otherwise use “Forgot password” on the sign-in page).</p><p>— West Valley · Warner Center Chamber of Commerce</p>`,
-        });
-        login = r && r.ok ? 'login created · welcome email sent' : 'login created · email pending (' + (r && r.error ? r.error : 'not configured') + ')';
+        const r = await sendWelcomeLetter(m, m.email, link);
+        const went = r && r.ok && !r.skipped;
+        // Stamped the same way the Welcome button stamps it, so the row reads
+        // "Welcome sent" and nobody sends the new member a second copy.
+        if (went) {
+          m.welcomeSent = new Date().toISOString();
+          try { await repo.setOverride(m.id, { welcomeSent: m.welcomeSent }); } catch (e) { /* non-fatal */ }
+        }
+        login = went ? 'login created · welcome letter sent' : 'login created · email pending (' + (r && r.error ? r.error : 'not configured') + ')';
       } catch (e) { console.error('member login/email', e); login = 'member added; login/email step failed'; }
     }
     res.json({ ok: true, member: m, login });
