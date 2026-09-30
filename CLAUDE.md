@@ -50,8 +50,27 @@ see on screen, and check the labels in the admin HTML rather than guessing.
   sit"). Ask the question.
 - Captions and client-approved copy are verbatim — never reword without asking.
 - Anything sent to a client is drafted in Gmail for Michael to send, not sent
-  directly. **Updating a Gmail draft detaches it from its thread** — delete and
-  recreate with `replyToMessageId` instead.
+  directly. **Updating a Gmail draft detaches it from its thread** — create the
+  replacement in the same thread, check it, then delete the old one.
+- **Draft through the Zapier Gmail connector, never the Gmail MCP's
+  `create_draft`.** The Gmail MCP rewrites every web address in a new draft
+  into a `https://www.google.com/url?q=…&source=gmail&ust=…` redirect — into
+  the visible text when given plain text, and behind the link when given HTML
+  written by hand. Recipients outside Gmail can land on a Google "Redirect
+  notice" page, and it reads as phishing. It went out to Nicole Cohen (Hawaiian
+  Movers, Aug 27) and Marcia Israel (Sep 28) before it was caught on Sep 30.
+  - Replies: Zapier `gmail_create_draft_reply` with `body_type: html`. Its
+    `thread_id` is the Gmail **thread** id; a message id fails with "Requested
+    entity was not found". It does not quote the earlier messages under the
+    reply. New emails: Zapier `gmail_create_draft`.
+  - There is more than one Zapier connector. Check `from` with
+    `list_dynamic_enum_values` and send as `mbowers@heedconsulting.ai`.
+  - Write real `<a href>` links, not bare addresses.
+- **Read the saved draft before handing it to Michael.** `list_drafts` for its
+  id, then `get_draft` with `RAW`, decode it, and confirm there is no
+  `google.com/url` in either the text or the HTML part and that every `href`
+  is the address intended. The Gmail MCP's `get_message` cannot read a draft
+  ("caller does not have permission").
 - `search_threads` returns only a preview of a thread's oldest messages. Always
   `get_thread` before concluding what is unanswered; a reply was missed this way
   on 2026-09-02.
