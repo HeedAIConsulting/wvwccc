@@ -72,6 +72,7 @@ app.get('/api/chamber', (_req, res) => res.json({ ok: true, live: true, service:
 
 // ── API routes (payments, concierge) ──────────────────────
 import chamberRoutes, { sitemapEntries, loadMembersPublic } from './backend/chamber-routes.js';
+import { legacyMemberPath } from './backend/legacy-urls.js';
 import * as repo from './backend/repo.js';   // album pages stamp their own og:* tags
 app.use('/api', chamberRoutes);
 app.get('/api/ping', (_req, res) => res.json({ ok: true, service: 'wvwccc' }));
@@ -95,6 +96,17 @@ const LEGACY_REDIRECTS = {
   '/index.php': '/',
 };
 app.get(Object.keys(LEGACY_REDIRECTS), (req, res) => res.redirect(301, LEGACY_REDIRECTS[req.path.toLowerCase()] || '/'));
+// A member's own ChamberWare page goes to that member's page here, permanently,
+// so Google moves the listing it already holds instead of dropping it — see
+// backend/legacy-urls.js. Only a listed member; anything else falls through.
+app.get('/profile.php', async (req, res, next) => {
+  try {
+    const { members } = await loadMembersPublic();
+    const to = legacyMemberPath(req.query.view_id, members);
+    if (to) return res.redirect(301, to);
+  } catch (e) { /* the catch-all below still answers */ }
+  next();
+});
 app.get(/^\/[^/]+\.php$/i, (_req, res) => res.redirect(302, '/'));
 
 // ── Chamber Leaders page, retired Aug 2026 (Diana: "take this page down") ──
