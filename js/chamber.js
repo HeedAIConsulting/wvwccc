@@ -807,13 +807,21 @@ window.Chamber = (function () {
       .sort((a, b) => LEADER_RANK[a.tier.toLowerCase()] - LEADER_RANK[b.tier.toLowerCase()] || String(a.name).localeCompare(String(b.name)));
     if (!leaders.length) { section?.setAttribute('hidden', ''); return; }
     const fixUrl = (u) => (/^(https?:|\/)/.test(u) ? u : (depth ? '../' : '') + u);
+    /* Diana, Sep 28, via Felicia: "Regardless of the width being square or
+       rectangular they will all be the same height." The cells always were the
+       same; the margin inside each file is not, so the server crops each logo
+       to its own artwork and the stylesheet then sets one height. Only a path
+       we serve can be cropped — an off-site logo is loaded as it is. */
+    const trimUrl = (u) => (/^\//.test(u)
+      ? ChamberAPI.url('/api/logo-trim?src=' + encodeURIComponent(u))
+      : fixUrl(u));
     const hrefOf = (m) => m.slug ? `${depth ? '../' : ''}members/${m.slug}` : `${depth ? '../' : ''}members/profile.html?id=${encodeURIComponent(m.id)}`;
     const cell = (m) => {
       const tier = (m.tier || '').toLowerCase();
       const logo = m.leaderLogo || m.logo || (m.photos && m.photos[0]);
       return `<a class="leader-cell" href="${hrefOf(m)}" title="${esc(m.name)} · ${esc(LEADER_LABEL[tier] || tier)}">
         <span class="leader-cell__tier">${esc(LEADER_LABEL[tier] || tier)}</span>
-        <span class="leader-cell__logo"><img src="${esc(fixUrl(logo))}" alt="${esc(m.name)}" loading="lazy"></span>
+        <span class="leader-cell__logo"><img src="${esc(trimUrl(logo))}" data-logo-raw="${esc(fixUrl(logo))}" alt="${esc(m.name)}" loading="lazy"></span>
         <span class="leader-cell__name">${esc(m.name)}</span>
       </a>`;
     };
@@ -823,6 +831,15 @@ window.Chamber = (function () {
     el.innerHTML =
       `<div class="leader-wall-grid">${main.map(cell).join('')}</div>` +
       (friends.length ? `<hr class="leader-wall__rule"><div class="leader-wall-grid">${friends.map(cell).join('')}</div>` : '');
+    // If the crop cannot be served — an unreadable file, the route missing on a
+    // split API host — load the original rather than leaving a hole in the row.
+    el.querySelectorAll('.leader-cell__logo img[data-logo-raw]').forEach((img) => {
+      img.addEventListener('error', () => {
+        const raw = img.getAttribute('data-logo-raw');
+        img.removeAttribute('data-logo-raw');
+        if (raw) img.src = raw;
+      }, { once: true });
+    });
     section?.removeAttribute('hidden');
   }
 

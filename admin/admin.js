@@ -4286,6 +4286,10 @@ window.Admin = (function () {
     let health = {};
     let minInk = 60;
     let goodInk = 300;
+    // The height the banner draws every logo at. The server owns the number
+    // (images.LOGO_BANNER_H, which css/chamber.css matches); this is only the
+    // value to show before the measurements land.
+    let BANNER_H = 44;
 
     async function load() {
       let members = [];
@@ -4320,10 +4324,14 @@ window.Admin = (function () {
         const h = health[cell.getAttribute('data-lb-size')];
         if (!h) return;
         const ask = `Ask this member for the logo at ${goodInk}px tall or more &mdash; a PNG with a transparent background is ideal, and they do not need to crop or resize it.`;
+        // Every logo is drawn BANNER_H tall now (see .leader-cell__logo img), so
+        // the question the office needs answering is no longer "is this one
+        // smaller than the rest" — it is "how far is this one being stretched".
+        const times = h.inkH ? Math.round((BANNER_H / h.inkH) * 10) / 10 : 0;
         cell.innerHTML = h.ok
-          ? `<span class="sub">${h.inkH}px of logo in a ${h.frameH}px file &mdash; fills ${h.fills}%.${h.inkH < goodInk ? ` Usable, though ${goodInk}px would be sharper.` : ''}</span>`
-          : `<span class="pill pill--pending">draws small</span>
-             <div class="sub">Only ${h.inkH}px of this ${h.frameH}px file is the logo &mdash; it fills ${h.fills}% of its own frame, so it sits smaller than its neighbours on the banner. ${ask}</div>`;
+          ? `<span class="sub">${h.inkH}px of logo in a ${h.frameH}px file &mdash; fills ${h.fills}%.${h.inkH < goodInk ? ` Drawn ${BANNER_H}px tall; ${goodInk}px would be sharper.` : ''}</span>`
+          : `<span class="pill pill--pending">looks soft</span>
+             <div class="sub">Only ${h.inkH}px of this ${h.frameH}px file is the logo &mdash; it fills ${h.fills}% of its own frame. The banner draws it ${BANNER_H}px tall like every other, which is ${times}&times; bigger than the file holds, so it looks soft. ${ask}</div>`;
       });
     }
 
@@ -4333,9 +4341,17 @@ window.Admin = (function () {
         health = r.health || {};
         if (r.minInkHeight) minInk = r.minInkHeight;
         if (r.goodInkHeight) goodInk = r.goodInkHeight;
+        if (r.bannerHeight) BANNER_H = r.bannerHeight;
         paintHealth();
       } catch (e) { /* leave the column blank rather than guess */ }
     }
+
+    /* The same URL the public banner loads: cropped to the artwork by
+       /api/logo-trim, or the file itself when it is not a path we serve. */
+    const lbShownSrc = (u) => {
+      const v = adminSrc(u);
+      return /^\//.test(v) ? '/api/logo-trim?src=' + encodeURIComponent(v) : v;
+    };
 
     // What the banner shows for this member, and which field it came from.
     const shown = (m) => m.leaderLogo || m.logo || (m.photos && m.photos[0]) || '';
@@ -4359,7 +4375,10 @@ window.Admin = (function () {
       }[from];
       return `<tr data-lb="${esc(m.id)}">
         <td style="width:120px">${src
-          ? `<img src="${esc(adminSrc(src))}" alt="" style="width:104px;height:64px;object-fit:contain;border-radius:8px;border:1px solid var(--line,#ddd);background:#fff">`
+          // Cropped exactly as the banner crops it, at the height the banner
+          // draws it, so this column is what a visitor sees rather than what
+          // the file happens to look like.
+          ? `<img src="${esc(lbShownSrc(src))}" alt="" style="height:44px;width:auto;max-width:160px;object-fit:contain;border-radius:6px;border:1px solid var(--line,#ddd);background:#fff;padding:6px 8px">`
           : '<span class="pill pill--pending">no logo</span>'}</td>
         <td><span class="name">${esc(m.name)}</span><div class="sub">${esc(LABEL[tier] || tier)}</div></td>
         <td class="sub">${from === 'banner' ? '<span class="pill pill--approved">banner logo</span> ' : ''}${esc(note)}</td>
@@ -4387,6 +4406,10 @@ window.Admin = (function () {
     function bindRow(m) {
       const tr = rowsEl.querySelector(`tr[data-lb="${CSS.escape(m.id)}"]`);
       if (!tr) return;
+      // Same fallback the public banner has: if the crop cannot be served,
+      // show the file rather than a broken picture.
+      const pic = tr.querySelector('td img');
+      if (pic) pic.addEventListener('error', () => { pic.src = adminSrc(shown(m)); }, { once: true });
       tr.querySelector('[data-lb-file]')?.addEventListener('change', async (e) => {
         const f = e.target.files[0]; if (!f) return;
         msg.textContent = 'Uploading…';
