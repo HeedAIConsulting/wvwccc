@@ -429,8 +429,62 @@ window.MemberPortal = (function () {
       const r = new FileReader(); r.onload = () => resolve(r.result); r.onerror = reject; r.readAsDataURL(file);
     });
   }
+  /* A photo straight off a phone is 3-12MB and /api/me/asset turns away
+     anything over 2.5MB. An iPhone photo saved to a computer is a HEIC file,
+     which it does not take at all. The admin console has shrunk pictures
+     before upload since July; this portal never did, so a member could not put
+     her own headshot up (Marcia Israel, Oct 1 2026).
+
+     A small PNG/JPG/GIF/WebP still goes up untouched, so a logo keeps its
+     transparency and a GIF keeps moving. Anything else is redrawn in the
+     browser no larger than 1800px: as a PNG when the source may be
+     transparent and that fits, otherwise as a JPEG on white. A HEIC the
+     browser cannot open (Chrome, Windows) gets a message saying what to do,
+     instead of "Upload failed". PDFs and audio pass straight through. */
+  const UPLOAD_AS_IS = /^image\/(png|jpe?g|gif|webp)$/i;
+  const UPLOAD_MAX = 2400000;
+  const isHeic = (f) => /^image\/hei[cf]/i.test(f.type || '') || /\.hei[cf]$/i.test(f.name || '');
+  class UploadError extends Error {}
+  function decodeImage(file) {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('undecodable')); };
+      img.src = url;
+    });
+  }
+  const dataUrlBytes = (u) => Math.floor((u.length - u.indexOf(',') - 1) * 3 / 4);
+  async function imageDataUrl(file, maxDim = 1800) {
+    if (!/^image\//i.test(file.type || '') && !isHeic(file)) return fileToDataUrl(file);
+    if (UPLOAD_AS_IS.test(file.type || '') && file.size <= UPLOAD_MAX) return fileToDataUrl(file);
+    let img;
+    try { img = await decodeImage(file); }
+    catch (e) {
+      throw new UploadError(isHeic(file)
+        ? 'That is an iPhone photo (HEIC), and this browser cannot open it. Upload it from the iPhone itself, which sends it as a JPG, or open it on your computer and save a copy as JPG, then choose that.'
+        : 'This browser could not open that file as a picture. Save it as a JPG or PNG and try again.');
+    }
+    const w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
+    const scale = Math.min(1, maxDim / Math.max(w, h));
+    const c = document.createElement('canvas');
+    c.width = Math.max(1, Math.round(w * scale));
+    c.height = Math.max(1, Math.round(h * scale));
+    const ctx = c.getContext('2d');
+    if (/^image\/(png|gif|webp)$/i.test(file.type || '')) {
+      ctx.drawImage(img, 0, 0, c.width, c.height);
+      const png = c.toDataURL('image/png');
+      if (dataUrlBytes(png) <= UPLOAD_MAX) return png;
+      ctx.clearRect(0, 0, c.width, c.height);
+    }
+    ctx.fillStyle = '#fff'; // JPEG has no transparency; a clear background would turn black
+    ctx.fillRect(0, 0, c.width, c.height);
+    ctx.drawImage(img, 0, 0, c.width, c.height);
+    return c.toDataURL('image/jpeg', 0.85);
+  }
+  const uploadFailed = (err, what) => (err instanceof UploadError) ? err.message : `${what} failed (PNG/JPG, max ~2.5MB).`;
   async function uploadImage(file, kind) {
-    const dataUrl = await fileToDataUrl(file);
+    const dataUrl = await imageDataUrl(file);
     const res = await api('/api/me/asset', { method: 'POST', body: JSON.stringify({ kind, dataUrl }) });
     return res.url; // e.g. /api/assets/asset-xxxx
   }
@@ -468,29 +522,53 @@ window.MemberPortal = (function () {
     const ctas = m.ctaLinks || [];
     form.querySelectorAll('[data-cta-label]').forEach((el, i) => { el.value = ctas[i] ? ctas[i].label : ''; });
     form.querySelectorAll('[data-cta-url]').forEach((el, i) => { el.value = ctas[i] ? ctas[i].url : ''; });
+    /* Directory Image and Page Image each hold one picture, and until Oct 1
+       2026 the only way to change either was to upload over it: there was no
+       way to take one off. Remove clears it and Save takes it off the listing,
+       the same as the × on a photo. */
+    const say = (text, bad) => { msg.hidden = false; msg.style.borderColor = bad ? 'var(--red)' : 'var(--line)'; msg.textContent = text; };
+    const removeBtn = (attr, label) => `<button type="button" class="btn btn--ghost btn--sm" ${attr} style="margin-top:6px;color:var(--red,#b00020)">${label}</button>`;
     // logo
     let logoUrl = m.logo || '';
     const logoPrev = document.getElementById('logoPreview');
-    const renderLogo = () => { if (logoPrev) logoPrev.innerHTML = logoUrl ? `<img src="${esc(logoUrl)}" alt="logo" style="width:90px;height:90px;border-radius:12px;object-fit:cover">` : '<span class="member-tile__meta">No logo yet</span>'; };
-    renderLogo();
     const logoInput = document.getElementById('logoFile');
+    const renderLogo = () => {
+      if (!logoPrev) return;
+      logoPrev.innerHTML = logoUrl
+        ? `<img src="${esc(logoUrl)}" alt="logo" style="width:90px;height:90px;border-radius:12px;object-fit:cover"><br>${removeBtn('data-rmlogo', 'Remove')}`
+        : '<span class="member-tile__meta">No logo yet</span>';
+      logoPrev.querySelector('[data-rmlogo]')?.addEventListener('click', () => {
+        logoUrl = ''; if (logoInput) logoInput.value = ''; renderLogo();
+        say('Directory image removed — click Save changes to take it off your listing.');
+      });
+    };
+    renderLogo();
     if (logoInput) logoInput.addEventListener('change', async (e) => {
       const f = e.target.files[0]; if (!f) return;
-      msg.hidden = false; msg.style.borderColor = 'var(--line)'; msg.textContent = 'Uploading directory image…';
-      try { logoUrl = await uploadImage(f, 'logo'); renderLogo(); msg.textContent = 'Directory image uploaded — remember to Save.'; }
-      catch (err) { msg.textContent = 'Upload failed (PNG/JPG, max ~2.5MB).'; }
+      say('Uploading directory image…');
+      try { logoUrl = await uploadImage(f, 'logo'); renderLogo(); say('Directory image uploaded — remember to Save.'); }
+      catch (err) { say(uploadFailed(err, 'Upload'), true); }
     });
     // Page Image — headshot used on the Board / Ambassador / Leaders pages.
     let pageImageUrl = m.pageImage || '';
     const piPrev = document.getElementById('pageImagePreview');
-    const renderPageImage = () => { if (piPrev) piPrev.innerHTML = pageImageUrl ? `<img src="${esc(pageImageUrl)}" alt="page image" style="width:90px;height:90px;border-radius:50%;object-fit:cover">` : '<span class="member-tile__meta">No page image yet</span>'; };
-    renderPageImage();
     const piInput = document.getElementById('pageImageFile');
+    const renderPageImage = () => {
+      if (!piPrev) return;
+      piPrev.innerHTML = pageImageUrl
+        ? `<img src="${esc(pageImageUrl)}" alt="page image" style="width:90px;height:90px;border-radius:50%;object-fit:cover"><br>${removeBtn('data-rmpageimage', 'Remove')}`
+        : '<span class="member-tile__meta">No page image yet</span>';
+      piPrev.querySelector('[data-rmpageimage]')?.addEventListener('click', () => {
+        pageImageUrl = ''; if (piInput) piInput.value = ''; renderPageImage();
+        say('Page image removed — click Save changes to take it off your listing.');
+      });
+    };
+    renderPageImage();
     if (piInput) piInput.addEventListener('change', async (e) => {
       const f = e.target.files[0]; if (!f) return;
-      msg.hidden = false; msg.style.borderColor = 'var(--line)'; msg.textContent = 'Uploading page image…';
-      try { pageImageUrl = await uploadImage(f, 'headshot'); renderPageImage(); msg.textContent = 'Page image uploaded — remember to Save.'; }
-      catch (err) { msg.textContent = 'Upload failed (PNG/JPG, max ~2.5MB).'; }
+      say('Uploading page image…');
+      try { pageImageUrl = await uploadImage(f, 'headshot'); renderPageImage(); say('Page image uploaded — remember to Save.'); }
+      catch (err) { say(uploadFailed(err, 'Upload'), true); }
     });
     // photos (up to 3 slots)
     let photos = Array.isArray(m.photos) ? m.photos.slice(0, 3) : [];
@@ -500,15 +578,35 @@ window.MemberPortal = (function () {
       photoPrev.innerHTML = photos.length
         ? photos.map((p, i) => `<span style="position:relative;display:inline-block;margin:0 6px 6px 0"><img src="${esc(p)}" alt="" style="width:80px;height:60px;border-radius:8px;object-fit:cover"><button type="button" data-rmphoto="${i}" title="Remove this photo" aria-label="Remove photo" style="position:absolute;top:-7px;right:-7px;width:22px;height:22px;border-radius:50%;border:0;background:#c0392b;color:#fff;font-size:14px;line-height:1;cursor:pointer">×</button></span>`).join('')
         : '<span class="member-tile__meta">No photos yet</span>';
-      photoPrev.querySelectorAll('[data-rmphoto]').forEach((b) => b.addEventListener('click', () => { photos.splice(Number(b.dataset.rmphoto), 1); renderPhotos(); }));
+      photoPrev.querySelectorAll('[data-rmphoto]').forEach((b) => b.addEventListener('click', () => {
+        photos.splice(Number(b.dataset.rmphoto), 1); renderPhotos();
+        say('Photo removed — click Save changes to take it off your listing.');
+      }));
     };
     renderPhotos();
     const photoInput = document.getElementById('photoFile');
+    // Every photo that did not go up is now said, by name. This loop used to
+    // swallow the error and report "Photos uploaded" whatever happened.
     if (photoInput) photoInput.addEventListener('change', async (e) => {
-      const files = [...e.target.files].slice(0, 3 - photos.length);
-      for (const f of files) { try { photos.push(await uploadImage(f, 'photo')); } catch (err) {} }
+      const chosen = [...e.target.files];
+      e.target.value = '';
+      if (!chosen.length) return;
+      const room = 3 - photos.length;
+      if (room <= 0) { say('You already have 3 photos. Remove one with its × first, then add the new one.', true); return; }
+      say('Uploading…');
+      const failed = [];
+      for (const f of chosen.slice(0, room)) {
+        try { photos.push(await uploadImage(f, 'photo')); }
+        catch (err) { failed.push(`${f.name}: ${uploadFailed(err, 'Upload')}`); }
+      }
       renderPhotos();
-      msg.hidden = false; msg.style.borderColor = 'var(--line)'; msg.textContent = 'Photos uploaded — remember to Save.';
+      const skipped = chosen.length - Math.min(chosen.length, room);
+      const done = Math.min(chosen.length, room) - failed.length;
+      const parts = [];
+      if (done) parts.push(`${done} photo${done === 1 ? '' : 's'} uploaded — remember to Save.`);
+      if (failed.length) parts.push(failed.join(' '));
+      if (skipped) parts.push(`${skipped} not added: the limit is 3 photos.`);
+      say(parts.join(' '), failed.length > 0 || skipped > 0);
     });
 
     // video live preview (YouTube/Vimeo) — value already populated by the field loader above
@@ -568,7 +666,7 @@ window.MemberPortal = (function () {
         inp.addEventListener('change', async (e) => {
           const f = e.target.files[0]; if (!f) return;
           try { const url = await uploadImage(f, 'headshot'); team = collectTeam(); team[i] = { ...(team[i] || {}), photo: url }; renderTeam(); }
-          catch (err) { msg.hidden = false; msg.style.borderColor = 'var(--red)'; msg.textContent = 'Photo upload failed (PNG/JPG, max ~2.5MB).'; }
+          catch (err) { msg.hidden = false; msg.style.borderColor = 'var(--red)'; msg.textContent = uploadFailed(err, 'Photo upload'); }
         }));
     }
     renderTeam();
@@ -681,8 +779,8 @@ window.MemberPortal = (function () {
     if (imgInput) imgInput.addEventListener('change', async (e) => {
       const f = e.target.files[0]; if (!f) return;
       msg.hidden = false; msg.style.borderColor = 'var(--line)'; msg.textContent = 'Uploading image…';
-      try { const r = await api('/api/me/asset', { method: 'POST', body: JSON.stringify({ kind: 'photo', dataUrl: await fileToDataUrl(f) }) }); imageUrl = r.url; msg.textContent = 'Image attached.'; }
-      catch (err) { msg.textContent = 'Image upload failed.'; }
+      try { imageUrl = await uploadImage(f, 'photo'); msg.textContent = 'Image attached.'; }
+      catch (err) { msg.textContent = uploadFailed(err, 'Image upload'); }
     });
     // Show/hide the per-type field groups as the member switches type.
     const TYPE_LABEL = { discount: 'Offer', member_post: 'Community post', job: 'Job opening', listing: 'Property listing' };
@@ -1043,7 +1141,7 @@ window.MemberPortal = (function () {
         drawFlyerPrev();
         msg.textContent = editing ? 'New flyer attached — remember to Save changes.' : 'Flyer attached — remember to add the event.';
       }
-      catch (err) { msg.textContent = 'Flyer upload failed (PNG/JPG, max ~2.5MB).'; }
+      catch (err) { msg.textContent = uploadFailed(err, 'Flyer upload'); }
     });
 
     renderMyEvents(data.events || []);
