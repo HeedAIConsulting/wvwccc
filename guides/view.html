@@ -26,11 +26,18 @@
     <div class="container">
       <p id="guideIntro" class="lead" style="max-width:72ch;margin-bottom:var(--s-6)"></p>
       <div id="guideFeatured" hidden></div>
+      <div id="guideAsk" hidden></div>
+      <div id="guideSections" hidden></div>
+      <div id="guideDeals" hidden></div>
+      <div id="guideAllBlock">
+      <h2 id="guideAllHead" hidden style="margin:0 0 var(--s-4)">Every member in this guide</h2>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--s-5);flex-wrap:wrap;gap:var(--s-3)">
         <div id="guideCount" class="member-tile__meta"></div>
         <input id="guideSearch" type="search" placeholder="Filter this guide…" class="admin-select" style="min-width:240px;border:1px solid var(--line);border-radius:10px;padding:9px 12px" />
       </div>
       <div id="guideMembers" class="grid grid-3" style="gap:var(--s-4)"><p class="member-tile__meta">Loading…</p></div>
+      </div>
+      <div id="guideRelated" hidden></div>
       <p class="mt-6"><a class="btn btn--ghost" href="./">← All community guides</a></p>
       <div data-join-cta></div>
     </div>
@@ -39,7 +46,7 @@
   <div data-partial="footer"></div>
   <script src="../js/partials.js?v=20260922a"></script>
   <script src="../js/api-base.js?v=20260818a"></script>
-  <script src="../js/chamber.js?v=20261001a"></script>
+  <script src="../js/chamber.js?v=20261012a"></script>
   <script>
     ChamberPartials.mount({ active: 'resources', depth: 1, lang: 'en' });
     Chamber.initGuideView();

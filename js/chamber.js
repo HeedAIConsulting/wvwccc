@@ -3607,7 +3607,7 @@ window.Chamber = (function () {
       const q = input.value.trim(); if (!q) return;
       out.innerHTML = '<div class="member-tile__meta">Asking Wendy…</div>';
       try {
-        const r = await (await fetch(ChamberAPI.url('/api/concierge'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ q: q + ' (restaurant / dining in the West Valley)' }) })).json();
+        const r = await (await fetch(ChamberAPI.url('/api/concierge'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ q, context: 'restaurant dining' }) })).json();
         // Only show members that are actually dining spots (a stray "|| true"
         // here let ANY member Wendy mentioned — e.g. a plumber — render as a
         // restaurant card; per Felicia, Jul 14).
@@ -3714,6 +3714,10 @@ window.Chamber = (function () {
 
     let members = [];
     try { members = (await getJSON(ChamberAPI.url('/api/members'))).members || []; } catch (e) {}
+    // Occasion guides (dining, holiday, meeting spaces — Oct 2026) add curated
+    // sections, an Ask Wendy box, member deals and related guides. Guides
+    // without those fields render exactly as before.
+    const sectionMembers = renderGuideSections(g, members, depth);
     const cats = new Set((g.categories || []).map((c) => c.toLowerCase()));
     const kws = (g.keywords || []).map((k) => k.toLowerCase());
     const matches = members.filter((m) => {
@@ -3732,12 +3736,156 @@ window.Chamber = (function () {
         ? list.map((m) => memberTile(m, depth)).join('')
         : `<div class="notice">${L ? '¿Conoce un negocio que pertenece aquí?' : 'No member businesses in this guide yet — know one that belongs here?'} <a href="${upJoin}">${L ? 'Invítelo a unirse →' : 'Invite them to join →'}</a></div>`;
     };
-    render(matches);
+    // A sectioned guide with no categories/keywords of its own is complete in
+    // its sections — skip the "every member" list instead of showing "none yet".
+    const hasRules = (g.categories || []).length || (g.keywords || []).length;
+    const allBlock = document.getElementById('guideAllBlock');
+    if (sectionMembers.length && !hasRules) {
+      if (allBlock) allBlock.hidden = true;
+    } else {
+      if (sectionMembers.length) { const h = document.getElementById('guideAllHead'); if (h) h.hidden = false; }
+      render(matches);
+    }
     const sb = document.getElementById('guideSearch');
     if (sb) sb.addEventListener('input', () => {
       const q = sb.value.trim().toLowerCase();
       render(!q ? matches : matches.filter((m) => [m.name, m.category, m.neighborhood, m.tagline, (m.keywords || []).join(' ')].filter(Boolean).join(' ').toLowerCase().includes(q)));
     });
+
+    const inGuide = new Set(sectionMembers.concat(matches).map((m) => m.id));
+    initGuideAsk(g, inGuide, depth);
+    initGuideDeals(g, inGuide, depth);
+    initGuideRelated(g, depth);
+  }
+
+  // Curated occasion sections. Each lists member slugs in the editor's order,
+  // then appends any other member whose category is in the section's
+  // `categories`, so a new caterer shows up under "Office catering" the day the
+  // office approves them. A slug that no longer resolves (member left) simply
+  // drops out. Returns every member shown, de-duplicated.
+  function renderGuideSections(g, members, depth) {
+    const box = document.getElementById('guideSections');
+    if (!box || !Array.isArray(g.sections) || !g.sections.length) return [];
+    const L = LANG === 'es';
+    const bySlug = new Map(members.filter((m) => m.slug).map((m) => [m.slug, m]));
+    const shown = new Map();
+    const parts = [];
+    for (const sec of g.sections) {
+      const list = [];
+      const seen = new Set();
+      for (const slug of sec.members || []) {
+        const m = bySlug.get(slug);
+        if (m && !seen.has(m.id)) { seen.add(m.id); list.push(m); }
+      }
+      const scats = new Set((sec.categories || []).map((c) => c.toLowerCase()));
+      if (scats.size) {
+        members
+          .filter((m) => !seen.has(m.id) && [m.category].concat(m.categories || []).filter(Boolean).some((c) => scats.has(c.toLowerCase())))
+          .sort((a, b) => String(a.name).localeCompare(String(b.name)))
+          .forEach((m) => { seen.add(m.id); list.push(m); });
+      }
+      if (!list.length) continue;
+      list.forEach((m) => shown.set(m.id, m));
+      const title = (L && sec.title_es) || sec.title;
+      const blurb = (L && sec.blurb_es) || sec.blurb;
+      parts.push({ id: sec.id, title, html: `
+        <section class="guide-section" ${sec.id ? `id="${esc(sec.id)}"` : ''} style="margin-bottom:var(--s-7);scroll-margin-top:90px">
+          <h2 style="margin:0 0 6px">${esc(title)}</h2>
+          ${blurb ? `<p class="member-tile__meta" style="max-width:68ch;margin:0 0 var(--s-4)">${esc(blurb)}</p>` : ''}
+          <div class="grid grid-3" style="gap:var(--s-4)">${list.map((m) => memberTile(m, depth)).join('')}</div>
+        </section>` });
+    }
+    if (!parts.length) return [];
+    const jump = parts.filter((x) => x.id).map((x) => `<a class="chip" href="#${esc(x.id)}">${esc(x.title)}</a>`).join('');
+    box.innerHTML = (jump ? `<nav class="chips" aria-label="${L ? 'Secciones' : 'Sections'}" style="margin-bottom:var(--s-6)">${jump}</nav>` : '')
+      + parts.map((x) => x.html).join('');
+    box.hidden = false;
+    return [...shown.values()];
+  }
+
+  // Ask Wendy, scoped to the guide. Picks from this guide come first; if Wendy
+  // only finds members outside it, her answer still shows with those picks.
+  function initGuideAsk(g, inGuide, depth) {
+    const box = document.getElementById('guideAsk');
+    if (!box || !g.ask) return;
+    const L = LANG === 'es';
+    const ph = (L && g.ask.placeholder_es) || g.ask.placeholder || '';
+    box.innerHTML = `
+      <div class="card" style="padding:18px 20px;margin-bottom:var(--s-6);background:var(--cream-deep,#f3ecda);border:1px solid var(--gold-soft,#e6dcbf)">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap"><span style="font-size:1.3rem" aria-hidden="true">💬</span><strong>${L ? 'Pregúntele a Wendy' : 'Ask Wendy'}</strong> <span class="member-tile__meta">${L ? '— la conserje de la Cámara. Solo recomienda miembros.' : '— the Chamber concierge. She only recommends members.'}</span></div>
+        <form id="guideAskForm" style="display:flex;gap:8px;flex-wrap:wrap">
+          <input id="guideAskInput" maxlength="300" aria-label="${L ? 'Su pregunta para Wendy' : 'Your question for Wendy'}" placeholder="${esc(ph)}" style="flex:1;min-width:220px;padding:11px 14px;border:1px solid var(--gold-soft,#e6dcbf);border-radius:10px;font:inherit" />
+          <button class="btn btn--forest" type="submit">${L ? 'Preguntar' : 'Ask Wendy'}</button>
+        </form>
+        <div id="guideAskOut" style="margin-top:12px" aria-live="polite"></div>
+      </div>`;
+    box.hidden = false;
+    document.getElementById('guideAskForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const q = document.getElementById('guideAskInput').value.trim();
+      const out = document.getElementById('guideAskOut');
+      if (!q) return;
+      out.innerHTML = `<p class="member-tile__meta">${L ? 'Wendy está buscando…' : 'Wendy is looking…'}</p>`;
+      try {
+        const r = await (await fetch(ChamberAPI.url('/api/concierge'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ q: q.slice(0, 400), context: g.ask.context || '' }) })).json();
+        const all = r.members || [];
+        const picks = all.filter((m) => inGuide.has(m.id)).concat(all.filter((m) => !inGuide.has(m.id))).slice(0, 3);
+        out.innerHTML = `<p style="margin:0">${esc(r.answer || r.error || '')}</p>`
+          + (picks.length ? `<div class="grid grid-3 mt-3" style="gap:var(--s-4)">${picks.map((m) => memberTile(m, depth)).join('')}</div>` : '');
+      } catch (err) {
+        out.innerHTML = `<p class="member-tile__meta">${L ? 'Wendy no está disponible ahora. Llame a la Cámara al (818) 347-4737.' : 'Wendy is unavailable right now. Call the Chamber at (818) 347-4737.'}</p>`;
+      }
+    });
+  }
+
+  // Member deals from businesses in this guide (Diana, Oct 12 2026: teach
+  // members to post holiday corporate deals). Deals whose text matches the
+  // guide's `highlight` words sort first. With none posted, the box still
+  // invites members to post one.
+  async function initGuideDeals(g, inGuide, depth) {
+    const box = document.getElementById('guideDeals');
+    if (!box || !g.deals) return;
+    const L = LANG === 'es';
+    let offers = [];
+    try { offers = (await getJSON(ChamberAPI.url('/api/posts?type=discount'))).posts || []; } catch (e) {}
+    let hi = null;
+    try { hi = g.deals.highlight ? new RegExp(g.deals.highlight, 'i') : null; } catch (e) { hi = null; }
+    const mine = offers.filter((p) => p.memberId && inGuide.has(p.memberId));
+    const score = (p) => (hi && hi.test((p.title || '') + ' ' + (p.body || ''))) ? 0 : 1;
+    mine.sort((a, b) => score(a) - score(b));
+    const title = (L && g.deals.title_es) || g.deals.title || (L ? 'Ofertas de miembros' : 'Member deals');
+    const cta = (L && g.deals.cta_es) || g.deals.cta || (L ? '¿Es miembro? Publique su oferta' : 'Chamber members: post your deal');
+    const post = '/member/post.html';
+    box.innerHTML = `
+      <section style="margin-bottom:var(--s-7)">
+        <h2 style="margin:0 0 6px">${esc(title)}</h2>
+        <p class="member-tile__meta" style="margin:0 0 var(--s-4)"><a href="${post}">${esc(cta)} →</a></p>
+        ${mine.length
+          ? `<div class="grid grid-3" style="gap:var(--s-4)">${mine.slice(0, 9).map(offerCard).join('')}</div>`
+          : `<div class="notice">${L ? 'Las ofertas de los miembros aparecerán aquí en cuanto se publiquen.' : 'Member deals appear here as soon as they are posted.'}</div>`}
+      </section>`;
+    box.hidden = false;
+  }
+
+  // Cards linking to sibling guides named in `related`.
+  async function initGuideRelated(g, depth) {
+    const box = document.getElementById('guideRelated');
+    if (!box || !Array.isArray(g.related) || !g.related.length) return;
+    const L = LANG === 'es';
+    let guides = [];
+    try { guides = (await getJSON(ChamberAPI.url('/api/guides'))).guides || []; } catch (e) {}
+    const list = g.related.map((s) => guides.find((x) => x.slug === s)).filter(Boolean);
+    if (!list.length) return;
+    const base = L ? '/es/guides/' : '/guides/';
+    box.innerHTML = `
+      <h2 style="margin:var(--s-7) 0 var(--s-4)">${L ? 'Más guías' : 'More guides'}</h2>
+      <div class="grid grid-3" style="gap:var(--s-4)">${list.map((x) => `
+        <a class="card card--hover guide-card" href="${base}${esc(x.slug)}">
+          <div class="guide-card__emoji" aria-hidden="true">${esc(x.emoji || '📘')}</div>
+          <h3 style="margin:6px 0 4px">${esc((L && x.title_es) || x.title)}</h3>
+          <p class="member-tile__meta" style="margin:0">${esc((L && x.lede_es) || x.lede || '')}</p>
+        </a>`).join('')}</div>`;
+    box.hidden = false;
   }
 
   // ── Real estate (member-submitted listings, admin-approved) ──

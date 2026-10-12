@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "note": "Community guides — each renders at /guides/<slug> from guides/view.html. Members are matched live from the directory by category (exact) and keyword (substring against name/category/keywords/tagline). Each guide has a featured-placement slot 'guide:<slug>' managed in Admin → Sponsorships.",
+    "note": "Community guides — each renders at /guides/<slug> from guides/view.html. Members are matched live from the directory by category (exact) and keyword (substring against name/category/keywords/tagline). Each guide has a featured-placement slot 'guide:<slug>' managed in Admin → Sponsorships. Optional (Oct 2026): `sections` [{id,title,blurb,members:[slug],categories}] render curated groups that also auto-add members in `categories`; `ask` adds a scoped Ask Wendy box; `deals` shows member offers from businesses in the guide; `related` lists sibling guide slugs.",
     "schema_version": 1
   },
   "guides": [
@@ -238,6 +238,515 @@
       "kicker_es": "Guía Comunitaria",
       "lede_es": "Desde Westfield Topanga & The Village hasta tiendas locales únicas.",
       "intro_es": "Anclado por Westfield Topanga & The Village — uno de los principales destinos de compras del país — y rodeado de comercios especializados que no encontrará en ningún otro lugar. Compre local, compre con miembros."
+    },
+    {
+      "slug": "dine-west-valley",
+      "title": "Dine West Valley: Where to Eat, by Occasion",
+      "kicker": "Dining Guide",
+      "emoji": "🍽️",
+      "lede": "Every member restaurant in the West Valley, sorted by what you are actually trying to do.",
+      "intro": "A client lunch, Mom's birthday, the whole team, or twenty minutes between calls: start here. Every restaurant in this guide is a Chamber member, and the guide updates itself as members join.",
+      "categories": [
+        "Restaurant",
+        "Catering",
+        "Bakery",
+        "Delicatessen",
+        "Coffee,Tea",
+        "Wine Tasting / Wine Sales"
+      ],
+      "keywords": [],
+      "ask": {
+        "placeholder": "e.g. sushi in Tarzana, or a quiet table for a client lunch",
+        "placeholder_es": "p. ej. sushi en Tarzana, o una mesa tranquila para un almuerzo de negocios",
+        "context": "restaurant dining"
+      },
+      "deals": {
+        "title": "Member dining deals",
+        "title_es": "Ofertas de restaurantes miembros",
+        "cta": "Member restaurants: post your deal",
+        "cta_es": "¿Restaurante miembro? Publique su oferta",
+        "highlight": "holiday|corporate|party|catering|group|happy hour|lunch"
+      },
+      "related": [
+        "client-lunch-warner-center",
+        "holiday-parties-catering",
+        "meeting-spaces-business-lunches"
+      ],
+      "sections": [
+        {
+          "id": "client",
+          "title": "Taking a client to lunch",
+          "title_es": "Almuerzo con un cliente",
+          "blurb": "Somewhere you can hold a conversation and still be back at the office by two.",
+          "blurb_es": "Un lugar para conversar y estar de vuelta en la oficina a las dos.",
+          "members": [
+            "prose-kitchen-bar",
+            "joey-woodland-hills",
+            "deux-bistro",
+            "local-peasant-the",
+            "casale-na",
+            "hq-gastropub",
+            "mendocino-farms"
+          ]
+        },
+        {
+          "id": "family",
+          "title": "Taking Mom, or the whole family",
+          "title_es": "Con mamá o con toda la familia",
+          "blurb": "Comfortable, easy to linger, and nobody rushing you out.",
+          "blurb_es": "Cómodo, para quedarse un rato, sin prisas.",
+          "members": [
+            "casale-na",
+            "mort-s-delicatessen-restaurant",
+            "deux-bistro",
+            "grandi-italiani-family-restaurant",
+            "cici-s-lady-ci-s-cafe",
+            "eureka-woodland-hills"
+          ]
+        },
+        {
+          "id": "team",
+          "title": "The whole team",
+          "title_es": "Todo el equipo",
+          "blurb": "Big tables, team dinners and a night out for the office.",
+          "blurb_es": "Mesas grandes, cenas de equipo y una noche fuera para la oficina.",
+          "members": [
+            "fogo-de-chao-woodland-hills",
+            "eureka-woodland-hills",
+            "hq-gastropub",
+            "el-torito",
+            "stk-steakhouse-topanga",
+            "lounge-51",
+            "corbin-bowl"
+          ]
+        },
+        {
+          "id": "celebrate",
+          "title": "Celebrating something",
+          "title_es": "Para celebrar",
+          "blurb": "Closing the deal, the anniversary, the promotion.",
+          "blurb_es": "El contrato cerrado, el aniversario, el ascenso.",
+          "members": [
+            "ruth-s-chris-steak-house",
+            "fleming-s-prime-steakhouse-wine-bar",
+            "monty-s-steak-house",
+            "stk-steakhouse-topanga",
+            "fogo-de-chao-woodland-hills",
+            "mon-restaurant",
+            "so-sushi"
+          ]
+        },
+        {
+          "id": "drinks",
+          "title": "Happy hour and a nightcap",
+          "title_es": "Happy hour y la última copa",
+          "blurb": "After work, after the mixer, or after the kids are asleep.",
+          "blurb_es": "Después del trabajo, después del evento o cuando los niños ya duermen.",
+          "members": [
+            "lounge-51",
+            "hq-gastropub",
+            "casale-na",
+            "fleming-s-prime-steakhouse-wine-bar",
+            "malibu-wines-and-beer-garden"
+          ]
+        },
+        {
+          "id": "quick",
+          "title": "Twenty minutes between calls",
+          "title_es": "Veinte minutos entre llamadas",
+          "blurb": "Fast, reliable, and back at your desk before the next one.",
+          "blurb_es": "Rápido, confiable y de vuelta en su escritorio antes de la siguiente.",
+          "members": [
+            "mendocino-farms",
+            "sweetgreen",
+            "juicy-ladies",
+            "the-stand",
+            "chick-fil-a-woodland-hills",
+            "chick-fil-a-at-victory-and-fallbrook",
+            "raising-cane-s",
+            "panda-express",
+            "wendy-s-old-fashioned-hamburgers"
+          ]
+        },
+        {
+          "id": "coffee",
+          "title": "Coffee and a meeting",
+          "title_es": "Café y una reunión",
+          "blurb": "A table, a decent cup, and better than the office pot.",
+          "blurb_es": "Una mesa, un buen café y mejor que el de la oficina.",
+          "members": [
+            "peet-s-coffee",
+            "trio-coffee-house"
+          ],
+          "categories": [
+            "Coffee,Tea"
+          ]
+        },
+        {
+          "id": "catering",
+          "title": "Feeding the office",
+          "title_es": "Comida para la oficina",
+          "blurb": "Catering, platters and pickup for the board meeting or the staff lunch.",
+          "blurb_es": "Catering, bandejas y pedidos para la junta o el almuerzo del personal.",
+          "members": [
+            "the-stand",
+            "ruth-s-chris-steak-house",
+            "jerk-wings-cafe",
+            "cavaretta-s-italian-deli",
+            "danny-s-corner-kitchen-llc"
+          ],
+          "categories": [
+            "Catering"
+          ]
+        },
+        {
+          "id": "different",
+          "title": "Something different",
+          "title_es": "Algo diferente",
+          "blurb": "The ones locals mention when you ask where to eat.",
+          "blurb_es": "Los que mencionan los vecinos cuando pregunta dónde comer.",
+          "members": [
+            "blai",
+            "tainos-l-a",
+            "safir-mediterranean-cuisine",
+            "wicked-cow",
+            "di-mart-la",
+            "loqui",
+            "sunberry-acai-bowls"
+          ]
+        }
+      ],
+      "title_es": "Dine West Valley: dónde comer, según la ocasión",
+      "kicker_es": "Guía Gastronómica",
+      "lede_es": "Todos los restaurantes miembros del West Valley, ordenados según lo que usted quiere hacer.",
+      "intro_es": "Un almuerzo con un cliente, el cumpleaños de mamá, todo el equipo o veinte minutos entre llamadas: empiece aquí. Cada restaurante en esta guía es miembro de la Cámara, y la guía se actualiza sola cuando se unen nuevos miembros."
+    },
+    {
+      "slug": "client-lunch-warner-center",
+      "title": "Where to Take a Client to Lunch near Warner Center",
+      "kicker": "Dining Guide",
+      "emoji": "🤝",
+      "lede": "Hold a real conversation, make a good impression, and still make your two o'clock.",
+      "intro": "Every pick here is a Chamber member a short drive from Warner Center, sorted by the kind of lunch you are having. Choose in a minute and spend the rest of it on the agenda.",
+      "categories": [],
+      "keywords": [],
+      "ask": {
+        "placeholder": "e.g. a quiet lunch for four near Warner Center",
+        "placeholder_es": "p. ej. un almuerzo tranquilo para cuatro cerca de Warner Center",
+        "context": "business lunch restaurant"
+      },
+      "related": [
+        "dine-west-valley",
+        "meeting-spaces-business-lunches",
+        "holiday-parties-catering"
+      ],
+      "sections": [
+        {
+          "id": "working-lunch",
+          "title": "The working lunch",
+          "title_es": "El almuerzo de trabajo",
+          "blurb": "Quiet enough to talk, quick enough to get back.",
+          "blurb_es": "Lo bastante tranquilo para hablar y rápido para volver.",
+          "members": [
+            "prose-kitchen-bar",
+            "joey-woodland-hills",
+            "deux-bistro",
+            "local-peasant-the",
+            "casale-na",
+            "hq-gastropub"
+          ]
+        },
+        {
+          "id": "light",
+          "title": "Light and fast",
+          "title_es": "Ligero y rápido",
+          "blurb": "When the meeting is the point and lunch is the excuse.",
+          "blurb_es": "Cuando la reunión es lo importante y el almuerzo es la excusa.",
+          "members": [
+            "mendocino-farms",
+            "sweetgreen",
+            "loqui",
+            "juicy-ladies",
+            "safir-mediterranean-cuisine"
+          ]
+        },
+        {
+          "id": "close",
+          "title": "Closing the deal",
+          "title_es": "Para cerrar el trato",
+          "blurb": "The steakhouse lunch, for when it matters.",
+          "blurb_es": "El almuerzo en el steakhouse, para cuando importa.",
+          "members": [
+            "fleming-s-prime-steakhouse-wine-bar",
+            "ruth-s-chris-steak-house",
+            "monty-s-steak-house",
+            "stk-steakhouse-topanga",
+            "fogo-de-chao-woodland-hills"
+          ]
+        },
+        {
+          "id": "coffee",
+          "title": "Coffee first",
+          "title_es": "Primero, un café",
+          "blurb": "For the first meeting, before anyone has committed to lunch.",
+          "blurb_es": "Para la primera reunión, antes de comprometerse a almorzar.",
+          "members": [
+            "peet-s-coffee",
+            "trio-coffee-house"
+          ]
+        }
+      ],
+      "title_es": "Dónde llevar a un cliente a almorzar cerca de Warner Center",
+      "kicker_es": "Guía Gastronómica",
+      "lede_es": "Converse de verdad, cause buena impresión y llegue a tiempo a su cita de las dos.",
+      "intro_es": "Cada opción es un miembro de la Cámara a poca distancia de Warner Center, ordenada según el tipo de almuerzo. Elija en un minuto y dedique el resto a la agenda."
+    },
+    {
+      "slug": "holiday-parties-catering",
+      "title": "Holiday Party & Catering Guide",
+      "kicker": "Holiday Guide",
+      "emoji": "🥂",
+      "lede": "Private rooms, team dinners, venues and office catering for the season, all from Chamber members.",
+      "intro": "Planning the office party, the client thank-you dinner, or the platters for the last staff meeting of the year? Every business here is a Chamber member in the West Valley. December fills up fast, so book early. Members post their holiday corporate deals on this page as they go live.",
+      "categories": [],
+      "keywords": [],
+      "ask": {
+        "placeholder": "e.g. a private room for 20 in early December",
+        "placeholder_es": "p. ej. un salón privado para 20 a principios de diciembre",
+        "context": "holiday party private dining banquet venue catering"
+      },
+      "deals": {
+        "title": "Holiday corporate deals from members",
+        "title_es": "Ofertas navideñas para empresas de nuestros miembros",
+        "cta": "Chamber members: post your holiday corporate deal",
+        "cta_es": "¿Es miembro? Publique su oferta navideña para empresas",
+        "highlight": "holiday|christmas|hanukkah|new year|corporate|party|parties|group|catering|private"
+      },
+      "related": [
+        "dine-west-valley",
+        "meeting-spaces-business-lunches",
+        "client-lunch-warner-center"
+      ],
+      "sections": [
+        {
+          "id": "private-dining",
+          "title": "Private dining rooms",
+          "title_es": "Salones privados",
+          "blurb": "A room of your own for the team dinner or the client thank-you.",
+          "blurb_es": "Un salón propio para la cena del equipo o para agradecer a sus clientes.",
+          "members": [
+            "fleming-s-prime-steakhouse-wine-bar",
+            "ruth-s-chris-steak-house",
+            "casale-na"
+          ]
+        },
+        {
+          "id": "venues",
+          "title": "Ballrooms, halls and clubs",
+          "title_es": "Salones de eventos y clubes",
+          "blurb": "For the full company party, with room to dance.",
+          "blurb_es": "Para la fiesta de toda la empresa, con espacio para bailar.",
+          "members": [
+            "marriott-warner-center",
+            "hilton-woodland-hills",
+            "woodland-hills-country-club",
+            "olov-club"
+          ],
+          "categories": [
+            "Banquet/Reception Hall"
+          ]
+        },
+        {
+          "id": "team-dinners",
+          "title": "Team dinners and nights out",
+          "title_es": "Cenas de equipo y noches fuera",
+          "blurb": "Big tables, a little noise, and a night everyone remembers.",
+          "blurb_es": "Mesas grandes, un poco de ruido y una noche que todos recuerdan.",
+          "members": [
+            "fogo-de-chao-woodland-hills",
+            "eureka-woodland-hills",
+            "hq-gastropub",
+            "stk-steakhouse-topanga",
+            "el-torito",
+            "lounge-51"
+          ]
+        },
+        {
+          "id": "activities",
+          "title": "Something to do, not just somewhere to eat",
+          "title_es": "Algo que hacer, no solo dónde comer",
+          "blurb": "Bowling, games and tastings for a party people actually talk about.",
+          "blurb_es": "Boliche, juegos y catas para una fiesta de la que todos hablen.",
+          "members": [
+            "corbin-bowl",
+            "winnetka-bowl",
+            "totally-rad-video-games",
+            "malibu-wines-and-beer-garden"
+          ]
+        },
+        {
+          "id": "catering",
+          "title": "Office catering and platters",
+          "title_es": "Catering y bandejas para la oficina",
+          "blurb": "For the party in the conference room or the last staff lunch of the year.",
+          "blurb_es": "Para la fiesta en la sala de juntas o el último almuerzo del año.",
+          "members": [
+            "the-stand",
+            "ruth-s-chris-steak-house",
+            "jerk-wings-cafe",
+            "cavaretta-s-italian-deli",
+            "danny-s-corner-kitchen-llc"
+          ],
+          "categories": [
+            "Catering"
+          ]
+        },
+        {
+          "id": "gifts",
+          "title": "Sweets and gifts",
+          "title_es": "Dulces y regalos",
+          "blurb": "Dessert for the party and something for the clients you could not take to dinner.",
+          "blurb_es": "Postre para la fiesta y un detalle para los clientes que no pudo invitar a cenar.",
+          "members": [
+            "nothing-bundt-cakes",
+            "lady-fortunes",
+            "total-wine-more"
+          ],
+          "categories": [
+            "Bakery"
+          ]
+        },
+        {
+          "id": "planners",
+          "title": "Planners, rentals and entertainment",
+          "title_es": "Organizadores, alquileres y entretenimiento",
+          "blurb": "When you would rather someone else handled it.",
+          "blurb_es": "Cuando prefiere que otro se encargue.",
+          "members": [],
+          "categories": [
+            "Event Planning",
+            "Events Services",
+            "Special Events",
+            "Event Productions",
+            "Entertainment & Event Planning",
+            "Party Rental Equipment",
+            "Party Equipment Rental - Special Events Consultants"
+          ]
+        }
+      ],
+      "title_es": "Guía de fiestas navideñas y catering",
+      "kicker_es": "Guía Navideña",
+      "lede_es": "Salones privados, cenas de equipo, lugares para eventos y catering para la temporada, todo de miembros de la Cámara.",
+      "intro_es": "¿Organiza la fiesta de la oficina, la cena de agradecimiento a sus clientes o las bandejas para la última reunión del año? Cada negocio aquí es miembro de la Cámara en el West Valley. Diciembre se llena rápido, así que reserve con tiempo. Los miembros publican aquí sus ofertas navideñas para empresas."
+    },
+    {
+      "slug": "meeting-spaces-business-lunches",
+      "title": "Meeting Spaces & Business Lunches",
+      "kicker": "Business Guide",
+      "emoji": "📋",
+      "lede": "Where to hold the board meeting, the offsite, the workshop or the working lunch in the West Valley.",
+      "intro": "From hotel function space near Warner Center to a private room over lunch, every venue here is a Chamber member. Clients flying in? The hotels at the bottom of the page are members too.",
+      "categories": [],
+      "keywords": [],
+      "ask": {
+        "placeholder": "e.g. a meeting room for 30 with lunch brought in",
+        "placeholder_es": "p. ej. una sala de reuniones para 30 con almuerzo incluido",
+        "context": "meeting conference function space hotel private dining catering"
+      },
+      "related": [
+        "client-lunch-warner-center",
+        "holiday-parties-catering",
+        "dine-west-valley"
+      ],
+      "sections": [
+        {
+          "id": "hotel-space",
+          "title": "Hotel meeting and function space",
+          "title_es": "Salas de reuniones en hoteles",
+          "blurb": "Boardrooms to ballrooms, steps from Warner Center.",
+          "blurb_es": "De salas de juntas a salones, a pasos de Warner Center.",
+          "members": [
+            "marriott-warner-center",
+            "hilton-woodland-hills"
+          ]
+        },
+        {
+          "id": "private-room",
+          "title": "A private room over lunch or dinner",
+          "title_es": "Un salón privado para almorzar o cenar",
+          "blurb": "The working lunch, the board dinner, the meeting that needs a door that closes.",
+          "blurb_es": "El almuerzo de trabajo, la cena de la junta, la reunión que necesita una puerta cerrada.",
+          "members": [
+            "fleming-s-prime-steakhouse-wine-bar",
+            "ruth-s-chris-steak-house",
+            "casale-na"
+          ]
+        },
+        {
+          "id": "clubs",
+          "title": "Clubs and community venues",
+          "title_es": "Clubes y espacios comunitarios",
+          "blurb": "Room for the workshop, the retreat or the association meeting.",
+          "blurb_es": "Espacio para el taller, el retiro o la reunión de la asociación.",
+          "members": [
+            "woodland-hills-country-club",
+            "tarzana-community-cultural-center",
+            "olov-club"
+          ],
+          "categories": [
+            "Banquet/Reception Hall"
+          ]
+        },
+        {
+          "id": "catering",
+          "title": "Catering for the conference room",
+          "title_es": "Catering para la sala de juntas",
+          "blurb": "Lunch brought to the meeting instead of the other way around.",
+          "blurb_es": "El almuerzo llega a la reunión, y no al revés.",
+          "members": [
+            "the-stand",
+            "cavaretta-s-italian-deli",
+            "jerk-wings-cafe",
+            "danny-s-corner-kitchen-llc",
+            "ruth-s-chris-steak-house"
+          ],
+          "categories": [
+            "Catering"
+          ]
+        },
+        {
+          "id": "coffee",
+          "title": "Coffee meetings",
+          "title_es": "Reuniones con café",
+          "blurb": "For the one-on-one that does not need a room.",
+          "blurb_es": "Para la reunión individual que no necesita sala.",
+          "members": [
+            "peet-s-coffee",
+            "trio-coffee-house"
+          ],
+          "categories": [
+            "Coffee,Tea"
+          ]
+        },
+        {
+          "id": "stay",
+          "title": "Where visiting clients stay",
+          "title_es": "Dónde se hospedan sus clientes",
+          "blurb": "Member hotels for the team flying in.",
+          "blurb_es": "Hoteles miembros para el equipo que viene de fuera.",
+          "members": [
+            "marriott-warner-center",
+            "hilton-woodland-hills",
+            "home2-suites-woodland-hills",
+            "courtyard-by-marriott-woodland-hills",
+            "st-george-motor-inn"
+          ]
+        }
+      ],
+      "title_es": "Salas de reuniones y almuerzos de negocios",
+      "kicker_es": "Guía de Negocios",
+      "lede_es": "Dónde hacer la junta directiva, el retiro, el taller o el almuerzo de trabajo en el West Valley.",
+      "intro_es": "Desde salones de hotel cerca de Warner Center hasta un salón privado para almorzar, cada lugar aquí es miembro de la Cámara. ¿Vienen clientes de fuera? Los hoteles al final de la página también son miembros."
     }
   ]
 }

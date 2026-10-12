@@ -4741,10 +4741,14 @@ function rankMembers(members, q, limit = 20) {
 
 router.post('/concierge', async (req, res) => {
   const q = String((req.body && req.body.q) || '').trim().slice(0, 400);
+  // Optional page scope from a guide or the dining page, e.g. "(holiday party,
+  // private dining or catering)". It steers matching and the model but is never
+  // echoed back, so the visitor only ever sees their own question.
+  const context = String((req.body && req.body.context) || '').trim().slice(0, 200);
   if (!q) return res.status(400).json({ error: 'Ask a question, e.g. "Who can cater a 50-person event in Tarzana?"' });
   try {
     const all = (await loadMembersPublic()).members;
-    const candidates = rankMembers(all, q, 30);
+    const candidates = rankMembers(all, context ? q + ' ' + context : q, 30);
     if (!candidates.length) {
       return res.json({ answer: `I couldn't find a Chamber member matching that. Try different words, browse the directory, or call the Chamber at (818) 347-4737.`, members: [], provider: 'none' });
     }
@@ -4755,7 +4759,7 @@ router.post('/concierge', async (req, res) => {
     const list = candidates.map((m) => `- id:${m.id} | ${m.name} | ${m.category || m.group || ''} | ${m.neighborhood || ''}${m.tagline ? ' | ' + m.tagline : ''}`).join('\n');
     const system = 'You are Wendy, the friendly concierge for the West Valley · Warner Center Chamber of Commerce. Recommend ONLY businesses from the provided member list — never invent members. Be warm, brief, and local. You may refer to yourself as Wendy.';
     // memberIds FIRST + short answer so a truncated response still yields picks.
-    const prompt = `Member candidates (id | name | category | area | tagline):\n${list}\n\nVisitor question: "${q}"\n\nChoose the up to 5 most relevant members. Reply with ONLY compact JSON, answer under 25 words:\n{"memberIds":["id1","id2"],"answer":"one short helpful sentence"}`;
+    const prompt = `Member candidates (id | name | category | area | tagline):\n${list}\n\nVisitor question: "${q}"${context ? `\nPage they are asking from: ${context}` : ''}\n\nChoose the up to 5 most relevant members. Reply with ONLY compact JSON, answer under 25 words:\n{"memberIds":["id1","id2"],"answer":"one short helpful sentence"}`;
     const raw = await llm.complete({ system, prompt, json: true, maxTokens: 800 });
     let parsed = {};
     try {
