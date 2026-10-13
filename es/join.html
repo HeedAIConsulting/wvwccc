@@ -52,6 +52,13 @@
               <div class="field"><label>Correo electrónico <span class="member-tile__meta">(será su acceso al sitio)</span></label><input name="email" type="email" required /></div>
               <div class="field"><label>Teléfono</label><input name="phone" type="tel" /></div>
             </div>
+            <!-- Website, required (Felicia, Oct 12-13 2026): a web address, or
+                 tick the box for "No website" — never left blank. -->
+            <div class="field" data-website-field>
+              <label for="joinWebsite">Sitio web del negocio</label>
+              <input id="joinWebsite" name="website" type="text" inputmode="url" autocomplete="url" maxlength="200" placeholder="sunegocio.com" required />
+              <label style="display:flex;align-items:center;gap:8px;margin-top:8px;font-weight:400;cursor:pointer"><input type="checkbox" name="noWebsite" value="yes" style="width:auto" /> No tenemos sitio web</label>
+            </div>
             <!-- Dirección del negocio (Felicia, llamada del 19 ago 2026). -->
             <div class="field"><label>Dirección del negocio</label><input name="address" maxlength="200" autocomplete="street-address" /></div>
             <div class="grid grid-2" style="gap:var(--s-3)">
@@ -172,7 +179,7 @@
 
   <script src="../js/partials.js?v=20260922a"></script>
   <script src="../js/api-base.js?v=20260818a"></script>
-  <script src="../js/chamber.js?v=20261013c"></script>
+  <script src="../js/chamber.js?v=20261013d"></script>
   <script>
     ChamberPartials.mount({ active: '', depth: 1, lang: 'es' });
     // Las cuotas se fijan por número de empleados (Cuotas Anuales 2026 — Diana
@@ -246,6 +253,7 @@
           sessionStorage.setItem('wvJoinPrefill', JSON.stringify({
             firstName: payload.firstName || '', lastName: payload.lastName || '',
             email: payload.email || '', phone: payload.phone || '', company: payload.company || '',
+            website: payload.noWebsite ? 'No website' : (payload.website || ''),
           }));
         } catch (e) { /* el pago funciona igual — reescriben sus datos */ }
         var msg = document.getElementById('joinMsg');

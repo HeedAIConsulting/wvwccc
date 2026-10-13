@@ -2284,6 +2284,7 @@ window.Admin = (function () {
           ${item('Company', l.company && esc(l.company))}
           ${item('Email', l.email && `<a href="mailto:${esc(l.email)}">${esc(l.email)}</a>`)}
           ${item('Phone', l.phone && `<a href="tel:${esc(l.phone)}">${esc(l.phone)}</a>`)}
+          ${item('Website', l.website ? (l.website === 'No website' ? 'No website' : `<a href="${esc(l.website)}" target="_blank" rel="noopener">${esc(l.website)}</a>`) : '')}
           ${item('Business address', [l.address, l.city, l.zip].filter(Boolean).length ? esc([l.address, l.city, l.zip].filter(Boolean).join(', ')) : '')}
           ${item('Representatives', Array.isArray(l.reps) && l.reps.length
             ? l.reps.map((r) => `${esc(r.name || '—')}${r.email ? ` — <a href="mailto:${esc(r.email)}">${esc(r.email)}</a>` : ''}`).join('<br>') : '')}

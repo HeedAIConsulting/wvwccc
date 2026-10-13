@@ -52,6 +52,13 @@
               <div class="field"><label>Email <span class="member-tile__meta">(this becomes your website login)</span></label><input name="email" type="email" required /></div>
               <div class="field"><label>Phone</label><input name="phone" type="tel" /></div>
             </div>
+            <!-- Website, required (Felicia, Oct 12-13 2026): a web address, or
+                 tick the box for "No website" — never left blank. -->
+            <div class="field" data-website-field>
+              <label for="joinWebsite">Business website</label>
+              <input id="joinWebsite" name="website" type="text" inputmode="url" autocomplete="url" maxlength="200" placeholder="yourbusiness.com" required />
+              <label style="display:flex;align-items:center;gap:8px;margin-top:8px;font-weight:400;cursor:pointer"><input type="checkbox" name="noWebsite" value="yes" style="width:auto" /> We don't have a website</label>
+            </div>
             <!-- Business address (Felicia, Aug 19 2026 call: the address on
                  the application is often not the billing address on the card —
                  the office needs to see the business one). REQUIRED as of
@@ -182,7 +189,7 @@
 
   <script src="js/partials.js?v=20260922a"></script>
   <script src="js/api-base.js?v=20260818a"></script>
-  <script src="js/chamber.js?v=20261013c"></script>
+  <script src="js/chamber.js?v=20261013d"></script>
   <script>
     ChamberPartials.mount({ active: '', depth: 0, lang: 'en' });
     // Dues are set by employee count (2026 Annual Membership Dues — Diana via
@@ -256,6 +263,7 @@
           sessionStorage.setItem('wvJoinPrefill', JSON.stringify({
             firstName: payload.firstName || '', lastName: payload.lastName || '',
             email: payload.email || '', phone: payload.phone || '', company: payload.company || '',
+            website: payload.noWebsite ? 'No website' : (payload.website || ''),
           }));
         } catch (e) { /* checkout still works — they retype their details */ }
         var msg = document.getElementById('joinMsg');
