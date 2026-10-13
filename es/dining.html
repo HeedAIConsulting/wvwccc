@@ -30,6 +30,11 @@
   <section class="section">
     <div class="container">
       <div id="diningFeatured" hidden></div>
+      <nav class="grid grid-3" aria-label="Guías gastronómicas" style="gap:var(--s-4);margin-bottom:var(--s-6)">
+        <a class="card card--hover guide-card" href="/es/guides/dine-west-valley"><div class="guide-card__emoji" aria-hidden="true">🍽️</div><h3 style="margin:6px 0 4px">Dónde comer, según la ocasión</h3><p class="member-tile__meta" style="margin:0">Almuerzo con clientes, mamá, todo el equipo, happy hour y más.</p></a>
+        <a class="card card--hover guide-card" href="/es/guides/client-lunch-warner-center"><div class="guide-card__emoji" aria-hidden="true">🤝</div><h3 style="margin:6px 0 4px">Almuerzo con un cliente</h3><p class="member-tile__meta" style="margin:0">Cerca de Warner Center, según el tipo de almuerzo.</p></a>
+        <a class="card card--hover guide-card" href="/es/guides/holiday-parties-catering"><div class="guide-card__emoji" aria-hidden="true">🥂</div><h3 style="margin:6px 0 4px">Fiestas navideñas y catering</h3><p class="member-tile__meta" style="margin:0">Salones privados, lugares para eventos, cenas de equipo y catering.</p></a>
+      </nav>
       <div class="card" style="padding:18px 20px;margin-bottom:var(--s-6);background:var(--cream-deep,#f3ecda);border:1px solid var(--gold-soft,#e6dcbf)">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><span style="font-size:1.3rem">🍽️</span><strong>Pregúntele a Wendy dónde comer</strong> <span class="member-tile__meta">— p. ej. "sushi en Tarzana" o "un steakhouse para una cena de negocios"</span></div>
         <form id="diningAsk" style="display:flex;gap:8px;flex-wrap:wrap">
@@ -47,7 +52,7 @@
   <div data-partial="footer"></div>
   <script src="../js/partials.js?v=20260922a"></script>
   <script src="../js/api-base.js?v=20260818a"></script>
-  <script src="../js/chamber.js?v=20261001a"></script>
+  <script src="../js/chamber.js?v=20261012a"></script>
   <script>ChamberPartials.mount({ active: 'dining', depth: 1, lang: 'es' }); Chamber.initDining(); Chamber.initFeaturedSlot('dining', '#diningFeatured', { depth: 1 });</script>
 </body>
 </html>
