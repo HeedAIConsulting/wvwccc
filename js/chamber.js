@@ -2775,13 +2775,30 @@ window.Chamber = (function () {
         fromApp = JSON.parse(sessionStorage.getItem('wvJoinPrefill') || 'null');
         sessionStorage.removeItem('wvJoinPrefill');
       } catch (e) { /* no stash — a direct visit */ }
+      // Website or "No website" on every new membership (Felicia, Oct 2026),
+      // so it reaches the receipt the office gets. Added here only, so event
+      // tickets and donations never ask for it.
+      const pfw = document.getElementById('payForm');
+      const phoneEl = pfw && pfw.querySelector('[name="phone"]');
+      if (phoneEl && !pfw.querySelector('[name="website"]')) {
+        const wrap = document.createElement('div');
+        wrap.className = 'field'; wrap.setAttribute('data-website-field', '');
+        wrap.innerHTML = '<label for="payWebsite">Business website</label>'
+          + '<input id="payWebsite" name="website" type="text" inputmode="url" autocomplete="url" maxlength="200" placeholder="yourbusiness.com" required />'
+          + '<label style="display:flex;align-items:center;gap:8px;margin-top:8px;font-weight:400;cursor:pointer"><input type="checkbox" name="noWebsite" value="yes" style="width:auto" /> We don\'t have a website</label>';
+        (phoneEl.closest('.grid') || phoneEl.closest('.field')).insertAdjacentElement('afterend', wrap);
+      }
       if (fromApp) {
         const pf = document.getElementById('payForm');
         ['firstName', 'lastName', 'email', 'phone', 'company'].forEach((n) => {
           const el = pf && pf.querySelector(`[name="${n}"]`);
           if (el && !el.value && fromApp[n]) el.value = String(fromApp[n]);
         });
+        const w = pf && pf.querySelector('[name="website"]');
+        if (w && fromApp.website === 'No website') { const nb = pf.querySelector('[name="noWebsite"]'); if (nb) nb.checked = true; }
+        else if (w && !w.value && fromApp.website) w.value = String(fromApp.website);
       }
+      wireWebsiteField(pfw);
       // With a dues + activation breakdown on the sku (2026 dues sheet), the
       // total is a first-year figure — calling it "Annual dues" would misstate
       // what renews next year, so the line spells out both parts.
@@ -2940,6 +2957,9 @@ window.Chamber = (function () {
             amount: amountInput.value,
             firstName: fd.get('firstName'), lastName: fd.get('lastName'), email: fd.get('email'),
             company: fd.get('company'), phone: fd.get('phone'),
+            // Only membership checkout has these (see the website field above).
+            website: fd.get('noWebsite') ? 'No website' : (fd.get('website') || ''),
+            noWebsite: fd.get('noWebsite') ? 'yes' : '',
             // AVS: the gateway requires billing street + ZIP with every charge.
             address1: fd.get('address1'), city: fd.get('city'), state: fd.get('state'), zip: fd.get('zip'),
             // Masked card info from Collect.js (e.g. "411111******1111", "visa") —
@@ -3027,11 +3047,35 @@ window.Chamber = (function () {
       ? 'https://formspree.io/p/' + LEAD_FS_PROJECT + '/f/' + LEAD_FS_KEY[kind]
       : 'https://formspree.io/f/' + LEAD_FS_GENERAL;
   }
+  /* "Business website" + "We don't have a website" (Felicia, Oct 2026).
+     Ticking the box clears and disables the address, so exactly one of the
+     two is always given; the address must look like a domain. */
+  function wireWebsiteField(form) {
+    const input = form && form.querySelector('[name="website"]');
+    const none = form && form.querySelector('[name="noWebsite"]');
+    if (!input || !none || input.dataset.wired) return;
+    input.dataset.wired = '1';
+    const es = LANG === 'es';
+    const sync = () => {
+      input.disabled = none.checked; input.required = !none.checked;
+      if (none.checked) { input.value = ''; input.setCustomValidity(''); }
+    };
+    const check = () => {
+      const v = input.value.trim();
+      const ok = !v || /^(none|n\/?a)$/i.test(v) || (!/\s/.test(v) && /^(https?:\/\/)?[a-z0-9.-]+\.[a-z]{2,}(\/\S*)?$/i.test(v));
+      input.setCustomValidity(ok ? '' : (es ? 'Escriba algo como sunegocio.com, o marque “No tenemos sitio web”.' : 'Use something like yourbusiness.com, or tick “We don’t have a website”.'));
+    };
+    none.addEventListener('change', sync);
+    input.addEventListener('input', check);
+    sync();
+  }
+
   function initLeadForm(formId, msgId, kind, opts) {
     const form = document.getElementById(formId);
     const msg = document.getElementById(msgId);
     if (!form) return;
     mountTurnstile(form);
+    wireWebsiteField(form);
     // Honeypot — bots fill every box; humans never see this one. Formspree
     // discards `_gotcha` submissions natively and /api/contact files them as
     // spam, so both delivery channels stay clean (Felicia, Jul 31 2026).

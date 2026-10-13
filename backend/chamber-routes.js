@@ -19,6 +19,7 @@ import * as email from './email.js';
 import { SOCIAL_KEYS, normalizeUrl, sanitizePrimaryImage, sanitizeTeam, buildRewritePrompt, parseRewriteResponse } from './profile-helpers.js';
 import { registerNewsletterImport } from './newsletter-import.js';
 import { BIZBUZZ_KEY, cleanBizBuzz, loadBizBuzz } from './bizbuzz.js';
+import { readWebsite, memberWebsite } from './website-field.js';
 
 const router = express.Router();
 
@@ -4315,6 +4316,9 @@ router.post('/pay', async (req, res) => {
       kind: b.kind, sku: b.sku || '', email: b.email || '',
       name: [b.firstName, b.lastName].filter(Boolean).join(' '),
       phone: String(b.phone || '').slice(0, 40), company: String(b.company || '').slice(0, 160),
+      // A membership payment carries the applicant's website, or "No website"
+      // (Felicia, Oct 2026: it was missing from the receipt the office gets).
+      website: b.website || b.noWebsite ? (readWebsite(b.website, b.noWebsite).value || String(b.website || '').slice(0, 200)) : '',
       // Billing address (Felicia, Aug 25 2026): it was always collected for
       // AVS but dropped here, so no receipt or applicant view could ever show
       // it. Persisted now — orders from before today simply won't have one.
@@ -4410,6 +4414,7 @@ router.post('/pay', async (req, res) => {
             ${row('Name', order.name)}
             ${row('Email', b.email)}
             ${row('Phone', b.phone)}
+            ${row('Website', order.website)}
             ${b.invitedBy ? row('Invited by', String(b.invitedBy).slice(0, 80)) : ''}
             ${(Array.isArray(b.attendees) ? b.attendees.slice(0, 10) : [])
               .map((a, i) => row(`Attendee ${i + 1}`,
@@ -4427,7 +4432,7 @@ router.post('/pay', async (req, res) => {
             exchange for this gift except as described above. Keep this receipt for your tax records.</p>` : ''}
         </div>`;
       const text = `THANK YOU\nOrder #${ref}\n\n`
-        + `Name: ${order.name}\n${isTicket ? `Event: ${eventLine}\nTickets Qty: ${b.quantity || 1}\n` : `Description: ${b.description || b.sku || b.kind}\n`}`
+        + `Name: ${order.name}\n${order.website ? `Website: ${order.website}\n` : ''}${isTicket ? `Event: ${eventLine}\nTickets Qty: ${b.quantity || 1}\n` : `Description: ${b.description || b.sku || b.kind}\n`}`
         + `${b.cardLast4 ? `Card Number: XXXX-${b.cardLast4}\n` : ''}GRAND TOTAL: ${amt}\n\nPaid to: ${entity.name}`
         + `${entity.taxDeductible ? '\nThe Foundation is a 501(c)(3) charitable organization — keep this receipt for your tax records.' : ''}`
         + `\n\nWest Valley · Warner Center Chamber of Commerce`;
@@ -4453,8 +4458,11 @@ function leadSmellsLikeSpam(b, lead) {
   // Event fields are screened too — they end up in outbound email subjects
   // and bodies, so a URL planted there is exactly as bad as one in the
   // message (Aug 20 2026 review).
+  // The applicant's own website (required on the application since Oct 2026)
+  // is not a planted link, so it is left out of the count.
   const text = [lead.name, lead.company, lead.message, lead.event, b.eventTitle,
-    ...(Array.isArray(b.attendees) ? b.attendees.map((a) => `${(a && a.name) || ''} ${(a && a.email) || ''}`) : [])].join(' ');
+    ...(Array.isArray(b.attendees) ? b.attendees.map((a) => `${(a && a.name) || ''} ${(a && a.email) || ''}`) : [])].join(' ')
+    .split(lead.website && lead.website !== 'No website' ? lead.website : '\u0000').join(' ');
   const links = (text.match(/https?:\/\/|www\.[a-z0-9-]/gi) || []).length;
   if (links >= 2) return true;
   const pitch = /(backlinks?|link.?building|guest post|seo (ranking|service|package)|rank (on google|#?1)|page ?(one|1) of google|website traffic|mass (e-?mail|marketing)|buy followers|crypto(currency)?|bitcoin|forex|casino|viagra|cialis|escorts?|adult traffic|loan (offer|approval))/i;
@@ -4496,6 +4504,10 @@ router.post('/contact', async (req, res) => {
   // representatives (Felicia, Aug 19 2026 call) are ALSO stored structured on
   // the lead, so approval can copy them into the member record.
   if (lead.kind === 'membership-application') {
+    // Website or "No website", never blank (Felicia, Oct 12-13 2026).
+    const site = readWebsite(b.website, b.noWebsite);
+    if (!site.ok) return res.status(400).json({ ok: false, error: site.error });
+    lead.website = site.value;
     lead.address = String(b.address || '').trim().slice(0, 200);
     lead.city = String(b.city || '').trim().slice(0, 80);
     lead.zip = String(b.zip || '').trim().slice(0, 20);
@@ -4510,6 +4522,7 @@ router.post('/contact', async (req, res) => {
     lead.message = [
       b.businessType ? `Business type: ${String(b.businessType).slice(0, 120)}` : '',
       b.employees ? `Employees: ${String(b.employees).slice(0, 20)}` : '',
+      lead.website ? `Website: ${lead.website}` : '',
       (lead.address || lead.city || lead.zip) ? `Business address: ${[lead.address, lead.city, lead.zip].filter(Boolean).join(', ')}` : '',
       b.nonprofit ? 'Non-profit rate requested: yes (501(c)(3) letter required)' : '',
       b.level ? `Level of interest: ${String(b.level).slice(0, 80)}` : '',
@@ -5623,7 +5636,7 @@ router.post('/admin/leads/:id/approve-member', requireAdmin, async (req, res) =>
       // Business address from the application (Felicia, Aug 19 2026 call) —
       // before this, staff re-typed it from the receipt or a phone call.
       address: String(lead.address || '').slice(0, 200), city: String(lead.city || '').slice(0, 80),
-      state: '', zip: String(lead.zip || '').slice(0, 20), website: '', tagline: '',
+      state: '', zip: String(lead.zip || '').slice(0, 20), website: memberWebsite(lead.website), tagline: '',
       description: '', joinDate: new Date().toISOString().slice(0, 10),
       tags: [], status: 'approved', seal: (name[0] || '?').toUpperCase(),
       paymentType: 'offline', addedManually: true, leaderStatus: 'New Member',
