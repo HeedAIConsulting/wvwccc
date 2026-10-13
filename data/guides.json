@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "note": "Community guides — each renders at /guides/<slug> from guides/view.html. Members are matched live from the directory by category (exact) and keyword (substring against name/category/keywords/tagline). Each guide has a featured-placement slot 'guide:<slug>' managed in Admin → Sponsorships. Optional (Oct 2026): `sections` [{id,title,blurb,members:[slug],categories}] render curated groups that also auto-add members in `categories`; `ask` adds a scoped Ask Wendy box; `deals` shows member offers from businesses in the guide; `related` lists sibling guide slugs.",
+    "note": "Community guides — each renders at /guides/<slug> from guides/view.html. Members are matched live from the directory by category (exact) and keyword (substring against name/category/keywords/tagline). Each guide has a featured-placement slot 'guide:<slug>' managed in Admin → Sponsorships. Optional (Oct 2026): `sections` [{id,title,blurb,members:[slug],categories}] render curated groups that also auto-add members in `categories`; `ask` adds a scoped Ask Wendy box; `deals` shows member offers from businesses in the guide; `related` lists sibling guide slugs. Optional `image`: a 1200x630 cover under /images/guides/, made in Canva; used for link previews and guide cards.",
     "schema_version": 1
   },
   "guides": [
@@ -419,7 +419,8 @@
       "title_es": "Dine West Valley: dónde comer, según la ocasión",
       "kicker_es": "Guía Gastronómica",
       "lede_es": "Todos los restaurantes miembros del West Valley, ordenados según lo que usted quiere hacer.",
-      "intro_es": "Un almuerzo con un cliente, el cumpleaños de mamá, todo el equipo o veinte minutos entre llamadas: empiece aquí. Cada restaurante en esta guía es miembro de la Cámara, y la guía se actualiza sola cuando se unen nuevos miembros."
+      "intro_es": "Un almuerzo con un cliente, el cumpleaños de mamá, todo el equipo o veinte minutos entre llamadas: empiece aquí. Cada restaurante en esta guía es miembro de la Cámara, y la guía se actualiza sola cuando se unen nuevos miembros.",
+      "image": "/images/guides/dine-west-valley.jpg"
     },
     {
       "slug": "client-lunch-warner-center",
@@ -499,7 +500,8 @@
       "title_es": "Dónde llevar a un cliente a almorzar cerca de Warner Center",
       "kicker_es": "Guía Gastronómica",
       "lede_es": "Converse de verdad, cause buena impresión y llegue a tiempo a su cita de las dos.",
-      "intro_es": "Cada opción es un miembro de la Cámara a poca distancia de Warner Center, ordenada según el tipo de almuerzo. Elija en un minuto y dedique el resto a la agenda."
+      "intro_es": "Cada opción es un miembro de la Cámara a poca distancia de Warner Center, ordenada según el tipo de almuerzo. Elija en un minuto y dedique el resto a la agenda.",
+      "image": "/images/guides/client-lunch-warner-center.jpg"
     },
     {
       "slug": "holiday-parties-catering",
@@ -637,7 +639,8 @@
       "title_es": "Guía de fiestas navideñas y catering",
       "kicker_es": "Guía Navideña",
       "lede_es": "Salones privados, cenas de equipo, lugares para eventos y catering para la temporada, todo de miembros de la Cámara.",
-      "intro_es": "¿Organiza la fiesta de la oficina, la cena de agradecimiento a sus clientes o las bandejas para la última reunión del año? Cada negocio aquí es miembro de la Cámara en el West Valley. Diciembre se llena rápido, así que reserve con tiempo. Los miembros publican aquí sus ofertas navideñas para empresas."
+      "intro_es": "¿Organiza la fiesta de la oficina, la cena de agradecimiento a sus clientes o las bandejas para la última reunión del año? Cada negocio aquí es miembro de la Cámara en el West Valley. Diciembre se llena rápido, así que reserve con tiempo. Los miembros publican aquí sus ofertas navideñas para empresas.",
+      "image": "/images/guides/holiday-parties-catering.jpg"
     },
     {
       "slug": "meeting-spaces-business-lunches",
@@ -746,7 +749,8 @@
       "title_es": "Salas de reuniones y almuerzos de negocios",
       "kicker_es": "Guía de Negocios",
       "lede_es": "Dónde hacer la junta directiva, el retiro, el taller o el almuerzo de trabajo en el West Valley.",
-      "intro_es": "Desde salones de hotel cerca de Warner Center hasta un salón privado para almorzar, cada lugar aquí es miembro de la Cámara. ¿Vienen clientes de fuera? Los hoteles al final de la página también son miembros."
+      "intro_es": "Desde salones de hotel cerca de Warner Center hasta un salón privado para almorzar, cada lugar aquí es miembro de la Cámara. ¿Vienen clientes de fuera? Los hoteles al final de la página también son miembros.",
+      "image": "/images/guides/meeting-spaces-business-lunches.jpg"
     }
   ]
 }

@@ -80,3 +80,42 @@ test('the guide renderer sends Ask Wendy scope separately from the question', ()
   assert.match(routes, /rankMembers\(all, context \? q \+ ' ' \+ context : q, 30\)/);
   assert.match(routes, /closest Chamber members for "\$\{q\}"/);
 });
+
+/* Covers and link previews (Oct 13 2026). A guide's `image` must be a real
+   file, and the server must stamp that guide's own title, description and
+   cover into the HTML, because social sites never run the page's JavaScript. */
+import { existsSync, statSync } from 'node:fs';
+import { stampGuideHtml, guideShareFields } from '../guide-meta.js';
+
+test('every guide cover exists on disk', () => {
+  for (const g of guides) {
+    if (!g.image) continue;
+    assert.match(g.image, /^\/images\/guides\/[a-z0-9-]+\.(jpg|png|webp)$/, g.slug);
+    const f = new URL('.' + g.image, ROOT);
+    assert.ok(existsSync(f), `${g.slug}: ${g.image} is missing`);
+    assert.ok(statSync(f).size > 10_000, `${g.slug}: ${g.image} looks empty`);
+  }
+});
+
+test('a guide page is stamped with its own share tags', () => {
+  const page = '<html><head>\n<title>Community Guide</title>\n</head><body></body></html>';
+  const g = bySlug.get('holiday-parties-catering');
+  const out = stampGuideHtml(page, g, 'en', 'https://woodlandhillscc.net');
+  assert.match(out, /<title>Holiday Party &amp; Catering Guide — West Valley · Warner Center Chamber of Commerce<\/title>/);
+  assert.match(out, /property="og:image" content="https:\/\/woodlandhillscc\.net\/images\/guides\/holiday-parties-catering\.jpg"/);
+  assert.match(out, /property="og:url" content="https:\/\/woodlandhillscc\.net\/guides\/holiday-parties-catering"/);
+  assert.match(out, /name="twitter:card" content="summary_large_image"/);
+  assert.equal((out.match(/<\/head>/g) || []).length, 1);
+});
+
+test('the Spanish page gets the Spanish title and URL, and quotes are escaped', () => {
+  const g = { slug: 'x', title: 'A "quoted" <guide>', title_es: 'Guía', lede: 'L', lede_es: 'Resumen' };
+  const es = guideShareFields(g, 'es', 'https://example.org');
+  assert.equal(es.url, 'https://example.org/es/guides/x');
+  assert.match(es.title, /^Guía — /);
+  assert.equal(es.description, 'Resumen');
+  const out = stampGuideHtml('<head><title>t</title></head>', g, 'en', 'https://example.org');
+  assert.ok(!out.includes('<guide>'), 'raw markup leaked into the head');
+  assert.match(out, /A &quot;quoted&quot; &lt;guide&gt;/);
+  assert.match(out, /og:image" content="https:\/\/example\.org\/images\/wvwccc-logo\.png"/, 'no cover falls back to the seal');
+});
