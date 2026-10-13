@@ -73,6 +73,7 @@ app.get('/api/chamber', (_req, res) => res.json({ ok: true, live: true, service:
 // ── API routes (payments, concierge) ──────────────────────
 import chamberRoutes, { sitemapEntries, loadMembersPublic } from './backend/chamber-routes.js';
 import { legacyMemberPath } from './backend/legacy-urls.js';
+import { stampGuideHtml } from './backend/guide-meta.js';   // guide pages stamp their own link-preview tags
 import * as repo from './backend/repo.js';   // album pages stamp their own og:* tags
 app.use('/api', chamberRoutes);
 app.get('/api/ping', (_req, res) => res.json({ ok: true, service: 'wvwccc' }));
@@ -251,16 +252,30 @@ app.get('/groups/:slug', (req, res, next) => {
   if ((req.params.slug || '').includes('.')) return next();
   res.sendFile(path.join(__dirname, 'groups', 'view.html'), (err) => { if (err) next(); });
 });
-// Pretty guide URLs: /guides/<slug> → community guide renderer.
-app.get('/guides/:slug', (req, res, next) => {
-  if ((req.params.slug || '').includes('.')) return next();
-  res.sendFile(path.join(__dirname, 'guides', 'view.html'), (err) => { if (err) next(); });
-});
+// Pretty guide URLs: /guides/<slug> → community guide renderer, with the
+// guide's own title, description and cover stamped into the link-preview tags
+// (backend/guide-meta.js). An unknown slug, or any read error, falls back to
+// the plain page, which shows its own "guide not found".
+const sendGuidePage = (lang) => async (req, res, next) => {
+  const slug = req.params.slug || '';
+  if (slug.includes('.')) return next();
+  const file = lang === 'es' ? path.join(__dirname, 'es', 'guides', 'view.html') : path.join(__dirname, 'guides', 'view.html');
+  try {
+    const [html, raw] = await Promise.all([
+      fs.promises.readFile(file, 'utf8'),
+      fs.promises.readFile(path.join(__dirname, 'data', 'guides.json'), 'utf8'),
+    ]);
+    const g = (JSON.parse(raw).guides || []).find((x) => x.slug === slug);
+    if (!g) return res.sendFile(file, (err) => { if (err) next(); });
+    res.type('html').send(stampGuideHtml(html, g, lang, SITE_ORIGIN));
+  } catch (e) {
+    console.error('guide page', e);
+    res.sendFile(file, (err) => { if (err) next(); });
+  }
+};
+app.get('/guides/:slug', sendGuidePage('en'));
 // Spanish pretty guide URLs: /es/guides/<slug> → Spanish guide renderer.
-app.get('/es/guides/:slug', (req, res, next) => {
-  if ((req.params.slug || '').includes('.')) return next();
-  res.sendFile(path.join(__dirname, 'es', 'guides', 'view.html'), (err) => { if (err) next(); });
-});
+app.get('/es/guides/:slug', sendGuidePage('es'));
 /* Short link for the payment portal (Felicia, Jul 30 2026). She reads this one
    down the phone and pastes it into invoices, so /paynow beats /pay-now.html. */
 app.get(['/paynow', '/pay-now'], (_req, res) => res.redirect(302, '/pay-now.html'));

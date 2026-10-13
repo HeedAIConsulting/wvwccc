@@ -3677,6 +3677,13 @@ window.Chamber = (function () {
     if (el) el.outerHTML = joinCtaHtml(opts.depth || 0, opts);
   }
 
+  // A guide card shows its Canva cover when it has one, otherwise its emoji.
+  function guideCardArt(g) {
+    return g.image
+      ? `<img src="${esc(g.image)}" alt="" loading="lazy" width="1200" height="630" style="display:block;width:100%;height:auto;aspect-ratio:1200/630;object-fit:cover;border-radius:var(--r-md,10px);margin-bottom:10px">`
+      : `<div class="guide-card__emoji" aria-hidden="true">${esc(g.emoji || '📘')}</div>`;
+  }
+
   // ── Community guides (/guides) ───────────────────────────
   async function initGuides() {
     const grid = document.getElementById('guideGrid');
@@ -3686,7 +3693,7 @@ window.Chamber = (function () {
     const gbase = LANG === 'es' ? '/es/guides/' : '/guides/';
     grid.innerHTML = guides.length ? guides.map((g) => `
       <a class="card card--hover guide-card" href="${gbase}${esc(g.slug)}">
-        <div class="guide-card__emoji" aria-hidden="true">${esc(g.emoji || '📘')}</div>
+        ${guideCardArt(g)}
         <h3>${esc((LANG === 'es' && g.title_es) || g.title)}</h3>
         <p class="member-tile__meta">${esc((LANG === 'es' && g.lede_es) || g.lede || '')}</p>
         <span class="btn btn--forest btn--sm mt-3">${tr('Open guide →')}</span>
@@ -3881,7 +3888,7 @@ window.Chamber = (function () {
       <h2 style="margin:var(--s-7) 0 var(--s-4)">${L ? 'Más guías' : 'More guides'}</h2>
       <div class="grid grid-3" style="gap:var(--s-4)">${list.map((x) => `
         <a class="card card--hover guide-card" href="${base}${esc(x.slug)}">
-          <div class="guide-card__emoji" aria-hidden="true">${esc(x.emoji || '📘')}</div>
+          ${guideCardArt(x)}
           <h3 style="margin:6px 0 4px">${esc((L && x.title_es) || x.title)}</h3>
           <p class="member-tile__meta" style="margin:0">${esc((L && x.lede_es) || x.lede || '')}</p>
         </a>`).join('')}</div>`;
