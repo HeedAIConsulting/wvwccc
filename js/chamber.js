@@ -3398,6 +3398,9 @@ window.Chamber = (function () {
   }
   // The latest Valley Biz Connect issues, straight from Admin → Content →
   // Newsletters, so the box updates itself when the office publishes one.
+  // The box already says "Valley Biz Connect"; an issue titled "Valley Biz
+  // Connect October 2026" (as October's was) would read the name twice.
+  const issueLabel = (t) => String(t || '').replace(/^\s*valley\s+biz\s+connect\b[\s—–:|-]*/i, '').trim() || String(t || '');
   async function loadBizEditions() {
     const box = document.getElementById('bizEditions'); if (!box) return;
     const L = LANG === 'es';
@@ -3406,7 +3409,7 @@ window.Chamber = (function () {
     issues = issues.filter((p) => p.linkUrl).slice(0, 3);
     box.innerHTML = issues.length
       ? `<div style="font-family:var(--mono);font-size:.64rem;letter-spacing:.14em;text-transform:uppercase;color:var(--gold-bright);margin-bottom:10px">${L ? 'Ediciones recientes' : 'Latest issues'}</div>`
-        + issues.map((p) => `<a href="${esc(p.linkUrl)}" target="_blank" rel="noopener" style="display:flex;gap:10px;align-items:center;color:#fff;text-decoration:none;padding:10px 12px;border:1px solid rgba(255,255,255,.22);border-radius:10px;margin-bottom:8px"><span style="font-size:1.15rem" aria-hidden="true">📄</span><span><strong>Valley Biz Connect</strong><br><span style="font-size:.82rem;color:rgba(255,255,255,.78)">${esc(p.title || '')}</span></span></a>`).join('')
+        + issues.map((p) => `<a href="${esc(p.linkUrl)}" target="_blank" rel="noopener" style="display:flex;gap:10px;align-items:center;color:#fff;text-decoration:none;padding:10px 12px;border:1px solid rgba(255,255,255,.22);border-radius:10px;margin-bottom:8px"><span style="font-size:1.15rem" aria-hidden="true">📄</span><span><strong>Valley Biz Connect</strong><br><span style="font-size:.82rem;color:rgba(255,255,255,.78)">${esc(issueLabel(p.title))}</span></span></a>`).join('')
       : '';
   }
 
