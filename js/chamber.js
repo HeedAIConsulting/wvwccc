@@ -3338,9 +3338,20 @@ window.Chamber = (function () {
   // Newspaper layout for Valley Biz Buzz (masthead + lead story + columns).
   async function initBizBuzz() {
     const el = document.getElementById('bizbuzz'); if (!el) return;
+    // Office-edited settings (Admin → Content → Biz Buzz page). If they cannot
+    // load, the page keeps the copy already in its HTML.
+    let cfg = null;
+    try { cfg = (await getJSON(ChamberAPI.url('/api/bizbuzz-page'))).page || null; } catch (e) {}
+    applyBizBuzzSettings(cfg);
+    loadBizEditions();
+    if (cfg && cfg.showStories === false) { el.hidden = true; const dl0 = document.getElementById('bizDateline'); if (dl0) dl0.hidden = true; return; }
     let posts = [];
     try { posts = (await getJSON(ChamberAPI.url('/api/posts?type=news'))).posts || []; }
     catch (e) { el.innerHTML = '<div class="notice">Could not load right now.</div>'; return; }
+    if (cfg && cfg.storyMonths > 0) {
+      const cutoff = new Date(); cutoff.setMonth(cutoff.getMonth() - cfg.storyMonths);
+      posts = posts.filter((p) => !p.created || new Date(p.created) >= cutoff);
+    }
     const dl = document.getElementById('bizDateline');
     if (dl) dl.innerHTML = `<span>${LANG === 'es' ? 'Desde 1930' : 'Since 1930'}</span><span>${new Date().toLocaleDateString(LANG === 'es' ? 'es-ES' : undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span><span class="biz-hide-sm">Tarzana · Woodland Hills · Reseda · Warner Center</span>`;
     if (!posts.length) { el.innerHTML = '<p class="notice">No news yet — check back soon.</p>'; return; }
@@ -3370,6 +3381,33 @@ window.Chamber = (function () {
     render();
     await loadPreviews(posts);
     render();
+  }
+
+  // Section visibility for everyone; the wording only on the English page,
+  // since the office writes it in English (the Spanish page keeps its own).
+  function applyBizBuzzSettings(cfg) {
+    if (!cfg) return;
+    const show = (id, on) => { const n = document.getElementById(id); if (n) n.hidden = !on; };
+    show('podcast', cfg.showPodcast !== false);
+    show('newsletter', cfg.showNewsletter !== false);
+    if (LANG === 'es') return;
+    const set = (id, v) => { const n = document.getElementById(id); if (n && v) n.textContent = v; };
+    set('bizTagline', cfg.tagline);
+    set('podcastBlurb', cfg.podcastBlurb);
+    set('newsletterBlurb', cfg.newsletterBlurb);
+  }
+  // The latest Valley Biz Connect issues, straight from Admin → Content →
+  // Newsletters, so the box updates itself when the office publishes one.
+  async function loadBizEditions() {
+    const box = document.getElementById('bizEditions'); if (!box) return;
+    const L = LANG === 'es';
+    let issues = [];
+    try { issues = (await getJSON(ChamberAPI.url('/api/posts?type=newsletter'))).posts || []; } catch (e) {}
+    issues = issues.filter((p) => p.linkUrl).slice(0, 3);
+    box.innerHTML = issues.length
+      ? `<div style="font-family:var(--mono);font-size:.64rem;letter-spacing:.14em;text-transform:uppercase;color:var(--gold-bright);margin-bottom:10px">${L ? 'Ediciones recientes' : 'Latest issues'}</div>`
+        + issues.map((p) => `<a href="${esc(p.linkUrl)}" target="_blank" rel="noopener" style="display:flex;gap:10px;align-items:center;color:#fff;text-decoration:none;padding:10px 12px;border:1px solid rgba(255,255,255,.22);border-radius:10px;margin-bottom:8px"><span style="font-size:1.15rem" aria-hidden="true">📄</span><span><strong>Valley Biz Connect</strong><br><span style="font-size:.82rem;color:rgba(255,255,255,.78)">${esc(p.title || '')}</span></span></a>`).join('')
+      : '';
   }
 
   // ── Board of Directors / leadership (data-driven from leaderStatus) ──

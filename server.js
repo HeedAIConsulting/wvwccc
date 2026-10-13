@@ -73,7 +73,8 @@ app.get('/api/chamber', (_req, res) => res.json({ ok: true, live: true, service:
 // ── API routes (payments, concierge) ──────────────────────
 import chamberRoutes, { sitemapEntries, loadMembersPublic } from './backend/chamber-routes.js';
 import { legacyMemberPath } from './backend/legacy-urls.js';
-import { stampGuideHtml } from './backend/guide-meta.js';   // guide pages stamp their own link-preview tags
+import { stampGuideHtml } from './backend/guide-meta.js';
+import { loadBizBuzz } from './backend/bizbuzz.js';      // Biz Buzz page can be taken down from Admin   // guide pages stamp their own link-preview tags
 import * as repo from './backend/repo.js';   // album pages stamp their own og:* tags
 app.use('/api', chamberRoutes);
 app.get('/api/ping', (_req, res) => res.json({ ok: true, service: 'wvwccc' }));
@@ -114,6 +115,17 @@ app.get(/^\/[^/]+\.php$/i, (_req, res) => res.redirect(302, '/'));
 // The page is gone, but it was in the site menu for a year and Google has it
 // indexed, so send those hits to About rather than dead-ending them.
 app.get(['/leaders.html', '/leaders'], (_req, res) => res.redirect(301, '/about.html'));
+
+// ── Valley Biz Buzz page, taken down from Admin → Content (Oct 2026) ──
+// While the office has it switched off, its address sends visitors to the
+// podcast page, which is the Valley Biz Buzz, rather than to a dead end.
+app.get(['/community/news.html', '/community/news', '/es/community/news.html', '/es/community/news'], async (req, res, next) => {
+  try {
+    if (!(await loadBizBuzz(repo)).hidden) return next();
+    res.set('Cache-Control', 'no-store');
+    res.redirect(302, req.path.startsWith('/es/') ? '/es/community/podcast.html' : '/community/podcast.html');
+  } catch (e) { next(); }
+});
 
 // ── Static site ────────────────────────────────────────────
 // Serve clean URLs (/directory -> members/directory.html handled by links;

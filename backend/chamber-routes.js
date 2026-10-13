@@ -18,6 +18,7 @@ import * as turnstile from './turnstile.js';
 import * as email from './email.js';
 import { SOCIAL_KEYS, normalizeUrl, sanitizePrimaryImage, sanitizeTeam, buildRewritePrompt, parseRewriteResponse } from './profile-helpers.js';
 import { registerNewsletterImport } from './newsletter-import.js';
+import { BIZBUZZ_KEY, cleanBizBuzz, loadBizBuzz } from './bizbuzz.js';
 
 const router = express.Router();
 
@@ -3298,6 +3299,21 @@ function cleanPopup(b) {
     retireAt: /^\d{4}-\d{2}-\d{2}([T ]\d{2}:\d{2})?/.test(String(b.retireAt || '')) ? String(b.retireAt).slice(0, 25) : '',
   };
 }
+// ── Valley Biz Buzz page settings (backend/bizbuzz.js) ──────
+router.get('/bizbuzz-page', async (_req, res) => {
+  res.json({ page: await loadBizBuzz(repo) });
+});
+router.get('/admin/bizbuzz-page', requireAdmin, async (_req, res) => {
+  res.json({ page: await loadBizBuzz(repo) });
+});
+router.post('/admin/bizbuzz-page', requireAdmin, async (req, res) => {
+  try {
+    const page = cleanBizBuzz(req.body || {});
+    await repo.setSetting(BIZBUZZ_KEY, JSON.stringify(page));
+    res.json({ ok: true, page });
+  } catch (e) { console.error('bizbuzz save', e); res.status(500).json({ error: 'Could not save. Try again.' }); }
+});
+
 router.get('/home-popup', async (_req, res) => {
   try { res.json({ popup: await loadPopup() }); }
   catch (e) { console.error('home-popup', e); res.status(500).json({ error: 'failed' }); }

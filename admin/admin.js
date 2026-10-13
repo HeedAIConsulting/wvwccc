@@ -190,7 +190,14 @@ window.Admin = (function () {
       const E = d.events.filter((e) => hit(e.title) || hit(e.venue) || hit(e.category) || hit(e.date)).slice(0, 6);
       const O = d.orders.filter((o) => hit(o.name) || hit(o.email) || hit(o.sku) || hit(o.transactionId) || hit(String(o.amount))).slice(0, 6);
       const L = d.leads.filter((l) => hit(l.name) || hit(l.email) || hit(l.kind) || hit(l.reason) || hit(l.message) || hit(l.event)).slice(0, 6);
+      // "How do I…" tasks from the Guide, so a search for a page or a job
+      // ("biz buzz", "welcome letter") lands on the place to do it. Diana,
+      // Oct 13 2026: she searched for Biz Buzz here and got "No matches".
+      const words = q.split(/\s+/).filter(Boolean);
+      const H = HELP.filter((h) => words.every((w) => (h.t + ' ' + h.kw).toLowerCase().includes(w))).slice(0, 4);
       const out = [];
+      if (H.length) out.push(`<div style="${grpCss}">How do I…</div>` + H.map((h) =>
+        `<a style="${rowCss}" href="${esc(h.href)}?help=${encodeURIComponent(h.id)}"><span>💡</span><span><b>${esc(h.t)}</b><br><span style="color:var(--slate-mid)">${esc(h.tip || '')}</span></span></a>`).join(''));
       if (M.length) out.push(`<div style="${grpCss}">Members</div>` + M.map((m) =>
         `<a style="${rowCss}" href="members.html?focus=${encodeURIComponent(m.id)}"><span>◉</span><span><b>${esc(m.name)}</b>${m.contactName ? ' — ' + esc(m.contactName) : ''}<br><span style="color:var(--slate-mid)">${esc(m.category || '')}</span></span></a>`).join(''));
       if (E.length) out.push(`<div style="${grpCss}">Events</div>` + E.map((e) =>
@@ -203,7 +210,7 @@ window.Admin = (function () {
         const dest = (sec === 'membership' || sec === 'interest') ? 'membership.html' : 'leads.html';
         return `<a style="${rowCss}" href="${dest}?q=${encodeURIComponent(q)}"><span>${sec === 'membership' || sec === 'interest' ? '📋' : '✉'}</span><span><b>${esc(l.name || l.email || 'Inquiry')}</b><br><span style="color:var(--slate-mid)">${esc(l.reason || l.kind || '')} · ${esc(dateOf(l))}</span></span></a>`;
       }).join(''));
-      panel.innerHTML = out.length ? out.join('') : '<div style="padding:12px;color:var(--slate-mid,#6b7a72)">No matches. Try a name, event title, amount, or email.</div>';
+      panel.innerHTML = out.length ? out.join('') : '<div style="padding:12px;color:var(--slate-mid,#6b7a72)">No matches. Try a name, event title, amount, email, or what you want to do.</div>';
     }
     let deb;
     input.addEventListener('input', () => { clearTimeout(deb); deb = setTimeout(() => search(input.value), 200); });
@@ -232,6 +239,7 @@ window.Admin = (function () {
     { id: 'event-create', t: 'Create or edit an event', kw: 'event create edit add date venue ticket calendar feature homepage', href: 'events.html', sel: '#eventForm', tip: 'Fill in the event here. Toggle “Feature on homepage” to spotlight it.' },
     { id: 'event-flyer', t: 'Make an event from a flyer (AI auto-fill)', kw: 'event flyer poster pdf upload ai autofill', href: 'events.html', sel: '#evFlyer', tip: 'Upload a flyer (image or PDF) and the AI reads it and fills the event form for you to review.' },
     { id: 'member-edit', t: 'Edit a member’s profile / listing', kw: 'member profile edit description services accomplishments associations social logo photos', href: 'members.html', sel: '#memberSearch', tip: 'Search the member, then click their name to edit their public listing (incl. services, accomplishments, associations & social links).' },
+    { id: 'bizbuzz-page', t: 'Update or take down the Biz Buzz page', kw: 'biz buzz bizbuzz news community stories story podcast newsletter take down remove hide page old', href: 'content.html', sel: '#bizBuzzPanel', tip: 'Change the stories, the podcast and newsletter boxes, or take the whole page down. Click a story title to edit it; Delete takes it off.' },
     { id: 'welcome-letter', t: 'Change the new member welcome letter', kw: 'welcome letter email new member onboarding copy wording edit text template greeting', href: 'content.html', sel: '#wlBody', tip: 'Edit the words the new member gets. Keep {{link}} in it — that is their sign-in link. “See it filled in” shows the finished letter before you save.' },
     { id: 'member-second-login', t: 'Give a second person access to one member’s profile', kw: 'second login two logins another rep representative partner admin colleague spouse add email sign in cannot log in access profile', href: 'members.html', sel: '#memberSearch', tip: 'Find the business, click 🔑 Logins, then type their email and click “➕ Give them access”. Each representative gets their own password and both open the same profile — adding one never changes the other’s sign-in.' },
     { id: 'member-password', t: 'Set or reset a member’s password', kw: 'password reset set member login access', href: 'members.html', sel: '#memberSearch', tip: 'Find the member, then use “Set password” or “Reset link.”' },
@@ -4042,6 +4050,71 @@ window.Admin = (function () {
     // 📰 Newsletters — upload a PDF here and it lists on the public Valley
     // Biz Connect page instantly (per the office, Jul 2026: "Where do we
     // upload the newsletters in admin?").
+
+    // ── Biz Buzz page (Community → Biz Buzz), Oct 2026 ──────────
+    const bbForm = document.getElementById('bbForm');
+    async function loadBizBuzzPanel() {
+      if (!bbForm) return;
+      try {
+        const { page } = await api('/api/admin/bizbuzz-page');
+        bbForm.takeDown.checked = !!page.hidden;
+        bbForm.tagline.value = page.tagline || '';
+        bbForm.showStories.checked = page.showStories !== false;
+        bbForm.storyMonths.value = String(page.storyMonths || 0);
+        bbForm.showPodcast.checked = page.showPodcast !== false;
+        bbForm.podcastBlurb.value = page.podcastBlurb || '';
+        bbForm.showNewsletter.checked = page.showNewsletter !== false;
+        bbForm.newsletterBlurb.value = page.newsletterBlurb || '';
+      } catch (e) { document.getElementById('bbMsg').textContent = 'Could not load the page settings.'; }
+      loadBizBuzzStories();
+    }
+    async function loadBizBuzzStories() {
+      const rows = document.getElementById('bbRows'); if (!rows) return;
+      try {
+        const { posts } = await api('/api/admin/posts');
+        posts.forEach((p) => { postById[p.id] = p; });
+        const stories = posts.filter((p) => p.type === 'news' && p.status !== 'pending' && p.status !== 'rejected')
+          .sort((a, b) => String(b.created || '').localeCompare(String(a.created || '')));
+        document.getElementById('bbCount').textContent = stories.length ? `(${stories.length} on the page)` : '';
+        rows.innerHTML = stories.length ? stories.map((p) => `<tr data-id="${esc(p.id)}">
+            <td><button type="button" data-bbedit title="Change this story" style="background:none;border:none;padding:0;font:inherit;font-weight:600;color:var(--green-deep);cursor:pointer;text-align:left">${esc(p.title)}</button></td>
+            <td class="sub" style="white-space:nowrap">${p.created ? esc(new Date(p.created).toLocaleDateString()) : ''}</td>
+            <td style="white-space:nowrap"><button type="button" class="btn btn--ghost btn--sm" data-bbdel>Delete</button></td>
+          </tr>`).join('') : '<tr><td colspan="3" class="sub">No stories yet. Use “+ Add a story”.</td></tr>';
+        rows.querySelectorAll('tr[data-id]').forEach((tr) => {
+          const id = tr.getAttribute('data-id');
+          tr.querySelector('[data-bbedit]').addEventListener('click', () => openPostEditor(postById[id]));
+          tr.querySelector('[data-bbdel]').addEventListener('click', async () => {
+            if (!confirm(`Take “${postById[id].title}” off the Biz Buzz page? This deletes the story.`)) return;
+            await api('/api/admin/posts/' + encodeURIComponent(id), { method: 'DELETE' });
+            loadBizBuzzStories(); load();
+          });
+        });
+      } catch (e) { rows.innerHTML = '<tr><td colspan="3" class="sub">Could not load the stories.</td></tr>'; }
+    }
+    bbForm?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const m = document.getElementById('bbMsg');
+      const btn = bbForm.querySelector('[type="submit"]'); btn.disabled = true; m.textContent = 'Saving…';
+      try {
+        const { page } = await api('/api/admin/bizbuzz-page', { method: 'POST', body: JSON.stringify({
+          hidden: bbForm.takeDown.checked, tagline: bbForm.tagline.value,
+          showStories: bbForm.showStories.checked, storyMonths: Number(bbForm.storyMonths.value),
+          showPodcast: bbForm.showPodcast.checked, podcastBlurb: bbForm.podcastBlurb.value,
+          showNewsletter: bbForm.showNewsletter.checked, newsletterBlurb: bbForm.newsletterBlurb.value,
+        }) });
+        m.textContent = page.hidden
+          ? '✓ Saved. The Biz Buzz page is down; its address now opens the podcast page.'
+          : '✓ Saved. The Biz Buzz page shows your changes now.';
+      } catch (err) { m.textContent = '✗ Could not save. Try again.'; }
+      btn.disabled = false;
+    });
+    document.getElementById('bbAdd')?.addEventListener('click', () => {
+      form.querySelector('[name="type"]').value = 'news';
+      form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      form.querySelector('[name="title"]')?.focus();
+    });
+    loadBizBuzzPanel();
     const nlRows = document.getElementById('nlRows');
     async function loadNewsletters() {
       if (!nlRows) return;
