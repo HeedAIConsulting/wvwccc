@@ -53,7 +53,7 @@
       <header class="biz-mast">
         <div style="font-family:var(--mono);font-size:.68rem;letter-spacing:.22em;text-transform:uppercase;color:var(--gold-deep)">The West Valley · Warner Center Chamber of Commerce</div>
         <h1>Valley Biz Buzz</h1>
-        <div style="font-family:var(--display);font-style:italic;color:var(--slate-mid,#555);font-size:1rem">News &amp; happenings from the heart of the Valley</div>
+        <div style="font-family:var(--display);font-style:italic;color:var(--slate-mid,#555);font-size:1rem" id="bizTagline">News &amp; happenings from the heart of the Valley</div>
       </header>
       <div id="bizDateline" class="biz-rule"></div>
       <div id="bizbuzz"><p class="member-tile__meta">Loading the latest…</p></div>
@@ -65,58 +65,39 @@
           <span style="flex:1;min-width:240px">
             <span style="font-family:var(--mono);font-size:.64rem;letter-spacing:.16em;text-transform:uppercase;color:var(--gold-bright)">Listen · The Podcast</span>
             <span style="display:block;font-family:var(--display);font-size:1.7rem;line-height:1.08;color:#fff">The Valley Biz Buzz Podcast</span>
-            <span style="display:block;color:rgba(255,255,255,.82);font-size:.95rem;margin-top:4px">34 episodes — member stories, expert tips &amp; community conversations, hosted by Danielle Roy.</span>
+            <span id="podcastBlurb" style="display:block;color:rgba(255,255,255,.82);font-size:.95rem;margin-top:4px">34 episodes — member stories, expert tips &amp; community conversations, hosted by Danielle Roy.</span>
           </span>
           <span class="btn btn--gold btn--sm">Listen now →</span>
         </a>
       </section>
 
-      <!-- ── The Newsletter ── -->
+      <!-- ── The Newsletter: Valley Biz Connect (Oct 2026: it was titled
+           a Biz Buzz newsletter title and a hardcoded June list, and the
+           same publication had a second box below as "the magazine". One box
+           now, its issues pulled live from Admin → Content → Newsletters.) ── -->
       <section class="vbb-sec" id="newsletter">
         <div class="vbb-news">
           <div>
-            <span class="kicker">In Your Inbox</span>
-            <h3>The Valley Biz Buzz Newsletter</h3>
-            <p>Our monthly newsletter rounds up Chamber happenings, member news, ribbon cuttings, events, and local deals. Past editions are being added here — in the meantime, get it delivered straight to your inbox.</p>
+            <span class="kicker">The Monthly Newsletter</span>
+            <h3>Valley Biz Connect</h3>
+            <p id="newsletterBlurb">Our monthly newsletter rounds up Chamber happenings, member news, ribbon cuttings, events, and local deals.</p>
             <div class="btn-row">
-              <a class="btn btn--gold btn--sm" href="../contact.html?reason=newsletter">Subscribe / get on the list</a>
+              <a class="btn btn--gold btn--sm" href="../newsletters/valley-biz-connect.html">Read every issue →</a>
+              <a class="btn btn--ghost btn--sm" style="color:#fff;border-color:rgba(255,255,255,.5)" href="../contact.html?reason=newsletter">Get it by email</a>
             </div>
           </div>
-          <div id="bizEditions"><p class="member-tile__meta" style="color:rgba(255,255,255,.7)">Loading editions…</p></div>
+          <div id="bizEditions"></div>
         </div>
-      </section>
-
-      <!-- ── The Magazine: Valley Biz Connect ── -->
-      <section class="vbb-sec" id="magazine">
-        <a href="../newsletters/valley-biz-connect.html" style="display:flex;gap:18px;align-items:center;justify-content:center;flex-wrap:wrap;background:linear-gradient(160deg,#3a2c10,#241a08);color:#fff;border-radius:16px;padding:26px 30px;text-decoration:none">
-          <span style="font-size:2.6rem">📰</span>
-          <span style="flex:1;min-width:240px">
-            <span style="font-family:var(--mono);font-size:.64rem;letter-spacing:.16em;text-transform:uppercase;color:var(--gold-bright)">Read · The Magazine</span>
-            <span style="display:block;font-family:var(--display);font-size:1.7rem;line-height:1.08;color:#fff">Valley Biz Connect</span>
-            <span style="display:block;color:rgba(255,255,255,.82);font-size:.95rem;margin-top:4px">Our full-color business magazine — member features, news &amp; community happenings. Read every edition on-screen, no download needed.</span>
-          </span>
-          <span class="btn btn--gold btn--sm">Browse editions →</span>
-        </a>
       </section>
     </div>
   </section>
   <div data-partial="footer"></div>
   <script src="../js/partials.js?v=20260922a"></script>
   <script src="../js/api-base.js?v=20260818a"></script>
-  <script src="../js/chamber.js?v=20261013a"></script>
+  <script src="../js/chamber.js?v=20261013b"></script>
   <script>
     ChamberPartials.mount({ active: 'news', depth: 1, lang: 'en' });
     Chamber.initBizBuzz();
-    (function () {
-    const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-    // Newsletter past editions (add new ones here as PDFs arrive)
-    const EDITIONS = [
-      { t: 'June 2026', u: '../newsletters/valley-biz-connect-2026-06.pdf' },
-    ];
-    const ed = document.getElementById('bizEditions');
-    if (ed) ed.innerHTML = '<div style="font-family:var(--mono);font-size:.64rem;letter-spacing:.14em;text-transform:uppercase;color:var(--gold-bright);margin-bottom:10px">Past editions</div>' +
-      EDITIONS.map((e) => `<a href="${esc(e.u)}" target="_blank" rel="noopener" style="display:flex;gap:10px;align-items:center;color:#fff;text-decoration:none;padding:10px 12px;border:1px solid rgba(255,255,255,.22);border-radius:10px;margin-bottom:8px"><span style="font-size:1.15rem">📄</span><span><strong>Valley Biz Connect</strong><br><span style="font-size:.82rem;color:rgba(255,255,255,.78)">${esc(e.t)}</span></span></a>`).join('');
-    })();
   </script>
 </body>
 </html>

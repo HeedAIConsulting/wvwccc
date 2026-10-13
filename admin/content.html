@@ -28,7 +28,7 @@
               <div class="grid grid-2" style="gap:var(--s-3)">
                 <div class="field"><label>Type</label>
                   <select name="type" class="admin-select">
-                    <option value="news">News</option>
+                    <option value="news">Biz Buzz story (Community → Biz Buzz page)</option>
                     <option value="announcement">Announcement / message</option>
                     <option value="discount">Offer</option>
                     <option value="event">Event note</option>
@@ -48,6 +48,54 @@
               <p id="postMsg" class="admin-notice" hidden></p>
               <button class="btn btn--forest" type="submit" style="width:fit-content">Publish</button>
             </form>
+          </div>
+        </div>
+
+        <!-- Biz Buzz page (Diana, Oct 13 2026: "I need to either take down or
+             update Biz Buzz under community. I cannot find on Dashboard or on
+             backend.") Everything on Community → Biz Buzz is controlled here. -->
+        <div class="panel" id="bizBuzzPanel">
+          <div class="panel__head" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+            <h3>📣 Biz Buzz page <span class="sub">(Community → Biz Buzz)</span></h3>
+            <a class="btn btn--ghost btn--sm" href="../community/news.html" target="_blank" rel="noopener">View the page ↗</a>
+          </div>
+          <div style="padding:var(--s-5)">
+            <form id="bbForm" class="grid" style="gap:var(--s-3);max-width:720px">
+              <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" name="takeDown" style="margin-top:4px"> <span><strong>Take the Biz Buzz page down.</strong> <span class="sub">Visitors who open it go to the Valley Biz Buzz podcast page instead. Untick to bring it back.</span></span></label>
+              <div class="field"><label>Line under the title</label><input name="tagline" maxlength="160" /></div>
+              <fieldset style="border:1px solid var(--line,#d7d2c6);border-radius:10px;padding:12px 14px">
+                <legend class="sub" style="padding:0 6px">Stories</legend>
+                <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" name="showStories"> Show the stories at the top of the page</label>
+                <div class="field" style="margin:10px 0 0"><label>Which stories</label>
+                  <select name="storyMonths" class="admin-select">
+                    <option value="0">Every story</option>
+                    <option value="3">Only the last 3 months</option>
+                    <option value="6">Only the last 6 months</option>
+                    <option value="12">Only the last 12 months</option>
+                  </select></div>
+                <p class="sub" style="margin:8px 0 0">Each story is listed below. Click a title to change it, or Delete to take it off the page.</p>
+              </fieldset>
+              <fieldset style="border:1px solid var(--line,#d7d2c6);border-radius:10px;padding:12px 14px">
+                <legend class="sub" style="padding:0 6px">Podcast box</legend>
+                <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" name="showPodcast"> Show the Valley Biz Buzz podcast box</label>
+                <div class="field" style="margin:10px 0 0"><label>What it says</label><textarea name="podcastBlurb" rows="2" maxlength="300"></textarea></div>
+              </fieldset>
+              <fieldset style="border:1px solid var(--line,#d7d2c6);border-radius:10px;padding:12px 14px">
+                <legend class="sub" style="padding:0 6px">Newsletter box (Valley Biz Connect)</legend>
+                <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" name="showNewsletter"> Show the Valley Biz Connect newsletter box</label>
+                <div class="field" style="margin:10px 0 0"><label>What it says</label><textarea name="newsletterBlurb" rows="2" maxlength="400"></textarea></div>
+                <p class="sub" style="margin:8px 0 0">The three newest issues show in this box on their own once they are published in Newsletters, below.</p>
+              </fieldset>
+              <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+                <button type="submit" class="btn btn--forest btn--sm">Save the Biz Buzz page</button>
+                <span id="bbMsg" class="sub"></span>
+              </div>
+            </form>
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin:var(--s-6) 0 var(--s-3)">
+              <h4 style="margin:0">Biz Buzz stories <span class="sub" id="bbCount"></span></h4>
+              <button type="button" class="btn btn--gold btn--sm" id="bbAdd">+ Add a story</button>
+            </div>
+            <table class="admin-table"><thead><tr><th>Story</th><th>Posted</th><th></th></tr></thead><tbody id="bbRows"><tr><td colspan="3" class="sub">Loading…</td></tr></tbody></table>
           </div>
         </div>
 
@@ -147,7 +195,7 @@
     </div>
   </div>
   <script src="../js/api-base.js"></script>
-  <script src="admin.js?v=20261013a"></script>
+  <script src="admin.js?v=20261013c"></script>
   <script>Admin.initContent();</script>
   <script defer src="/js/support.js?v=20260804c"></script>
 </body>
