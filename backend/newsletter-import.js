@@ -14,6 +14,7 @@
    ============================================================ */
 import dns from 'node:dns/promises';
 import net from 'node:net';
+import express from 'express';
 import * as repo from './repo.js';
 
 // Compress only when the source is heavier than the site would want to
@@ -28,6 +29,21 @@ const DOWNLOAD_CAP = 200_000_000;
 const PAGE_CAP = 80;                // a "newsletter" sanity bound
 const RASTER_DPI = 125;             // crisp on phones, ~250KB/page
 const JPEG_QUALITY = 74;
+/* Direct uploads arrive in pieces this size (Oct 13 2026). Felicia's October
+   issue was a 194MB Canva export: the old "upload the PDF" button sent the
+   whole file as one base64 JSON body, capped at ~20MB, and a single request
+   that size would not get through the CDN in front of the site anyway. The
+   browser now slices the file, the server reassembles it, and it goes through
+   the same shrink-and-publish job as a pasted link. */
+const UPLOAD_CHUNK = 8 * 1024 * 1024;
+
+// Canva "view" links (often behind a bit.ly) open a web page, not a PDF —
+// October's issue arrived with one. Say so plainly instead of "not a PDF".
+const CANVA_MSG = 'That link opens the newsletter in Canva, which is a web page, not the PDF file. '
+  + 'Paste the Google Drive link to the PDF instead, or download the PDF and use "upload the PDF file".';
+export const isCanvaUrl = (url) => {
+  try { return /(^|\.)canva\.com$/i.test(new URL(url).hostname); } catch { return false; }
+};
 
 // ── URL handling ────────────────────────────────────────────
 // Share links people actually paste, rewritten to direct downloads.
@@ -81,22 +97,28 @@ async function fetchBinary(url, redirectsLeft = 5) {
       return fetchBinary(loc, redirectsLeft - 1);
     }
     if (!r.ok) throw new Error(`The link answered ${r.status} — is it shared publicly ("Anyone with the link")?`);
+    // Say the real limit and what to do about it, rather than implying they
+    // picked the wrong file.
+    const tooBig = () => new Error(`That file is over ${Math.round(DOWNLOAD_CAP / 1e6)}MB, which is bigger than the site will pull in. `
+      + 'In Canva, export again as "PDF Standard" instead of "PDF Print" and paste the new link.');
+    const declared = Number(r.headers.get('content-length')) || 0;
+    if (declared > DOWNLOAD_CAP) { ctl.abort(); throw tooBig(); }
     const reader = r.body.getReader();
-    const chunks = []; let total = 0;
+    // With a declared length, write straight into one buffer: joining a list of
+    // chunks would briefly hold the whole file twice.
+    const into = declared ? Buffer.allocUnsafe(declared) : null;
+    const chunks = []; let total = 0, filled = 0;
     for (;;) {
       const { done, value } = await reader.read();
       if (done) break;
+      if (total + value.length > DOWNLOAD_CAP) { ctl.abort(); throw tooBig(); }
+      if (into && filled === total && total + value.length <= declared) { into.set(value, total); filled += value.length; }
+      else chunks.push(value);
       total += value.length;
-      if (total > DOWNLOAD_CAP) {
-        ctl.abort();
-        // Say the real limit and what to do about it, rather than implying
-        // they picked the wrong file.
-        throw new Error(`That file is over ${Math.round(DOWNLOAD_CAP / 1e6)}MB, which is bigger than the site will pull in. `
-          + 'In Canva, export again as "PDF Standard" instead of "PDF Print" and paste the new link.');
-      }
-      chunks.push(value);
     }
-    return { buffer: Buffer.concat(chunks), contentType: r.headers.get('content-type') || '' };
+    const buffer = !into ? Buffer.concat(chunks)
+      : chunks.length ? Buffer.concat([into.subarray(0, filled), ...chunks]) : into.subarray(0, filled);
+    return { buffer, contentType: r.headers.get('content-type') || '', finalUrl: url };
   } finally { clearTimeout(timer); }
 }
 
@@ -111,7 +133,8 @@ function driveConfirmUrl(html) {
 }
 
 async function downloadPdf(url) {
-  let { buffer, contentType } = await fetchBinary(url);
+  let { buffer, contentType, finalUrl } = await fetchBinary(url);
+  if (buffer.subarray(0, 5).toString() !== '%PDF-' && isCanvaUrl(finalUrl)) throw new Error(CANVA_MSG);
   if (buffer.subarray(0, 5).toString() !== '%PDF-' && /html/.test(contentType)) {
     const confirm = driveConfirmUrl(buffer.toString('utf8', 0, 60_000));
     if (confirm) ({ buffer, contentType } = await fetchBinary(confirm));
@@ -163,15 +186,28 @@ async function processPdf(buffer, job) {
 
 // ── Jobs ────────────────────────────────────────────────────
 const jobs = new Map();
+const uploads = new Map();   // chunked direct uploads in progress
 function gcJobs() {
   const cutoff = Date.now() - 30 * 60 * 1000;
   for (const [id, j] of jobs) if (j.startedAt < cutoff) jobs.delete(id);
+  for (const [id, u] of uploads) if (u.startedAt < cutoff) uploads.delete(id);
+}
+const newId = (prefix) => prefix + Date.now().toString(36) + Math.floor(Math.random() * 1e6).toString(36);
+function startJob(args) {
+  const id = newId('nlj-');
+  const job = { id, status: 'working', step: 'Starting', startedAt: Date.now() };
+  jobs.set(id, job);
+  runImport(job, args);
+  return id;
 }
 
-async function runImport(job, { title, url, userId }) {
+async function runImport(job, { title, url, buffer: uploaded, userId }) {
   try {
-    job.step = 'Downloading the PDF from the link';
-    const buffer = await downloadPdf(url);
+    let buffer = uploaded;
+    if (!buffer) {
+      job.step = 'Downloading the PDF from the link';
+      buffer = await downloadPdf(url);
+    }
     job.step = 'Reading the PDF';
     const { pdfOut, cover, pages, originalBytes } = await processPdf(buffer, job);
 
@@ -209,11 +245,51 @@ export function registerNewsletterImport(router, requireAdmin) {
     const url = normalizeShareUrl(req.body && req.body.url);
     if (!title) return res.status(400).json({ error: 'Give the issue a title first (e.g. "September 2026").' });
     if (!url) return res.status(400).json({ error: 'Paste a full link — a Google Drive share link, Dropbox link, or a direct PDF address.' });
-    const id = 'nlj-' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36);
-    const job = { id, status: 'working', step: 'Starting', startedAt: Date.now() };
-    jobs.set(id, job);
-    runImport(job, { title, url, userId: req.user.sub });
-    res.json({ ok: true, jobId: id });
+    if (isCanvaUrl(url)) return res.status(400).json({ error: CANVA_MSG });
+    res.json({ ok: true, jobId: startJob({ title, url, userId: req.user.sub }) });
+  });
+
+  // ── Direct upload, in pieces: start → PUT each slice → finish ──
+  router.post('/admin/newsletters/upload', requireAdmin, (req, res) => {
+    gcJobs();
+    const title = String((req.body && req.body.title) || '').trim().slice(0, 120);
+    const size = Number(req.body && req.body.size);
+    if (!title) return res.status(400).json({ error: 'Give the issue a title first (e.g. "October 2026").' });
+    if (!(size > 0)) return res.status(400).json({ error: 'Choose the newsletter PDF to upload.' });
+    if (size > DOWNLOAD_CAP) {
+      return res.status(400).json({ error: `That file is over ${Math.round(DOWNLOAD_CAP / 1e6)}MB. In Canva, export again as "PDF Standard" instead of "PDF Print" and upload that.` });
+    }
+    const id = newId('nlu-');
+    uploads.set(id, { title, size, received: 0, chunks: [], userId: req.user.sub, startedAt: Date.now() });
+    res.json({ ok: true, uploadId: id, chunkSize: UPLOAD_CHUNK });
+  });
+
+  router.put('/admin/newsletters/upload/:id', requireAdmin,
+    express.raw({ type: 'application/octet-stream', limit: UPLOAD_CHUNK + 1024 }),
+    (req, res) => {
+      const u = uploads.get(req.params.id);
+      if (!u || u.userId !== req.user.sub) return res.status(404).json({ error: 'That upload expired. Choose the file again.' });
+      const offset = Number(req.query.offset);
+      if (offset !== u.received) return res.status(409).json({ error: 'Out of order.', received: u.received });
+      const b = req.body;
+      if (!Buffer.isBuffer(b) || !b.length) return res.status(400).json({ error: 'Empty piece.' });
+      if (u.received + b.length > u.size) return res.status(400).json({ error: 'The file is bigger than it said it was. Choose it again.' });
+      if (offset === 0 && b.subarray(0, 5).toString() !== '%PDF-') {
+        uploads.delete(req.params.id);
+        return res.status(400).json({ error: 'That file is not a PDF. In Canva, use Share → Download → PDF Standard.' });
+      }
+      u.chunks.push(b);
+      u.received += b.length;
+      res.json({ ok: true, received: u.received });
+    });
+
+  router.post('/admin/newsletters/upload/:id/finish', requireAdmin, (req, res) => {
+    const u = uploads.get(req.params.id);
+    if (!u || u.userId !== req.user.sub) return res.status(404).json({ error: 'That upload expired. Choose the file again.' });
+    if (u.received !== u.size) return res.status(400).json({ error: 'The upload did not finish. Choose the file again.' });
+    const buffer = Buffer.concat(u.chunks, u.size);
+    uploads.delete(req.params.id);
+    res.json({ ok: true, jobId: startJob({ title: u.title, buffer, userId: u.userId }) });
   });
 
   router.get('/admin/newsletters/import/:id', requireAdmin, (req, res) => {

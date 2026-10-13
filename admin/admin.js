@@ -4064,49 +4064,91 @@ window.Admin = (function () {
     // Paste-a-link import (Aug 2026): the office's Canva exports run 40-50MB —
     // far past any upload cap — so they paste the Drive/Dropbox share link and
     // the server downloads, shrinks, and publishes it. Long job → poll status.
+    // Newsletter calls show the server's own message ("That link opens the
+    // newsletter in Canva…") instead of a bare status code.
+    async function nlApi(pathname, opts = {}) {
+      const res = await fetch(apiBase + pathname, { credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, ...opts });
+      if (res.status === 401 || res.status === 403) { location.href = '../auth/staff-login.html'; throw new Error('auth required'); }
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) { const e = new Error(body.error || `Something went wrong (${res.status}). Try again.`); e.body = body; throw e; }
+      return body;
+    }
+    // Both ways in end in the same server job: shrink, cover, publish. Poll it.
+    async function pollNewsletterJob(jobId, out) {
+      let misses = 0;
+      for (;;) {
+        await new Promise((r) => setTimeout(r, 2500));
+        let j;
+        try { j = await nlApi('/api/admin/newsletters/import/' + encodeURIComponent(jobId)); misses = 0; }
+        catch (err) {
+          // The job lives in the server's memory; a restart mid-import loses it.
+          if (err.body && err.body.error === 'unknown job') throw new Error('The website restarted while this was processing. Please try again.');
+          // A big PDF keeps the server busy for a while, and a check can drop.
+          // Keep asking; only give up after a minute of silence.
+          if (++misses >= 24) throw new Error('Lost touch with the website. Refresh the page — if the issue is not listed, try again.');
+          continue;
+        }
+        if (j.status === 'done') {
+          out.textContent = `✓ Published — ${j.result.pages} pages, shrunk ${j.result.originalMB}MB → ${j.result.finalMB}MB. It is live on the Valley Biz Connect page.`;
+          document.getElementById('nlTitle').value = ''; document.getElementById('nlUrl').value = '';
+          loadNewsletters();
+          return;
+        }
+        if (j.status === 'error') throw new Error(j.error);
+        out.textContent = j.step + '…';
+      }
+    }
+    // Paste-a-link import (Aug 2026): the office's Canva exports run 40-200MB —
+    // far past any upload cap — so they paste the Drive/Dropbox share link and
+    // the server downloads, shrinks, and publishes it. Long job → poll status.
     document.getElementById('nlImport')?.addEventListener('click', async () => {
       const title = (document.getElementById('nlTitle').value || '').trim();
       const url = (document.getElementById('nlUrl').value || '').trim();
       const out = document.getElementById('nlMsg');
       const btn = document.getElementById('nlImport');
-      if (!title) { out.textContent = 'Give the issue a title first (e.g. "Valley Biz Connect — September 2026").'; return; }
+      if (!title) { out.textContent = 'Give the issue a title first (e.g. "Valley Biz Connect — October 2026").'; return; }
       if (!url) { out.textContent = 'Paste the newsletter link first.'; return; }
       btn.disabled = true;
       out.textContent = 'Starting…';
       try {
-        const { jobId } = await api('/api/admin/newsletters/import', { method: 'POST', body: JSON.stringify({ title, url }) });
-        for (;;) {
-          await new Promise((r) => setTimeout(r, 2500));
-          const j = await api('/api/admin/newsletters/import/' + encodeURIComponent(jobId));
-          if (j.status === 'done') {
-            out.textContent = `✓ Published — ${j.result.pages} pages, shrunk ${j.result.originalMB}MB → ${j.result.finalMB}MB. It is live on the Valley Biz Connect page.`;
-            document.getElementById('nlTitle').value = ''; document.getElementById('nlUrl').value = '';
-            loadNewsletters();
-            break;
-          }
-          if (j.status === 'error') { out.textContent = '✗ ' + j.error; break; }
-          out.textContent = j.step + '…';
-        }
+        const { jobId } = await nlApi('/api/admin/newsletters/import', { method: 'POST', body: JSON.stringify({ title, url }) });
+        await pollNewsletterJob(jobId, out);
       } catch (err) { out.textContent = '✗ ' + (err.message || 'Import failed.'); }
       btn.disabled = false;
     });
-    document.getElementById('nlFile')?.addEventListener('change', (e) => {
+    // Direct upload, any size up to 200MB (Oct 13 2026). Felicia's October
+    // issue was a 194MB Canva export and the old one-shot upload stopped at
+    // ~6MB. The file now goes up in 8MB pieces and through the same shrink job.
+    document.getElementById('nlFile')?.addEventListener('change', async (e) => {
       const f = e.target.files[0]; if (!f) return;
       const title = (document.getElementById('nlTitle').value || '').trim() || f.name.replace(/\.pdf$/i, '');
       const out = document.getElementById('nlMsg');
-      out.textContent = 'Uploading…';
-      const r = new FileReader();
-      r.onload = async () => {
-        try {
-          const up = await api('/api/me/asset', { method: 'POST', body: JSON.stringify({ kind: 'doc', dataUrl: r.result }) });
-          await api('/api/admin/posts', { method: 'POST', body: JSON.stringify({ type: 'newsletter', title, linkUrl: up.url, status: 'approved' }) });
-          out.textContent = '✓ Published to the newsletters page';
-          document.getElementById('nlTitle').value = '';
-          loadNewsletters();
-        } catch (err) { out.textContent = 'Upload failed: ' + (err.message || 'PDF up to ~6MB'); }
-        e.target.value = '';
-      };
-      r.readAsDataURL(f);
+      const btn = document.getElementById('nlImport');
+      if (btn) btn.disabled = true;
+      out.textContent = 'Uploading… 0%';
+      try {
+        const { uploadId, chunkSize } = await nlApi('/api/admin/newsletters/upload', { method: 'POST', body: JSON.stringify({ title, size: f.size }) });
+        for (let off = 0; off < f.size; off += chunkSize) {
+          const piece = f.slice(off, off + chunkSize);
+          const send = () => nlApi(`/api/admin/newsletters/upload/${encodeURIComponent(uploadId)}?offset=${off}`, {
+            method: 'PUT', headers: { 'Content-Type': 'application/octet-stream' }, body: piece,
+          });
+          try { await send(); }
+          catch (err) {
+            // One retry for a dropped connection; a real refusal (not a PDF,
+            // expired upload) has a message and stops here.
+            if (err.body && err.body.error) throw err;
+            await new Promise((r) => setTimeout(r, 1500));
+            await send();
+          }
+          out.textContent = `Uploading… ${Math.round(Math.min(f.size, off + chunkSize) / f.size * 100)}%`;
+        }
+        const { jobId } = await nlApi(`/api/admin/newsletters/upload/${encodeURIComponent(uploadId)}/finish`, { method: 'POST', body: '{}' });
+        out.textContent = 'Reading the PDF…';
+        await pollNewsletterJob(jobId, out);
+      } catch (err) { out.textContent = '✗ ' + (err.message || 'Upload failed.'); }
+      if (btn) btn.disabled = false;
+      e.target.value = '';
     });
     loadNewsletters();
 
