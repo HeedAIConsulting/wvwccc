@@ -10,7 +10,7 @@
   <meta name="description" content="A West Valley · Warner Center Chamber group — meetings, photos, and how to join." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="stylesheet" href="/css/chamber.css?v=20261001a" />
+  <link rel="stylesheet" href="/css/chamber.css?v=20261015a" />
 </head>
 <body>
   <div data-partial="header"></div>
@@ -19,6 +19,7 @@
   <section class="group-hero" id="groupHero">
     <div class="group-hero__overlay"></div>
     <div class="container group-hero__inner">
+      <img id="gLogo" class="group-hero__logo" alt="" hidden>
       <span class="kicker" id="gKicker">Chamber Group</span>
       <h1 id="gName" style="color:#fff">Loading…</h1>
       <p class="lead" id="gTagline" style="color:rgba(255,255,255,.88);max-width:60ch"></p>
@@ -80,7 +81,7 @@
 
   <script src="/js/partials.js?v=20260922a"></script>
   <script src="/js/api-base.js?v=20260818a"></script>
-  <script src="/js/chamber.js?v=20261013d"></script>
+  <script src="/js/chamber.js?v=20261015a"></script>
   <script>
     ChamberPartials.mount({ active: '', depth: 1, lang: 'en' });
     Chamber.initGroupView();

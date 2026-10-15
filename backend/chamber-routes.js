@@ -1173,7 +1173,7 @@ router.get('/me/group/:slug', auth.requireAuth(), async (req, res) => {
       group: {
         id: g.id, slug: g.slug, name: g.name, tagline: g.tagline || '',
         meetingSchedule: g.meetingSchedule || '', meetingNotes: g.meetingNotes || '',
-        heroImage: g.heroImage || '',
+        heroImage: g.heroImage || '', logo: g.logo || '',
         manager: { name: (g.manager && g.manager.name) || '', email: (g.manager && g.manager.email) || '' },
         members: g.members || [],
       },
@@ -1205,10 +1205,14 @@ router.patch('/me/group/:slug', auth.requireAuth(), async (req, res) => {
     const patch = {};
     if (b.meetingNotes !== undefined) patch.meetingNotes = String(b.meetingNotes).slice(0, 12000);
     if (b.meetingSchedule !== undefined) patch.meetingSchedule = String(b.meetingSchedule).slice(0, 200);
+    if (b.logo !== undefined) {
+      patch.logo = groupLogoUrl(b.logo);
+      if (b.logo && !patch.logo) return res.status(400).json({ error: 'Upload the logo here rather than linking to it.' });
+    }
     if (!Object.keys(patch).length) return res.status(400).json({ error: 'Nothing to save.' });
     const next = buildGroup({ ...g, ...patch }, g);
     await repo.upsertGroup(next);
-    res.json({ ok: true, group: { meetingNotes: next.meetingNotes, meetingSchedule: next.meetingSchedule } });
+    res.json({ ok: true, group: { meetingNotes: next.meetingNotes, meetingSchedule: next.meetingSchedule, logo: next.logo } });
   } catch (e) { console.error('me group patch', e); res.status(500).json({ error: 'Could not save.' }); }
 });
 
@@ -2696,6 +2700,16 @@ function publicGroup(g) {
   return { ...g, members, memberCount: members.length, manager: { name: (g.manager && g.manager.name) || '' } };
 }
 
+/* A group's own logo (Marcia Israel, Oct 2026: the Valley Senior Resource
+   Network had a logo and nowhere on the site to put it; the banner photo is
+   cropped to fill a strip and darkened under the title, which ruins lettering).
+   Only one of our own image paths is kept: it is drawn as an <img src>, and a
+   leader as well as the office can set it. */
+export function groupLogoUrl(v) {
+  const s = clampUrl(v);
+  return /^\/(api\/assets\/asset-[a-z0-9]+|images\/[a-z0-9._\/-]+\.(png|jpe?g|webp|gif))$/i.test(s) && !s.includes('..') ? s : '';
+}
+
 function buildGroup(b, existing = {}) {
   const name = String(b.name ?? existing.name ?? '').slice(0, 120);
   return {
@@ -2705,6 +2719,7 @@ function buildGroup(b, existing = {}) {
     tagline: String(b.tagline ?? existing.tagline ?? '').slice(0, 200),
     description: String(b.description ?? existing.description ?? '').slice(0, 8000),
     heroImage: clampUrl(b.heroImage ?? existing.heroImage ?? ''),
+    logo: groupLogoUrl(b.logo ?? existing.logo ?? ''),
     photos: normalizeGroupPhotos(b.photos ?? existing.photos),
     manager: normalizeGroupManager(b.manager ?? existing.manager, existing.manager),
     meetingSchedule: String(b.meetingSchedule ?? existing.meetingSchedule ?? '').slice(0, 200),
@@ -2759,7 +2774,30 @@ async function loadGroups() {
   await applySustainableAndLegacyPage();
   await applyVolunteerPointsOn();
   await repairLoginUsernames();
+  await applyVsrnLogo();
   return repo.listGroupsStore();
+}
+
+/* Oct 15 2026: Marcia Israel sent the Valley Senior Resource Network logo
+   (inside a Word file, 410x310 with a wide white margin) and could not find
+   anywhere to put it. Trimmed and sized to images/groups/vsrn-logo.png. Once,
+   and only while the group still has no logo, so a logo she or the office
+   uploads later is never replaced by a redeploy. */
+let _vsrnLogoChecked = false;
+async function applyVsrnLogo() {
+  if (_vsrnLogoChecked) return;
+  _vsrnLogoChecked = true;
+  const KEY = 'vsrnLogo-20261015';
+  try {
+    if (await repo.getSetting(KEY)) return;
+    const cur = (await repo.listGroupsStore()).find((g) => g.id === 'grp-valley-senior');
+    let did = 'skipped';
+    if (cur && !cur.logo) {
+      await repo.upsertGroup(buildGroup({ ...cur, logo: '/images/groups/vsrn-logo.png' }, cur));
+      did = 'applied';
+    }
+    await repo.setSetting(KEY, `${did} ${new Date().toISOString()}`);
+  } catch (e) { _vsrnLogoChecked = false; console.error('VSRN logo migration failed (will retry next boot)', e); }
 }
 
 // One-time corrections from the office's updated "Networks and Committees 2026"
