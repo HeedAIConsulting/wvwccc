@@ -5144,7 +5144,7 @@ window.Admin = (function () {
     const tbody = document.getElementById('groupRows');
     const msg = document.getElementById('grpMsg');
     const title = document.getElementById('grpFormTitle');
-    let heroUrl = '', photos = [];
+    let heroUrl = '', logoUrl = '', photos = [];
 
     const note = (t, ok) => { msg.hidden = false; msg.textContent = t; msg.style.color = ok ? 'var(--green)' : 'inherit'; };
     const upload = async (file) => {
@@ -5152,6 +5152,31 @@ window.Admin = (function () {
       const r = await api('/api/me/asset', { method: 'POST', body: JSON.stringify({ kind: 'photo', dataUrl }) });
       return r.url;
     };
+    /* Group logo (Marcia Israel, VSRN, Oct 2026). Shown whole on white on the
+       group card and the group page, unlike the banner photo, which is cropped
+       and darkened. A small PNG goes up as it is, so a transparent logo stays
+       transparent; anything big is shrunk first. */
+    const drawLogo = () => {
+      const el = document.getElementById('grpLogoPrev');
+      if (!el) return;
+      el.innerHTML = logoUrl
+        ? `<img src="${esc(logoUrl)}" alt="" style="height:32px;vertical-align:middle;background:#fff;border:1px solid var(--line,#ddd);border-radius:4px;padding:2px 4px"> <button type="button" class="btn btn--ghost btn--sm" id="grpLogoRemove" style="color:var(--red,#b00020)">Remove</button>`
+        : '';
+      document.getElementById('grpLogoRemove')?.addEventListener('click', () => { logoUrl = ''; drawLogo(); note('Logo removed — remember to Save.', true); });
+    };
+    document.getElementById('grpLogo')?.addEventListener('change', async (e) => {
+      const f = e.target.files[0]; if (!f) return;
+      e.target.value = '';
+      note('Uploading logo…');
+      try {
+        const asIs = /^image\/(png|jpe?g|webp|gif)$/i.test(f.type) && f.size <= 2400000;
+        const dataUrl = asIs
+          ? await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(f); })
+          : await downscaleImage(f, 1200, 0.9);
+        logoUrl = (await api('/api/me/asset', { method: 'POST', body: JSON.stringify({ kind: 'logo', dataUrl }) })).url;
+        drawLogo(); note('Logo uploaded — remember to Save.', true);
+      } catch (err) { note('Logo upload failed (PNG or JPG, max ~2.5MB).'); }
+    });
     document.getElementById('grpHero').addEventListener('change', async (e) => {
       const f = e.target.files[0]; if (!f) return;
       note('Uploading hero…');
@@ -5549,6 +5574,8 @@ window.Admin = (function () {
       ['name', 'tagline', 'meetingSchedule', 'contactEmail', 'eventMatch', 'status', 'description', 'meetingNotes']
         .forEach((k) => { const el = form.querySelector(`[name="${k}"]`); if (el) el.value = g ? (g[k] || '') : (k === 'status' ? 'approved' : ''); });
       heroUrl = g ? (g.heroImage || '') : '';
+      logoUrl = g ? (g.logo || '') : '';
+      drawLogo();
       photos = g ? (g.photos || []).map((p) => (typeof p === 'string') ? { url: p, date: '', event: '' } : { url: p.url, date: p.date || '', event: p.event || '' }) : [];
       members = g ? (g.members || []).slice() : [];
       managerMemberId = g && g.manager ? (g.manager.memberId || null) : null;
@@ -5734,7 +5761,7 @@ window.Admin = (function () {
       const fd = new FormData(form);
       const body = Object.fromEntries(fd.entries());
       if (!body.id) delete body.id;
-      body.heroImage = heroUrl; body.photos = photos; body.members = members;
+      body.heroImage = heroUrl; body.logo = logoUrl; body.photos = photos; body.members = members;
       // phone included deliberately: normalizeGroupManager() defaults a missing
       // phone to '', so leaving it out of this payload silently wiped the
       // leader's number on every single group save.

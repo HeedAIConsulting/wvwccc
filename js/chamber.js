@@ -914,7 +914,11 @@ window.Chamber = (function () {
     if (!groups.length) { grid.innerHTML = '<p class="notice">Groups are being set up — check back soon.</p>'; return; }
     grid.innerHTML = groups.map((g) => `
       <a class="group-card card--hover" href="/groups/${esc(g.slug)}">
-        <div class="group-card__media" style="${g.heroImage ? `background-image:url('/${esc(g.heroImage).replace(/^\//, '')}')` : ''}"></div>
+        ${g.logo
+          // A group's logo is shown whole on white, never cropped to the band
+          // the banner photo fills (Marcia Israel, VSRN, Oct 2026).
+          ? `<div class="group-card__media group-card__media--logo"><img src="${esc(g.logo)}" alt="${esc(g.name)} logo" loading="lazy"></div>`
+          : `<div class="group-card__media" style="${g.heroImage ? `background-image:url('/${esc(g.heroImage).replace(/^\//, '')}')` : ''}"></div>`}
         <div class="group-card__body">
           <h3>${esc(g.name)}</h3>
           <p class="member-tile__meta">${esc(g.meetingSchedule || '')}</p>
@@ -948,6 +952,8 @@ window.Chamber = (function () {
       sch.insertAdjacentElement('afterend', mgr);
     }
     if (g.heroImage) document.getElementById('groupHero').style.backgroundImage = `url('/${String(g.heroImage).replace(/^\//, '')}')`;
+    const logoEl = document.getElementById('gLogo');
+    if (logoEl && g.logo) { logoEl.src = g.logo; logoEl.alt = `${g.name} logo`; logoEl.hidden = false; }
     if (g.meetingNotes && g.meetingNotes.trim()) {
       document.getElementById('gNotes').hidden = false;
       document.getElementById('gNotesBody').textContent = g.meetingNotes;

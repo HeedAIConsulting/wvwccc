@@ -1454,6 +1454,16 @@ window.MemberPortal = (function () {
           </div>
         </div>
 
+        <div class="card mt-5" id="gmLogoCard">
+          <h3 style="margin:0 0 4px">Group logo</h3>
+          <p class="member-tile__meta" style="margin:0 0 10px">Shows on your group's page and on its card under Groups. Any size works; a PNG or JPG with the logo filling most of the picture looks best.</p>
+          <div id="gmLogoPrev"></div>
+          <div class="btn-row mt-3">
+            <label class="btn btn--gold btn--sm" style="cursor:pointer">Choose a logo<input type="file" accept="image/*" hidden id="gmLogoFile"></label>
+            <button type="button" class="btn btn--ghost btn--sm" id="gmLogoRemove" style="color:var(--red,#b00020)"${g.logo ? '' : ' hidden'}>Remove</button>
+          </div>
+        </div>
+
         <div class="card mt-5" id="gmPhotosCard">
           <h3 style="margin:0 0 4px">Photo albums</h3>
           <div id="gmAlbums"><p class="member-tile__meta">Loading albums…</p></div>
@@ -1563,6 +1573,35 @@ window.MemberPortal = (function () {
           say('✓ Meeting notes saved — they show on the group page now.');
         } catch (err) { say('Could not save the notes — please try again.', true); }
         finally { e.target.disabled = false; }
+      });
+      // Group logo: a leader sets it from here (Marcia Israel, VSRN, Oct 2026:
+      // "For leader groups. Don't see a place to upload pictures"). Saves as
+      // soon as it is chosen; the page shows it right away.
+      const drawGroupLogo = () => {
+        const prev = document.getElementById('gmLogoPrev');
+        if (prev) prev.innerHTML = g.logo
+          ? `<img src="${esc(g.logo)}" alt="${esc(g.name)} logo" style="max-height:110px;max-width:280px;background:#fff;border:1px solid var(--line,#eee);border-radius:10px;padding:8px 12px">`
+          : '<span class="member-tile__meta">No logo yet.</span>';
+        const rm = document.getElementById('gmLogoRemove');
+        if (rm) rm.hidden = !g.logo;
+      };
+      const saveGroupLogo = async (logo) => {
+        const r = await api('/api/me/group/' + encodeURIComponent(g.slug), { method: 'PATCH', body: JSON.stringify({ logo }) });
+        g.logo = (r.group && r.group.logo) || '';
+        drawGroupLogo();
+      };
+      drawGroupLogo();
+      document.getElementById('gmLogoFile')?.addEventListener('change', async (e) => {
+        const f = e.target.files[0]; e.target.value = '';
+        if (!f) return;
+        say('Uploading the logo…');
+        try { await saveGroupLogo(await uploadImage(f, 'logo')); say('✓ Logo saved — it shows on the group page now.'); }
+        catch (err) { say(uploadFailed(err, 'Logo upload'), true); }
+      });
+      document.getElementById('gmLogoRemove')?.addEventListener('click', async () => {
+        if (!confirm('Take the logo off the group page?')) return;
+        try { await saveGroupLogo(''); say('Logo removed.'); }
+        catch (err) { say('Could not remove the logo — please try again.', true); }
       });
       mountGroupAlbums();
       document.getElementById('gmSendMsg')?.addEventListener('click', async (e) => {
