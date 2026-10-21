@@ -1012,6 +1012,17 @@ function eventsOfGroup(g, evs) {
    a keyword mails the wrong person; routing on groupSlug cannot. Events that
    ARE a group's own meeting get their groupSlug backfilled instead (see
    applyEventGroupHosts). */
+/* An event id as an RSVP carries it, in brackets after the title. Group
+   meetings the office set up in Admin are stored as "grp-<group>-<date>"
+   (grp-dbn-20261109), and until Oct 21 2026 only le-/ev-/ce- were recognised,
+   so an RSVP to one of those meetings matched no event: the leaders and the
+   event's own RSVP address got nothing, the guest got no confirmation, and
+   the office got it instead (Felicia, Oct 21: "I am getting all of the group
+   RSVPs again"). */
+const EVENT_ID = '(?:le|ev|ce|grp)-[a-z0-9-]+';
+const EVENT_ID_BRACKET = new RegExp(`\\[(${EVENT_ID})\\]`, 'i');
+const EVENT_ID_EXACT = new RegExp(`^${EVENT_ID}$`, 'i');
+
 function groupOfEvent(ev, groups) {
   if (!ev || !ev.groupSlug) return null;
   return groups.find((g) => g.slug === ev.groupSlug) || null;
@@ -1027,7 +1038,7 @@ function rsvpsForEvent(ev, rsvpLeads) {
   return rsvpLeads.filter((l) => {
     const le = String(l.event || '').toLowerCase();
     if (!le) return false;
-    const br = /\[((?:le|ev|ce)-[a-z0-9]+)\]/.exec(le);
+    const br = EVENT_ID_BRACKET.exec(le);
     if (br) return br[1] === id;
     if (le === id) return true;
     if (!title || !le.includes(title)) return false;
@@ -4579,7 +4590,7 @@ router.post('/contact', async (req, res) => {
   if (leadSmellsLikeSpam(b, lead)) lead.status = 'spam';
   // If the lead references an event by raw id (older pages / direct API), resolve
   // it to the event title so the admin panel + office email are self-explanatory.
-  if (lead.event && /^(le|ev|ce)-/.test(lead.event)) {
+  if (lead.event && EVENT_ID_EXACT.test(lead.event)) {
     try {
       const ev = (await loadEvents()).find((x) => x.id === lead.event);
       if (ev) lead.event = `${ev.title}${ev.date ? ` (${ev.date})` : ''} [${ev.id}]`;
@@ -4597,8 +4608,8 @@ router.post('/contact', async (req, res) => {
   if (lead.kind === 'rsvp') {
     try {
       const ref = String(lead.event || '');
-      const id = (/\[((?:le|ev|ce)-[a-z0-9]+)\]/i.exec(ref) || [])[1]
-        || (/^(?:le|ev|ce)-[a-z0-9]+$/i.test(ref) ? ref : '');
+      const id = (EVENT_ID_BRACKET.exec(ref) || [])[1]
+        || (EVENT_ID_EXACT.test(ref) ? ref : '');
       const ev = id && (await loadEvents()).find((x) => x.id === id);
       if (ev && (ev.status || 'approved') === 'approved') rsvpEvent = ev;
       if (rsvpEvent && rsvpEvent.rsvpEmail) rsvpTo = String(rsvpEvent.rsvpEmail).trim().toLowerCase();
