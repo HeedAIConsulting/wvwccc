@@ -138,6 +138,34 @@ test("a group meeting's RSVP goes to that group's leaders, not the office", () =
     'the office should no longer be copied on a group RSVP (Felicia, Sep 3 2026)');
 });
 
+/* Felicia, Oct 21 2026: "I am getting all of the group RSVPs again." The DBN
+   meetings the office set up are stored as grp-dbn-<date>, and the RSVP router
+   only knew le-/ev-/ce- ids, so Craig Curtis's RSVP to the Nov 9 meeting
+   matched no event: it went to the office and to nobody at DBN, and he was
+   sent no confirmation. */
+test('an RSVP to a grp- meeting reaches the group, not the office', async () => {
+  const before = sent.length;
+  await fetch(`${base}/api/contact`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      kind: 'rsvp', reason: 'RSVP', name: 'Craig Tester',
+      email: 'craig@example.com',
+      event: 'Dynamic Business Networking (DBN) [grp-dbn-20261109]',
+      eventTitle: 'Dynamic Business Networking (DBN)',
+      quantity: 1,
+    }),
+  });
+  await new Promise((r) => setTimeout(r, 250));
+  const mail = sent.slice(before);
+  const notes = mail.filter((m) => /New RSVP/.test(m.subject || ''));
+  const to = notes.map((m) => m.to);
+  assert.ok(to.includes('precypurg@gmail.com'), 'the DBN leader should get it');
+  assert.ok(!to.includes('felicia@woodlandhillscc.net'), 'the office should not');
+  assert.match(notes[0].subject, /^\[Dynamic Business Networking \(DBN\)\] New RSVP/);
+  assert.ok(mail.some((m) => m.to === 'craig@example.com' && /Your RSVP is confirmed/.test(m.subject || '')),
+    'the guest gets a confirmation once the event is recognised');
+});
+
 /* The other half of the same instruction: a Chamber event is NOT a group
    meeting, and its RSVPs must still reach the office (Felicia, Aug 11 2026).
    This is the regression guard for matching events to groups by keyword — the
