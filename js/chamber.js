@@ -287,6 +287,11 @@ window.Chamber = (function () {
     } else { e = new Date(s.getTime() + 2 * 3600 * 1000); }
     return { allDay: false, start: s, end: e };
   }
+  // Last day an event runs, as 'YYYY-MM-DD': its End date when that is after
+  // the start, otherwise the start. Compared as strings, like every date here.
+  function evLastDay(ev) {
+    return ev.endDate && ev.date && ev.endDate > ev.date ? ev.endDate : ev.date;
+  }
   function _ymd(d) { return '' + d.getFullYear() + _pad(d.getMonth() + 1) + _pad(d.getDate()); }
   function _hms(d) { return _pad(d.getHours()) + _pad(d.getMinutes()) + '00'; }
   function _gcal(d, allDay) { return allDay ? _ymd(d) : _ymd(d) + 'T' + _hms(d); }
@@ -980,7 +985,7 @@ window.Chamber = (function () {
         // most reliable match. Otherwise fall back to the group's name appearing
         // in the title or category (auto-generated meetings, old-site style).
         const mm = (g.eventMatch || '').toLowerCase();
-        const mine = evs.filter((e) => e.confirmed && e.date >= today &&
+        const mine = evs.filter((e) => e.confirmed && e.date && evLastDay(e) >= today &&
           (e.groupSlug === g.slug || (mm && ((e.title || '').toLowerCase().includes(mm) || (e.category || '').toLowerCase().includes(mm)))))
           .sort((a, b) => String(a.date || '').localeCompare(String(b.date || ''))) // soonest first, so a posted one-off isn't buried by recurring meetings
           .slice(0, 4);
@@ -1704,7 +1709,7 @@ window.Chamber = (function () {
       // hides entirely; the auto-fill that used to pad it with the next four
       // events is gone by her explicit request ("or not have anything then").
       const todayISO = new Date().toISOString().slice(0, 10);
-      const upcoming = (evd.events || []).filter((e) => e.confirmed && e.date && e.date >= todayISO);
+      const upcoming = (evd.events || []).filter((e) => e.confirmed && e.date && evLastDay(e) >= todayISO);
       const homeOrd = (e) => { const n = Number(e.homeOrder); return Number.isFinite(n) && n > 0 ? n : 1e9; };
       const events = upcoming.filter((e) => e.featured)
         .sort((a, b) => homeOrd(a) - homeOrd(b) || a.date.localeCompare(b.date))
@@ -2225,14 +2230,22 @@ window.Chamber = (function () {
       const cats = [...new Set(events.map((e) => e.category).filter(Boolean))].sort((a, b) => a.localeCompare(b));
       catEl.innerHTML = '<option value="">All categories</option>' + cats.map((c) => `<option>${esc(c)}</option>`).join('');
     }
+    // A multi-day event (End date set in admin) counts as on until its LAST day.
+    // Matching on the start date alone dropped Circus Vargas (Oct 23 - Nov 16)
+    // off "Upcoming" the morning after it opened (Felicia, Oct 26 2026).
     function inWindow(e, when) {
       const today = new Date(); today.setHours(0, 0, 0, 0);
       const d = new Date(e.date + 'T12:00:00');
+      const last = new Date(evLastDay(e) + 'T12:00:00');
       if (when === 'all') return true;
-      if (when === 'upcoming') return d >= today;
-      if (when === 'month') return d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear();
+      if (when === 'upcoming') return last >= today;
+      if (when === 'month') {
+        const mStart = new Date(today.getFullYear(), today.getMonth(), 1);
+        const mEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59);
+        return d <= mEnd && last >= mStart;
+      }
       const days = Number(when);
-      if (days) { const end = new Date(today); end.setDate(end.getDate() + days); return d >= today && d <= end; }
+      if (days) { const end = new Date(today); end.setDate(end.getDate() + days); return last >= today && d <= end; }
       return true;
     }
     // Three views: 'quick' (compact legacy list — DEFAULT, per Chamber feedback),
@@ -2286,9 +2299,16 @@ window.Chamber = (function () {
       const startDay = first.getDay();
       const days = new Date(year, month + 1, 0).getDate();
       const byDay = {};
+      // A multi-day event sits in every cell it runs, not just its first day.
+      const mFirst = new Date(year, month, 1, 12);
+      const mLast = new Date(year, month, days, 12);
       events.forEach((e) => {
-        const d = new Date(e.date + 'T12:00:00');
-        if (d.getFullYear() === year && d.getMonth() === month) {
+        const s = new Date(e.date + 'T12:00:00');
+        const l = new Date(evLastDay(e) + 'T12:00:00');
+        if (isNaN(s) || isNaN(l)) return;
+        const d = new Date(Math.max(s, mFirst));
+        const stop = Math.min(l, mLast);
+        for (; d <= stop; d.setDate(d.getDate() + 1)) {
           (byDay[d.getDate()] = byDay[d.getDate()] || []).push(e);
         }
       });
