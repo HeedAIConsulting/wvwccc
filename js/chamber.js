@@ -2320,15 +2320,27 @@ window.Chamber = (function () {
         cells += `<div class="cal-cell"><span class="cal-day">${d}</span>${evs}</div>`;
       }
       gridEl.innerHTML =
-        `<div class="cal-head">${MONTHS[month]} ${year}</div>
+        `<div class="cal-head" style="display:flex;align-items:center;gap:12px">
+           <button type="button" class="chip" data-cal-step="-1" aria-label="Previous month">‹</button>
+           <span>${MONTHS[month]} ${year}</span>
+           <button type="button" class="chip" data-cal-step="1" aria-label="Next month">›</button>
+         </div>
          <div class="cal-grid">
            ${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map((d) => `<div class="cal-dow">${d}</div>`).join('')}
            ${cells}
          </div>`;
     }
-    // default grid month = first upcoming event's month, else current
-    const seed = events[0] ? new Date(events[0].date + 'T12:00:00') : new Date(2026, 5, 1);
-    buildGrid(seed.getFullYear(), seed.getMonth());
+    // Default grid month = this month. It used to open on events[0], the OLDEST
+    // event on file, so it showed Oct 2025 (or year 26, from a typo'd date)
+    // with no way forward. The arrows step a month at a time.
+    let gY = new Date().getFullYear(), gM = new Date().getMonth();
+    buildGrid(gY, gM);
+    gridEl.addEventListener('click', (ev) => {
+      const b = ev.target.closest('[data-cal-step]'); if (!b) return;
+      gM += Number(b.dataset.calStep);
+      if (gM < 0) { gM = 11; gY--; } else if (gM > 11) { gM = 0; gY++; }
+      buildGrid(gY, gM);
+    });
 
     // view toggle (Quick list · Details · Calendar)
     document.querySelectorAll('[data-view]').forEach((btn) => {
