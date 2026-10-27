@@ -26,7 +26,7 @@ const js = read('js/chamber.js');
 const card = js.slice(js.indexOf('function eventCard(ev'), js.indexOf('function eventQuickRow'));
 
 test('the home page asks for the picture; the all-events list does not', () => {
-  assert.match(js, /eventCard\(e, 0, \{ thumb: true \}\)/, 'home page');
+  assert.match(js, /eventCard\((?:asListed\(e, todayISO\)|e), 0, \{ thumb: true \}\)/, 'home page');
   assert.match(js, /eventCard\(e, 1, \{ newTab: true \}\)/,
     'the all-events list keeps its compact rows — Felicia asked for this on the home page');
 });
