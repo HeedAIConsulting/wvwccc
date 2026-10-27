@@ -292,6 +292,28 @@ window.Chamber = (function () {
   function evLastDay(ev) {
     return ev.endDate && ev.date && ev.endDate > ev.date ? ev.endDate : ev.date;
   }
+  // Today as 'YYYY-MM-DD' in the visitor's own time zone (toISOString is UTC,
+  // which turns into tomorrow every evening in California).
+  function localToday() {
+    const t = new Date();
+    return t.getFullYear() + '-' + _pad(t.getMonth() + 1) + '-' + _pad(t.getDate());
+  }
+  const _MON3 = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  // A multi-day event that has already started is listed under today, not
+  // its first day (Felicia, Oct 27 2026: Circus Vargas, Oct 23 - Nov 16, sat
+  // in the list as "Oct 23 ... which has past and should be gone"). The copy
+  // only changes what the list shows and where it sorts; ev.date is untouched.
+  function asListed(ev, today) {
+    if (!ev.date || !(ev.date < today && evLastDay(ev) >= today)) return ev;
+    return { ...ev, listDate: today, month: _MON3[Number(today.slice(5, 7)) - 1], day: String(Number(today.slice(8, 10))) };
+  }
+  // "Oct 23 – Nov 16" for an event that runs several days, '' otherwise.
+  function runLabel(ev) {
+    const last = evLastDay(ev);
+    if (!ev.date || last === ev.date) return '';
+    const f = (s) => _MON3[Number(s.slice(5, 7)) - 1] + ' ' + Number(s.slice(8, 10));
+    return f(ev.date) + ' – ' + f(last);
+  }
   function _ymd(d) { return '' + d.getFullYear() + _pad(d.getMonth() + 1) + _pad(d.getDate()); }
   function _hms(d) { return _pad(d.getHours()) + _pad(d.getMinutes()) + '00'; }
   function _gcal(d, allDay) { return allDay ? _ymd(d) : _ymd(d) + 'T' + _hms(d); }
@@ -466,7 +488,7 @@ window.Chamber = (function () {
     // the title 40px above it. Make it a deliberate title card instead: the
     // mark at a legible size, the Chamber wordmark, and the date.
     const barWhen = (ev.confirmed && ev.day)
-      ? `${ev.month || ''} ${ev.day}${ev.time ? ' · ' + ev.time : ''}`.trim() : '';
+      ? `${runLabel(ev) || `${ev.month || ''} ${ev.day}`}${ev.time ? ' · ' + ev.time : ''}`.trim() : '';
     const logoBar = `<div class="ev-card__logobar">
             <img src="${base}images/wvwccc-logo-200.png" alt="" onerror="this.style.display='none'">
             <div class="ev-card__logobar-txt">
@@ -669,7 +691,7 @@ window.Chamber = (function () {
     const dateBlock = confirmed
       ? `<div class="event-date"><div class="event-date__mo">${esc(ev.month)}</div><div class="event-date__day">${esc(ev.day)}</div></div>`
       : `<div class="event-date"><div class="event-date__mo">${esc(ev.month || 'TBA')}</div><div class="event-date__day" style="font-size:1rem;padding-top:6px">·</div></div>`;
-    const when = confirmed ? `${esc(ev.month)} ${esc(ev.day)} · ${esc(ev.time || '')}` : 'Date to be announced';
+    const when = confirmed ? `${esc(runLabel(ev) || `${ev.month} ${ev.day}`)} · ${esc(ev.time || '')}` : 'Date to be announced';
     const cta = ev.hideCta ? '' : ev.soldOut ? soldOutBtn(true) : ev.ticketed
       ? (confirmed
           ? `${ev.alsoRsvp ? `<a class="btn btn--ghost btn--sm" href="${rsvpHrefOf(ev, base)}">RSVP</a> ` : ''}<a class="btn btn--gold btn--sm" href="${ticketHref(ev, base, 'paid')}">${esc(buyLabel(ev, 'Get tickets'))}</a>`
@@ -738,7 +760,8 @@ window.Chamber = (function () {
     const base = depth ? '../' : '';
     const mo = ev.month || (ev.date ? MONTHS[Number(ev.date.slice(5, 7)) - 1] : 'TBA');
     const day = ev.day || (ev.date ? String(Number(ev.date.slice(8, 10))) : '');
-    const dateUS = ev.date ? `${ev.date.slice(5, 7)}/${ev.date.slice(8, 10)}/${ev.date.slice(2, 4)}` : 'Date TBA';
+    const us = (s) => `${s.slice(5, 7)}/${s.slice(8, 10)}/${s.slice(2, 4)}`;
+    const dateUS = ev.date ? us(ev.date) + (evLastDay(ev) !== ev.date ? ' – ' + us(evLastDay(ev)) : '') : 'Date TBA';
     const cta = ev.hideCta ? '' : ev.soldOut ? soldOutBtn(true) : ev.ticketed
       ? `${ev.alsoRsvp ? `<a class="btn btn--ghost btn--sm" href="${rsvpHrefOf(ev, base)}">RSVP</a> ` : ''}<a class="btn btn--gold btn--sm" href="${ticketHref(ev, base, 'paid')}">${esc(buyLabel(ev, 'Tickets'))}</a>`
       : `<a class="btn btn--ghost btn--sm" href="${rsvpHrefOf(ev, base)}">RSVP</a>`;
@@ -1708,7 +1731,7 @@ window.Chamber = (function () {
       // Wine first even though it's months out). Nothing picked = the section
       // hides entirely; the auto-fill that used to pad it with the next four
       // events is gone by her explicit request ("or not have anything then").
-      const todayISO = new Date().toISOString().slice(0, 10);
+      const todayISO = localToday();
       const upcoming = (evd.events || []).filter((e) => e.confirmed && e.date && evLastDay(e) >= todayISO);
       const homeOrd = (e) => { const n = Number(e.homeOrder); return Number.isFinite(n) && n > 0 ? n : 1e9; };
       const events = upcoming.filter((e) => e.featured)
@@ -1720,7 +1743,7 @@ window.Chamber = (function () {
         if (!events.length) { if (section) section.hidden = true; }
         else {
           if (section) section.hidden = false;
-          elist.innerHTML = events.map((e) => eventCard(e, 0, { thumb: true })).join('');
+          elist.innerHTML = events.map((e) => eventCard(asListed(e, todayISO), 0, { thumb: true })).join('');
         }
       }
     } catch (err) {
@@ -2261,7 +2284,11 @@ window.Chamber = (function () {
       // additional listing ... they remain on the main event page in chronological
       // order"). Featuring only drives the homepage section; the list keeps the
       // Featured badge so the office can still see which ones are picked.
-      const ordered = filtered;
+      // A multi-day event already under way is listed under today and sorted
+      // there, with its whole run on the row.
+      const today = localToday();
+      const ordered = filtered.map((e) => asListed(e, today))
+        .sort((a, b) => (a.listDate || a.date).localeCompare(b.listDate || b.date));
       if (view === 'grid') {
         listEl.hidden = true; gridEl.hidden = false;
       } else {
