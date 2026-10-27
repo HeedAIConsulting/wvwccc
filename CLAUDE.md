@@ -170,6 +170,22 @@ the office names one — `info@` was assumed once and is not a real inbox.
 `PO Box 1` on the Nov 2025 Grateful Hearts event is a mail-in donation address,
 not the office, and is left alone.
 
+## Receipts that do not arrive
+
+Email goes out through Resend. A customer's receipt that bounces, is
+suppressed or fails is reported by Resend to `POST /api/email/events`
+(`backend/email-events.js`), and the office is emailed the name, the address
+it went to, phone, what was paid and what to do. Built Oct 27 2026 after Chris
+Gomberg's receipts went to a mistyped address for a month without anyone
+knowing. One alert per email (settings key `receiptUndelivered:<email id>`);
+the office's own copy bouncing is not reported.
+
+The request must carry Resend's Svix signature, checked against
+`RESEND_WEBHOOK_SECRET` over the raw body, which is why `server.js` mounts
+`express.raw` for that one path before `express.json`. Without the secret the
+route answers 503. Resend suppresses an address for good after a hard bounce,
+so a customer who mistypes once gets no receipt at that address again.
+
 ## One-time migrations
 
 Data corrections run once, keyed by a settings marker
