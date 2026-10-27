@@ -56,6 +56,9 @@ app.use(helmet({
 app.use(compression());
 app.use(cors({ origin: true, credentials: true }));
 app.use(cookieParser());
+// Resend's delivery events are signed over the exact bytes sent, so that one
+// path keeps its raw body (backend/email-events.js); the JSON parser skips it.
+app.use('/api/email/events', express.raw({ type: () => true, limit: '1mb' }));
 app.use(express.json({ limit: '28mb' })); // headroom for base64 uploads: images (downscaled client-side) + newsletter/event PDFs up to ~20MB
 
 // ── Rate limiting ──────────────────────────────────────────
@@ -76,6 +79,9 @@ import { legacyMemberPath } from './backend/legacy-urls.js';
 import { stampGuideHtml } from './backend/guide-meta.js';
 import { loadBizBuzz } from './backend/bizbuzz.js';      // Biz Buzz page can be taken down from Admin   // guide pages stamp their own link-preview tags
 import * as repo from './backend/repo.js';   // album pages stamp their own og:* tags
+import { handleEmailEvent } from './backend/email-events.js';
+// A receipt that bounces or is suppressed emails the office (Oct 27 2026).
+app.post('/api/email/events', handleEmailEvent);
 app.use('/api', chamberRoutes);
 app.get('/api/ping', (_req, res) => res.json({ ok: true, service: 'wvwccc' }));
 
