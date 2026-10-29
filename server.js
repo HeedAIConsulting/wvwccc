@@ -74,7 +74,7 @@ app.get('/healthz', (_req, res) => res.json({ ok: true, ts: Date.now() }));
 app.get('/api/chamber', (_req, res) => res.json({ ok: true, live: true, service: 'wvwccc' }));
 
 // ── API routes (payments, concierge) ──────────────────────
-import chamberRoutes, { sitemapEntries, loadMembersPublic } from './backend/chamber-routes.js';
+import chamberRoutes, { sitemapEntries, loadMembersPublic, importFoodWineAlbum } from './backend/chamber-routes.js';
 import { legacyMemberPath } from './backend/legacy-urls.js';
 import { stampGuideHtml } from './backend/guide-meta.js';
 import { loadBizBuzz } from './backend/bizbuzz.js';      // Biz Buzz page can be taken down from Admin   // guide pages stamp their own link-preview tags
@@ -426,5 +426,8 @@ async function initDb() {
 initDb().finally(() => {
   app.listen(PORT, () => {
     console.log(`WVWCCC production site running on :${PORT}`);
+    // One-time photo import onto production only (chamber-routes.js); a local
+    // run on the JSON store never pulls 170MB of photos.
+    if (process.env.DATABASE_URL) setTimeout(() => { importFoodWineAlbum(); }, 20_000);
   });
 });
