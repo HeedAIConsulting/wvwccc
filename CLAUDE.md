@@ -34,6 +34,12 @@ Concrete examples already built to this rule:
   plays it in the popup. Built Sep 2026 because Diana had the welcome video and
   no way to publish it herself.
 - **Group rosters** — Admin → Groups → Manage, search the directory and click.
+- **Photographer's albums** — Admin → Photo Albums, paste the Lightroom share
+  link (lightroom.adobe.com/shares/… or adobe.ly/…) and click Import album.
+  The server copies every photo with its thumbnail and credits the
+  photographer (`backend/album-import.js`); the same link again only adds
+  what is missing. Built Oct 29 2026 for Robyn Richardson's 351 Food & Wine
+  Tour photos. An album holds up to 500.
 - **Member team/reps** — the member does it in their own portal under
   "Meet the team".
 

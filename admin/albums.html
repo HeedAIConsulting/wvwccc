@@ -47,6 +47,17 @@
             </div>
             <p id="abMsg" class="notice" hidden style="margin:0 0 10px"></p>
             <button type="button" class="btn btn--gold" id="abCreate">Create album</button>
+            <!-- Oct 29 2026: Robyn Richardson's Food & Wine Tour photos came as a
+                 Lightroom link, 351 of them. The server copies the whole album. -->
+            <div style="border-top:1px solid var(--line,#eee);margin-top:18px;padding-top:14px">
+              <div class="field" style="margin:0"><label for="abLr">Or import a whole album from a Lightroom link</label>
+                <p class="sub" style="margin:2px 0 8px">Paste the link the photographer sent (it starts with lightroom.adobe.com/shares/ or adobe.ly/). The new album takes the Lightroom album's name unless you type one in <strong>Album name</strong> above, goes on the event or group picked above, and credits every photo to the photographer.</p>
+                <div style="display:flex;gap:8px;flex-wrap:wrap">
+                  <input id="abLr" placeholder="https://adobe.ly/…" style="flex:1;min-width:240px" />
+                  <button type="button" class="btn btn--gold" id="abLrGo">Import album</button>
+                </div></div>
+              <p id="abLrMsg" class="notice" hidden style="margin:10px 0 0"></p>
+            </div>
           </div>
         </div>
 
@@ -62,7 +73,7 @@
     </div>
   </div>
   <script src="../js/api-base.js"></script>
-  <script src="admin.js?v=20261015a"></script>
+  <script src="admin.js?v=20261029a"></script>
   <script>Admin.initAlbums();</script>
   <script defer src="/js/support.js?v=20260804c"></script>
 </body>
