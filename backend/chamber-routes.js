@@ -3652,6 +3652,40 @@ router.post('/admin/albums/import', requireAdmin, async (req, res) => {
     runAlbumImport(job, lr);
   } catch (e) { console.error('album import start', e); res.status(500).json({ error: 'Could not start the import.' }); }
 });
+/* One-time: Robyn Richardson's Food & Wine Tour 2026 album (Michael,
+   Oct 29 2026: "Why isn't it there? Add it!"). There is no write path to the
+   production database but the site itself, so the server imports it once,
+   after startup, onto the Cheers to 20 Years Food and Wine event. Resumable:
+   the marker holds the album id until every photo is in, and a restart picks
+   up where it stopped (photos already there are skipped by Lightroom id). */
+export const FOOD_WINE_IMPORT = { key: 'albumImport-foodWine-20261029', link: 'https://adobe.ly/4zlPbgp', eventId: 'le-11262' };
+export async function importFoodWineAlbum() {
+  const { key, link, eventId } = FOOD_WINE_IMPORT;
+  try {
+    const raw = await repo.getSetting(key);
+    let state = {};
+    try { state = raw ? JSON.parse(raw) : {}; } catch { state = {}; }
+    if (state.done) return state;
+    const lr = await albumImport.readLightroomAlbum(link, albumImport.fetchText);
+    let album = state.albumId && (await repo.listPosts({ type: 'album' })).find((x) => x.id === state.albumId);
+    if (!album) {
+      if (state.albumId) return state;   // the office deleted it: leave it deleted
+      album = await saveAlbum('alb-' + Date.now().toString(36), {
+        title: lr.title || 'Food & Wine Tour 2026',
+        body: lr.author ? `Photos by ${lr.author}.` : '',
+        eventId, photos: [], authorName: 'Chamber office',
+      }, null);
+      await repo.setSetting(key, JSON.stringify({ albumId: album.id, started: new Date().toISOString() }));
+    }
+    const job = { state: 'running', albumId: album.id, title: album.title, total: lr.photos.length, done: 0, added: 0, skipped: 0, failed: 0, overCap: 0 };
+    albumImports.set('imp-foodwine', job);
+    await runAlbumImport(job, lr);
+    const out = { albumId: album.id, added: job.added, skipped: job.skipped, failed: job.failed };
+    if (job.state === 'done' && !job.failed) await repo.setSetting(key, JSON.stringify({ ...out, done: new Date().toISOString() }));
+    console.log(`[albums] Food & Wine Tour import: ${job.state}, ${job.added} added, ${job.skipped} already there, ${job.failed} failed`);
+    return out;
+  } catch (e) { console.error('[albums] Food & Wine Tour import', e); return null; }
+}
 router.get('/admin/albums/import/:jobId', requireAdmin, (req, res) => {
   const job = albumImports.get(req.params.jobId);
   if (!job) return res.status(404).json({ error: 'That import is no longer running. Reload the page to see the album.' });

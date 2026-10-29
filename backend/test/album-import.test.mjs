@@ -10,6 +10,7 @@
 import { test, mock, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import bcrypt from 'bcryptjs';
+import { readFileSync } from 'node:fs';
 
 const real = await import('../album-import.js?real');
 const SPACE = 'a'.repeat(32), ALBUM = 'b'.repeat(32), SHARE = SPACE;
@@ -43,7 +44,7 @@ const lightroom = async (url, opts = {}) => {
   return { status: 404, text: '' };
 };
 // Every image download, counted, so a test can pause the import part-way.
-let fetches = 0, holdFrom = Infinity, held = null;
+let fetches = 0, holdFrom = Infinity, held = null, lrReads = 0;
 const image = async (url) => {
   fetches++;
   if (fetches > holdFrom) await held;
@@ -65,7 +66,7 @@ before(async () => {
     },
   });
   mock.module('../album-import.js', {
-    namedExports: { ...real, fetchText: lightroom, fetchImage: image },
+    namedExports: { ...real, fetchText: async (...a) => { lrReads++; return lightroom(...a); }, fetchImage: image },
   });
   const express = (await import('express')).default;
   const cookieParser = (await import('cookie-parser')).default;
@@ -202,4 +203,53 @@ test('a save from the admin page mid-import does not lose the photos already cop
 test('an album holds up to 500 photos', async () => {
   const src = (await import('node:fs')).readFileSync(new URL('../chamber-routes.js', import.meta.url), 'utf8');
   assert.match(src, /const ALBUM_PHOTO_CAP = 500;/);
+});
+
+/* Michael, Oct 29 2026: "Why isn't it there? Add it!" — no one had run the
+   import on production, and there is no write path but the site itself. The
+   server runs it once after startup, on production only. */
+test('the Food & Wine Tour album imports once onto its event, then never again', async () => {
+  const repo = await import('../repo.js');
+  const { FOOD_WINE_IMPORT: F, importFoodWineAlbum } = mod;
+  assert.equal(F.link, 'https://adobe.ly/4zlPbgp');
+  assert.equal(F.eventId, 'le-11262');
+  await repo.setSetting(F.key, '');
+  const out = await importFoodWineAlbum();
+  made.push(out.albumId);
+  assert.equal(out.added, PHOTOS);
+  const a = await album(out.albumId);
+  assert.equal(a.title, 'Food & Wine Tour 2026');
+  assert.equal(a.eventId, 'le-11262');
+  assert.equal(a.body, 'Photos by Robyn Richardson.');
+  assert.equal(a.count, PHOTOS);
+  assert.ok(JSON.parse(await repo.getSetting(F.key)).done, 'marked done');
+  const before = fetches, reads = lrReads;
+  await importFoodWineAlbum();
+  assert.equal(fetches, before, 'a second boot downloads nothing');
+  assert.equal(lrReads, reads, 'a second boot does not even ask Lightroom');
+  assert.equal((await album(out.albumId)).count, PHOTOS);
+});
+
+test('an unfinished import resumes into the same album, and a deleted album stays deleted', async () => {
+  const repo = await import('../repo.js');
+  const { FOOD_WINE_IMPORT: F, importFoodWineAlbum } = mod;
+  const first = JSON.parse(await repo.getSetting(F.key));
+  // A restart part-way: the marker holds the album but is not done.
+  await repo.setSetting(F.key, JSON.stringify({ albumId: first.albumId }));
+  const again = await importFoodWineAlbum();
+  assert.equal(again.albumId, first.albumId, 'same album, not a second one');
+  assert.equal(again.added, 0);
+  assert.equal(again.skipped, PHOTOS);
+  // The office deletes it before the import finished: it is not recreated.
+  await adm(`/api/admin/albums/${first.albumId}`, { method: 'DELETE' });
+  await repo.setSetting(F.key, JSON.stringify({ albumId: first.albumId }));
+  const before = fetches;
+  await importFoodWineAlbum();
+  assert.equal(fetches, before);
+  assert.equal((await fetch(`${base}/api/albums/${first.albumId}`)).status, 404);
+});
+
+test('the server starts it after boot, on production only', () => {
+  const src = readFileSync(new URL('../../server.js', import.meta.url), 'utf8');
+  assert.match(src, /if \(process\.env\.DATABASE_URL\) setTimeout\(\(\) => \{ importFoodWineAlbum\(\); \}, 20_000\);/);
 });
