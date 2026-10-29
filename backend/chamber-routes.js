@@ -18,6 +18,8 @@ import * as turnstile from './turnstile.js';
 import * as email from './email.js';
 import { SOCIAL_KEYS, normalizeUrl, sanitizePrimaryImage, sanitizeTeam, buildRewritePrompt, parseRewriteResponse } from './profile-helpers.js';
 import { registerNewsletterImport } from './newsletter-import.js';
+import * as albumImport from './album-import.js';
+import { randomBytes } from 'node:crypto';
 import { BIZBUZZ_KEY, cleanBizBuzz, loadBizBuzz } from './bizbuzz.js';
 import { readWebsite, memberWebsite } from './website-field.js';
 
@@ -3445,7 +3447,9 @@ router.post('/admin/pay-items', requireAdmin, async (req, res) => {
    album like the Gala). Per Michael, uploads go live immediately: no approval
    queue, because a queue is exactly the friction that stops members posting.
    Captions still run through flagContent, and the office can lock an album. */
-const ALBUM_PHOTO_CAP = 300;
+// Raised from 300 on Oct 29 2026 for the 351-photo Food & Wine Tour set. The
+// grid loads thumbnails lazily, so the page cost is in what is scrolled to.
+const ALBUM_PHOTO_CAP = 500;
 /* A photo URL is rendered both as <img src> AND as the <a href> behind the
    lightbox, so it has to be scheme-checked — clampUrl only trims length, and a
    `javascript:` href would run on click. Site-relative, http(s) and inline
@@ -3473,6 +3477,9 @@ function cleanPhotos(raw) {
       caption: String((p && p.caption) || '').slice(0, 180),
       by: String((p && p.by) || '').slice(0, 80),
       at: (p && p.at) || new Date().toISOString(),
+      // Where an imported photo came from, so running the same Lightroom link
+      // again adds only what is missing (album-import.js).
+      ...(/^lr:[0-9a-f]{32}$/.test(String((p && p.src) || '')) ? { src: p.src } : {}),
     };
   }).filter(Boolean);
 }
@@ -3562,6 +3569,93 @@ router.patch('/admin/albums/:id', requireAdmin, async (req, res) => {
 router.delete('/admin/albums/:id', requireAdmin, async (req, res) => {
   try { await repo.deletePost(req.params.id); res.json({ ok: true }); }
   catch (e) { console.error('album delete', e); res.status(500).json({ error: 'Could not delete the album.' }); }
+});
+
+/* Import from a Lightroom share link (backend/album-import.js, Oct 29 2026 —
+   Robyn Richardson's 351 Food & Wine Tour photos). The office pastes the
+   link; with no albumId a new album is made, named after the Lightroom one
+   and credited to the photographer. A few minutes of downloading, so it runs
+   as a job the admin page polls. */
+const albumImports = new Map();
+async function runAlbumImport(job, lr) {
+  const current = async () => (await repo.listPosts({ type: 'album' })).find((x) => x.id === job.albumId);
+  const start = await current();
+  const startPhotos = ((start && start.meta) || {}).photos || [];
+  const coverSrc = lr.coverId ? 'lr:' + lr.coverId : '';
+  const imported = [];
+  let coverUrl = '';
+  // Each save re-reads the album and puts back any of this import's photos
+  // that are missing: the admin page saves an album by sending its whole photo
+  // list, so a rename mid-import would otherwise drop what arrived meanwhile.
+  const commit = async (batch) => {
+    imported.push(...batch);
+    const hit = batch.find((p) => p.src === coverSrc);
+    if (hit) coverUrl = hit.thumb || hit.url;
+    const a = await current();
+    if (!a) throw new Error('The album was deleted during the import.');
+    const meta = { ...(a.meta || {}) };
+    const cur = meta.photos || [];
+    const there = new Set(cur.map((p) => p.src).filter(Boolean));
+    const photos = cleanPhotos([...cur, ...imported.filter((p) => !there.has(p.src))]);
+    const patch = { meta: { ...meta, photos } };
+    if (!a.imageUrl && coverUrl) patch.imageUrl = coverUrl;
+    await repo.updatePost(a.id, patch);
+  };
+  const tags = String(job.title || '').slice(0, 300);
+  const store = async (buffer, name, isThumb) => {
+    const id = 'asset-' + Date.now().toString(36) + randomBytes(3).toString('hex');
+    await repo.addAsset({
+      id, memberId: null, kind: 'photo', mime: 'image/jpeg', buffer,
+      name: (String(name || 'photo').replace(/\.[a-z0-9]{2,5}$/i, '') + (isThumb ? ' (thumbnail)' : '')).slice(0, 160),
+      tags,
+    });
+    return '/api/assets/' + id;
+  };
+  try {
+    const result = await albumImport.copyPhotos({
+      photos: lr.photos,
+      have: new Set(startPhotos.map((p) => p.src).filter(Boolean)),
+      room: ALBUM_PHOTO_CAP - startPhotos.length,
+      by: lr.author,
+      fetchImage: albumImport.fetchImage,
+      store, commit,
+      onProgress: (p) => Object.assign(job, p),
+    });
+    Object.assign(job, result, { state: 'done' });
+  } catch (e) {
+    console.error('album import', job.albumId, e);
+    Object.assign(job, { state: 'error', error: e.message || 'The import stopped.' });
+  }
+}
+router.post('/admin/albums/import', requireAdmin, async (req, res) => {
+  const b = req.body || {};
+  let lr;
+  try { lr = await albumImport.readLightroomAlbum(b.url, albumImport.fetchText); }
+  catch (e) { return res.status(400).json({ error: e.message || 'Could not open that Lightroom album.' }); }
+  try {
+    let album;
+    if (b.albumId) {
+      album = (await repo.listPosts({ type: 'album' })).find((x) => x.id === b.albumId);
+      if (!album) return res.status(404).json({ error: 'Album not found.' });
+    } else {
+      album = await saveAlbum('alb-' + Date.now().toString(36), {
+        title: String(b.title || '').trim() || lr.title || 'Photos',
+        body: lr.author ? `Photos by ${lr.author}.` : '',
+        eventId: b.eventId || '', groupSlug: b.groupSlug || '', photos: [],
+        authorName: req.user.name || 'Chamber office',
+      }, null);
+    }
+    const jobId = 'imp-' + Date.now().toString(36) + randomBytes(2).toString('hex');
+    const job = { state: 'running', albumId: album.id, title: album.title, total: lr.photos.length, done: 0, added: 0, skipped: 0, failed: 0, overCap: 0 };
+    albumImports.set(jobId, job);
+    res.json({ ok: true, jobId, albumId: album.id, title: album.title, total: lr.photos.length, author: lr.author });
+    runAlbumImport(job, lr);
+  } catch (e) { console.error('album import start', e); res.status(500).json({ error: 'Could not start the import.' }); }
+});
+router.get('/admin/albums/import/:jobId', requireAdmin, (req, res) => {
+  const job = albumImports.get(req.params.jobId);
+  if (!job) return res.status(404).json({ error: 'That import is no longer running. Reload the page to see the album.' });
+  res.json({ ok: true, ...job });
 });
 /* Members and group managers adding to an album. This is the whole point of
    the feature per Diana — the people who were AT the mixer have the photos. */

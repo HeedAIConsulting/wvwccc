@@ -1860,6 +1860,7 @@ window.Admin = (function () {
               <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
                 <label class="btn btn--gold btn--sm" style="cursor:pointer">⬆ Upload photos<input type="file" accept="image/*" multiple hidden data-abup></label>
                 <button type="button" class="btn btn--ghost btn--sm" data-ablib>📁 Add from Image Library</button>
+                <button type="button" class="btn btn--ghost btn--sm" data-ablr title="Copy photos from a Lightroom share link into this album. Photos already in it are skipped.">🔗 Import from Lightroom</button>
                 <button type="button" class="btn btn--ghost btn--sm" data-abmanage>🖼 Manage photos (${a.count})</button>
                 <label class="btn btn--ghost btn--sm" style="cursor:pointer" title="${a.music ? 'Change or remove the slideshow soundtrack' : 'Add music that plays when someone hits “Play as a slideshow”. Use a track you have the rights to.'}">${a.music ? '🎵 Music ✓' : '🎵 Add music'}<input type="file" accept="audio/*" hidden data-abmusic></label>
                 ${a.music ? `<button type="button" class="btn btn--ghost btn--sm" data-abmusicoff title="Remove the soundtrack">🔇</button>` : ''}
@@ -1925,6 +1926,49 @@ window.Admin = (function () {
       if (!urls.length) return say(listMsg, 'None of those uploaded — try smaller files.', true);
       try { await addPhotos(id, urls); } catch (err) { say(listMsg, 'Could not add the photos.', true); }
     };
+    /* Lightroom import (Oct 29 2026). The server copies the photos in the
+       background; this polls it and says how far along it is. */
+    const importLightroom = async (body, el) => {
+      say(el, 'Opening the Lightroom album…');
+      let start;
+      try {
+        // apiRaw, so the server's own explanation ("That is not a Lightroom
+        // share link…") reaches the office instead of a status code.
+        const r = await apiRaw('/api/admin/albums/import', { method: 'POST', body: JSON.stringify(body) });
+        if (!r.ok) return say(el, r.body.error || 'Could not open that Lightroom album.', true);
+        start = r.body;
+      } catch (e) { return say(el, 'Could not reach the website — check the connection and try again.', true); }
+      const name = `“${start.title}”`;
+      say(el, `Copying ${start.total} photos into ${name}${start.author ? ' (by ' + start.author + ')' : ''}… you can stay on this page or come back later.`);
+      load();
+      for (;;) {
+        await new Promise((r) => setTimeout(r, 3000));
+        let j;
+        try { j = await api('/api/admin/albums/import/' + encodeURIComponent(start.jobId)); }
+        catch (e) { say(el, 'Lost track of the import — reload the page to see how many photos arrived. Running the same link again adds only what is missing.', true); return load(); }
+        if (j.state === 'running') { say(el, `Copying photos into ${name}: ${j.done} of ${j.total - j.skipped}…`); continue; }
+        if (j.state === 'error') { say(el, `The import stopped after ${j.added} photos: ${j.error} Running the same link again adds only what is missing.`, true); return load(); }
+        const notes = [
+          j.skipped ? `${j.skipped} were already in the album` : '',
+          j.failed ? `${j.failed} could not be copied (run the same link again to retry them)` : '',
+          j.overCap ? `${j.overCap} did not fit — an album holds up to 500 photos` : '',
+        ].filter(Boolean);
+        say(el, `Done ✓ ${j.added} photo${j.added === 1 ? '' : 's'} added to ${name} — live on the album page now.${notes.length ? ' ' + notes.join('; ') + '.' : ''}`, !!(j.failed || j.overCap));
+        return load();
+      }
+    };
+    document.getElementById('abLrGo').addEventListener('click', async () => {
+      const url = document.getElementById('abLr').value.trim();
+      const out = document.getElementById('abLrMsg');
+      if (!url) return say(out, 'Paste the Lightroom link first.', true);
+      await importLightroom({
+        url,
+        title: document.getElementById('abTitle').value.trim(),
+        eventId: document.getElementById('abEvent').value,
+        groupSlug: document.getElementById('abGroup').value,
+      }, out);
+    });
+
     // A drop that misses an album card must not navigate the tab to the image.
     document.addEventListener('dragover', (e) => e.preventDefault());
     document.addEventListener('drop', (e) => e.preventDefault());
@@ -1977,6 +2021,10 @@ window.Admin = (function () {
           if (!confirm('Remove the soundtrack? The slideshow still plays, just silently.')) return;
           try { await save(id, { music: '', musicCredit: '' }); load(); }
           catch (e) { say(listMsg, 'Could not remove it.', true); }
+        });
+        row.querySelector('[data-ablr]').addEventListener('click', async () => {
+          const url = prompt('Paste the Lightroom share link (lightroom.adobe.com/shares/… or adobe.ly/…). Photos already in this album are skipped.', '');
+          if (url && url.trim()) importLightroom({ url: url.trim(), albumId: id }, listMsg);
         });
         row.querySelector('[data-ablib]').addEventListener('click', async () => {
           const urls = await pickImage({ multiple: true, title: 'Add photos from the Image Library', max: 40 });
