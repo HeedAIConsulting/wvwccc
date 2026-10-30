@@ -2118,6 +2118,7 @@ async function ensureEventsSeeded() {
      meeting tagged onto the Community Clean Up Crew), since routing that one's
      RSVPs to the wrong leaders is the very failure this is fixing. */
   await applyEventGroupHosts();
+  await applyNov4BlurbLines();
   /* One-time (Aug 19 2026, per Felicia): rescue any dated event left stuck at
      confirmed:false by the ?? bug fixed in buildEvent above. Those events look
      perfectly normal in Admin - approved, dated, showing on the list - but the
@@ -2320,6 +2321,7 @@ export const BLURB_MAX_CHARS = 400;
 export function blurbText(html) {
   return String(html || '')
     .replace(BLURB_BLOCKS, ' ')
+    .replace(/<br\s*\/?>/gi, ' ')
     .replace(/<[^>]*>/g, '')
     .replace(/&nbsp;|&#160;/gi, ' ')
     .replace(/&lt;/gi, '<').replace(/&gt;/gi, '>')
@@ -2360,7 +2362,9 @@ function clampBlurbHtml(s, max) {
 export function sanitizeBlurbHtml(html) {
   let s = sanitizeRichHtml(html);
   if (!s.trim()) return '';
-  s = s.replace(BLURB_BLOCKS, ' ');                   // a paragraph break is a space here
+  // A paragraph break is a line break here (Felicia, Oct 28 2026: an address
+  // pasted as paragraphs should keep its lines, not run together).
+  s = s.replace(BLURB_BLOCKS, '<br>');
   s = s.replace(/<\/?([a-z0-9]+)[^>]*>/gi, (m0, tag) =>
     (BLURB_TAGS.has(tag.toLowerCase()) ? m0 : ''));
   // A link whose address the sanitizer refused comes back as a bare <a>. Unwrap
@@ -2375,6 +2379,10 @@ export function sanitizeBlurbHtml(html) {
       Math.round(rem * 100) / 100)) + 'rem';
   });
   s = s.replace(/\s{2,}/g, ' ');
+  // One break at a time — she asked for lines with no gap between them — and
+  // none at the start or the end, where they would only pad the card.
+  s = s.replace(/<br\s*\/?>/gi, '<br>').replace(/(?:\s*<br>\s*)+/g, '<br>')
+    .replace(/^(?:\s|<br>)+/, '').replace(/(?:\s|<br>)+$/, '');
   return clampBlurbHtml(s, BLURB_MAX_CHARS).trim();
 }
 
@@ -2925,6 +2933,39 @@ async function applySustainableAndLegacyPage() {
     await repo.setSetting(KEY, `${notes.join('; ') || 'nothing to do'} @ ${new Date().toISOString()}`);
     if (notes.length) console.log('[groups] Sustainable/legacy page:', notes.join('; '));
   } catch (e) { _sustainableFixChecked = false; console.error('sustainable/legacy-page fix failed (will retry next boot)', e); }
+}
+/* One-time (Oct 30 2026): the Nov 4 breakfast blurb as the five lines Felicia
+   wrote out on Oct 28 — club name, date, venue, street, city, no gaps. She
+   could not make them herself: Enter was off in the blurb box (now it starts a
+   new line) and her save ran four of the lines together. Only changes the
+   blurb if it is still exactly what she saved then. */
+export const NOV4_BLURB = {
+  id: 'ev-mss55jq962h',
+  from: '<span style="font-size:0.95rem">West Valley~Warner Center Chamber of Commerce Breakfast<br> Wednesday, November 4th at 7 AM&nbsp;</span><b style="font-size:0.95rem">Woodland Hills Country Club&nbsp;</b><span style="font-size:0.95rem">21150 Dumetz Rd.&nbsp;</span><span style="font-size:0.95rem">Woodland Hills, CA 91364</span>',
+  to: '<span style="font-size:0.95rem">West Valley~Warner Center Chamber of Commerce Breakfast<br>Wednesday, November 4th at 7 AM</span><br><b style="font-size:0.95rem">Woodland Hills Country Club</b><br><span style="font-size:0.95rem">21150 Dumetz Rd.</span><br><span style="font-size:0.95rem">Woodland Hills, CA 91364</span>',
+};
+// The new blurb when this is the event and it is still exactly as saved; else null.
+export function nov4BlurbFix(ev) {
+  const norm = (h) => String(h || '').replace(/\s+/g, ' ').trim();
+  return ev && ev.id === NOV4_BLURB.id && norm(ev.homeBlurbHtml) === norm(NOV4_BLURB.from) ? NOV4_BLURB.to : null;
+}
+let _nov4BlurbChecked = false;
+export async function applyNov4BlurbLines() {
+  if (_nov4BlurbChecked) return;
+  _nov4BlurbChecked = true;
+  const KEY = 'blurbLines-20261030';
+  try {
+    if (await repo.getSetting(KEY)) return;
+    const ev = (await repo.listEventsStore()).find((e) => e.id === NOV4_BLURB.id);
+    let note = 'left alone (changed since Oct 28, or not found)';
+    const to = nov4BlurbFix(ev);
+    if (to) {
+      await repo.upsertEvent(buildEvent({ homeBlurbHtml: to }, ev));
+      note = 'set to five lines';
+    }
+    await repo.setSetting(KEY, `${note} @ ${new Date().toISOString()}`);
+    console.log(`[events] Nov 4 breakfast blurb: ${note}`);
+  } catch (e) { _nov4BlurbChecked = false; console.error('nov 4 blurb fix failed (will retry next boot)', e); }
 }
 async function applyFlyerCorrections() {
   if (_flyerFixChecked) return;

@@ -2712,9 +2712,16 @@ window.Admin = (function () {
       blurbCount.style.color = n > BLURB_MAX ? 'var(--red,#b3261e)' : '';
       blurbCount.style.fontWeight = n > BLURB_MAX ? '600' : '';
     };
-    // One paragraph means one paragraph: Enter would open a second one the card
-    // has no room for, and the server folds it back to a space anyway.
-    blurb?.addEventListener('keydown', (e) => { if (e.key === 'Enter') e.preventDefault(); });
+    /* Enter starts a new line, never a new paragraph (Felicia, Oct 28 2026:
+       the Nov 4 breakfast as five lines — name, date, club, street, city —
+       with no gap between them). Enter used to be off altogether, Shift+Enter
+       too, so a line could only arrive by pasting; deleting the gap the paste
+       left joined the lines into one. */
+    blurb?.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter') return;
+      e.preventDefault();
+      if (!document.execCommand('insertLineBreak')) document.execCommand('insertHTML', false, '<br>');
+    });
     blurb?.addEventListener('input', paintBlurbCount);
     blurb?.addEventListener('paste', () => setTimeout(paintBlurbCount, 0));
 
