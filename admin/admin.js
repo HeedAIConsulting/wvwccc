@@ -1856,6 +1856,7 @@ window.Admin = (function () {
             <img src="${esc(a.cover || '../images/wvwccc-logo-200.png')}" alt="" style="width:104px;height:78px;object-fit:cover;border-radius:8px;border:1px solid var(--line,#ddd);background:var(--forest,#1E5631)">
             <div style="flex:1;min-width:220px">
               <input data-abf="title" value="${esc(a.title)}" style="width:100%;font-weight:700">
+              <input data-abf="body" value="${esc(a.body || '')}" placeholder="Description — e.g. Photos by Robyn Richardson, RichardsonPortraits.com" title="Shows under the album name on its page and in link previews. A web address in it becomes a link." style="width:100%;margin-top:6px">
               <p class="sub" style="margin:4px 0 0">${a.count} photo${a.count === 1 ? '' : 's'}${tags ? ' · ' + tags : ''} · drag photos onto this card to add them</p>
               <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
                 <label class="btn btn--gold btn--sm" style="cursor:pointer">⬆ Upload photos<input type="file" accept="image/*" multiple hidden data-abup></label>
@@ -1978,6 +1979,12 @@ window.Admin = (function () {
         const id = row.dataset.ab;
         row.querySelector('[data-abf="title"]').addEventListener('change', async (e) => {
           try { await save(id, { title: e.target.value }); say(listMsg, 'Renamed ✓'); } catch (err) { say(listMsg, 'Could not rename.', true); }
+        });
+        // The description could only be set when an album was made (Robyn
+        // Richardson, Oct 30 2026, asked for her website after her name).
+        row.querySelector('[data-abf="body"]').addEventListener('change', async (e) => {
+          try { await save(id, { body: e.target.value.trim() }); say(listMsg, 'Description saved ✓ — live on the album page now.'); }
+          catch (err) { say(listMsg, 'Could not save the description.', true); }
         });
         row.querySelector('[data-abup]').addEventListener('change', async (e) => {
           const files = Array.from(e.target.files || []);

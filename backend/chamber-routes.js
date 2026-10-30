@@ -3545,7 +3545,34 @@ function albumOut(p, full) {
   };
   return full ? { ...base, photos } : base;
 }
+/* One-time (Oct 30 2026): Robyn Richardson asked for "RichardsonPortraits.com"
+   after her name on the Food & Wine Tour album's credit line. Only if the line
+   is still the one the import wrote; the office can edit it in Admin now. */
+export const ALBUM_CREDIT_FIX = { id: 'alb-mvu3wnlq', from: 'Photos by Robyn Richardson.', to: 'Photos by Robyn Richardson, RichardsonPortraits.com' };
+// The new credit line when this is the album and its line is untouched; else null.
+export function albumCreditFix(a) {
+  return a && a.id === ALBUM_CREDIT_FIX.id && String(a.body || '').trim() === ALBUM_CREDIT_FIX.from ? ALBUM_CREDIT_FIX.to : null;
+}
+let _albumCreditChecked = false;
+export async function applyAlbumCreditFix() {
+  if (_albumCreditChecked) return;
+  _albumCreditChecked = true;
+  const KEY = 'albumCredit-20261030';
+  try {
+    if (await repo.getSetting(KEY)) return;
+    const a = (await repo.listPosts({ type: 'album' })).find((x) => x.id === ALBUM_CREDIT_FIX.id);
+    let note = 'left alone (changed, or not found)';
+    const to = albumCreditFix(a);
+    if (to) {
+      await repo.updatePost(a.id, { body: to });
+      note = 'credit line set';
+    }
+    await repo.setSetting(KEY, `${note} @ ${new Date().toISOString()}`);
+    console.log(`[albums] Food & Wine Tour credit: ${note}`);
+  } catch (e) { _albumCreditChecked = false; console.error('album credit fix failed (will retry)', e); }
+}
 async function loadAlbums() {
+  await applyAlbumCreditFix();
   return (await repo.listPosts({ type: 'album', status: 'approved' }));
 }
 router.get('/albums', async (req, res) => {

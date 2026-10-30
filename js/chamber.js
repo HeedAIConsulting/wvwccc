@@ -1075,6 +1075,17 @@ window.Chamber = (function () {
         ${a.body ? `<p>${esc(a.body)}</p>` : ''}
       </div></a>`;
   }
+  /* Escaped text with its web addresses made into links — the album's credit
+     line (Robyn Richardson, Oct 30 2026: "RichardsonPortraits.com" after her
+     name). Escaped first, so only the links themselves are markup, and only
+     http(s) addresses or bare domains on common endings qualify. */
+  function linkifyText(s) {
+    return esc(s).replace(/\b(https?:\/\/[^\s<]+[^\s<.,;:!?)]|(?:www\.)?[a-z0-9][a-z0-9-]*(?:\.[a-z0-9-]+)*\.(?:com|net|org|us|biz|info|co|io)(?:\/[^\s<]*[^\s<.,;:!?)])?)(?![\w.-]*@)/gi, (m, u, off, all) => {
+      if (all[off - 1] === '@') return m;                       // part of an email address
+      const href = /^https?:\/\//i.test(u) ? u : 'https://' + u;
+      return `<a href="${href}" target="_blank" rel="noopener">${u}</a>`;
+    });
+  }
   // One photo, with its own share row. shareMenu already handles Facebook / X /
   // LinkedIn / email / text / copy, so a photo shares exactly like an event.
   function photoFigure(p, i, album) {
@@ -1161,7 +1172,7 @@ window.Chamber = (function () {
     document.title = `${album.title} — West Valley · Warner Center Chamber of Commerce`;
     head.innerHTML = `<span class="kicker">Photo album</span>
       <h1>${esc(album.title)}</h1>
-      ${album.body ? `<p class="lead" style="max-width:62ch">${esc(album.body)}</p>` : ''}
+      ${album.body ? `<p class="lead" style="max-width:62ch">${linkifyText(album.body)}</p>` : ''}
       <p class="member-tile__meta">${album.count} photo${album.count === 1 ? '' : 's'}</p>
       <div class="btn-row mt-3">
         ${album.photos.length ? `<button type="button" class="btn btn--gold" id="albPlay">▶ ${tr('Play as a slideshow')}</button>` : ''}
