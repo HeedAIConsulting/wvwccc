@@ -8,8 +8,8 @@
    most of this file is about.
 
    Two shapes it has to hold:
-     · the card cannot grow, so a size is clamped and a block tag becomes a
-       space rather than a second paragraph;
+     · the card has little room, so a size is clamped and a block tag becomes
+       a line break, never a gap (Oct 28: Felicia's five-line breakfast blurb);
      · an event saved before the toolbar existed has only the plain line, and
        must keep rendering exactly as it did.
 
@@ -17,7 +17,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { sanitizeBlurbHtml, blurbText, buildEvent, BLURB_MAX_CHARS } from '../chamber-routes.js';
+import { sanitizeBlurbHtml, blurbText, buildEvent, BLURB_MAX_CHARS, NOV4_BLURB, nov4BlurbFix } from '../chamber-routes.js';
 
 const ROOT = new URL('../../', import.meta.url);
 const read = (f) => readFileSync(new URL(f, ROOT), 'utf8');
@@ -51,14 +51,27 @@ test('a size is clamped to what the card can take', () => {
 });
 
 test('nothing that owns a block of its own gets in', () => {
-  // There is no room in the card for a heading, a list or a picture, and a
-  // second paragraph would push the row out of line.
-  assert.equal(sanitizeBlurbHtml('<p>One</p><p>Two</p>'), 'One Two');
-  assert.equal(sanitizeBlurbHtml('<ul><li>One</li><li>Two</li></ul>'), 'One Two');
+  // There is no room in the card for a heading, a list or a picture. A
+  // paragraph keeps its line, but as a line break with no gap.
+  assert.equal(sanitizeBlurbHtml('<p>One</p><p>Two</p>'), 'One<br>Two');
+  assert.equal(sanitizeBlurbHtml('<ul><li>One</li><li>Two</li></ul>'), 'One<br>Two');
   assert.equal(sanitizeBlurbHtml('<h3>Heading</h3>'), 'Heading');
   assert.equal(sanitizeBlurbHtml('<img src="/x.png">Coffee'), 'Coffee');
-  assert.ok(!/<br>/.test(sanitizeBlurbHtml('<p>One</p><p>Two</p>')),
-    'a paragraph break is a space, not a line break the card has no room for');
+});
+
+/* Felicia, Oct 28 2026: "I was trying to make it look like this" — five lines,
+   no space between them. Enter was off, and the paste she used instead left
+   gaps that, deleted, joined the lines into one. */
+test('a blurb keeps its lines, with no gaps and none at either end', () => {
+  const five = 'West Valley~Warner Center Chamber of Commerce Breakfast<br>Wednesday, November 4th at 7 AM<br><b>Woodland Hills Country Club</b><br>21150 Dumetz Rd.<br>Woodland Hills, CA 91364';
+  assert.equal(sanitizeBlurbHtml(five), five, 'typed with Enter');
+  assert.equal(sanitizeBlurbHtml('<div>West Valley~Warner Center Chamber of Commerce Breakfast</div><div>Wednesday, November 4th at 7 AM</div><div><b>Woodland Hills Country Club</b></div><div>21150 Dumetz Rd.</div><div>Woodland Hills, CA 91364</div>'),
+    five, 'pasted as paragraphs');
+  assert.equal(sanitizeBlurbHtml('A<br><br><br>B'), 'A<br>B', 'one break at a time');
+  assert.equal(sanitizeBlurbHtml('<p></p><p>A</p><p>B</p><p></p>'), 'A<br>B', 'nothing padding the top or bottom');
+  assert.equal(sanitizeBlurbHtml('A<br/>B'), 'A<br>B');
+  assert.equal(blurbText(five), 'West Valley~Warner Center Chamber of Commerce Breakfast Wednesday, November 4th at 7 AM Woodland Hills Country Club 21150 Dumetz Rd. Woodland Hills, CA 91364',
+    'the plain copy reads the lines as spaces, not run together');
 });
 
 test('script, style and a javascript: link never reach the page', () => {
@@ -135,8 +148,10 @@ test('the office is told the limits before it hits them', () => {
   const admin = read('admin/admin.js');
   assert.match(admin, /blurbPlain\(\)\.length > BLURB_MAX/, 'and a save that would be cut short is refused');
   assert.match(admin, /Not saved — the home-page blurb is/);
-  assert.match(admin, /if \(e\.key === 'Enter'\) e\.preventDefault\(\)/,
-    'Enter is off: a second paragraph has nowhere to go');
+  assert.match(admin, /if \(e\.key !== 'Enter'\) return;\s*e\.preventDefault\(\);\s*if \(!document\.execCommand\('insertLineBreak'\)\) document\.execCommand\('insertHTML', false, '<br>'\);/,
+    'Enter and Shift+Enter start a new line, never a new paragraph');
+  assert.ok(!/Enter is off/.test(html), 'the hint under the box no longer says Enter is off');
+  assert.match(html, /Press Enter to start a\s+new line/);
 });
 
 test('editing an event loads what is stored and saves what is typed', () => {
@@ -148,4 +163,16 @@ test('editing an event loads what is stored and saves what is typed', () => {
   assert.ok(!/homeBlurb: form\.homeBlurb/.test(admin),
     'the textarea is gone, so reading it would throw on every save');
   assert.ok(!/<textarea name="homeBlurb"/.test(read('admin/events.html')));
+});
+
+test("the Nov 4 breakfast blurb is set to Felicia's five lines, once, only if untouched", () => {
+  const ev = { id: NOV4_BLURB.id, homeBlurbHtml: NOV4_BLURB.from.replace('Warner Center', 'Warner\nCenter') };
+  assert.equal(nov4BlurbFix(ev), NOV4_BLURB.to, 'the run-together blurb she saved is replaced');
+  assert.equal(sanitizeBlurbHtml(NOV4_BLURB.to), NOV4_BLURB.to, 'and the new one is exactly what the sanitizer keeps');
+  assert.equal(nov4BlurbFix({ ...ev, homeBlurbHtml: 'Something she typed since' }), null, 'an edit she has made is never stomped');
+  assert.equal(nov4BlurbFix({ ...ev, id: 'ev-other' }), null);
+  assert.equal(nov4BlurbFix(null), null);
+  const src = read('backend/chamber-routes.js');
+  assert.match(src, /const KEY = 'blurbLines-20261030';/);
+  assert.match(src, /await applyEventGroupHosts\(\);\n  await applyNov4BlurbLines\(\);/, 'wired into the event load');
 });
