@@ -2375,6 +2375,8 @@ export function sanitizeBlurbHtml(html) {
       Math.round(rem * 100) / 100)) + 'rem';
   });
   s = s.replace(/\s{2,}/g, ' ');
+  // A line break is allowed, a gap is not: stacked breaks are a blank line.
+  s = s.replace(/(?:<br\s*\/?>\s*){2,}/gi, '<br>');
   return clampBlurbHtml(s, BLURB_MAX_CHARS).trim();
 }
 

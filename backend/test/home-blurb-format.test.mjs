@@ -135,8 +135,16 @@ test('the office is told the limits before it hits them', () => {
   const admin = read('admin/admin.js');
   assert.match(admin, /blurbPlain\(\)\.length > BLURB_MAX/, 'and a save that would be cut short is refused');
   assert.match(admin, /Not saved — the home-page blurb is/);
-  assert.match(admin, /if \(e\.key === 'Enter'\) e\.preventDefault\(\)/,
-    'Enter is off: a second paragraph has nowhere to go');
+  assert.match(admin, /if \(e\.key === 'Enter' && !e\.shiftKey\) e\.preventDefault\(\)/,
+    'Enter is off: a second paragraph has nowhere to go, but Shift+Enter is a line break');
+});
+
+test('an address can run over several lines, with no gaps between them', () => {
+  // Felicia, Oct 30 2026: venue, street and city each on their own line, and
+  // Shift+Enter "would not go anywhere".
+  const out = sanitizeBlurbHtml('Woodland Hills Country Club<br>21150 Dumetz Rd.<br>Woodland Hills, CA 91364');
+  assert.equal(out, 'Woodland Hills Country Club<br>21150 Dumetz Rd.<br>Woodland Hills, CA 91364');
+  assert.equal(sanitizeBlurbHtml('One<br><br><br>Two'), 'One<br>Two', 'stacked breaks are a blank line');
 });
 
 test('editing an event loads what is stored and saves what is typed', () => {

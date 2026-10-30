@@ -2713,8 +2713,9 @@ window.Admin = (function () {
       blurbCount.style.fontWeight = n > BLURB_MAX ? '600' : '';
     };
     // One paragraph means one paragraph: Enter would open a second one the card
-    // has no room for, and the server folds it back to a space anyway.
-    blurb?.addEventListener('keydown', (e) => { if (e.key === 'Enter') e.preventDefault(); });
+    // has no room for, and the server folds it back to a space anyway. Shift+Enter
+    // is a plain line break, which an address needs (Felicia, Oct 30 2026).
+    blurb?.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) e.preventDefault(); });
     blurb?.addEventListener('input', paintBlurbCount);
     blurb?.addEventListener('paste', () => setTimeout(paintBlurbCount, 0));
 
