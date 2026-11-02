@@ -215,11 +215,11 @@ test('the network roster gains the people at the meeting, once each', async () =
 
 test('the roster migration runs once and only ever adds', () => {
   const src = read('backend/chamber-routes.js');
-  const fn = src.slice(src.indexOf('async function applyHospitalityRoster'), src.indexOf('async function applyHospitalityRoster') + 900);
+  const fn = src.slice(src.indexOf('async function applyHospitalityRoster()'), src.indexOf('async function applyHospitalityRoster()') + 900);
   assert.match(fn, /const KEY = 'hospitalityRoster-20261102';/);
   assert.match(fn, /if \(await repo\.getSetting\(KEY\)\) return;/);
   assert.match(fn, /members: \(cur\.members \|\| \[\]\)\.concat\(adds\)/);
-  assert.match(src, /await applyHospitalityRoster\(\);\n  return repo\.listGroupsStore\(\);/);
+  assert.match(src, /await applyHospitalityRoster\(\);\n  await applyHospitalityRosterFix\(\);\n  return repo\.listGroupsStore\(\);/);
 });
 
 test('upcoming events for the voice agent: approved, on the calendar, in the window, in order', async () => {
@@ -237,4 +237,29 @@ test('upcoming events for the voice agent: approved, on the calendar, in the win
   assert.deepEqual(list.map((e) => e.title), ['multi', 'soon', 'later']);
   assert.equal(list[1].url, '/events/view.html?id=soon');
   assert.ok(JSON.stringify(list).length < 2000, 'small');
+});
+
+test('the network roster is members only, and Amanda is Amanda Dickey', async () => {
+  const { HOSPITALITY_ROSTER, hospitalityRosterFix, HOSPITALITY_NONMEMBER_IDS } = await import('../chamber-routes.js');
+  // Every row but Tawny's (already on the roster by her own request) is a member.
+  assert.deepEqual(HOSPITALITY_ROSTER.filter((p) => !p.memberId).map((p) => p.name), ['Tawny Goralnick']);
+  assert.ok(HOSPITALITY_ROSTER.some((p) => p.name === 'Amanda Dickey'));
+  // Production, where the first pass already added them:
+  const live = [
+    { id: 'gm-mvfms1bs3vk', name: 'Tawny Goralnick', memberId: null },
+    { id: 'gm-hosp-linda-campanella', name: 'Linda Campanella', memberId: null },
+    { id: 'gm-hosp-lacey', name: 'Lacey', memberId: null },
+    { id: 'gm-hosp-alex-asencio', name: 'Alex Asencio', memberId: null },
+    { id: 'gm-hosp-alice-roth', name: 'Alice Roth', memberId: null },
+    { id: 'gm-hosp-amanda-sajcy', name: 'Amanda Sajcy', memberId: 'm14965', email: '' },
+    { id: 'gm-hosp-rob-dickey', name: 'Rob Dickey', memberId: 'm14965' },
+  ];
+  const { members, changed } = hospitalityRosterFix(live);
+  assert.equal(changed, 5);
+  assert.deepEqual(members.map((m) => m.name), ['Tawny Goralnick', 'Amanda Dickey', 'Rob Dickey'], 'the office\'s own rows stay');
+  assert.equal(members[1].email, 'amanda@allvalleypartyrentals.com');
+  // Linked to a listing since (she joined): kept. Renamed by the office: kept as they wrote it.
+  const after = hospitalityRosterFix([{ id: 'gm-hosp-linda-campanella', name: 'Linda Campanella', memberId: 'm-new' }, { id: 'gm-hosp-amanda-sajcy', name: 'Amanda D.' }]);
+  assert.equal(after.changed, 0);
+  assert.equal(HOSPITALITY_NONMEMBER_IDS.length, 4);
 });

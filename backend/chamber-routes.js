@@ -2821,6 +2821,7 @@ async function loadGroups() {
   await repairLoginUsernames();
   await applyVsrnLogo();
   await applyHospitalityRoster();
+  await applyHospitalityRosterFix();
   return repo.listGroupsStore();
 }
 
@@ -2856,15 +2857,13 @@ async function applyVsrnLogo() {
    members carry their directory id, so the group page links their listing. */
 export const HOSPITALITY_ROSTER = [
   { name: 'Corina Ayers', business: 'AGS Cleaning Services', memberId: 'm16043', email: 'ayersgreensanitation@gmail.com', phone: '818-276-6917' },
-  { name: 'Amanda Sajcy', business: 'All Valley Party Rentals', memberId: 'm14965', email: '', phone: '818-943-5417' },
+  { name: 'Amanda Dickey', business: 'All Valley Party Rentals', memberId: 'm14965', email: 'amanda@allvalleypartyrentals.com', phone: '818-943-5417' },
   { name: 'Rob Dickey', business: 'All Valley Party Rentals', memberId: 'm14965', email: 'rob@allvalleypartyrentals.com', phone: '818-891-3676' },
   { name: 'Derek Maglinte', business: "Buckley's Family Adventure", memberId: 'm-mtdj26fq27f', email: 'Derek.M@buckleys.fun', phone: '805-206-1550' },
   { name: 'Virgie Van Horst', business: "Buckley's Family Adventure", memberId: 'm-mtdj26fq27f', email: 'Virgie.V@buckleys.fun', phone: '805-206-1550' },
   { name: 'Alexis Lopez', business: 'California MusicBox Studios', memberId: 'm15834', email: 'camusicbox@gmail.com', phone: '818-960-2700' },
-  { name: 'Linda Campanella', business: 'Campanella Creations', memberId: null, email: 'campanellacreations@gmail.com', phone: '310-433-3282' },
   { name: 'Gary Huettinger', business: 'Lady Fortunes Inc.', memberId: 'm-mrdmstbeu8', email: 'gary@ladyfortunes.com', phone: '818-497-4000' },
   { name: 'Etienne Tardy', business: 'Marriott Warner Center', memberId: 'm2138', email: '', phone: '818-887-4800' },
-  { name: 'Lacey', business: 'Montecitos Coffee', memberId: null, email: 'lacey@montecitoscoffee.com', phone: '971-400-0916' },
   { name: 'Mary Johnson', business: 'Peacock Print Co.', memberId: 'm15808', email: 'mary@peacockprintco.com', phone: '562-732-2625' },
   { name: 'Robyn Richardson', business: 'Richardson Portraits', memberId: 'm15849', email: 'robyn@richardsonportraits.com', phone: '818-875-5950' },
   { name: 'Damon Buford', business: 'Sunberry Acai Bowls', memberId: 'm15869', email: 'info@sunberryacaibowls.com', phone: '818-646-8868' },
@@ -2874,8 +2873,6 @@ export const HOSPITALITY_ROSTER = [
   { name: 'Jameela Baliwala', business: 'Woodland Warner Flowers', memberId: 'm12341', email: 'woodlandwarner@gmail.com', phone: '818-587-3650' },
   { name: 'Ron Rubin', business: 'Ron Rubin Events', memberId: 'm12146', email: '', phone: '818-345-2115' },
   { name: 'Howie Baron', business: 'Baron Shutters and Blinds', memberId: 'm15907', email: 'baronshuttersandblinds@gmail.com', phone: '' },
-  { name: 'Alice Roth', business: 'LA City Council Office', memberId: null, email: '', phone: '818-774-4330' },
-  { name: 'Alex Asencio', business: 'Saint + Second', memberId: null, email: 'aasencio@saintandsecond.com', phone: '818-474-6220' },
   { name: 'Marcia Israel', business: 'Stan Israel Insurance Services, Inc.', memberId: 'm10438', email: '', phone: '818-706-1100' },
   { name: 'Stan Israel', business: 'Stan Israel Insurance Services, Inc.', memberId: 'm10438', email: '', phone: '818-706-1100' },
   { name: 'Tawny Goralnick', business: 'RoomRite Group Solutions', memberId: null, email: 'tawny@roomrite.io', phone: '888-577-3633' },
@@ -2894,6 +2891,44 @@ export function hospitalityRosterAdds(group) {
       id: 'gm-hosp-' + norm(p.name).replace(/[^a-z0-9]+/g, '-'),
       ...p, role: 'Member', status: 'active', source: 'admin', added: '2026-11-02T18:00:00.000Z',
     }));
+}
+/* Nov 2 2026, the same evening: the first pass put four non-members on the
+   roster and read Amanda's handwritten surname wrong (Diana's attendance sheet:
+   Amanda Dickey). This takes out exactly the rows that pass added for the
+   non-members, only while they are still unlinked to a member listing, and
+   corrects Amanda only while her row still reads as it was written. */
+export const HOSPITALITY_NONMEMBER_IDS = ['gm-hosp-linda-campanella', 'gm-hosp-lacey', 'gm-hosp-alex-asencio', 'gm-hosp-alice-roth'];
+export function hospitalityRosterFix(members) {
+  let changed = 0;
+  const out = [];
+  for (const m of members || []) {
+    if (HOSPITALITY_NONMEMBER_IDS.includes(m.id) && !m.memberId) { changed++; continue; }
+    if (m.id === 'gm-hosp-amanda-sajcy' && m.name === 'Amanda Sajcy') {
+      out.push({ ...m, name: 'Amanda Dickey', email: m.email || 'amanda@allvalleypartyrentals.com' });
+      changed++;
+      continue;
+    }
+    out.push(m);
+  }
+  return { members: out, changed };
+}
+let _hospFixChecked = false;
+async function applyHospitalityRosterFix() {
+  if (_hospFixChecked) return;
+  _hospFixChecked = true;
+  const KEY = 'hospitalityRosterFix-20261102';
+  try {
+    if (await repo.getSetting(KEY)) return;
+    const cur = (await repo.listGroupsStore()).find((g) => g.id === 'grp-event-hospitality');
+    let note = 'group not found';
+    if (cur) {
+      const { members, changed } = hospitalityRosterFix(cur.members);
+      if (changed) await repo.upsertGroup(buildGroup({ ...cur, members }, cur));
+      note = `changed ${changed}`;
+    }
+    await repo.setSetting(KEY, `${note} @ ${new Date().toISOString()}`);
+    console.log(`[groups] hospitality roster fix: ${note}`);
+  } catch (e) { _hospFixChecked = false; console.error('hospitality roster fix failed (will retry next boot)', e); }
 }
 let _hospRosterChecked = false;
 async function applyHospitalityRoster() {
