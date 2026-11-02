@@ -22,6 +22,7 @@ import * as albumImport from './album-import.js';
 import { randomBytes } from 'node:crypto';
 import { BIZBUZZ_KEY, cleanBizBuzz, loadBizBuzz } from './bizbuzz.js';
 import { readWebsite, memberWebsite } from './website-field.js';
+import { searchGuides, referralFor, expand } from './explore.js';
 
 const router = express.Router();
 
@@ -2796,6 +2797,7 @@ async function loadGroups() {
   await applyVolunteerPointsOn();
   await repairLoginUsernames();
   await applyVsrnLogo();
+  await applyHospitalityRoster();
   return repo.listGroupsStore();
 }
 
@@ -2819,6 +2821,74 @@ async function applyVsrnLogo() {
     }
     await repo.setSetting(KEY, `${did} ${new Date().toISOString()}`);
   } catch (e) { _vsrnLogoChecked = false; console.error('VSRN logo migration failed (will retry next boot)', e); }
+}
+
+/* Nov 2 2026: the business cards from the November meeting of the Event
+   Planning & Hospitality Professionals Network (Warner Center Marriott). Its
+   roster had four names on it, so the people who actually came were not on
+   the group page. Each is added once, as a roster Member, unless the roster
+   already has them (same email, or same name), so anyone the office has added,
+   removed-and-re-added or promoted is left as it is. Monica Battisti runs the
+   group and is its manager, not a roster row. Businesses that are Chamber
+   members carry their directory id, so the group page links their listing. */
+export const HOSPITALITY_ROSTER = [
+  { name: 'Corina Ayers', business: 'AGS Cleaning Services', memberId: 'm16043', email: 'ayersgreensanitation@gmail.com', phone: '818-276-6917' },
+  { name: 'Amanda Sajcy', business: 'All Valley Party Rentals', memberId: 'm14965', email: '', phone: '818-943-5417' },
+  { name: 'Rob Dickey', business: 'All Valley Party Rentals', memberId: 'm14965', email: 'rob@allvalleypartyrentals.com', phone: '818-891-3676' },
+  { name: 'Derek Maglinte', business: "Buckley's Family Adventure", memberId: 'm-mtdj26fq27f', email: 'Derek.M@buckleys.fun', phone: '805-206-1550' },
+  { name: 'Virgie Van Horst', business: "Buckley's Family Adventure", memberId: 'm-mtdj26fq27f', email: 'Virgie.V@buckleys.fun', phone: '805-206-1550' },
+  { name: 'Alexis Lopez', business: 'California MusicBox Studios', memberId: 'm15834', email: 'camusicbox@gmail.com', phone: '818-960-2700' },
+  { name: 'Linda Campanella', business: 'Campanella Creations', memberId: null, email: 'campanellacreations@gmail.com', phone: '310-433-3282' },
+  { name: 'Gary Huettinger', business: 'Lady Fortunes Inc.', memberId: 'm-mrdmstbeu8', email: 'gary@ladyfortunes.com', phone: '818-497-4000' },
+  { name: 'Etienne Tardy', business: 'Marriott Warner Center', memberId: 'm2138', email: '', phone: '818-887-4800' },
+  { name: 'Lacey', business: 'Montecitos Coffee', memberId: null, email: 'lacey@montecitoscoffee.com', phone: '971-400-0916' },
+  { name: 'Mary Johnson', business: 'Peacock Print Co.', memberId: 'm15808', email: 'mary@peacockprintco.com', phone: '562-732-2625' },
+  { name: 'Robyn Richardson', business: 'Richardson Portraits', memberId: 'm15849', email: 'robyn@richardsonportraits.com', phone: '818-875-5950' },
+  { name: 'Damon Buford', business: 'Sunberry Acai Bowls', memberId: 'm15869', email: 'info@sunberryacaibowls.com', phone: '818-646-8868' },
+  { name: 'Odessa Varvatsoulis', business: 'Tainos L.A.', memberId: 'm16185', email: 'odessavarv@gmail.com', phone: '818-792-3997' },
+  { name: 'Nick Varvatsoulis', business: 'Tainos L.A.', memberId: 'm16185', email: 'nickvarv@gmail.com', phone: '818-792-3997' },
+  { name: 'Tamika Jeanty', business: 'Taomi Tea N Treats', memberId: 'm-mvsagr6l32s', email: 'info@taomiteantreats.com', phone: '818-724-8976' },
+  { name: 'Jameela Baliwala', business: 'Woodland Warner Flowers', memberId: 'm12341', email: 'woodlandwarner@gmail.com', phone: '818-587-3650' },
+  { name: 'Ron Rubin', business: 'Ron Rubin Events', memberId: 'm12146', email: '', phone: '818-345-2115' },
+  { name: 'Howie Baron', business: 'Baron Shutters and Blinds', memberId: 'm15907', email: 'baronshuttersandblinds@gmail.com', phone: '' },
+  { name: 'Alice Roth', business: 'LA City Council Office', memberId: null, email: '', phone: '818-774-4330' },
+  { name: 'Alex Asencio', business: 'Saint + Second', memberId: null, email: 'aasencio@saintandsecond.com', phone: '818-474-6220' },
+  { name: 'Marcia Israel', business: 'Stan Israel Insurance Services, Inc.', memberId: 'm10438', email: '', phone: '818-706-1100' },
+  { name: 'Stan Israel', business: 'Stan Israel Insurance Services, Inc.', memberId: 'm10438', email: '', phone: '818-706-1100' },
+  { name: 'Tawny Goralnick', business: 'RoomRite Group Solutions', memberId: null, email: 'tawny@roomrite.io', phone: '888-577-3633' },
+];
+// The rows to add to this group: everyone above not already on its roster.
+export function hospitalityRosterAdds(group) {
+  const norm = (s) => String(s || '').trim().toLowerCase().replace(/\s+/g, ' ');
+  const emails = new Set((group.members || []).map((m) => norm(m.email)).filter(Boolean));
+  const names = new Set((group.members || []).map((m) => norm(m.name)).filter(Boolean));
+  const mgr = group.manager || {};
+  if (mgr.email) emails.add(norm(mgr.email));
+  if (mgr.name) names.add(norm(mgr.name));
+  return HOSPITALITY_ROSTER
+    .filter((p) => !names.has(norm(p.name)) && !(p.email && emails.has(norm(p.email))))
+    .map((p) => ({
+      id: 'gm-hosp-' + norm(p.name).replace(/[^a-z0-9]+/g, '-'),
+      ...p, role: 'Member', status: 'active', source: 'admin', added: '2026-11-02T18:00:00.000Z',
+    }));
+}
+let _hospRosterChecked = false;
+async function applyHospitalityRoster() {
+  if (_hospRosterChecked) return;
+  _hospRosterChecked = true;
+  const KEY = 'hospitalityRoster-20261102';
+  try {
+    if (await repo.getSetting(KEY)) return;
+    const cur = (await repo.listGroupsStore()).find((g) => g.id === 'grp-event-hospitality');
+    let note = 'group not found';
+    if (cur) {
+      const adds = hospitalityRosterAdds(cur);
+      if (adds.length) await repo.upsertGroup(buildGroup({ ...cur, members: (cur.members || []).concat(adds) }, cur));
+      note = `added ${adds.length}`;
+    }
+    await repo.setSetting(KEY, `${note} @ ${new Date().toISOString()}`);
+    console.log(`[groups] hospitality network roster: ${note}`);
+  } catch (e) { _hospRosterChecked = false; console.error('hospitality roster failed (will retry next boot)', e); }
 }
 
 // One-time corrections from the office's updated "Networks and Committees 2026"
@@ -4895,7 +4965,10 @@ router.post('/contact', async (req, res) => {
     const groupRsvp = lead.kind === 'rsvp' && leaderTo.length > 0;
     const recipients = [...leaderTo];
     if (rsvpTo) recipients.push(rsvpTo);
-    if (!groupRsvp && (officeWantsEmail || leaderTo.length || lead.kind === 'rsvp')) recipients.push(notifyTo);
+    // A referral request (Nov 2026) is somebody asking the office to connect
+    // them with member businesses: it is answered by a person, so it always
+    // reaches the office inbox, like an RSVP.
+    if (!groupRsvp && (officeWantsEmail || leaderTo.length || lead.kind === 'rsvp' || lead.kind === 'referral')) recipients.push(notifyTo);
     // Screened spam stays out of everyone's inbox — it waits in Admin →
     // Inquiries → Spam instead.
     if (recipients.length && lead.status !== 'spam') {
@@ -4907,7 +4980,9 @@ router.post('/contact', async (req, res) => {
       // who's coming, not a generic "Website inquiry".
       const subject = lead.kind === 'rsvp'
         ? `${groupName ? `[${groupName}] ` : ''}New RSVP — ${String(lead.event || 'event').replace(/\s*\[[^\]]*\]\s*$/, '')}${lead.name ? ` (${lead.name})` : ''}`
-        : `${groupName ? `[${groupName}] ` : ''}Website inquiry: ${lead.reason || lead.kind}${lead.company ? ' — ' + lead.company : ''}`;
+        : lead.kind === 'referral'
+          ? `${lead.reason || 'Referral request'}${lead.name ? ' — ' + lead.name : ''}`.replace(/[\r\n]+/g, ' ')
+          : `${groupName ? `[${groupName}] ` : ''}Website inquiry: ${lead.reason || lead.kind}${lead.company ? ' — ' + lead.company : ''}`;
       /* An RSVP notification is laid out like the old site's confirmation
          (Felicia, Aug 18 2026: "We like the look of the old receipts"). Same
          THANK YOU / GUEST INFO shape as the payment receipt above, so the two
@@ -5013,6 +5088,33 @@ function rankMembers(members, q, limit = 20) {
   return scored.slice(0, limit).map(([m]) => m);
 }
 
+// A member as the explore search, Wendy's guide links and the voice agent
+// hand it out: public fields only, plus the page to send someone to.
+function exploreMember(m) {
+  return { id: m.id, slug: m.slug, name: m.name, category: m.category || '', neighborhood: m.neighborhood || '',
+    address: m.address || '', city: m.city || '', phone: m.phone || '', website: m.website || '', tagline: m.tagline || '', logo: m.logo || '',
+    seal: m.seal || '', tier: m.tier || '',
+    url: m.slug ? `/members/${m.slug}` : `/members/profile.html?id=${encodeURIComponent(m.id)}` };
+}
+/* Guides, sections and members for a question, plus whether to offer the
+   referral request. Public and read-only: /explore.html searches with it as
+   the visitor types, and the site-wide voice agent calls it as a tool. */
+export async function exploreSearch(q, { members: limitMembers = 8 } = {}) {
+  const all = (await loadMembersPublic()).members;
+  const found = searchGuides(readGuides(), all, q);
+  const ranked = rankMembers(all, expand(q).join(' ') || q, limitMembers);
+  return { q, ...found, members: ranked.map(exploreMember), referral: referralFor(q) };
+}
+router.get('/explore', async (req, res) => {
+  const q = String(req.query.q || '').trim().slice(0, 200);
+  if (!q) return res.json({ q: '', guides: [], sections: [], members: [], referral: { suggest: false } });
+  try {
+    const n = Math.max(1, Math.min(12, parseInt(req.query.limit, 10) || 8));
+    res.set('Cache-Control', 'public, max-age=60');
+    res.json(await exploreSearch(q, { members: n }));
+  } catch (e) { console.error('explore error', e); res.status(500).json({ error: 'Search is unavailable right now.' }); }
+});
+
 router.post('/concierge', async (req, res) => {
   const q = String((req.body && req.body.q) || '').trim().slice(0, 400);
   // Optional page scope from a guide or the dining page, e.g. "(holiday party,
@@ -5022,18 +5124,35 @@ router.post('/concierge', async (req, res) => {
   if (!q) return res.status(400).json({ error: 'Ask a question, e.g. "Who can cater a 50-person event in Tarzana?"' });
   try {
     const all = (await loadMembersPublic()).members;
-    const candidates = rankMembers(all, context ? q + ' ' + context : q, 30);
+    // Nov 2026: Wendy also points to the guide section that fits and, when the
+    // visitor is planning something, offers the referral request. Guides are
+    // matched on the question alone; the page context only steers members.
+    const found = searchGuides(readGuides(), all, q, { limitGuides: 2, limitSections: 3 });
+    const referral = referralFor(q + ' ' + context);
+    const extras = { guides: found.guides, sections: found.sections, referral };
+    // Everyday words are expanded ("DJ" → music, entertainment) so a member
+    // filed under the directory's own word is still a candidate.
+    const words = [q, context, expand(q).join(' ')].filter(Boolean).join(' ');
+    const candidates = rankMembers(all, words, 30);
     if (!candidates.length) {
-      return res.json({ answer: `I couldn't find a Chamber member matching that. Try different words, browse the directory, or call the Chamber at (818) 347-4737.`, members: [], provider: 'none' });
+      return res.json({ answer: referral.suggest
+        ? `I couldn't find a Chamber member for that exactly. Send the Chamber a referral request and the office will connect you, or call (818) 347-4737.`
+        : `I couldn't find a Chamber member matching that. Try different words, browse the directory, or call the Chamber at (818) 347-4737.`, members: [], provider: 'none', ...extras });
     }
     if (!llm.enabled()) {
       // No LLM key → return the keyword matches directly.
-      return res.json({ answer: `Here are the closest Chamber members for "${q}":`, members: candidates.slice(0, 6), provider: 'keyword' });
+      return res.json({ answer: `Here are the closest Chamber members for "${q}":`, members: candidates.slice(0, 6), provider: 'keyword', ...extras });
     }
-    const list = candidates.map((m) => `- id:${m.id} | ${m.name} | ${m.category || m.group || ''} | ${m.neighborhood || ''}${m.tagline ? ' | ' + m.tagline : ''}`).join('\n');
-    const system = 'You are Wendy, the friendly concierge for the West Valley · Warner Center Chamber of Commerce. Recommend ONLY businesses from the provided member list — never invent members. Be warm, brief, and local. You may refer to yourself as Wendy.';
+    const list = candidates.map((m) => `- id:${m.id} | ${m.name} | ${[m.category].concat(m.categories || []).filter(Boolean).filter((c, i, a) => a.indexOf(c) === i).join(', ') || m.group || ''} | ${m.neighborhood || m.city || ''}${m.tagline ? ' | ' + m.tagline : ''}`).join('\n');
+    const guideLine = found.sections.length || found.guides.length
+      ? `\nThe page will also link these Chamber guides under your answer: ${found.sections.map((x) => `${x.guideTitle}: ${x.title}`).concat(found.guides.map((g) => g.title)).slice(0, 3).join('; ')}.`
+      : '';
+    const refLine = referral.suggest
+      ? '\nThe visitor is planning something. The page will offer the Chamber\'s free referral request, where the office personally connects them with member businesses; you may mention it in a few words.'
+      : '';
+    const system = 'You are Wendy, the friendly concierge for the West Valley · Warner Center Chamber of Commerce. Recommend ONLY businesses from the provided member list — never invent members, prices, hours or services a listing does not state. Be warm, brief, and local. You may refer to yourself as Wendy.';
     // memberIds FIRST + short answer so a truncated response still yields picks.
-    const prompt = `Member candidates (id | name | category | area | tagline):\n${list}\n\nVisitor question: "${q}"${context ? `\nPage they are asking from: ${context}` : ''}\n\nChoose the up to 5 most relevant members. Reply with ONLY compact JSON, answer under 25 words:\n{"memberIds":["id1","id2"],"answer":"one short helpful sentence"}`;
+    const prompt = `Member candidates (id | name | categories | area | tagline):\n${list}\n\nVisitor question: "${q}"${context ? `\nPage they are asking from: ${context}` : ''}${guideLine}${refLine}\n\nChoose the up to 5 most relevant members. Reply with ONLY compact JSON, answer under 30 words:\n{"memberIds":["id1","id2"],"answer":"one short helpful sentence"}`;
     const raw = await llm.complete({ system, prompt, json: true, maxTokens: 800 });
     let parsed = {};
     try {
@@ -5045,7 +5164,7 @@ router.post('/concierge', async (req, res) => {
     // Only fall back to raw keyword hits if the model didn't answer at all
     // (parse failure). If it answered with no picks, trust it (members: []).
     if (!picked.length && !parsed.answer) picked = candidates.slice(0, 5);
-    res.json({ answer: parsed.answer || `Here are members that can help with "${q}":`, members: picked, provider: llm.provider() });
+    res.json({ answer: parsed.answer || `Here are members that can help with "${q}":`, members: picked, provider: llm.provider(), ...extras });
   } catch (e) {
     console.error('concierge error', e);
     res.status(500).json({ error: 'The concierge is unavailable right now. Please try the directory search.' });

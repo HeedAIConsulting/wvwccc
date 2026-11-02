@@ -48,6 +48,7 @@ window.ChamberPartials = (function () {
     '/index.html', '/about.html', '/contact.html', '/join.html', '/resources.html', '/ribbon-cutting.html',
     '/members/directory.html', '/events/index.html', '/dining.html', '/deals.html',
     '/jobs/index.html', '/real-estate.html', '/community/news.html', '/guides/index.html',
+    '/explore.html', '/referral.html',
     '/landing/salons.html', '/landing/restaurants.html', '/landing/schools.html', '/landing/home-repair.html',
     '/landing/entertainment.html', '/landing/retail.html', '/landing/professional.html', '/landing/health.html',
     '/landing/real-estate.html', '/landing/nonprofit.html',
@@ -123,6 +124,8 @@ window.ChamberPartials = (function () {
         <div class="nav-dd">
           <button type="button" aria-haspopup="true">${t.resources} <span aria-hidden="true">▾</span></button>
           <div class="nav-dd__menu" data-dd="Resources & Visitor Info">
+            <a href="${nv('/explore.html')}">${L?'Explore el West Valley':'Explore the West Valley'}</a>
+            <a href="${nv('/referral.html')}">${L?'Pida una recomendación':'Request a Referral'}</a>
             <a href="${nv('/dining.html')}">${t.dining}</a>
             <a href="${nv('/deals.html')}">${t.deals}</a>
             <a href="${nv('/jobs/index.html')}">${t.jobs}</a>
@@ -225,6 +228,7 @@ window.ChamberPartials = (function () {
           <li><a href="${nv('/jobs/index.html')}">${t.jobs}</a></li>
           <li><a href="${nv('/real-estate.html')}">${L?'Bienes Raíces':'Real Estate'}</a></li>
           <li><a href="${nv('/guides/index.html')}">${L?'Guías':'Community Guides'}</a></li>
+          <li><a href="${nv('/explore.html')}">${L?'Explore el West Valley':'Explore the West Valley'}</a></li>
           <li><a href="${nv('/donate.html')}">${t.donate}</a></li>
           <li><a href="${nv('/inquire.html')}?type=sponsorship">${t.sponsor}</a></li>
           <li><a href="${nv('/inquire.html')}?type=membership">${L?'Consultas':'Inquiries'}</a></li>

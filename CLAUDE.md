@@ -176,6 +176,26 @@ the office names one — `info@` was assumed once and is not a real inbox.
 `PO Box 1` on the Nov 2025 Grateful Hearts event is a mail-in donation address,
 not the office, and is left alone.
 
+## Guides, Explore and referral requests (Nov 2026)
+
+- **Occasion guides fill themselves.** `data/guides.json` sections take
+  `members` (curated slugs, in order) plus `categories`: every member filed
+  under one of those categories is appended, so a new caterer appears without
+  an edit. Plan a Party, Family Fun, Company Parties and Where to Stay are built
+  almost entirely from categories. Add a curated slug only for a member whose
+  category does not say what they do (Buckleys is filed "Member").
+- **One search** (`backend/explore.js`, `GET /api/explore?q=`) ranks guides,
+  guide sections and members, and says when to offer the referral request.
+  `/explore.html`, Ask Wendy (`/api/concierge` now returns `sections`,
+  `guides`, `referral`) and the site-wide ElevenLabs agent all use it.
+  Everyday words are mapped to the directory's own in `SYNONYMS`.
+- **Referral request** (`/referral.html`, `/es/referral.html`): goes to
+  Formspree (general form, delivers to Michael) and `/api/contact` as kind
+  `referral`, which emails the office (`notifyTo`) every time, like an RSVP,
+  and files it under Admin → Inquiries → Referral requests. Nothing is mailed to
+  the address the visitor typed. The `need`/`occasion` keys in `referralFor`
+  must match the `data-key`s on both pages (tested).
+
 ## Receipts that do not arrive
 
 Email goes out through Resend. A customer's receipt that bounces, is

@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "note": "Community guides — each renders at /guides/<slug> from guides/view.html. Members are matched live from the directory by category (exact) and keyword (substring against name/category/keywords/tagline). Each guide has a featured-placement slot 'guide:<slug>' managed in Admin → Sponsorships. Optional (Oct 2026): `sections` [{id,title,blurb,members:[slug],categories}] render curated groups that also auto-add members in `categories`; `ask` adds a scoped Ask Wendy box; `deals` shows member offers from businesses in the guide; `related` lists sibling guide slugs. Optional `image`: a 1200x630 cover under /images/guides/, made in Canva; used for link previews and guide cards.",
+    "note": "Community guides — each renders at /guides/<slug> from guides/view.html. Members are matched live from the directory by category (exact) and keyword (substring against name/category/keywords/tagline). Each guide has a featured-placement slot 'guide:<slug>' managed in Admin → Sponsorships. Optional (Oct 2026): `sections` [{id,title,blurb,members:[slug],categories}] render curated groups that also auto-add members in `categories`; `ask` adds a scoped Ask Wendy box; `deals` shows member offers from businesses in the guide; `related` lists sibling guide slugs. Optional `image`: a 1200x630 cover under /images/guides/, made in Canva; used for link previews and guide cards. Nov 2026: occasion guides (plan an event, family fun, company parties, where to stay) are built from sections whose `categories` fill them from the directory; /explore.html searches every guide. Optional `referral` {occasion, need} shows a \"Request a referral\" card linking /referral.html with those boxes ticked.",
     "schema_version": 1
   },
   "guides": [
@@ -172,7 +172,12 @@
       "title_es": "Entretenimiento y Qué Hacer",
       "kicker_es": "Guía Comunitaria",
       "lede_es": "Teatros, eventos, recreación y diversión en el West Valley y Warner Center.",
-      "intro_es": "Hay más que hacer en el West Valley que nunca — teatro en vivo, boliche, golf, catas de vino y profesionales de eventos que convierten cualquier ocasión en un recuerdo. Todos miembros de la Cámara, todos locales."
+      "intro_es": "Hay más que hacer en el West Valley que nunca — teatro en vivo, boliche, golf, catas de vino y profesionales de eventos que convierten cualquier ocasión en un recuerdo. Todos miembros de la Cámara, todos locales.",
+      "related": [
+        "family-fun-west-valley",
+        "plan-an-event-west-valley",
+        "company-parties-team-outings"
+      ]
     },
     {
       "slug": "schools",
@@ -226,7 +231,8 @@
         "Grocery",
         "Bakery",
         "Hardware Store",
-        "Pawn Broker"
+        "Pawn Broker",
+        "Wine Retailer"
       ],
       "keywords": [
         "shop",
@@ -252,7 +258,8 @@
         "Bakery",
         "Delicatessen",
         "Coffee,Tea",
-        "Wine Tasting / Wine Sales"
+        "Wine Tasting / Wine Sales",
+        "Frozen Dessert"
       ],
       "keywords": [],
       "ask": {
@@ -269,8 +276,9 @@
       },
       "related": [
         "client-lunch-warner-center",
-        "holiday-parties-catering",
-        "meeting-spaces-business-lunches"
+        "plan-an-event-west-valley",
+        "family-fun-west-valley",
+        "holiday-parties-catering"
       ],
       "sections": [
         {
@@ -348,6 +356,9 @@
             "casale-na",
             "fleming-s-prime-steakhouse-wine-bar",
             "malibu-wines-and-beer-garden"
+          ],
+          "categories": [
+            "Wine Tasting / Wine Sales"
           ]
         },
         {
@@ -365,7 +376,9 @@
             "chick-fil-a-at-victory-and-fallbrook",
             "raising-cane-s",
             "panda-express",
-            "wendy-s-old-fashioned-hamburgers"
+            "wendy-s-old-fashioned-hamburgers",
+            "mcdonald-s",
+            "mcdonald-s-2"
           ]
         },
         {
@@ -380,6 +393,20 @@
           ],
           "categories": [
             "Coffee,Tea"
+          ]
+        },
+        {
+          "id": "treats",
+          "title": "Something sweet",
+          "title_es": "Algo dulce",
+          "blurb": "Cake for the office, frozen treats and a sweet stop.",
+          "blurb_es": "Pastel para la oficina, postres helados y algo dulce.",
+          "members": [
+            "sunberry-acai-bowls"
+          ],
+          "categories": [
+            "Bakery",
+            "Frozen Dessert"
           ]
         },
         {
@@ -527,7 +554,8 @@
       "related": [
         "dine-west-valley",
         "meeting-spaces-business-lunches",
-        "client-lunch-warner-center"
+        "client-lunch-warner-center",
+        "company-parties-team-outings"
       ],
       "sections": [
         {
@@ -640,7 +668,10 @@
       "kicker_es": "Guía Navideña",
       "lede_es": "Salones privados, cenas de equipo, lugares para eventos y catering para la temporada, todo de miembros de la Cámara.",
       "intro_es": "¿Organiza la fiesta de la oficina, la cena de agradecimiento a sus clientes o las bandejas para la última reunión del año? Cada negocio aquí es miembro de la Cámara en el West Valley. Diciembre se llena rápido, así que reserve con tiempo. Los miembros publican aquí sus ofertas navideñas para empresas.",
-      "image": "/images/guides/holiday-parties-catering.jpg"
+      "image": "/images/guides/holiday-parties-catering.jpg",
+      "referral": {
+        "occasion": "company"
+      }
     },
     {
       "slug": "meeting-spaces-business-lunches",
@@ -659,7 +690,8 @@
       "related": [
         "client-lunch-warner-center",
         "holiday-parties-catering",
-        "dine-west-valley"
+        "dine-west-valley",
+        "where-to-stay-west-valley"
       ],
       "sections": [
         {
@@ -750,7 +782,639 @@
       "kicker_es": "Guía de Negocios",
       "lede_es": "Dónde hacer la junta directiva, el retiro, el taller o el almuerzo de trabajo en el West Valley.",
       "intro_es": "Desde salones de hotel cerca de Warner Center hasta un salón privado para almorzar, cada lugar aquí es miembro de la Cámara. ¿Vienen clientes de fuera? Los hoteles al final de la página también son miembros.",
-      "image": "/images/guides/meeting-spaces-business-lunches.jpg"
+      "image": "/images/guides/meeting-spaces-business-lunches.jpg",
+      "referral": {
+        "occasion": "meeting"
+      }
+    },
+    {
+      "slug": "plan-an-event-west-valley",
+      "title": "Plan a Party or Special Event in the West Valley",
+      "title_es": "Organice una fiesta o un evento especial en el West Valley",
+      "kicker": "Event Planning Guide",
+      "kicker_es": "Guía para Organizar Eventos",
+      "emoji": "🎉",
+      "lede": "Venues, catering, planners, rentals, music, photos and rides: the member businesses behind a West Valley event.",
+      "lede_es": "Salones, catering, organizadores, alquileres, música, fotos y transporte: los negocios miembros detrás de un evento en el West Valley.",
+      "intro": "A birthday, a shower, a quinceañera, a wedding weekend, a company celebration or a fundraiser. Every business here is a Chamber member, sorted by the part of the event they handle, and the guide updates itself as members join. Not sure where to start? Tell the Chamber what you are planning and the office will connect you with the right members.",
+      "intro_es": "Un cumpleaños, un baby shower, una quinceañera, una boda, una celebración de la empresa o una recaudación de fondos. Cada negocio aquí es miembro de la Cámara, ordenado según la parte del evento de la que se encarga, y la guía se actualiza sola cuando se unen nuevos miembros. ¿No sabe por dónde empezar? Cuéntele a la Cámara lo que está planeando y la oficina lo conectará con los miembros adecuados.",
+      "categories": [],
+      "keywords": [],
+      "ask": {
+        "placeholder": "e.g. a DJ and a photo booth for a 60-person birthday in Tarzana",
+        "placeholder_es": "p. ej. un DJ y una cabina de fotos para un cumpleaños de 60 personas en Tarzana",
+        "context": "planning a party or special event: venue, catering, entertainment, rentals, photos"
+      },
+      "deals": {
+        "title": "Member deals for your event",
+        "title_es": "Ofertas de miembros para su evento",
+        "cta": "Event businesses: post your deal",
+        "cta_es": "¿Negocio de eventos? Publique su oferta",
+        "highlight": "party|event|wedding|catering|rental|photo|dj|venue|celebrat"
+      },
+      "related": [
+        "company-parties-team-outings",
+        "holiday-parties-catering",
+        "dine-west-valley"
+      ],
+      "sections": [
+        {
+          "id": "venues",
+          "title": "Venues: halls, clubs and ballrooms",
+          "title_es": "Salones, clubes y salones de baile",
+          "blurb": "Room for everyone, from a backyard-sized birthday to a gala.",
+          "blurb_es": "Espacio para todos, desde un cumpleaños pequeño hasta una gala.",
+          "members": [
+            "marriott-warner-center",
+            "hilton-woodland-hills",
+            "woodland-hills-country-club",
+            "olov-club"
+          ],
+          "categories": [
+            "Banquet/Reception Hall",
+            "Country Club"
+          ]
+        },
+        {
+          "id": "restaurant",
+          "title": "A restaurant for the party",
+          "title_es": "Un restaurante para la fiesta",
+          "blurb": "When dinner is the event: book the room or a long table.",
+          "blurb_es": "Cuando la cena es el evento: reserve el salón o una mesa larga.",
+          "members": [
+            "fleming-s-prime-steakhouse-wine-bar",
+            "ruth-s-chris-steak-house",
+            "casale-na",
+            "fogo-de-chao-woodland-hills",
+            "eureka-woodland-hills",
+            "hq-gastropub",
+            "stk-steakhouse-topanga"
+          ]
+        },
+        {
+          "id": "catering",
+          "title": "Catering, cakes and treats",
+          "title_es": "Catering, pasteles y postres",
+          "blurb": "Food for the crowd and something sweet to finish.",
+          "blurb_es": "Comida para todos y algo dulce para terminar.",
+          "members": [
+            "the-stand",
+            "ruth-s-chris-steak-house",
+            "jerk-wings-cafe",
+            "cavaretta-s-italian-deli",
+            "danny-s-corner-kitchen-llc",
+            "lady-fortunes",
+            "taomi-tea-n-treats",
+            "sunberry-acai-bowls"
+          ],
+          "categories": [
+            "Catering",
+            "Bakery",
+            "Frozen Dessert"
+          ]
+        },
+        {
+          "id": "planners",
+          "title": "Planners and production",
+          "title_es": "Organizadores y producción",
+          "blurb": "People who run the whole day, or the stage, sound and lights.",
+          "blurb_es": "Quienes organizan todo el día, o el escenario, el sonido y las luces.",
+          "members": [],
+          "categories": [
+            "Event Planning",
+            "Event Productions",
+            "Events Services",
+            "Special Events",
+            "Entertainment & Event Planning",
+            "Business Consulting-Management Services/Fund Raising/Special Events"
+          ]
+        },
+        {
+          "id": "rentals",
+          "title": "Rentals, flowers and décor",
+          "title_es": "Alquileres, flores y decoración",
+          "blurb": "Tables, chairs, tents, balloons and flowers.",
+          "blurb_es": "Mesas, sillas, carpas, globos y flores.",
+          "members": [],
+          "categories": [
+            "Party Rental Equipment",
+            "Party Equipment Rental - Special Events Consultants",
+            "Florist",
+            "Balloon Artists"
+          ]
+        },
+        {
+          "id": "entertainment",
+          "title": "Music and entertainment",
+          "title_es": "Música y entretenimiento",
+          "blurb": "Live music, performers, games and a photo booth.",
+          "blurb_es": "Música en vivo, artistas, juegos y cabina de fotos.",
+          "members": [
+            "totally-rad-video-games",
+            "california-musicbox-studios",
+            "buckleys-family-adventure"
+          ],
+          "categories": [
+            "Music",
+            "Orchestra",
+            "Talent Agency",
+            "Photobooth"
+          ]
+        },
+        {
+          "id": "photo",
+          "title": "Photos and video",
+          "title_es": "Fotografía y video",
+          "blurb": "Someone to capture it so you can enjoy it.",
+          "blurb_es": "Alguien que lo capture para que usted lo disfrute.",
+          "members": [],
+          "categories": [
+            "Photography",
+            "Video Production",
+            "Video Productions",
+            "Production Company - Film"
+          ]
+        },
+        {
+          "id": "rides",
+          "title": "Getting guests there",
+          "title_es": "Transporte para los invitados",
+          "blurb": "Shuttles, cars and limousines.",
+          "blurb_es": "Shuttles, autos y limusinas.",
+          "members": [
+            "ams-luxury-transportation-llc",
+            "pegasus-transit-inc",
+            "circuit"
+          ],
+          "categories": [
+            "Limousine Service"
+          ]
+        },
+        {
+          "id": "print",
+          "title": "Invitations, printing and favors",
+          "title_es": "Invitaciones, impresión y recuerdos",
+          "blurb": "Invitations, signs, shirts and take-home gifts.",
+          "blurb_es": "Invitaciones, letreros, camisetas y recuerdos para llevar.",
+          "members": [],
+          "categories": [
+            "Print & Design",
+            "Promotional Products",
+            "T Shirt Screen Print",
+            "Graphic Design"
+          ]
+        },
+        {
+          "id": "cleanup",
+          "title": "Cleanup afterward",
+          "title_es": "Limpieza después del evento",
+          "blurb": "So the venue is back the way you found it.",
+          "blurb_es": "Para dejar el lugar como lo encontró.",
+          "members": [
+            "ags-cleaning-services"
+          ]
+        },
+        {
+          "id": "stay",
+          "title": "Rooms for out-of-town guests",
+          "title_es": "Habitaciones para invitados de fuera",
+          "blurb": "Hotels for family and friends flying in.",
+          "blurb_es": "Hoteles para familiares y amigos que vienen de fuera.",
+          "members": [],
+          "categories": [
+            "Hotel / Motel"
+          ]
+        }
+      ],
+      "referral": {}
+    },
+    {
+      "slug": "family-fun-west-valley",
+      "title": "Family Fun in the West Valley",
+      "title_es": "Diversión en familia en el West Valley",
+      "kicker": "Family Guide",
+      "kicker_es": "Guía Familiar",
+      "emoji": "🎳",
+      "lede": "Where to take the kids, the grandparents or the whole crew: bowling, shows, treats, classes and a good family dinner.",
+      "lede_es": "A dónde llevar a los niños, a los abuelos o a toda la familia: boliche, espectáculos, postres, clases y una buena cena familiar.",
+      "intro": "A rainy Saturday, a visit from the grandparents, a birthday outing or just getting everyone out of the house. Every place here is a Chamber member, and the guide updates itself as members join.",
+      "intro_es": "Un sábado lluvioso, la visita de los abuelos, una salida de cumpleaños o simplemente sacar a todos de la casa. Cada lugar aquí es miembro de la Cámara, y la guía se actualiza sola cuando se unen nuevos miembros.",
+      "categories": [],
+      "keywords": [],
+      "ask": {
+        "placeholder": "e.g. something to do with two kids on a Saturday in Woodland Hills",
+        "placeholder_es": "p. ej. algo que hacer con dos niños un sábado en Woodland Hills",
+        "context": "family outing with kids: activities, entertainment, family dining, treats"
+      },
+      "deals": {
+        "title": "Member deals for families",
+        "title_es": "Ofertas de miembros para familias",
+        "cta": "Family businesses: post your deal",
+        "cta_es": "¿Negocio familiar? Publique su oferta",
+        "highlight": "family|kid|child|birthday|weekend|summer|camp"
+      },
+      "related": [
+        "plan-an-event-west-valley",
+        "entertainment",
+        "dine-west-valley"
+      ],
+      "sections": [
+        {
+          "id": "play",
+          "title": "Bowling, golf and games",
+          "title_es": "Boliche, golf y juegos",
+          "blurb": "Something to do, not just somewhere to sit.",
+          "blurb_es": "Algo que hacer, no solo un lugar para sentarse.",
+          "members": [
+            "corbin-bowl",
+            "winnetka-bowl",
+            "svn2-indoor-golf",
+            "totally-rad-video-games",
+            "buckleys-family-adventure"
+          ],
+          "categories": [
+            "Bowling Alley",
+            "Golf Simulator"
+          ]
+        },
+        {
+          "id": "shows",
+          "title": "Shows, music and game day",
+          "title_es": "Espectáculos, música y deportes",
+          "blurb": "A performance, a concert or a game.",
+          "blurb_es": "Una función, un concierto o un partido.",
+          "members": [],
+          "categories": [
+            "Theatre - Plays",
+            "Orchestra",
+            "Sports Franchise"
+          ]
+        },
+        {
+          "id": "dinner",
+          "title": "A family dinner out",
+          "title_es": "Una cena en familia",
+          "blurb": "Comfortable, easy to linger, and room for everyone.",
+          "blurb_es": "Cómodo, para quedarse un rato y con lugar para todos.",
+          "members": [
+            "casale-na",
+            "mort-s-delicatessen-restaurant",
+            "deux-bistro",
+            "grandi-italiani-family-restaurant",
+            "cici-s-lady-ci-s-cafe",
+            "eureka-woodland-hills"
+          ]
+        },
+        {
+          "id": "treats",
+          "title": "Treats and a sweet stop",
+          "title_es": "Postres y algo dulce",
+          "blurb": "Cake, frozen treats and bowls for after.",
+          "blurb_es": "Pasteles, postres helados y bowls para después.",
+          "members": [
+            "sunberry-acai-bowls",
+            "taomi-tea-n-treats"
+          ],
+          "categories": [
+            "Bakery",
+            "Frozen Dessert"
+          ]
+        },
+        {
+          "id": "out",
+          "title": "A day out: shopping and markets",
+          "title_es": "Un día de compras y mercados",
+          "blurb": "Shops, food and a walk around.",
+          "blurb_es": "Tiendas, comida y un paseo.",
+          "members": [],
+          "categories": [
+            "Shopping Center"
+          ]
+        },
+        {
+          "id": "classes",
+          "title": "Classes and activities for kids",
+          "title_es": "Clases y actividades para niños",
+          "blurb": "Art, music, dance, martial arts and gym.",
+          "blurb_es": "Arte, música, baile, artes marciales y gimnasia.",
+          "members": [],
+          "categories": [
+            "Art Classes",
+            "Music Instruction",
+            "Dance Academy",
+            "Dance Instruction",
+            "Martial Arts",
+            "Children's Gym"
+          ]
+        },
+        {
+          "id": "birthday",
+          "title": "Kids' birthday party help",
+          "title_es": "Ayuda para fiestas infantiles",
+          "blurb": "A place to hold it, entertainment, balloons, a photo booth and the cake.",
+          "blurb_es": "Un lugar, entretenimiento, globos, cabina de fotos y el pastel.",
+          "members": [
+            "winnetka-bowl",
+            "corbin-bowl",
+            "totally-rad-video-games",
+            "storybooth-co",
+            "lovely-garland-the",
+            "bonners-party-rentals",
+            "nothing-bundt-cakes",
+            "buckleys-family-adventure"
+          ]
+        }
+      ],
+      "referral": {
+        "occasion": "family"
+      }
+    },
+    {
+      "slug": "company-parties-team-outings",
+      "title": "Company Parties & Team Outings",
+      "title_es": "Fiestas de empresa y salidas en equipo",
+      "kicker": "Workplace Guide",
+      "kicker_es": "Guía para Empresas",
+      "emoji": "🥂",
+      "lede": "The office party, the team outing, the client appreciation night and the offsite: member businesses that make them happen.",
+      "lede_es": "La fiesta de la oficina, la salida en equipo, la noche de agradecimiento a clientes y la reunión fuera de la oficina: los negocios miembros que lo hacen posible.",
+      "intro": "Year-round, not just in December: a summer outing, a milestone, a retirement, a team-building afternoon. Every business here is a Chamber member, and the guide updates itself as members join. For the holiday season, see the holiday parties guide.",
+      "intro_es": "Todo el año, no solo en diciembre: una salida de verano, un aniversario, una jubilación, una tarde de integración. Cada negocio aquí es miembro de la Cámara, y la guía se actualiza sola cuando se unen nuevos miembros. Para las fiestas de fin de año, vea la guía de fiestas navideñas.",
+      "categories": [],
+      "keywords": [],
+      "ask": {
+        "placeholder": "e.g. a team outing for 25 people on a Friday afternoon",
+        "placeholder_es": "p. ej. una salida para un equipo de 25 personas un viernes por la tarde",
+        "context": "company party, team outing, client appreciation or offsite"
+      },
+      "deals": {
+        "title": "Member deals for company events",
+        "title_es": "Ofertas de miembros para eventos de empresa",
+        "cta": "Member businesses: post your corporate deal",
+        "cta_es": "¿Es miembro? Publique su oferta corporativa",
+        "highlight": "corporate|company|team|group|office|party|event|catering"
+      },
+      "related": [
+        "holiday-parties-catering",
+        "meeting-spaces-business-lunches",
+        "plan-an-event-west-valley"
+      ],
+      "sections": [
+        {
+          "id": "activities",
+          "title": "Team outings and activities",
+          "title_es": "Salidas y actividades en equipo",
+          "blurb": "Bowling, golf, games and wine tasting: something the whole team does together.",
+          "blurb_es": "Boliche, golf, juegos y cata de vinos: algo que todo el equipo hace junto.",
+          "members": [
+            "corbin-bowl",
+            "winnetka-bowl",
+            "svn2-indoor-golf",
+            "totally-rad-video-games",
+            "malibu-wines-and-beer-garden"
+          ],
+          "categories": [
+            "Bowling Alley",
+            "Golf Simulator",
+            "Wine Tasting / Wine Sales"
+          ]
+        },
+        {
+          "id": "dinners",
+          "title": "Team dinners",
+          "title_es": "Cenas de equipo",
+          "blurb": "Big tables and a night out for the office.",
+          "blurb_es": "Mesas grandes y una noche fuera para la oficina.",
+          "members": [
+            "fogo-de-chao-woodland-hills",
+            "eureka-woodland-hills",
+            "hq-gastropub",
+            "stk-steakhouse-topanga",
+            "el-torito",
+            "lounge-51"
+          ]
+        },
+        {
+          "id": "venues",
+          "title": "Halls, clubs and ballrooms",
+          "title_es": "Salones, clubes y salones de baile",
+          "blurb": "For the party that needs its own room.",
+          "blurb_es": "Para la fiesta que necesita su propio salón.",
+          "members": [
+            "marriott-warner-center",
+            "hilton-woodland-hills",
+            "woodland-hills-country-club",
+            "olov-club"
+          ],
+          "categories": [
+            "Banquet/Reception Hall",
+            "Country Club"
+          ]
+        },
+        {
+          "id": "offsite",
+          "title": "Meeting rooms for the offsite",
+          "title_es": "Salas para reuniones fuera de la oficina",
+          "blurb": "A room, a screen and lunch brought in.",
+          "blurb_es": "Una sala, una pantalla y el almuerzo incluido.",
+          "members": [
+            "marriott-warner-center",
+            "hilton-woodland-hills",
+            "tarzana-community-cultural-center",
+            "woodland-hills-country-club"
+          ]
+        },
+        {
+          "id": "catering",
+          "title": "Catering for the office",
+          "title_es": "Catering para la oficina",
+          "blurb": "Lunch for the all-hands or the party platters.",
+          "blurb_es": "Almuerzo para la reunión general o bandejas para la fiesta.",
+          "members": [
+            "the-stand",
+            "ruth-s-chris-steak-house",
+            "jerk-wings-cafe",
+            "cavaretta-s-italian-deli",
+            "danny-s-corner-kitchen-llc"
+          ],
+          "categories": [
+            "Catering"
+          ]
+        },
+        {
+          "id": "planners",
+          "title": "Planners, production and entertainment",
+          "title_es": "Organizadores, producción y entretenimiento",
+          "blurb": "Someone to run it, and music or a photo booth to make it a party.",
+          "blurb_es": "Alguien que lo organice, y música o una cabina de fotos para la fiesta.",
+          "members": [],
+          "categories": [
+            "Event Planning",
+            "Event Productions",
+            "Events Services",
+            "Special Events",
+            "Entertainment & Event Planning",
+            "Business Consulting-Management Services/Fund Raising/Special Events",
+            "Music",
+            "Orchestra",
+            "Photobooth"
+          ]
+        },
+        {
+          "id": "photo",
+          "title": "Photos and video",
+          "title_es": "Fotografía y video",
+          "blurb": "For the website, the newsletter and the slideshow.",
+          "blurb_es": "Para el sitio web, el boletín y la presentación.",
+          "members": [],
+          "categories": [
+            "Photography",
+            "Video Production",
+            "Video Productions",
+            "Production Company - Film"
+          ]
+        },
+        {
+          "id": "gifts",
+          "title": "Gifts, swag and thank-yous",
+          "title_es": "Regalos, artículos promocionales y agradecimientos",
+          "blurb": "Branded gear for the team, and a thank-you for clients.",
+          "blurb_es": "Artículos con su marca para el equipo y un detalle para los clientes.",
+          "members": [
+            "lady-fortunes"
+          ],
+          "categories": [
+            "Promotional Products",
+            "T Shirt Screen Print",
+            "Bakery",
+            "Wine Retailer"
+          ]
+        },
+        {
+          "id": "rides",
+          "title": "Getting everyone there and home",
+          "title_es": "Transporte de ida y vuelta",
+          "blurb": "Shuttles, cars and limousines.",
+          "blurb_es": "Shuttles, autos y limusinas.",
+          "members": [
+            "ams-luxury-transportation-llc",
+            "pegasus-transit-inc",
+            "circuit"
+          ],
+          "categories": [
+            "Limousine Service"
+          ]
+        }
+      ],
+      "referral": {
+        "occasion": "company"
+      }
+    },
+    {
+      "slug": "where-to-stay-west-valley",
+      "title": "Where to Stay in the West Valley",
+      "title_es": "Dónde hospedarse en el West Valley",
+      "kicker": "Visitor Guide",
+      "kicker_es": "Guía para Visitantes",
+      "emoji": "🏨",
+      "lede": "Hotels and places to stay in Woodland Hills, Warner Center and Tarzana, plus getting around and where to eat.",
+      "lede_es": "Hoteles y alojamiento en Woodland Hills, Warner Center y Tarzana, además de transporte y dónde comer.",
+      "intro": "Visiting for business, a wedding or family? Every place here is a Chamber member. Booking rooms for a group or an event weekend? Tell the Chamber what you need and the office will connect you.",
+      "intro_es": "¿Viene por negocios, una boda o a ver a la familia? Cada lugar aquí es miembro de la Cámara. ¿Reserva habitaciones para un grupo o un fin de semana de evento? Cuéntele a la Cámara lo que necesita y la oficina lo conectará.",
+      "categories": [],
+      "keywords": [],
+      "ask": {
+        "placeholder": "e.g. a hotel near Warner Center with a meeting room",
+        "placeholder_es": "p. ej. un hotel cerca de Warner Center con sala de reuniones",
+        "context": "visitor looking for a hotel or place to stay, getting around, where to eat"
+      },
+      "deals": {
+        "title": "Member deals for visitors",
+        "title_es": "Ofertas de miembros para visitantes",
+        "cta": "Hotels and members: post your deal",
+        "cta_es": "¿Hotel o miembro? Publique su oferta",
+        "highlight": "stay|room|hotel|night|weekend|visitor|travel"
+      },
+      "related": [
+        "meeting-spaces-business-lunches",
+        "dine-west-valley",
+        "family-fun-west-valley"
+      ],
+      "sections": [
+        {
+          "id": "hotels",
+          "title": "Hotels and places to stay",
+          "title_es": "Hoteles y alojamiento",
+          "blurb": "For a night, a week or the wedding weekend.",
+          "blurb_es": "Para una noche, una semana o el fin de semana de la boda.",
+          "members": [
+            "marriott-warner-center",
+            "hilton-woodland-hills",
+            "courtyard-by-marriott-woodland-hills",
+            "home2-suites-woodland-hills",
+            "st-george-motor-inn"
+          ],
+          "categories": [
+            "Hotel / Motel"
+          ]
+        },
+        {
+          "id": "meet",
+          "title": "Meeting and event space at the hotel",
+          "title_es": "Salas de reuniones y eventos en el hotel",
+          "blurb": "Stay and meet under one roof.",
+          "blurb_es": "Hospédese y reúnase bajo el mismo techo.",
+          "members": [
+            "marriott-warner-center",
+            "hilton-woodland-hills"
+          ]
+        },
+        {
+          "id": "eat",
+          "title": "Dinner after a long day",
+          "title_es": "Cenar después de un día largo",
+          "blurb": "A good table without a long drive.",
+          "blurb_es": "Una buena mesa sin manejar mucho.",
+          "members": [
+            "joey-woodland-hills",
+            "prose-kitchen-bar",
+            "hq-gastropub",
+            "fogo-de-chao-woodland-hills",
+            "stk-steakhouse-topanga",
+            "lounge-51"
+          ]
+        },
+        {
+          "id": "around",
+          "title": "Getting around",
+          "title_es": "Cómo moverse",
+          "blurb": "Shuttles, cars and limousines.",
+          "blurb_es": "Shuttles, autos y limusinas.",
+          "members": [
+            "ams-luxury-transportation-llc",
+            "pegasus-transit-inc",
+            "circuit"
+          ],
+          "categories": [
+            "Limousine Service"
+          ]
+        },
+        {
+          "id": "travel",
+          "title": "Help planning the trip",
+          "title_es": "Ayuda para planear el viaje",
+          "blurb": "Member travel agents for group, corporate and leisure travel.",
+          "blurb_es": "Agentes de viajes miembros para viajes de grupo, de negocios y de placer.",
+          "members": [],
+          "categories": [
+            "Travel Agency"
+          ]
+        }
+      ],
+      "referral": {
+        "occasion": "stay",
+        "need": "lodging"
+      }
     }
   ]
 }

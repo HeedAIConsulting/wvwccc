@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" href="/favicon.ico" sizes="any" />
+  <link rel="icon" type="image/png" href="/images/favicon-32.png" sizes="32x32" />
+  <link rel="apple-touch-icon" href="/images/apple-touch-icon.png" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Request a Referral — West Valley · Warner Center Chamber of Commerce</title>
+  <meta name="description" content="Planning a party, a wedding, a company event or a family day? Tell the Chamber what you need and the office will connect you with member businesses." />
+  <meta property="og:title" content="Request a Referral" />
+  <meta property="og:description" content="Planning a party, a wedding, a company event or a family day? Tell the Chamber what you need and the office will connect you with member businesses." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://woodlandhillscc.net/referral.html" />
+  <meta property="og:image" content="https://woodlandhillscc.net/images/guides/dine-west-valley.jpg" />
+  <link rel="canonical" href="https://woodlandhillscc.net/referral.html" />
+  <link rel="alternate" hreflang="en" href="https://woodlandhillscc.net/referral.html" />
+  <link rel="alternate" hreflang="es" href="https://woodlandhillscc.net/es/referral.html" />
+  <link rel="alternate" hreflang="x-default" href="https://woodlandhillscc.net/referral.html" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="/css/chamber.css?v=20261015a" />
+  <style>
+    .rf-grid { display: grid; grid-template-columns: 1.15fr .85fr; gap: var(--s-8); align-items: start; }
+    @media (max-width: 920px) { .rf-grid { grid-template-columns: 1fr; } }
+    .rf-aside { position: sticky; top: 96px; }
+    .rf-step { display: flex; gap: 12px; margin-bottom: var(--s-4); }
+    .rf-step b { flex: none; width: 28px; height: 28px; border-radius: 50%; background: var(--gold); color: var(--green-ink); font-family: var(--display); display: grid; place-items: center; font-size: .95rem; }
+    .rf-step span { color: var(--slate-mid); font-size: .94rem; }
+    .rf-h { color: var(--gold-deep); font-family: var(--mono); text-transform: uppercase; letter-spacing: .08em; font-size: .72rem; margin: var(--s-5) 0 10px; }
+    .rf-checks { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; margin-top: 6px; }
+    @media (max-width: 560px) { .rf-checks { grid-template-columns: 1fr; } }
+    .rf-check { display: flex; gap: 8px; align-items: flex-start; font-size: .92rem; color: var(--slate); }
+    .rf-check input { margin-top: 3px; }
+  </style>
+</head>
+<body>
+  <div data-partial="header"></div>
+  <section class="section-sm bg-forest">
+    <div class="container">
+      <span class="kicker">The Chamber connects you</span>
+      <h1 style="color:#fff">Request a Referral</h1>
+      <p class="lead" style="color:rgba(255,255,255,.85);max-width:64ch">
+        Planning a party, a wedding, a company event or a family day? Tell us what you need. The Chamber office knows its member businesses and will connect you with the right ones.
+      </p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="rf-grid">
+        <div>
+          <form id="refForm" class="card" style="padding:var(--s-6)" novalidate>
+            <h2 style="margin-bottom:var(--s-2)">What are you planning?</h2>
+            <p class="member-tile__meta" style="margin-bottom:var(--s-5)">The more you tell us, the better the match. Fields marked * are required.</p>
+
+            <div class="rf-h">The occasion</div>
+            <div class="grid grid-2" style="gap:var(--s-3)">
+              <div class="field"><label for="refOcc">Occasion *</label><select id="refOcc" name="occasion" required><option value="">Choose one</option><option data-key="wedding" value="Wedding or engagement">Wedding or engagement</option><option data-key="birthday" value="Birthday, quinceañera or milestone">Birthday, quinceañera or milestone</option><option data-key="company" value="Company party or team outing">Company party or team outing</option><option data-key="family" value="Family gathering, shower or reunion">Family gathering, shower or reunion</option><option data-key="fundraiser" value="Fundraiser or gala">Fundraiser or gala</option><option data-key="meeting" value="Business meeting or conference">Business meeting or conference</option><option data-key="stay" value="Rooms for visiting guests">Rooms for visiting guests</option><option data-key="other" value="Something else">Something else</option></select></div>
+              <div class="field"><label for="refDate">Date</label><input id="refDate" name="date" type="date" /></div>
+              <div class="field"><label for="refGuests">How many guests?</label><select id="refGuests" name="guests"><option value="">Choose</option><option value="Under 25">Under 25</option><option value="25 to 50">25 to 50</option><option value="50 to 100">50 to 100</option><option value="100 to 200">100 to 200</option><option value="Over 200">Over 200</option><option value="Not sure yet">Not sure yet</option></select></div>
+              <div class="field"><label for="refArea">Where?</label><select id="refArea" name="area"><option value="">Choose</option><option>Woodland Hills</option><option>Warner Center</option><option>Tarzana</option><option>Canoga Park</option><option>West Hills</option><option>Encino</option><option>Reseda</option><option value="Anywhere in the West Valley">Anywhere in the West Valley</option></select></div>
+              <div class="field"><label for="refBudget">Budget, roughly</label><select id="refBudget" name="budget"><option value="">Choose</option><option value="Under $1,000">Under $1,000</option><option value="$1,000 to $5,000">$1,000 to $5,000</option><option value="$5,000 to $15,000">$5,000 to $15,000</option><option value="Over $15,000">Over $15,000</option><option value="Not sure yet">Not sure yet</option></select></div>
+              <div class="field" style="display:flex;align-items:flex-end"><label class="rf-check"><input type="checkbox" name="flexible" value="yes"> The date is flexible</label></div>
+            </div>
+
+            <div class="rf-h">What do you need?</div>
+            <div class="rf-checks"><label class="rf-check"><input type="checkbox" name="need" data-key="venue" value="A venue"> A venue</label><label class="rf-check"><input type="checkbox" name="need" data-key="catering" value="Catering"> Catering</label><label class="rf-check"><input type="checkbox" name="need" data-key="desserts" value="Cake, desserts or a coffee cart"> Cake, desserts or a coffee cart</label><label class="rf-check"><input type="checkbox" name="need" data-key="planner" value="An event planner"> An event planner</label><label class="rf-check"><input type="checkbox" name="need" data-key="rentals" value="Rentals: tables, chairs, tents, décor"> Rentals: tables, chairs, tents, décor</label><label class="rf-check"><input type="checkbox" name="need" data-key="florist" value="Flowers"> Flowers</label><label class="rf-check"><input type="checkbox" name="need" data-key="entertainment" value="Music, DJ or entertainment"> Music, DJ or entertainment</label><label class="rf-check"><input type="checkbox" name="need" data-key="photo" value="Photos or video"> Photos or video</label><label class="rf-check"><input type="checkbox" name="need" data-key="transport" value="Transportation"> Transportation</label><label class="rf-check"><input type="checkbox" name="need" data-key="printing" value="Invitations, printing, gifts or swag"> Invitations, printing, gifts or swag</label><label class="rf-check"><input type="checkbox" name="need" data-key="lodging" value="Hotel rooms"> Hotel rooms</label><label class="rf-check"><input type="checkbox" name="need" data-key="cleaning" value="Cleanup afterward"> Cleanup afterward</label><label class="rf-check"><input type="checkbox" name="need" data-key="other" value="Something else (tell us below)"> Something else (tell us below)</label></div>
+            <div class="field" style="margin-top:var(--s-4)"><label for="refDetails">Tell us more</label>
+              <textarea id="refDetails" name="details" rows="4" maxlength="2000" placeholder="The style you have in mind, anything you already have booked, questions for the office…"></textarea></div>
+
+            <div class="rf-h">You</div>
+            <div class="grid grid-2" style="gap:var(--s-3)">
+              <div class="field"><label for="refName">Your name *</label><input id="refName" name="name" required maxlength="120" autocomplete="name" /></div>
+              <div class="field"><label for="refEmail">Email *</label><input id="refEmail" name="email" type="email" required maxlength="160" autocomplete="email" /></div>
+              <div class="field"><label for="refPhone">Phone</label><input id="refPhone" name="phone" type="tel" maxlength="40" autocomplete="tel" /></div>
+              <div class="field"><label for="refCompany">Company or organization</label><input id="refCompany" name="company" maxlength="160" autocomplete="organization" /></div>
+              <div class="field"><label for="refContactBy">Best way to reach you</label>
+                <select id="refContactBy" name="contactBy"><option value="Email">Email</option><option value="Phone call">Phone call</option><option value="Text message">Text message</option></select></div>
+              <div class="field"><label for="refMember">Are you a Chamber member?</label>
+                <select id="refMember" name="member"><option value="No">No</option><option value="Yes">Yes</option><option value="Not sure">Not sure</option></select></div>
+            </div>
+
+            <div class="rf-h">How should we connect you? *</div>
+            <div><label class="rf-check" style="margin-bottom:6px"><input type="radio" name="connect" value="Send me names; I will reach out" required> Send me names and I&#x27;ll reach out myself</label><label class="rf-check" style="margin-bottom:6px"><input type="radio" name="connect" value="Have the businesses contact me (OK to share my details)" required> Have the businesses contact me. It is OK to share my name, email and phone with them</label><label class="rf-check" style="margin-bottom:6px"><input type="radio" name="connect" value="Either is fine (OK to share my details)" required> Either is fine</label></div>
+            <div class="field" style="margin-top:var(--s-4)"><label for="refHeard">How did you hear about the Chamber?</label><input id="refHeard" name="heard" maxlength="160" /></div>
+
+            <p id="refMsg" class="notice" hidden aria-live="polite"></p>
+            <button class="btn btn--gold btn--lg" type="submit" style="margin-top:var(--s-3)">Send my request</button>
+          </form>
+        </div>
+        <aside class="rf-aside">
+          <div class="card" style="padding:var(--s-6);background:var(--cream-deep);border:1px solid var(--gold-soft)">
+            <h3 style="margin-bottom:var(--s-4)">How it works</h3>
+            <div class="rf-step"><b>1</b><span>Tell us the occasion, the date, how many people and what you need.</span></div>
+            <div class="rf-step"><b>2</b><span>The Chamber office reads every request and matches it to member businesses.</span></div>
+            <div class="rf-step"><b>3</b><span>You get names to call, or the businesses get in touch with you, whichever you chose.</span></div>
+            <hr style="border:none;border-top:1px solid var(--gold-soft);margin:var(--s-5) 0">
+            <p class="member-tile__meta">Free, and only Chamber member businesses are recommended.</p>
+            <p class="member-tile__meta mt-3">Rather look yourself? <a href="/explore.html">Explore the West Valley guides</a> · <a href="/guides/plan-an-event-west-valley">Event planning guide</a></p>
+            <p class="member-tile__meta mt-3">Questions? Call the Chamber at <strong>(818) 347-4737</strong>.</p>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <div data-partial="footer"></div>
+  <script src="/js/partials.js?v=20261102a"></script>
+  <script src="/js/api-base.js?v=20260818a"></script>
+  <script src="/js/chamber.js?v=20261102a"></script>
+  <script>
+    ChamberPartials.mount({ active: 'resources', depth: 0, lang: 'en' });
+    Chamber.initReferral();
+  </script>
+</body>
+</html>

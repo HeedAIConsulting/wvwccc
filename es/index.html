@@ -150,9 +150,9 @@
     })();
   </script>
 
-  <script src="../js/partials.js?v=20260922a"></script>
+  <script src="../js/partials.js?v=20261102a"></script>
   <script src="../js/api-base.js?v=20260818a"></script>
-  <script src="../js/chamber.js?v=20261030a"></script>
+  <script src="../js/chamber.js?v=20261102a"></script>
   <script>
     ChamberPartials.mount({ active: 'home', depth: 1, lang: 'es' });
     // Wendy (concierge) en español — misma API; el modelo responde en el idioma de la pregunta.
@@ -165,7 +165,8 @@
       try {
         const r = await (await fetch(ChamberAPI.url('/api/concierge'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ q: q + ' (responde en español)' }) })).json();
         out.innerHTML = `<div style="background:#fff;border:1px solid var(--gold-soft,#e6dcbf);border-radius:10px;padding:12px 14px"><strong>💬 Wendy:</strong> ${Chamber.esc(r.answer || 'Aquí hay algunos negocios.')}</div>`
-          + ((r.members || []).length ? `<div class="grid grid-3 mt-3" style="gap:var(--s-4)">${r.members.slice(0,3).map((m) => Chamber.memberTile(m, 1)).join('')}</div>` : '');
+          + ((r.members || []).length ? `<div class="grid grid-3 mt-3" style="gap:var(--s-4)">${r.members.slice(0,3).map((m) => Chamber.memberTile(m, 1)).join('')}</div>` : '')
+          + Chamber.wendyExtras(r);
       } catch (err) { out.innerHTML = '<div class="notice">Wendy no está disponible en este momento — use el directorio.</div>'; }
     });
   </script>
