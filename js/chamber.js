@@ -970,6 +970,28 @@ window.Chamber = (function () {
     document.getElementById('gName').textContent = g.name;
     document.getElementById('gTagline').textContent = g.tagline || '';
     document.getElementById('gDescription').textContent = g.description || '';
+    // The networks that the guides grew out of point at them (Nov 2026): the
+    // hospitality network's members are the businesses in the event guides,
+    // and the referral request is how the public reaches them.
+    const GROUP_GUIDES = {
+      'event-planning-hospitality-network': [
+        ['🎉', '/guides/plan-an-event-west-valley', 'Plan a Party or Special Event'],
+        ['🥂', '/guides/company-parties-team-outings', 'Company Parties & Team Outings'],
+        ['🏨', '/guides/where-to-stay-west-valley', 'Where to Stay in the West Valley'],
+        ['🔎', '/explore.html', 'Explore the West Valley'],
+        ['🤝', '/referral.html', 'Request a referral'],
+      ],
+    };
+    const gg = GROUP_GUIDES[g.slug];
+    if (gg && !document.getElementById('gGuides')) {
+      const box = document.createElement('div');
+      box.id = 'gGuides';
+      box.className = 'card mt-6';
+      box.innerHTML = `<h3 style="margin:0 0 6px">From this network</h3>
+        <p class="member-tile__meta" style="margin:0 0 10px">Guides built from the businesses in this group, and the Chamber's referral request for anyone planning an event.</p>
+        <div class="chips">${gg.map(([e, href, label]) => `<a class="chip" href="${href}">${e} ${esc(label)}</a>`).join('')}</div>`;
+      document.getElementById('gDescription').insertAdjacentElement('afterend', box);
+    }
     document.getElementById('gSchedule').textContent = g.meetingSchedule || 'Contact the Chamber office';
     if (g.manager && g.manager.name) {
       const sch = document.getElementById('gSchedule');
@@ -1614,7 +1636,7 @@ window.Chamber = (function () {
         panel.innerHTML =
           `<div class="card" style="background:var(--forest,#1f4d3a);color:#fff;padding:14px 16px;margin-bottom:12px"><strong>💬 Wendy:</strong> ${esc(data.answer || '')}</div>` +
           (members.length ? `<div class="grid grid-2" style="gap:10px">${members.map(card).join('')}</div>` : '') +
-          `<div class="mt-3"><a class="member-tile__meta" style="text-decoration:underline" href="members/directory.html?q=${encodeURIComponent(q)}">See all directory matches →</a></div>`;
+          `<div class="mt-3"><a class="member-tile__meta" style="text-decoration:underline" href="members/directory.html?q=${encodeURIComponent(q)}">See all directory matches →</a></div>` + wendyExtras(data);
       } catch (err) {
         // graceful fallback: send them to the ranked directory search
         location.href = `members/directory.html?q=${encodeURIComponent(q)}`;
@@ -3715,7 +3737,13 @@ window.Chamber = (function () {
   }
 
   // ── Dining Guide — Chamber member restaurants only ──
-  const DINING_RE = /restaurant|dining|food|caf[eé]|bakery|steak|grill|eatery|coffee|catering|\bbar\b|brewery|deli|pizza|cuisine|kitchen|bistro|diner|\bpub\b|juice|dessert|ice ?cream|hoagie|sandwich|taco|sushi|bbq|churrasc/i;
+  const DINING_RE = /restaurant|dining|food|caf[eé]|bakery|steak|grill|eatery|coffee|catering|\bbar\b|brewery|deli|pizza|cuisine|kitchen|bistro|diner|\bpub\b|juice|dessert|ice ?cream|hoagie|sandwich|taco|sushi|bbq|churrasc|wine tasting|frozen/i;
+  /* Every category a member is filed under, not just the first one: Taomi Tea
+     N Treats is filed "Member" first and "Coffee,Tea" second, and was missing
+     from the dining page for it (Nov 2026). */
+  function isDining(m) {
+    return [m.category].concat(m.categories || [], m.tags || [], m.keywords || []).filter(Boolean).some((t) => DINING_RE.test(t));
+  }
   function diningCard(m) {
     const seal = m.logo
       ? `<img src="${esc(m.logo)}" alt="" loading="lazy" style="width:64px;height:64px;border-radius:12px;object-fit:cover">`
@@ -3741,7 +3769,7 @@ window.Chamber = (function () {
     if (!grid) return;
     let members = [];
     try { members = (await getJSON(ChamberAPI.url('/api/members'))).members || []; } catch (e) {}
-    const dining = members.filter((m) => DINING_RE.test(m.category || '') || (m.tags || []).some((t) => DINING_RE.test(t)) || (m.keywords || []).some((t) => DINING_RE.test(t)));
+    const dining = members.filter(isDining);
     const cnt = document.getElementById('diningCount');
     if (cnt) cnt.textContent = dining.length ? `${dining.length} member dining spot${dining.length === 1 ? '' : 's'}` : '';
     function renderList(list) {
@@ -3772,9 +3800,10 @@ window.Chamber = (function () {
         // Only show members that are actually dining spots (a stray "|| true"
         // here let ANY member Wendy mentioned — e.g. a plumber — render as a
         // restaurant card; per Felicia, Jul 14).
-        const picks = (r.members || []).filter((m) => DINING_RE.test(m.category || '') || (m.tags || []).some((t) => DINING_RE.test(t)) || (m.keywords || []).some((t) => DINING_RE.test(t))).slice(0, 3);
+        const picks = (r.members || []).filter(isDining).slice(0, 3);
         out.innerHTML = `<div style="background:#fff;border:1px solid var(--gold-soft,#e6dcbf);border-radius:10px;padding:12px 14px"><strong>💬 Wendy:</strong> ${esc(r.answer || 'Here are a few spots.')}</div>`
-          + (picks.length ? `<div class="grid grid-3 mt-3" style="gap:var(--s-4)">${picks.map((m) => diningCard(m)).join('')}</div>` : '');
+          + (picks.length ? `<div class="grid grid-3 mt-3" style="gap:var(--s-4)">${picks.map((m) => diningCard(m)).join('')}</div>` : '')
+          + wendyExtras(r);
       } catch (err) { out.innerHTML = '<div class="notice">Could not reach Wendy right now — use the filter below.</div>'; }
     });
   }
@@ -3877,6 +3906,23 @@ window.Chamber = (function () {
     document.getElementById('guideTitle').textContent = (g.emoji ? g.emoji + ' ' : '') + gt;
     document.getElementById('guideLede').textContent = gl || '';
     if (gi) document.getElementById('guideIntro').textContent = gi;
+    // Share the guide (Nov 2026: the guides are meant to be passed along), and
+    // for occasion guides, the referral request with the occasion ticked.
+    const introEl = document.getElementById('guideIntro');
+    if (introEl && !document.getElementById('guideShare')) {
+      const box = document.createElement('div');
+      box.id = 'guideShare';
+      box.style.cssText = 'margin:calc(-1 * var(--s-4)) 0 var(--s-6)';
+      const refQs = g.referral ? new URLSearchParams(Object.entries({ occasion: g.referral.occasion || '', need: g.referral.need || '' }).filter(([, x]) => x)).toString() : '';
+      const ref = g.referral && /^[a-z]*$/.test(g.referral.occasion || '') && /^[a-z,]*$/.test(g.referral.need || '')
+        ? `<div class="card" style="margin-top:var(--s-4);padding:14px 16px;border:1px solid var(--gold-soft,#e6dcbf);display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+            <span style="font-size:1.4rem" aria-hidden="true">🤝</span>
+            <span style="flex:1;min-width:200px">${L ? '<strong>¿Prefiere que la Cámara lo conecte?</strong> Díganos qué está planeando y la oficina le recomendará negocios miembros.' : '<strong>Rather the Chamber connected you?</strong> Tell us what you are planning and the office will recommend member businesses.'}</span>
+            <a class="btn btn--gold btn--sm" href="${L ? '/es' : ''}/referral.html${refQs ? '?' + refQs : ''}">${L ? 'Pedir una recomendación →' : 'Request a referral →'}</a>
+          </div>` : '';
+      box.innerHTML = shareMenu(gt, location.origin + location.pathname) + ref;
+      introEl.insertAdjacentElement('afterend', box);
+    }
 
     initFeaturedSlot('guide:' + g.slug, '#guideFeatured', { depth });
 
@@ -3999,7 +4045,9 @@ window.Chamber = (function () {
         const all = r.members || [];
         const picks = all.filter((m) => inGuide.has(m.id)).concat(all.filter((m) => !inGuide.has(m.id))).slice(0, 3);
         out.innerHTML = `<p style="margin:0">${esc(r.answer || r.error || '')}</p>`
-          + (picks.length ? `<div class="grid grid-3 mt-3" style="gap:var(--s-4)">${picks.map((m) => memberTile(m, depth)).join('')}</div>` : '');
+          + (picks.length ? `<div class="grid grid-3 mt-3" style="gap:var(--s-4)">${picks.map((m) => memberTile(m, depth)).join('')}</div>` : '')
+          // Sections of THIS guide are already on the page; link the others.
+          + wendyExtras({ ...r, sections: (r.sections || []).filter((x) => x.slug !== g.slug), guides: (r.guides || []).filter((x) => x.slug !== g.slug) });
       } catch (err) {
         out.innerHTML = `<p class="member-tile__meta">${L ? 'Wendy no está disponible ahora. Llame a la Cámara al (818) 347-4737.' : 'Wendy is unavailable right now. Call the Chamber at (818) 347-4737.'}</p>`;
       }
@@ -4111,5 +4159,174 @@ window.Chamber = (function () {
     render();
   }
 
-  return { initHome, initEventView, initDirectory, initNewMembers, initProfile, initEvents, initCheckout, initLeadForm, initJobs, initDeals, initCommunity, initNews, initBizBuzz, initBoard, initLeaders, initDining, offerCard, postCard, newsCard, memberTile, eventCard, eventPreviewCard, initLeaderBanner, initGroups, initGroupView, initGallery, initVideos, initAlbumView, initPayPortal, initAmbassadors, initFeaturedSlot, joinCtaHtml, mountJoinCta, initGuides, initGuideView, initRealEstate, getJSON, esc };
+  /* ── Wendy's extras (Nov 2026) ─────────────────────────────
+     Under any Ask Wendy answer: the guide sections that fit the question and,
+     when the visitor is planning something, the referral request with their
+     occasion and needs already ticked. The concierge returns both. */
+  function wendyExtras(r) {
+    const L = LANG === 'es';
+    const gbase = L ? '/es/guides/' : '/guides/';
+    const secs = (r.sections || []).slice(0, 3).map((s) => `<a class="chip" href="${gbase}${esc(s.slug)}#${esc(s.sectionId)}">${esc(s.emoji || '📘')} ${esc((L && s.title_es) || s.title)}<span class="member-tile__meta" style="margin-left:4px">· ${esc((L && s.guideTitle_es) || s.guideTitle)}</span></a>`);
+    const guides = secs.length ? [] : (r.guides || []).slice(0, 2).map((g) => `<a class="chip" href="${gbase}${esc(g.slug)}">${esc(g.emoji || '📘')} ${esc((L && g.title_es) || g.title)}</a>`);
+    const links = secs.concat(guides);
+    const ref = r.referral && r.referral.suggest && /^\/referral\.html(\?[\w=&%,.-]*)?$/.test(r.referral.url || '')
+      ? `<div class="card" style="margin-top:12px;padding:14px 16px;border:1px solid var(--gold-soft,#e6dcbf);display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+          <span style="font-size:1.4rem" aria-hidden="true">🤝</span>
+          <span style="flex:1;min-width:200px">${L ? '<strong>¿Está planeando algo?</strong> Cuéntele a la Cámara qué necesita y la oficina lo conectará con los negocios miembros adecuados.' : '<strong>Planning something?</strong> Tell the Chamber what you need and the office will connect you with the right member businesses.'}</span>
+          <a class="btn btn--gold btn--sm" href="${L ? '/es' : ''}${esc(r.referral.url)}">${L ? 'Pedir una recomendación →' : 'Request a referral →'}</a>
+        </div>` : '';
+    return (links.length ? `<div style="margin-top:12px"><div class="member-tile__meta" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">${L ? 'En las guías' : 'In the guides'}</div><div class="chips">${links.join('')}</div></div>` : '') + ref;
+  }
+
+  /* ── Referral request (/referral.html, Nov 2026) ──────────
+     Diana once connected Tim Gaspar's wife with a DJ through the Chamber. This
+     is that, as a form: what they are planning, when, how many, roughly what
+     budget and which services, so the office can match them to members. It
+     goes to Formspree and to Admin → Inquiries (kind "referral"), and the
+     server emails the office every one. Ticked boxes carry English values on
+     the Spanish page too, so the office reads one language. */
+  function initReferral() {
+    const form = document.getElementById('refForm');
+    if (!form) return;
+    const L = LANG === 'es';
+    const msg = document.getElementById('refMsg');
+    mountTurnstile(form);
+    const params = new URLSearchParams(location.search);
+    const occ = form.querySelector('[name="occasion"]');
+    const want = params.get('occasion');
+    if (occ && want) [...occ.options].forEach((o) => { if (o.dataset.key === want) occ.value = o.value; });
+    const needs = new Set(String(params.get('need') || '').split(',').filter(Boolean));
+    form.querySelectorAll('[name="need"]').forEach((c) => { if (needs.has(c.dataset.key)) c.checked = true; });
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const hp = form.querySelector('[name="_gotcha"]');
+      if (hp && hp.value) { msg.hidden = false; msg.textContent = L ? 'Gracias, recibimos su solicitud.' : 'Thank you, your request is in.'; return; }
+      if (!form.reportValidity()) return;
+      const fd = new FormData(form);
+      const v = (k) => String(fd.get(k) || '').trim();
+      const services = fd.getAll('need');
+      const connect = form.querySelector('[name="connect"]:checked');
+      const lines = [
+        `OCCASION: ${v('occasion') || '—'}`,
+        `DATE: ${v('date') || 'Not set yet'}${v('flexible') ? ' (flexible)' : ''}`,
+        `GUESTS: ${v('guests') || '—'}`,
+        `AREA: ${v('area') || '—'}`,
+        `BUDGET: ${v('budget') || '—'}`,
+        `LOOKING FOR: ${services.length ? services.join(', ') : '—'}`,
+        `HOW TO CONNECT: ${connect ? connect.value : '—'}`,
+        `BEST WAY TO REACH THEM: ${v('contactBy') || '—'}`,
+        `CHAMBER MEMBER: ${v('member') || '—'}`,
+        `HEARD ABOUT US: ${v('heard') || '—'}`,
+        `PAGE LANGUAGE: ${L ? 'Spanish' : 'English'}`,
+        '',
+        `DETAILS: ${v('details') || '—'}`,
+      ];
+      const payload = {
+        kind: 'referral',
+        reason: `Referral request — ${v('occasion') || 'Other'}`.slice(0, 120),
+        name: v('name'), email: v('email'), phone: v('phone'), company: v('company'),
+        message: lines.join('\n'),
+      };
+      const token = form.querySelector('[name="cf-turnstile-response"]');
+      if (token) payload['cf-turnstile-response'] = token.value;
+      const btn = form.querySelector('button[type="submit"]');
+      const label = btn.textContent; btn.disabled = true; btn.textContent = L ? 'Enviando…' : 'Sending…';
+      let sent = false;
+      try {
+        const fsP = fetch(leadFsEndpoint('referral'), {
+          method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({ _subject: `${payload.reason} — ${payload.name}`, name: payload.name, email: payload.email, phone: payload.phone, company: payload.company, message: payload.message }),
+        }).then((r) => r.ok).catch(() => false);
+        const apiP = fetch(ChamberAPI.url('/api/contact'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+          .then(async (r) => { try { return !!(await r.json()).ok; } catch (err) { return r.ok; } }).catch(() => false);
+        const [fsOk, apiOk] = await Promise.all([fsP, apiP]);
+        msg.hidden = false;
+        if (fsOk || apiOk) {
+          sent = true;
+          form.querySelectorAll('input,select,textarea,button').forEach((el) => { el.disabled = true; });
+          msg.style.borderColor = 'var(--green)';
+          msg.innerHTML = L
+            ? '<strong>¡Recibido!</strong> La oficina de la Cámara tiene su solicitud y se comunicará con usted para conectarlo con los negocios miembros. Mientras tanto, vea la <a href="/es/guides/plan-an-event-west-valley">guía para organizar eventos</a>.'
+            : '<strong>Request received.</strong> The Chamber office has it and will be in touch to connect you with member businesses. In the meantime, browse the <a href="/guides/plan-an-event-west-valley">event planning guide</a>.';
+          if (window.wvTrack) window.wvTrack('generate_lead', { lead_type: 'referral_request', currency: 'USD', value: 0 });
+          msg.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else {
+          msg.style.borderColor = 'var(--red)';
+          msg.textContent = L ? 'No se pudo enviar. Llame a la Cámara al (818) 347-4737.' : 'Sorry, that didn’t go through. Please call the Chamber at (818) 347-4737.';
+        }
+      } catch (err) {
+        msg.hidden = false; msg.style.borderColor = 'var(--red)';
+        msg.textContent = L ? 'Error de red. Llame a la Cámara al (818) 347-4737.' : 'Network error. Please call the Chamber at (818) 347-4737.';
+      } finally {
+        // Sent: the form stays locked. Not sent: the button comes back for a retry.
+        if (!sent) { btn.disabled = false; btn.textContent = label; }
+        resetTurnstile(form);
+      }
+    });
+  }
+
+  /* ── Explore the West Valley (/explore.html, Nov 2026) ────
+     One box over every guide, guide section and member: results update as the
+     visitor types (/api/explore), and pressing Enter asks Wendy for a
+     recommendation on top. */
+  function initExplore() {
+    const form = document.getElementById('exploreForm');
+    if (!form) return;
+    const L = LANG === 'es';
+    const input = document.getElementById('exploreQ');
+    const out = document.getElementById('exploreOut');
+    const wendy = document.getElementById('exploreWendy');
+    const gbase = L ? '/es/guides/' : '/guides/';
+    let seq = 0;
+    const render = (r) => {
+      const secs = (r.sections || []).map((s) => `
+        <a class="card card--hover" href="${gbase}${esc(s.slug)}#${esc(s.sectionId)}" style="display:block;padding:14px 16px;text-decoration:none">
+          <div class="member-tile__meta">${esc(s.emoji || '📘')} ${esc((L && s.guideTitle_es) || s.guideTitle)}</div>
+          <strong style="display:block;margin:4px 0 2px">${esc((L && s.title_es) || s.title)}</strong>
+          <span class="member-tile__meta">${s.count} ${s.count === 1 ? (L ? 'negocio miembro' : 'member business') : (L ? 'negocios miembros' : 'member businesses')} →</span>
+        </a>`).join('');
+      const guides = (r.guides || []).map((g) => `<a class="chip" href="${gbase}${esc(g.slug)}">${esc(g.emoji || '📘')} ${esc((L && g.title_es) || g.title)}</a>`).join('');
+      const mem = (r.members || []).slice(0, 6).map((m) => memberTile(m, 0)).join('');
+      out.innerHTML = (secs ? `<h2 style="margin:0 0 var(--s-4)">${L ? 'En las guías' : 'In the guides'}</h2><div class="grid grid-3" style="gap:var(--s-4);margin-bottom:var(--s-5)">${secs}</div>` : '')
+        + (guides ? `<div class="chips" style="margin-bottom:var(--s-6)">${guides}</div>` : '')
+        + (mem ? `<h2 style="margin:0 0 var(--s-4)">${L ? 'Negocios miembros' : 'Member businesses'}</h2><div class="grid grid-3" style="gap:var(--s-4)">${mem}</div>` : '')
+        + (!secs && !guides && !mem ? `<div class="notice">${L ? 'Nada todavía con esas palabras. Pruebe otras, o pídale a la Cámara una recomendación.' : 'Nothing yet for those words. Try others, or ask the Chamber for a referral.'}</div>` : '')
+        + wendyExtras({ referral: r.referral });
+      out.hidden = false;
+    };
+    const search = async (q) => {
+      const my = ++seq;
+      if (!q) { out.hidden = true; out.innerHTML = ''; return; }
+      try {
+        const r = await getJSON(ChamberAPI.url('/api/explore?q=' + encodeURIComponent(q)));
+        if (my === seq) render(r);
+      } catch (e) { /* the typed search is a convenience; Enter still asks Wendy */ }
+    };
+    let t = null;
+    input.addEventListener('input', () => { clearTimeout(t); t = setTimeout(() => search(input.value.trim()), 300); });
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const q = input.value.trim();
+      if (!q) return;
+      clearTimeout(t); search(q);
+      try { history.replaceState(null, '', '?q=' + encodeURIComponent(q)); } catch (err) { /* cosmetic */ }
+      if (!wendy) return;
+      wendy.hidden = false;
+      wendy.innerHTML = `<p class="member-tile__meta">${L ? 'Wendy está buscando…' : 'Wendy is looking…'}</p>`;
+      try {
+        const r = await (await fetch(ChamberAPI.url('/api/concierge'), { method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ q: (L ? q + ' (responde en español)' : q).slice(0, 400), context: 'exploring the West Valley: eat, stay, meet, celebrate, family fun' }) })).json();
+        wendy.innerHTML = `<div class="card" style="background:var(--forest,#1f4d3a);color:#fff;padding:14px 16px"><strong>💬 Wendy:</strong> ${esc(r.answer || r.error || '')}</div>`
+          + ((r.members || []).length ? `<div class="grid grid-3 mt-3" style="gap:var(--s-4)">${r.members.slice(0, 3).map((m) => memberTile(m, 0)).join('')}</div>` : '');
+      } catch (err) {
+        wendy.innerHTML = `<p class="member-tile__meta">${L ? 'Wendy no está disponible ahora.' : 'Wendy is unavailable right now.'}</p>`;
+      }
+    });
+    const q0 = new URLSearchParams(location.search).get('q');
+    if (q0) { input.value = q0.slice(0, 200); search(input.value.trim()); }
+    const sh = document.getElementById('exploreShare');
+    if (sh) sh.innerHTML = shareMenu(document.title.split(' — ')[0], location.origin + location.pathname);
+  }
+
+  return { initHome, initEventView, initDirectory, initNewMembers, initProfile, initEvents, initCheckout, initLeadForm, initJobs, initDeals, initCommunity, initNews, initBizBuzz, initBoard, initLeaders, initDining, offerCard, postCard, newsCard, memberTile, eventCard, eventPreviewCard, initLeaderBanner, initGroups, initGroupView, initGallery, initVideos, initAlbumView, initPayPortal, initAmbassadors, initFeaturedSlot, joinCtaHtml, mountJoinCta, initGuides, initGuideView, initRealEstate, initReferral, initExplore, wendyExtras, getJSON, esc };
 })();

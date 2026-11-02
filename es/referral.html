@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" href="/favicon.ico" sizes="any" />
+  <link rel="icon" type="image/png" href="/images/favicon-32.png" sizes="32x32" />
+  <link rel="apple-touch-icon" href="/images/apple-touch-icon.png" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pida una recomendación — Cámara de Comercio West Valley · Warner Center</title>
+  <meta name="description" content="¿Planea una fiesta, una boda, un evento de empresa o un día en familia? Cuéntele a la Cámara qué necesita y la oficina lo conectará con negocios miembros." />
+  <meta property="og:title" content="Pida una recomendación" />
+  <meta property="og:description" content="¿Planea una fiesta, una boda, un evento de empresa o un día en familia? Cuéntele a la Cámara qué necesita y la oficina lo conectará con negocios miembros." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://woodlandhillscc.net/es/referral.html" />
+  <meta property="og:image" content="https://woodlandhillscc.net/images/guides/dine-west-valley.jpg" />
+  <link rel="canonical" href="https://woodlandhillscc.net/es/referral.html" />
+  <link rel="alternate" hreflang="en" href="https://woodlandhillscc.net/referral.html" />
+  <link rel="alternate" hreflang="es" href="https://woodlandhillscc.net/es/referral.html" />
+  <link rel="alternate" hreflang="x-default" href="https://woodlandhillscc.net/referral.html" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="/css/chamber.css?v=20261015a" />
+  <style>
+    .rf-grid { display: grid; grid-template-columns: 1.15fr .85fr; gap: var(--s-8); align-items: start; }
+    @media (max-width: 920px) { .rf-grid { grid-template-columns: 1fr; } }
+    .rf-aside { position: sticky; top: 96px; }
+    .rf-step { display: flex; gap: 12px; margin-bottom: var(--s-4); }
+    .rf-step b { flex: none; width: 28px; height: 28px; border-radius: 50%; background: var(--gold); color: var(--green-ink); font-family: var(--display); display: grid; place-items: center; font-size: .95rem; }
+    .rf-step span { color: var(--slate-mid); font-size: .94rem; }
+    .rf-h { color: var(--gold-deep); font-family: var(--mono); text-transform: uppercase; letter-spacing: .08em; font-size: .72rem; margin: var(--s-5) 0 10px; }
+    .rf-checks { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; margin-top: 6px; }
+    @media (max-width: 560px) { .rf-checks { grid-template-columns: 1fr; } }
+    .rf-check { display: flex; gap: 8px; align-items: flex-start; font-size: .92rem; color: var(--slate); }
+    .rf-check input { margin-top: 3px; }
+  </style>
+</head>
+<body>
+  <div data-partial="header"></div>
+  <section class="section-sm bg-forest">
+    <div class="container">
+      <span class="kicker">La Cámara lo conecta</span>
+      <h1 style="color:#fff">Pida una recomendación</h1>
+      <p class="lead" style="color:rgba(255,255,255,.85);max-width:64ch">
+        ¿Planea una fiesta, una boda, un evento de empresa o un día en familia? Díganos qué necesita. La oficina de la Cámara conoce a sus negocios miembros y lo conectará con los adecuados.
+      </p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="rf-grid">
+        <div>
+          <form id="refForm" class="card" style="padding:var(--s-6)" novalidate>
+            <h2 style="margin-bottom:var(--s-2)">¿Qué está planeando?</h2>
+            <p class="member-tile__meta" style="margin-bottom:var(--s-5)">Mientras más nos cuente, mejor la recomendación. Los campos con * son obligatorios.</p>
+
+            <div class="rf-h">La ocasión</div>
+            <div class="grid grid-2" style="gap:var(--s-3)">
+              <div class="field"><label for="refOcc">Ocasión *</label><select id="refOcc" name="occasion" required><option value="">Elija una</option><option data-key="wedding" value="Wedding or engagement">Boda o compromiso</option><option data-key="birthday" value="Birthday, quinceañera or milestone">Cumpleaños, quinceañera o aniversario especial</option><option data-key="company" value="Company party or team outing">Fiesta de empresa o salida en equipo</option><option data-key="family" value="Family gathering, shower or reunion">Reunión familiar, baby shower o reencuentro</option><option data-key="fundraiser" value="Fundraiser or gala">Recaudación de fondos o gala</option><option data-key="meeting" value="Business meeting or conference">Reunión de negocios o conferencia</option><option data-key="stay" value="Rooms for visiting guests">Habitaciones para invitados</option><option data-key="other" value="Something else">Otra cosa</option></select></div>
+              <div class="field"><label for="refDate">Fecha</label><input id="refDate" name="date" type="date" /></div>
+              <div class="field"><label for="refGuests">¿Cuántos invitados?</label><select id="refGuests" name="guests"><option value="">Elija</option><option value="Under 25">Menos de 25</option><option value="25 to 50">25 a 50</option><option value="50 to 100">50 a 100</option><option value="100 to 200">100 a 200</option><option value="Over 200">Más de 200</option><option value="Not sure yet">Aún no sé</option></select></div>
+              <div class="field"><label for="refArea">¿Dónde?</label><select id="refArea" name="area"><option value="">Elija</option><option>Woodland Hills</option><option>Warner Center</option><option>Tarzana</option><option>Canoga Park</option><option>West Hills</option><option>Encino</option><option>Reseda</option><option value="Anywhere in the West Valley">Cualquier parte del West Valley</option></select></div>
+              <div class="field"><label for="refBudget">Presupuesto aproximado</label><select id="refBudget" name="budget"><option value="">Elija</option><option value="Under $1,000">Menos de $1,000</option><option value="$1,000 to $5,000">$1,000 a $5,000</option><option value="$5,000 to $15,000">$5,000 a $15,000</option><option value="Over $15,000">Más de $15,000</option><option value="Not sure yet">Aún no sé</option></select></div>
+              <div class="field" style="display:flex;align-items:flex-end"><label class="rf-check"><input type="checkbox" name="flexible" value="yes"> La fecha es flexible</label></div>
+            </div>
+
+            <div class="rf-h">¿Qué necesita?</div>
+            <div class="rf-checks"><label class="rf-check"><input type="checkbox" name="need" data-key="venue" value="A venue"> Un salón o lugar</label><label class="rf-check"><input type="checkbox" name="need" data-key="catering" value="Catering"> Catering</label><label class="rf-check"><input type="checkbox" name="need" data-key="desserts" value="Cake, desserts or a coffee cart"> Pastel, postres o carrito de café</label><label class="rf-check"><input type="checkbox" name="need" data-key="planner" value="An event planner"> Un organizador de eventos</label><label class="rf-check"><input type="checkbox" name="need" data-key="rentals" value="Rentals: tables, chairs, tents, décor"> Alquileres: mesas, sillas, carpas, decoración</label><label class="rf-check"><input type="checkbox" name="need" data-key="florist" value="Flowers"> Flores</label><label class="rf-check"><input type="checkbox" name="need" data-key="entertainment" value="Music, DJ or entertainment"> Música, DJ o entretenimiento</label><label class="rf-check"><input type="checkbox" name="need" data-key="photo" value="Photos or video"> Fotos o video</label><label class="rf-check"><input type="checkbox" name="need" data-key="transport" value="Transportation"> Transporte</label><label class="rf-check"><input type="checkbox" name="need" data-key="printing" value="Invitations, printing, gifts or swag"> Invitaciones, impresión, regalos o artículos promocionales</label><label class="rf-check"><input type="checkbox" name="need" data-key="lodging" value="Hotel rooms"> Habitaciones de hotel</label><label class="rf-check"><input type="checkbox" name="need" data-key="cleaning" value="Cleanup afterward"> Limpieza después del evento</label><label class="rf-check"><input type="checkbox" name="need" data-key="other" value="Something else (tell us below)"> Otra cosa (explique abajo)</label></div>
+            <div class="field" style="margin-top:var(--s-4)"><label for="refDetails">Cuéntenos más</label>
+              <textarea id="refDetails" name="details" rows="4" maxlength="2000" placeholder="El estilo que imagina, lo que ya tiene reservado, preguntas para la oficina…"></textarea></div>
+
+            <div class="rf-h">Sus datos</div>
+            <div class="grid grid-2" style="gap:var(--s-3)">
+              <div class="field"><label for="refName">Su nombre *</label><input id="refName" name="name" required maxlength="120" autocomplete="name" /></div>
+              <div class="field"><label for="refEmail">Correo electrónico *</label><input id="refEmail" name="email" type="email" required maxlength="160" autocomplete="email" /></div>
+              <div class="field"><label for="refPhone">Teléfono</label><input id="refPhone" name="phone" type="tel" maxlength="40" autocomplete="tel" /></div>
+              <div class="field"><label for="refCompany">Empresa u organización</label><input id="refCompany" name="company" maxlength="160" autocomplete="organization" /></div>
+              <div class="field"><label for="refContactBy">Mejor forma de contactarlo</label>
+                <select id="refContactBy" name="contactBy"><option value="Email">Correo</option><option value="Phone call">Llamada</option><option value="Text message">Mensaje de texto</option></select></div>
+              <div class="field"><label for="refMember">¿Es miembro de la Cámara?</label>
+                <select id="refMember" name="member"><option value="No">No</option><option value="Yes">Sí</option><option value="Not sure">No estoy seguro</option></select></div>
+            </div>
+
+            <div class="rf-h">¿Cómo prefiere que lo conectemos? *</div>
+            <div><label class="rf-check" style="margin-bottom:6px"><input type="radio" name="connect" value="Send me names; I will reach out" required> Envíenme nombres y yo me comunico</label><label class="rf-check" style="margin-bottom:6px"><input type="radio" name="connect" value="Have the businesses contact me (OK to share my details)" required> Que los negocios me contacten. Pueden compartir mi nombre, correo y teléfono con ellos</label><label class="rf-check" style="margin-bottom:6px"><input type="radio" name="connect" value="Either is fine (OK to share my details)" required> Cualquiera de las dos</label></div>
+            <div class="field" style="margin-top:var(--s-4)"><label for="refHeard">¿Cómo supo de la Cámara?</label><input id="refHeard" name="heard" maxlength="160" /></div>
+
+            <p id="refMsg" class="notice" hidden aria-live="polite"></p>
+            <button class="btn btn--gold btn--lg" type="submit" style="margin-top:var(--s-3)">Enviar mi solicitud</button>
+          </form>
+        </div>
+        <aside class="rf-aside">
+          <div class="card" style="padding:var(--s-6);background:var(--cream-deep);border:1px solid var(--gold-soft)">
+            <h3 style="margin-bottom:var(--s-4)">Cómo funciona</h3>
+            <div class="rf-step"><b>1</b><span>Díganos la ocasión, la fecha, cuántas personas y qué necesita.</span></div>
+            <div class="rf-step"><b>2</b><span>La oficina de la Cámara lee cada solicitud y la relaciona con negocios miembros.</span></div>
+            <div class="rf-step"><b>3</b><span>Usted recibe nombres para llamar, o los negocios se comunican con usted, según lo que elija.</span></div>
+            <hr style="border:none;border-top:1px solid var(--gold-soft);margin:var(--s-5) 0">
+            <p class="member-tile__meta">Es gratis, y solo se recomiendan negocios miembros de la Cámara.</p>
+            <p class="member-tile__meta mt-3">¿Prefiere buscar usted? <a href="/es/explore.html">Explore las guías del West Valley</a> · <a href="/es/guides/plan-an-event-west-valley">Guía para organizar eventos</a></p>
+            <p class="member-tile__meta mt-3">¿Preguntas? Llame a la Cámara al <strong>(818) 347-4737</strong>.</p>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <div data-partial="footer"></div>
+  <script src="/js/partials.js?v=20261102a"></script>
+  <script src="/js/api-base.js?v=20260818a"></script>
+  <script src="/js/chamber.js?v=20261102a"></script>
+  <script>
+    ChamberPartials.mount({ active: 'resources', depth: 1, lang: 'es' });
+    Chamber.initReferral();
+  </script>
+</body>
+</html>

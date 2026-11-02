@@ -2231,6 +2231,8 @@ window.Admin = (function () {
     // Before the l.event check — ribbon requests carry their preferred date in
     // l.event, which used to strand them in the RSVP section with no actions.
     if (kind === 'ribbon-cutting' || reason.includes('ribbon')) return 'ribbon';
+    // Referral requests carry the event date, so this also comes before l.event.
+    if (kind === 'referral') return 'referral';
     if (l.event || reason.includes('rsvp') || kind === 'rsvp') return 'rsvp';
     if (kind.includes('job') || reason.includes('job')) return 'jobs';
     if (kind === 'group-join') return 'groups';
@@ -2250,6 +2252,7 @@ window.Admin = (function () {
       ['membership', '◉ Membership applications', 'Completed applications from the Join page — click a name to read the full application, then ✓ Approve &amp; add sets up the membership. Anyone still here hasn’t been approved yet — if they stalled, this is your call list.'],
       ['interest', '☎ Membership interest', 'People who asked about joining — from an industry page or the contact form — but haven’t filled out the application yet. Call or email them back.'],
       ['ribbon', '🎀 Ribbon cutting requests', 'These now have their own workflow page — <a href="ribbon-cuttings.html">manage them under Ribbon Cuttings</a> (call → set date → flyer → publish). The quick-approve below still works for simple ones.'],
+      ['referral', '🤝 Referral requests', 'People asking the Chamber to connect them with member businesses — an event, a party, a team outing, rooms for guests. Each one is also emailed to the office. Reply, or pass their details to the members they asked for if they said that was OK.'],
       ['rsvp', '◆ Event RSVPs', 'RSVPs sent from event pages. Per-event lists (with download) live on the Events page.'],
       ['jobs', '💼 Job inquiries', 'Messages about job postings and the jobs board.'],
       ['groups', '◎ Group join requests', 'Requests to join a group / Connection Circle (also visible on the Groups page).'],

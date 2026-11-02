@@ -77,7 +77,8 @@ test('the guide renderer sends Ask Wendy scope separately from the question', ()
   const routes = readFileSync(new URL('backend/chamber-routes.js', ROOT), 'utf8');
   assert.match(chamber, /JSON\.stringify\(\{ q: q\.slice\(0, 400\), context: g\.ask\.context/);
   // The keyword fallback answer quotes `q`, so `context` must never be folded into it.
-  assert.match(routes, /rankMembers\(all, context \? q \+ ' ' \+ context : q, 30\)/);
+  // Nov 2026: the candidates also take the everyday-word expansion ("DJ" → music).
+  assert.match(routes, /const words = \[q, context, expand\(q\)\.join\(' '\)\]\.filter\(Boolean\)\.join\(' '\);\n    const candidates = rankMembers\(all, words, 30\);/);
   assert.match(routes, /closest Chamber members for "\$\{q\}"/);
 });
 

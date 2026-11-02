@@ -150,5 +150,5 @@ test("VSRN's logo is in place, sized, and only ever fills an empty slot", () => 
   const fn = src.slice(src.indexOf('async function applyVsrnLogo'), src.indexOf('async function applyVsrnLogo') + 900);
   assert.match(fn, /if \(await repo\.getSetting\(KEY\)\) return;/, 'runs once');
   assert.match(fn, /if \(cur && !cur\.logo\)/, 'never replaces a logo someone set');
-  assert.match(src, /await applyVsrnLogo\(\);\n  return repo\.listGroupsStore\(\);/, 'wired into the group load');
+  assert.match(src, /await applyVsrnLogo\(\);\n(  await \w+\(\);\n)*  return repo\.listGroupsStore\(\);/, 'wired into the group load');
 });

@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" href="/favicon.ico" sizes="any" />
+  <link rel="icon" type="image/png" href="/images/favicon-32.png" sizes="32x32" />
+  <link rel="apple-touch-icon" href="/images/apple-touch-icon.png" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Explore the West Valley — West Valley · Warner Center Chamber of Commerce</title>
+  <meta name="description" content="Where to eat, stay, meet, celebrate and take the family in the West Valley, from Chamber member businesses. Search every guide, or ask the Chamber to connect you." />
+  <meta property="og:title" content="Explore the West Valley" />
+  <meta property="og:description" content="Where to eat, stay, meet, celebrate and take the family in the West Valley, from Chamber member businesses. Search every guide, or ask the Chamber to connect you." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://woodlandhillscc.net/explore.html" />
+  <meta property="og:image" content="https://woodlandhillscc.net/images/guides/dine-west-valley.jpg" />
+  <link rel="canonical" href="https://woodlandhillscc.net/explore.html" />
+  <link rel="alternate" hreflang="en" href="https://woodlandhillscc.net/explore.html" />
+  <link rel="alternate" hreflang="es" href="https://woodlandhillscc.net/es/explore.html" />
+  <link rel="alternate" hreflang="x-default" href="https://woodlandhillscc.net/explore.html" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="/css/chamber.css?v=20261015a" />
+</head>
+<body>
+  <div data-partial="header"></div>
+  <section class="section-sm bg-forest">
+    <div class="container">
+      <span class="kicker">Explore the West Valley</span>
+      <h1 style="color:#fff">Where to eat, stay, meet, celebrate and have fun</h1>
+      <p class="lead" style="color:rgba(255,255,255,.85);max-width:64ch">Every business here is a Chamber member. Search every guide at once, or tell the Chamber what you are planning and the office will connect you.</p>
+      <form id="exploreForm" class="hero__concierge" role="search" style="max-width:720px;margin-top:var(--s-5)">
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <input id="exploreQ" type="search" maxlength="200" autocomplete="off" aria-label="What are you looking for?" placeholder="What are you planning? e.g. a birthday for 40 in Tarzana" style="flex:1;min-width:220px;padding:13px 16px;border-radius:12px;border:none;font:inherit" />
+          <button class="btn btn--gold" type="submit">Ask Wendy</button>
+        </div>
+        <div class="chips" style="margin-top:10px"><a class="chip" href="?q=a DJ for a quinceañera">a DJ for a quinceañera</a><a class="chip" href="?q=team outing for 20">team outing for 20</a><a class="chip" href="?q=hotel for wedding guests">hotel for wedding guests</a><a class="chip" href="?q=birthday cake">birthday cake</a><a class="chip" href="?q=sushi in Tarzana">sushi in Tarzana</a></div>
+      </form>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div id="exploreWendy" hidden style="margin-bottom:var(--s-6)" aria-live="polite"></div>
+      <div id="exploreOut" hidden style="margin-bottom:var(--s-8)" aria-live="polite"></div>
+
+      <h2 style="margin:0 0 var(--s-4)">Plan by occasion</h2>
+      <div class="grid grid-4" style="gap:var(--s-4);margin-bottom:var(--s-8)">
+        <a class="card card--hover guide-card" href="/guides/dine-west-valley" style="padding:18px 20px">
+          <div style="font-size:1.8rem" aria-hidden="true">🍽️</div>
+          <h3 style="margin:6px 0 4px">Eat out</h3>
+          <p class="member-tile__meta" style="margin:0">Every member restaurant, by occasion.</p>
+        </a>
+        <a class="card card--hover guide-card" href="/guides/family-fun-west-valley" style="padding:18px 20px">
+          <div style="font-size:1.8rem" aria-hidden="true">🎳</div>
+          <h3 style="margin:6px 0 4px">Take the family</h3>
+          <p class="member-tile__meta" style="margin:0">Bowling, shows, treats and classes.</p>
+        </a>
+        <a class="card card--hover guide-card" href="/guides/meeting-spaces-business-lunches" style="padding:18px 20px">
+          <div style="font-size:1.8rem" aria-hidden="true">💼</div>
+          <h3 style="margin:6px 0 4px">Work meetings</h3>
+          <p class="member-tile__meta" style="margin:0">Meeting rooms, business lunches, coffee.</p>
+        </a>
+        <a class="card card--hover guide-card" href="/guides/company-parties-team-outings" style="padding:18px 20px">
+          <div style="font-size:1.8rem" aria-hidden="true">🥂</div>
+          <h3 style="margin:6px 0 4px">Company parties &amp; team outings</h3>
+          <p class="member-tile__meta" style="margin:0">Year-round: outings, dinners, offsites.</p>
+        </a>
+        <a class="card card--hover guide-card" href="/guides/plan-an-event-west-valley" style="padding:18px 20px">
+          <div style="font-size:1.8rem" aria-hidden="true">🎉</div>
+          <h3 style="margin:6px 0 4px">Parties &amp; special events</h3>
+          <p class="member-tile__meta" style="margin:0">Venues, catering, music, photos, rentals.</p>
+        </a>
+        <a class="card card--hover guide-card" href="/guides/holiday-parties-catering" style="padding:18px 20px">
+          <div style="font-size:1.8rem" aria-hidden="true">🎄</div>
+          <h3 style="margin:6px 0 4px">Holiday parties</h3>
+          <p class="member-tile__meta" style="margin:0">The office party and holiday catering.</p>
+        </a>
+        <a class="card card--hover guide-card" href="/guides/where-to-stay-west-valley" style="padding:18px 20px">
+          <div style="font-size:1.8rem" aria-hidden="true">🏨</div>
+          <h3 style="margin:6px 0 4px">Where to stay</h3>
+          <p class="member-tile__meta" style="margin:0">Hotels, getting around, dinner.</p>
+        </a>
+        <a class="card card--hover guide-card" href="/guides/entertainment" style="padding:18px 20px">
+          <div style="font-size:1.8rem" aria-hidden="true">🎭</div>
+          <h3 style="margin:6px 0 4px">Things to do</h3>
+          <p class="member-tile__meta" style="margin:0">Entertainment and recreation.</p>
+        </a>
+      </div>
+
+      <section class="card" style="padding:var(--s-6);margin-bottom:var(--s-8);background:var(--cream-deep,#f3ecda);border:1px solid var(--gold-soft,#e6dcbf);display:flex;gap:var(--s-5);align-items:center;flex-wrap:wrap">
+        <div style="font-size:2.2rem" aria-hidden="true">🤝</div>
+        <div style="flex:1;min-width:240px">
+          <h2 style="margin:0 0 6px">Not sure who to call?</h2>
+          <p style="margin:0">Tell the Chamber what you are planning: the date, how many people, roughly what budget and what you need. The office knows the member businesses and will connect you with the right ones. It is free.</p>
+        </div>
+        <a class="btn btn--gold btn--lg" href="/referral.html">Request a referral</a>
+      </section>
+
+      <h2 style="margin:0 0 var(--s-4)">All community guides</h2>
+      <div id="guideGrid" class="grid grid-3" style="gap:var(--s-4)"><p class="member-tile__meta">Loading…</p></div>
+      <div id="exploreShare" style="margin-top:var(--s-6)"></div>
+      <div data-join-cta></div>
+    </div>
+  </section>
+
+  <div data-partial="footer"></div>
+  <script src="/js/partials.js?v=20261102a"></script>
+  <script src="/js/api-base.js?v=20260818a"></script>
+  <script src="/js/chamber.js?v=20261102a"></script>
+  <script>
+    ChamberPartials.mount({ active: 'resources', depth: 0, lang: 'en' });
+    Chamber.initExplore();
+    Chamber.initGuides();
+    Chamber.mountJoinCta('[data-join-cta]', { depth: 0 });
+  </script>
+</body>
+</html>
