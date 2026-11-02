@@ -2570,6 +2570,29 @@ function publicEvent(ev) {
   const { rsvpEmail, communityEmail, ...pub } = ev;
   return pub;
 }
+/* What is coming up, small enough for the site-wide voice agent to read as a
+   tool (Nov 2026; /api/events is the whole calendar, ~450 KB). Same rule as
+   the calendar: approved and shown on it. Dates are the Chamber's own day. */
+export function upcomingEvents(events, today, days = 45, limit = 15) {
+  const end = new Date(Date.parse(today + 'T12:00:00Z') + days * 86400000).toISOString().slice(0, 10);
+  return events
+    .filter((e) => (e.status || 'approved') === 'approved' && e.showOnCalendar !== false && e.date)
+    .filter((e) => (e.endDate || e.date) >= today && e.date <= end)
+    .sort((a, b) => String(a.date).localeCompare(String(b.date)) || String(a.time || '').localeCompare(String(b.time || '')))
+    .slice(0, limit)
+    .map((e) => ({ title: e.title, date: e.date, endDate: e.endDate || '', time: e.time || '', venue: e.venue || '',
+      address: e.address || '', summary: String(e.summary || '').slice(0, 200), ticketed: !!e.ticketed,
+      url: '/events/view.html?id=' + encodeURIComponent(e.id) }));
+}
+router.get('/events-upcoming', async (req, res) => {
+  try {
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+    const days = Math.max(1, Math.min(120, parseInt(req.query.days, 10) || 45));
+    res.set('Cache-Control', 'public, max-age=300');
+    res.json({ today, events: upcomingEvents(await loadEvents(), today, days) });
+  } catch (e) { console.error(e); res.status(500).json({ error: 'events unavailable' }); }
+});
+
 router.get('/events', async (_req, res) => {
   try {
     const all = await loadEvents();
