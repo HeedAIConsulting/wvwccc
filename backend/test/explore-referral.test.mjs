@@ -221,3 +221,20 @@ test('the roster migration runs once and only ever adds', () => {
   assert.match(fn, /members: \(cur\.members \|\| \[\]\)\.concat\(adds\)/);
   assert.match(src, /await applyHospitalityRoster\(\);\n  return repo\.listGroupsStore\(\);/);
 });
+
+test('upcoming events for the voice agent: approved, on the calendar, in the window, in order', async () => {
+  const { upcomingEvents } = await import('../chamber-routes.js');
+  const ev = (id, date, extra = {}) => ({ id, title: id, date, ...extra });
+  const list = upcomingEvents([
+    ev('past', '2026-10-30'),
+    ev('multi', '2026-10-31', { endDate: '2026-11-03' }),
+    ev('later', '2026-11-20', { time: '6:00 PM' }),
+    ev('soon', '2026-11-05'),
+    ev('pending', '2026-11-06', { status: 'pending' }),
+    ev('hidden', '2026-11-07', { showOnCalendar: false }),
+    ev('far', '2027-03-01'),
+  ], '2026-11-02', 45);
+  assert.deepEqual(list.map((e) => e.title), ['multi', 'soon', 'later']);
+  assert.equal(list[1].url, '/events/view.html?id=soon');
+  assert.ok(JSON.stringify(list).length < 2000, 'small');
+});
