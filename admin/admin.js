@@ -3078,30 +3078,35 @@ window.Admin = (function () {
       sponsorWrap.querySelectorAll('[data-rmsp]').forEach((b) => b.addEventListener('click', () => { sponsorLogos.splice(+b.dataset.rmsp, 1); renderSponsors(); }));
     }
     // ── Volunteer roles (ambassador tracker, Felicia Jul 29 2026) ──
-    const VOL_PRESETS = [
-      { role: 'Registration / check-in', points: 10, needed: 2 },
+    // The breakfast/mixer jobs, two people each (Felicia, Nov 5 2026). Same
+    // list as BREAKFAST_MIXER_ROLES in backend/chamber-routes.js.
+    const BREAKFAST_JOBS = [
       { role: 'Greeter', points: 8, needed: 2 },
+      { role: 'Name Tags', points: 6, needed: 2 },
+      { role: 'Check In', points: 10, needed: 2 },
+      { role: 'Floater', points: 8, needed: 2 },
+      { role: 'Packing Items Up', points: 8, needed: 2 },
+    ];
+    const VOL_PRESETS = BREAKFAST_JOBS.concat([
       { role: 'Setup', points: 8, needed: 2 },
-      { role: 'Cleanup / breakdown', points: 8, needed: 2 },
       { role: 'Raffle / prizes', points: 6, needed: 1 },
       { role: 'Photographer', points: 6, needed: 1 },
-      { role: 'Name badges', points: 6, needed: 1 },
-    ];
+    ]);
     function renderVolunteers() {
       if (!volWrap) return;
       volWrap.innerHTML = volunteerRoles.map((r, i) => `<div style="display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap;align-items:center">
-        <input data-vr="${i}" data-f="role" list="evVolIdeas" placeholder="Task (e.g. Registration / check-in)" value="${esc(r.role || '')}" style="flex:2;min-width:180px">
+        <input data-vr="${i}" data-f="role" list="evVolIdeas" placeholder="Task (e.g. Greeter)" value="${esc(r.role || '')}" style="flex:2;min-width:180px">
         <input data-vr="${i}" data-f="points" type="number" min="0" max="100" placeholder="Points" value="${esc(r.points != null ? r.points : '')}" style="width:90px" title="Points an ambassador earns for this shift">
         <input data-vr="${i}" data-f="needed" type="number" min="1" max="50" placeholder="How many" value="${esc(r.needed != null ? r.needed : 1)}" style="width:95px" title="How many people you need for this task">
         <button type="button" data-rmvr="${i}" class="btn btn--ghost btn--sm">×</button>
       </div>`).join('')
         + `<datalist id="evVolIdeas">${VOL_PRESETS.map((p) => `<option value="${esc(p.role)}"></option>`).join('')}</datalist>
            <button type="button" id="evAddVr" class="btn btn--ghost btn--sm">+ Add a role</button>
-           <button type="button" id="evVrPreset" class="btn btn--ghost btn--sm" title="Adds the usual breakfast/mixer jobs so you can trim from there">+ Use the usual set</button>
+           <button type="button" id="evVrPreset" class="btn btn--ghost btn--sm" title="Greeter, Name Tags, Check In, Floater and Packing Items Up, two people each. Remove any you don't need.">+ Add the breakfast/mixer jobs</button>
            ${volunteerRoles.length ? '<span class="sub" style="margin-left:8px">Ambassadors see these in their member portal.</span>' : '<span class="sub" style="margin-left:8px">Leave empty if you don\'t need volunteers for this event.</span>'}`;
       volWrap.querySelector('#evAddVr').addEventListener('click', () => { volunteerRoles.push({ role: '', points: 8, needed: 1 }); renderVolunteers(); });
       volWrap.querySelector('#evVrPreset').addEventListener('click', () => {
-        for (const p of VOL_PRESETS) if (!volunteerRoles.some((r) => r.role === p.role)) volunteerRoles.push({ ...p });
+        for (const p of BREAKFAST_JOBS) if (!volunteerRoles.some((r) => r.role === p.role)) volunteerRoles.push({ ...p });
         renderVolunteers();
       });
       volWrap.querySelectorAll('[data-vr]').forEach((el) => el.addEventListener('input', () => {

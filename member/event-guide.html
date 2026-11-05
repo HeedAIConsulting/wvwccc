@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" href="/favicon.ico" sizes="any" />
+  <link rel="icon" type="image/png" href="/images/favicon-32.png" sizes="32x32" />
+  <link rel="apple-touch-icon" href="/images/apple-touch-icon.png" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex" />
+  <title>Add Your Event to the Calendar — WVWCCC Member</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="../css/chamber.css?v=20261015a" />
+  <style>
+    .lg-step { border: 1px solid var(--line, #e5e0d4); border-radius: var(--r-md, 12px); padding: 18px 20px; margin-bottom: 14px; }
+    .lg-step h3 { margin: 0 0 6px; }
+    .lg-step p, .lg-step li { line-height: 1.6; }
+    @media print {
+      [data-partial], .btn-row, .wv-sup-btn, .guide-promo { display: none !important; }
+      .section { padding: 0 !important; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Felicia, Nov 5 2026: the group leaders had a guide to forward and
+       members had none. Every label below is the one on member/event.html
+       and the dashboard in member/member.js; change them together. -->
+  <div data-partial="header"></div>
+  <section class="section">
+    <div class="container container-narrow">
+      <p class="member-tile__meta"><a href="index.html">&larr; My Chamber</a></p>
+      <span class="kicker">Reference</span>
+      <h1>Add your event to the Chamber calendar</h1>
+      <p class="lead">Members post their own events on the Chamber's website: open houses, workshops, ribbon cuttings, anything the community is welcome to. The Chamber office approves each one and it goes on the calendar. <button class="btn btn--ghost btn--sm" onclick="window.print()" style="vertical-align:middle">🖨 Print this page</button></p>
+
+      <div class="lg-step">
+        <h3>1 · Sign in</h3>
+        <p>Go to <strong>woodlandhillscc.net</strong> and click <strong>Member Login</strong>. Use the email address the Chamber has on file for you. No password yet, or forgot it? Type your address under <strong>Email me a sign-in link</strong> and click <strong>Email me a link</strong>. A one-click link arrives in your inbox (check spam the first time).</p>
+      </div>
+
+      <div class="lg-step">
+        <h3>2 · Start a new event</h3>
+        <p>Your dashboard has a card called <strong>Your events on the calendar</strong>. Click <strong>＋ Add an event</strong> on it.</p>
+        <p>If you also lead a Chamber group, a <strong>Posting as</strong> box at the top lets you choose between your business and the group.</p>
+      </div>
+
+      <div class="lg-step">
+        <h3>3 · Fill in the details</h3>
+        <ul style="padding-left:20px">
+          <li><strong>Event name</strong>, <strong>Date</strong> and <strong>Category</strong>.</li>
+          <li><strong>Start time</strong>, and an <strong>End time</strong> if you have one.</li>
+          <li><strong>Location / venue</strong>, and the <strong>Address</strong> if people need it to find you.</li>
+          <li><strong>Description</strong>: what it is and who it is for. The buttons above the box make text bold, add a picture, or turn words into a link with <strong>🔗 Link</strong> (for example “Click here to register” instead of a long web address).</li>
+        </ul>
+      </div>
+
+      <div class="lg-step">
+        <h3>4 · The optional parts</h3>
+        <ul style="padding-left:20px">
+          <li><strong>Repeats?</strong> Choose <strong>Every week</strong> or <strong>Monthly (e.g. first Monday)</strong> for something on a schedule, and every date is created in one go. Leave it on <strong>One time</strong> otherwise.</li>
+          <li><strong>RSVP button</strong>: choose <strong>Add an RSVP button</strong> and put your address in <strong>Email RSVPs to</strong>. Each RSVP is emailed to you as it comes in.</li>
+          <li><strong>Flyer</strong>: upload an image of your flyer and it shows on the event's page.</li>
+        </ul>
+      </div>
+
+      <div class="lg-step">
+        <h3>5 · Send it</h3>
+        <p>Click <strong>Add to calendar</strong>. The event goes to the Chamber office, and it appears on the calendar once they approve it. Until then it sits on your dashboard marked <strong>awaiting the office</strong>.</p>
+      </div>
+
+      <div class="lg-step">
+        <h3>6 · Changing it later</h3>
+        <p>Every event you post is listed on the <strong>Your events on the calendar</strong> card. <strong>Edit</strong> changes one. <strong>Duplicate</strong> runs it again on a new date and leaves the original where it is.</p>
+        <p>Editing an event that is already on the calendar sends the change to the office too, and the event comes off the calendar until they approve it.</p>
+      </div>
+
+      <div class="lg-step" style="border-color:var(--gold,#C9A227)">
+        <h3>🛟 When you're stuck</h3>
+        <p>Use the <strong>Support</strong> button in the bottom-left corner of any page. Your note goes straight to the team that runs this website, and screenshots help. Prefer a person? Call the Chamber office at <strong>(818)&nbsp;347-4737</strong>.</p>
+      </div>
+
+      <div class="btn-row mt-5">
+        <a class="btn btn--forest" href="event.html">＋ Add an event</a>
+        <a class="btn btn--ghost" href="index.html">Go to my dashboard</a>
+      </div>
+    </div>
+  </section>
+  <div data-partial="footer"></div>
+  <script src="../js/partials.js?v=20261102a"></script>
+  <script src="../js/api-base.js?v=20260818a"></script>
+  <script>ChamberPartials.mount({ active: '', depth: 1, lang: 'en' });</script>
+  <script defer src="/js/support.js?v=20260804c"></script>
+</body>
+</html>

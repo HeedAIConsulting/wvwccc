@@ -198,7 +198,8 @@ window.MemberPortal = (function () {
       <p class="member-tile__meta" style="margin:0 0 10px">${who ? `Signed in as <strong>${esc(who.name)}</strong>. ` : ''}${
         evs.length ? 'Press Edit to change one.' : 'Nothing on the calendar yet.'}</p>
       ${rows}
-      <div class="btn-row mt-4"><a class="btn btn--gold btn--sm" href="event.html">＋ Add an event</a></div>
+      <div class="btn-row mt-4"><a class="btn btn--gold btn--sm" href="event.html">＋ Add an event</a>
+        <a class="btn btn--ghost btn--sm" href="event-guide.html" style="align-self:center">📖 How to post an event</a></div>
     </div>`;
     // Duplicate, from the dashboard list. Same rule as the leader page: this
     // COPIES onto a new date, it does not move the original.
