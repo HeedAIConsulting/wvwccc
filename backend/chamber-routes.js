@@ -2125,6 +2125,7 @@ async function ensureEventsSeeded() {
      RSVPs to the wrong leaders is the very failure this is fixing. */
   await applyEventGroupHosts();
   await applyNov4BlurbLines();
+  await applyBreakfastMixerJobs();
   /* One-time (Aug 19 2026, per Felicia): rescue any dated event left stuck at
      confirmed:false by the ?? bug fixed in buildEvent above. Those events look
      perfectly normal in Admin - approved, dated, showing on the list - but the
@@ -3162,6 +3163,36 @@ export async function applyNov4BlurbLines() {
     console.log(`[events] Nov 4 breakfast blurb: ${note}`);
   } catch (e) { _nov4BlurbChecked = false; console.error('nov 4 blurb fix failed (will retry next boot)', e); }
 }
+/* Nov 5 2026: Felicia asked for Ambassador sign-ups at the breakfasts and
+   mixers. The tracker has taken per-event jobs since July, but no event had
+   ever been given any, so Ambassadors had nothing to sign up for. The next
+   three Chamber breakfasts and mixers get the five jobs, only while they still
+   have none; a duplicated event carries them on. */
+export const BREAKFAST_MIXER_EVENTS = ['ev-msz4whul5c4', 'le-11223', 'le-office-20261216-mixer'];
+export function breakfastMixerJobsFor(ev) {
+  if (!ev || !BREAKFAST_MIXER_EVENTS.includes(ev.id)) return null;
+  if (Array.isArray(ev.volunteerRoles) && ev.volunteerRoles.length) return null;
+  return BREAKFAST_MIXER_ROLES.map((r) => ({ ...r }));
+}
+let _breakfastJobsChecked = false;
+async function applyBreakfastMixerJobs() {
+  if (_breakfastJobsChecked) return;
+  _breakfastJobsChecked = true;
+  const KEY = 'breakfastMixerJobs-20261105';
+  try {
+    if (await repo.getSetting(KEY)) return;
+    const evs = (await repo.listEventsStore()).filter((e) => BREAKFAST_MIXER_EVENTS.includes(e.id));
+    let n = 0;
+    for (const ev of evs) {
+      const roles = breakfastMixerJobsFor(ev);
+      if (!roles) continue;
+      await repo.upsertEvent(buildEvent({ ...ev, volunteerRoles: roles }, ev));
+      n++;
+    }
+    await repo.setSetting(KEY, `jobs on ${n} @ ${new Date().toISOString()}`);
+    console.log(`[events] breakfast/mixer volunteer jobs: ${n}`);
+  } catch (e) { _breakfastJobsChecked = false; console.error('breakfast/mixer jobs failed (will retry next boot)', e); }
+}
 async function applyFlyerCorrections() {
   if (_flyerFixChecked) return;
   _flyerFixChecked = true;
@@ -4071,14 +4102,22 @@ const LOGGED_CAP = 200;   // per member, so the form cannot be used to flood the
 
 // Starting point for events that have no roles set — the tasks Felicia named
 // plus the usual mixer/breakfast jobs. The office edits these per event.
-const VOL_ROLE_SUGGESTIONS = [
-  { role: 'Registration / check-in', points: 10, needed: 2 },
+/* The jobs at a breakfast or mixer, two people each (Felicia, Nov 5 2026:
+   "1) Greeter 2) Name Tags 3) Check In 4) Floater 5) Packing Items Up").
+   Admin → Events → Volunteer roles → "+ Add the breakfast/mixer jobs" adds
+   these; keep admin.js BREAKFAST_JOBS the same list. */
+export const BREAKFAST_MIXER_ROLES = [
   { role: 'Greeter', points: 8, needed: 2 },
+  { role: 'Name Tags', points: 6, needed: 2 },
+  { role: 'Check In', points: 10, needed: 2 },
+  { role: 'Floater', points: 8, needed: 2 },
+  { role: 'Packing Items Up', points: 8, needed: 2 },
+];
+const VOL_ROLE_SUGGESTIONS = [
+  ...BREAKFAST_MIXER_ROLES,
   { role: 'Setup', points: 8, needed: 2 },
-  { role: 'Cleanup / breakdown', points: 8, needed: 2 },
   { role: 'Raffle / prizes', points: 6, needed: 1 },
   { role: 'Photographer', points: 6, needed: 1 },
-  { role: 'Name badges', points: 6, needed: 1 },
 ];
 function cleanTiers(raw) {
   const list = Array.isArray(raw) ? raw : [];
