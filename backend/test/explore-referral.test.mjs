@@ -263,3 +263,22 @@ test('the network roster is members only, and Amanda is Amanda Dickey', async ()
   assert.equal(after.changed, 0);
   assert.equal(HOSPITALITY_NONMEMBER_IDS.length, 4);
 });
+
+test('Deborah Alexander (H20 Droplet) joins the network roster once, and never twice', async () => {
+  const { hospitalityDeborahAdd, HOSPITALITY_DEBORAH } = await import('../chamber-routes.js');
+  const base = { manager: { name: 'Monica Battisti', email: 'mbattisti@fogo.com' }, members: [{ name: 'Corina Ayers', memberId: 'm16043' }] };
+  const adds = hospitalityDeborahAdd(base);
+  assert.equal(adds.length, 1);
+  assert.equal(adds[0].name, 'Deborah Alexander');
+  assert.equal(adds[0].memberId, HOSPITALITY_DEBORAH);
+  assert.equal(adds[0].email, '', 'no member address in the source');
+  assert.equal(adds[0].status, 'active');
+  // Already added by the office from the directory: the row carries the business name.
+  assert.deepEqual(hospitalityDeborahAdd({ ...base, members: [{ name: 'H20 Droplet', memberId: 'm16063' }] }), []);
+  // Typed in by hand under her own name.
+  assert.deepEqual(hospitalityDeborahAdd({ ...base, members: [{ name: 'deborah  alexander' }] }), []);
+  assert.deepEqual(hospitalityDeborahAdd({ ...base, members: base.members.concat(adds) }), []);
+  const src = read('backend/chamber-routes.js');
+  assert.match(src, /const KEY = 'hospitalityDeborah-20261105';/);
+  assert.match(src, /await applyHospitalityRosterFix\(\);\n  await applyHospitalityDeborah\(\);/);
+});

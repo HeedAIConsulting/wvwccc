@@ -2827,6 +2827,7 @@ async function loadGroups() {
   await applyVsrnLogo();
   await applyHospitalityRoster();
   await applyHospitalityRosterFix();
+  await applyHospitalityDeborah();
   await applyAmbassadorSchedule();
   return repo.listGroupsStore();
 }
@@ -2912,6 +2913,8 @@ export const HOSPITALITY_ROSTER = [
   { name: 'Marcia Israel', business: 'Stan Israel Insurance Services, Inc.', memberId: 'm10438', email: '', phone: '818-706-1100' },
   { name: 'Stan Israel', business: 'Stan Israel Insurance Services, Inc.', memberId: 'm10438', email: '', phone: '818-706-1100' },
   { name: 'Tawny Goralnick', business: 'RoomRite Group Solutions', memberId: null, email: 'tawny@roomrite.io', phone: '888-577-3633' },
+  // Nov 5: at the meeting (Diana's Hot Sheet) but left no card. See applyHospitalityDeborah.
+  { name: 'Deborah Alexander', business: 'H20 Droplet', memberId: 'm16063', email: '', phone: '213-361-4719' },
 ];
 // The rows to add to this group: everyone above not already on its roster.
 export function hospitalityRosterAdds(group) {
@@ -2965,6 +2968,34 @@ async function applyHospitalityRosterFix() {
     await repo.setSetting(KEY, `${note} @ ${new Date().toISOString()}`);
     console.log(`[groups] hospitality roster fix: ${note}`);
   } catch (e) { _hospFixChecked = false; console.error('hospitality roster fix failed (will retry next boot)', e); }
+}
+/* Nov 5 2026: Diana's Nov 2 Hot Sheet marks Deborah Alexander (H20 Droplet,
+   a member) as there, but the roster above was built from the business cards
+   and she left none. Added once, unless the roster already has her by name or
+   has the H20 Droplet listing on any row (the office adding it from the
+   directory names the row after the business). */
+export const HOSPITALITY_DEBORAH = 'm16063';
+export function hospitalityDeborahAdd(group) {
+  if ((group.members || []).some((m) => m.memberId === HOSPITALITY_DEBORAH)) return [];
+  return hospitalityRosterAdds(group).filter((p) => p.memberId === HOSPITALITY_DEBORAH);
+}
+let _hospDeborahChecked = false;
+async function applyHospitalityDeborah() {
+  if (_hospDeborahChecked) return;
+  _hospDeborahChecked = true;
+  const KEY = 'hospitalityDeborah-20261105';
+  try {
+    if (await repo.getSetting(KEY)) return;
+    const cur = (await repo.listGroupsStore()).find((g) => g.id === 'grp-event-hospitality');
+    let note = 'group not found';
+    if (cur) {
+      const adds = hospitalityDeborahAdd(cur);
+      if (adds.length) await repo.upsertGroup(buildGroup({ ...cur, members: (cur.members || []).concat(adds) }, cur));
+      note = adds.length ? 'added Deborah Alexander' : 'already on the roster';
+    }
+    await repo.setSetting(KEY, `${note} @ ${new Date().toISOString()}`);
+    console.log(`[groups] hospitality roster, H20 Droplet: ${note}`);
+  } catch (e) { _hospDeborahChecked = false; console.error('hospitality H20 Droplet add failed (will retry next boot)', e); }
 }
 let _hospRosterChecked = false;
 async function applyHospitalityRoster() {
