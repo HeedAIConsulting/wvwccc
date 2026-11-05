@@ -219,7 +219,7 @@ test('the roster migration runs once and only ever adds', () => {
   assert.match(fn, /const KEY = 'hospitalityRoster-20261102';/);
   assert.match(fn, /if \(await repo\.getSetting\(KEY\)\) return;/);
   assert.match(fn, /members: \(cur\.members \|\| \[\]\)\.concat\(adds\)/);
-  assert.match(src, /await applyHospitalityRoster\(\);\n  await applyHospitalityRosterFix\(\);\n  return repo\.listGroupsStore\(\);/);
+  assert.match(src, /await applyHospitalityRoster\(\);\n  await applyHospitalityRosterFix\(\);\n/);
 });
 
 test('upcoming events for the voice agent: approved, on the calendar, in the window, in order', async () => {

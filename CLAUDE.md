@@ -196,6 +196,22 @@ not the office, and is left alone.
   the address the visitor typed. The `need`/`occasion` keys in `referralFor`
   must match the `data-key`s on both pages (tested).
 
+## Links and names in emails (Nov 2026)
+
+- **Every emailed link goes through `siteBase(req)`** (`backend/site-base.js`):
+  `SITE_URL` / `SITE_ORIGIN`, else `https://woodlandhillscc.net`. Never build a
+  link from `req.get('host')`: the office and leaders often work on
+  wvwccc-web.onrender.com, and Martin Carman's Ambassador welcome (Nov 4) linked
+  there. Only localhost keeps its own host.
+- **A roster row picked from the directory is named after the business.** Greet
+  with `greetingName(row, dirMember)`: the member's `contactName`, or "there"
+  (Martin's welcome opened "Hi Computer,"). A name typed for the row is kept.
+- Group welcome and group announcement emails pass `fromName` (the leader), so
+  From reads "Sheryl Tratner via West Valley · Warner Center Chamber" on the
+  verified address. Graph ignores it.
+- Leaders edit their group's schedule line themselves: Manage group → Meeting
+  schedule → Save schedule.
+
 ## Receipts that do not arrive
 
 Email goes out through Resend. A customer's receipt that bounces, is

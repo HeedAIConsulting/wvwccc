@@ -23,6 +23,7 @@ import { randomBytes } from 'node:crypto';
 import { BIZBUZZ_KEY, cleanBizBuzz, loadBizBuzz } from './bizbuzz.js';
 import { readWebsite, memberWebsite } from './website-field.js';
 import { searchGuides, referralFor, expand } from './explore.js';
+import { siteBase, greetingName } from './site-base.js';
 
 const router = express.Router();
 
@@ -80,7 +81,7 @@ router.post('/auth/forgot', async (req, res) => {
     const user = await users.getUserByEmail(addr);
     if (user) {
       const token = auth.signResetToken(addr);
-      const base = process.env.SITE_URL || `${req.protocol}://${req.get('host')}`;
+      const base = siteBase(req);
       const link = `${base}/auth/reset.html?token=${encodeURIComponent(token)}`;
       const result = await email.send({
         to: addr,
@@ -122,7 +123,7 @@ router.post('/auth/magic/request', async (req, res) => {
     const user = await users.getUserByEmail(addr);
     if (user) {
       const token = auth.signMagicToken(addr);
-      const base = process.env.SITE_URL || `${req.protocol}://${req.get('host')}`;
+      const base = siteBase(req);
       const link = `${base}/api/auth/magic/verify?token=${encodeURIComponent(token)}`;
       const result = await email.send({
         to: addr,
@@ -1069,10 +1070,13 @@ async function notifyNewGroupMembers(beforeMembers, g, req) {
     const skipped = [];
     const { members: dir } = await loadMembersFull();
     const emailById = new Map(dir.filter((m) => m.email).map((m) => [m.id, m.email]));
-    const base = process.env.SITE_URL || `${req.protocol}://${req.get('host')}`;
+    const dirById = new Map(dir.map((m) => [m.id, m]));
+    const base = siteBase(req);
     const groupUrl = `${base}/groups/${g.slug}`;
     const mgrName = (g.manager && g.manager.name) || 'the group leader';
     const replyTo = (g.manager && g.manager.email) || undefined;
+    // Replies go to the leader, so the From line says so (Sheryl, Nov 5 2026).
+    const fromName = replyTo && g.manager.name ? g.manager.name : '';
     const eh = (v) => String(v ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
     const seen = new Set();
     for (const m of fresh) {
@@ -1080,8 +1084,9 @@ async function notifyNewGroupMembers(beforeMembers, g, req) {
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(addr)) { skipped.push(m.name || '(unnamed)'); continue; }
       if (seen.has(addr)) continue;
       seen.add(addr);
-      const first = String(m.name || '').trim().split(/\s+/)[0] || 'there';
-      const meets = g.meetingSchedule ? `The group meets ${g.meetingSchedule}.` : '';
+      const first = greetingName(m, m.memberId ? dirById.get(m.memberId) : null);
+      const sched = String(g.meetingSchedule || '').trim().replace(/^(Monthly|Weekly|Quarterly|Every|Each|Twice|Once|On)\b/, (w) => w.toLowerCase());
+      const meets = sched ? `The group meets ${sched.replace(/[.\s]+$/, '')}.` : '';
       const html = `
       <div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#111;max-width:560px;border:1px solid #ccc;padding:20px 24px">
         <img src="https://woodlandhillscc.net/images/wvwccc-logo-200.png" alt="WVWC Chamber of Commerce" width="72" style="display:block;margin:0 0 12px">
@@ -1102,7 +1107,7 @@ async function notifyNewGroupMembers(beforeMembers, g, req) {
         + `• Share photos — the group's photo albums live on the same page; sign in and add your own shots from a meeting.\n`
         + `• Use your member portal — sign in at ${base}/auth/member-login.html with this email address. No password yet? Choose "Email me a sign-in link".\n\n`
         + `Questions about the group? Just reply to this email${replyTo ? ` — it goes to ${mgrName}` : ''} — or call the Chamber office at (818) 347-4737.\n\n—\nWest Valley · Warner Center Chamber of Commerce\n${groupUrl}\n`;
-      email.send({ to: addr, replyTo, subject: `Welcome to ${g.name}!`, text, html })
+      email.send({ to: addr, replyTo, fromName, subject: `Welcome to ${g.name}!`, text, html })
         .then((r) => { if (r && (r.skipped || r.ok === false)) console.error('group welcome email not sent', addr, r.error || 'mailer not configured'); });
     }
     // Callers surface this so a leader is never left believing "everyone gets
@@ -2653,7 +2658,7 @@ router.get('/events/:id.ics', async (req, res) => {
       lines.push('DTSTART;VALUE=DATE:' + d8, 'DTEND;VALUE=DATE:' + nd8);
     }
     const loc = [ev.venue, ev.address].filter(Boolean).join(', ');
-    const base = process.env.SITE_URL || `${req.protocol}://${req.get('host')}`;
+    const base = siteBase(req);
     lines.push('SUMMARY:' + esc2(ev.title),
       'LOCATION:' + esc2(loc),
       'DESCRIPTION:' + esc2([ev.summary || '', `${base}/events/view.html?id=${ev.id}`].filter(Boolean).join('\n')),
@@ -2822,7 +2827,38 @@ async function loadGroups() {
   await applyVsrnLogo();
   await applyHospitalityRoster();
   await applyHospitalityRosterFix();
+  await applyAmbassadorSchedule();
   return repo.listGroupsStore();
+}
+
+/* Nov 5 2026: Sheryl Tratner set the Ambassador Committee's meetings for the
+   3rd Wednesday of each month and put them on the calendar, but the schedule
+   line still said "30 minutes before each mixer starts", and every welcome
+   email repeated it. She asked for it to send people to the calendar. Only
+   the stale line is replaced; the leader can change it from Manage group. */
+export const AMBASSADOR_SCHEDULE = {
+  id: 'grp-ambassador-committee',
+  from: '30 minutes before each mixer starts',
+  to: 'Monthly \u2014 check the calendar for each meeting date',
+};
+export function ambassadorScheduleFix(g) {
+  if (!g || String(g.meetingSchedule || '').trim() !== AMBASSADOR_SCHEDULE.from) return null;
+  return AMBASSADOR_SCHEDULE.to;
+}
+let _ambassadorScheduleChecked = false;
+async function applyAmbassadorSchedule() {
+  if (_ambassadorScheduleChecked) return;
+  _ambassadorScheduleChecked = true;
+  const KEY = 'ambassadorSchedule-20261105';
+  try {
+    if (await repo.getSetting(KEY)) return;
+    const g = (await repo.listGroupsStore()).find((x) => x.id === AMBASSADOR_SCHEDULE.id);
+    const to = ambassadorScheduleFix(g);
+    let note = 'left alone (changed since Nov 5, or not found)';
+    if (to) { await repo.upsertGroup(buildGroup({ ...g, meetingSchedule: to }, g)); note = 'set to the calendar line'; }
+    await repo.setSetting(KEY, `${note} @ ${new Date().toISOString()}`);
+    console.log(`[groups] Ambassador schedule: ${note}`);
+  } catch (e) { _ambassadorScheduleChecked = false; console.error('ambassador schedule fix failed (will retry next boot)', e); }
 }
 
 /* Oct 15 2026: Marcia Israel sent the Valley Senior Resource Network logo
@@ -3288,12 +3324,13 @@ async function sendGroupAnnouncement(g, subject, message, req) {
     const addr = String(m.email || emailById.get(m.memberId) || '').toLowerCase();
     if (/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(addr) && !targets.has(addr)) targets.set(addr, m.name || '');
   }
-  const groupUrl = `${process.env.SITE_URL || `${req.protocol}://${req.get('host')}`}/groups/${g.slug}`;
+  const groupUrl = `${siteBase(req)}/groups/${g.slug}`;
   const text = `${message}\n\n—\n${g.name} · West Valley · Warner Center Chamber of Commerce\n${g.meetingSchedule ? `Meets: ${g.meetingSchedule}\n` : ''}${groupUrl}`;
   let sent = 0;
   for (const [addr] of targets) {
     // Individually addressed (never expose the roster in To/CC); best-effort per recipient.
-    const r = await email.send({ to: addr, subject: `[${g.name}] ${subject}`, text, replyTo: (g.manager && g.manager.email) || undefined }).catch(() => null);
+    const r = await email.send({ to: addr, subject: `[${g.name}] ${subject}`, text, replyTo: (g.manager && g.manager.email) || undefined,
+      fromName: (g.manager && g.manager.email && g.manager.name) || '' }).catch(() => null);
     if (r && r.ok) sent++;
   }
   return { sent, skipped: roster.length - targets.size, total: roster.length };
@@ -4350,7 +4387,7 @@ router.post('/admin/payment-link', requireAdmin, async (req, res) => {
   const amount = Number(b.amount);
   if (!what) return res.status(400).json({ error: 'Describe what the payment is for.' });
   if (!(amount > 0)) return res.status(400).json({ error: 'Enter an amount greater than zero.' });
-  const origin = process.env.PUBLIC_ORIGIN || `${req.protocol}://${req.get('host')}`;
+  const origin = process.env.PUBLIC_ORIGIN || siteBase(req);
   const qs = new URLSearchParams({ type: 'payment', for: what, amount: amount.toFixed(2) });
   if (b.lock !== false) qs.set('lock', '1');
   // Chamber or Foundation (Felicia, Sep 9 2026). A custom link has no record
@@ -5359,7 +5396,7 @@ router.post('/admin/members/:id/send-welcome', requireAdmin, async (req, res) =>
       await users.bulkImportMembers([{ email: addr, memberId: m.id, username: m.contactName || m.name, passwordHash: null, passwordAlgo: 'unknown', needsReset: true }]);
     }
     const token = auth.signResetToken(addr);
-    const base = process.env.SITE_URL || `${req.protocol}://${req.get('host')}`;
+    const base = siteBase(req);
     const link = `${base}/auth/reset.html?token=${encodeURIComponent(token)}`;
     const r = await sendWelcomeLetter(m, addr, link);
     if (r && r.ok === false) return res.status(500).json({ error: 'Email could not be sent: ' + (r.error || 'provider error') });
@@ -5461,7 +5498,7 @@ router.get('/admin/members/:id/login-link', requireAdmin, async (req, res) => {
     if (which && !u) return res.status(404).json({ error: 'That email is not one of this member\'s logins.' });
     if (!u) return res.status(409).json({ error: 'multiple-logins', logins: logins.map((x) => x.email) });
     const token = auth.signMagicToken(u.email);
-    const base = process.env.SITE_URL || `${req.protocol}://${req.get('host')}`;
+    const base = siteBase(req);
     res.json({ ok: true, email: u.email, link: `${base}/api/auth/magic/verify?token=${encodeURIComponent(token)}`, expiresInMinutes: 20 });
   } catch (e) { console.error('login-link', e); res.status(500).json({ error: 'could not generate link' }); }
 });
@@ -5478,7 +5515,7 @@ router.get('/admin/login-link-by-email', requireAdmin, async (req, res) => {
     const u = (list || []).find((x) => String(x.email || '').toLowerCase() === em) || null;
     if (!u) return res.status(404).json({ error: 'no-login' });
     const token = auth.signMagicToken(u.email);
-    const base = process.env.SITE_URL || `${req.protocol}://${req.get('host')}`;
+    const base = siteBase(req);
     res.json({ ok: true, email: u.email, link: `${base}/api/auth/magic/verify?token=${encodeURIComponent(token)}`, expiresInMinutes: 20 });
   } catch (e) { console.error('login-link-by-email', e); res.status(500).json({ error: 'could not generate link' }); }
 });
@@ -5489,7 +5526,7 @@ router.get('/admin/users/:email/reset-link', requireAdmin, async (req, res) => {
   try {
     const em = decodeURIComponent(req.params.email);
     const token = auth.signResetToken(em);
-    const base = process.env.SITE_URL || `${req.protocol}://${req.get('host')}`;
+    const base = siteBase(req);
     res.json({ ok: true, email: em, link: `${base}/auth/reset.html?token=${encodeURIComponent(token)}`, expiresInHours: 1 });
   } catch (e) { console.error('reset-link', e); res.status(500).json({ error: 'could not generate link' }); }
 });
@@ -5526,7 +5563,7 @@ router.post('/admin/members/:id/send-reset', requireAdmin, async (req, res) => {
     if (!(await users.getUserByEmail(addr))) {
       await users.bulkImportMembers([{ email: addr, memberId: m.id, username: m.contactName || m.name, passwordHash: null, passwordAlgo: 'unknown', needsReset: true }]);
     }
-    const base = process.env.SITE_URL || `${req.protocol}://${req.get('host')}`;
+    const base = siteBase(req);
     const link = `${base}/auth/reset.html?token=${encodeURIComponent(auth.signResetToken(addr))}`;
     const hello = m.contactName ? `, ${m.contactName}` : '';
     const r = await email.send({
@@ -5553,7 +5590,7 @@ router.post('/admin/members/:id/send-signin', requireAdmin, async (req, res) => 
     if (!(await users.getUserByEmail(addr))) {
       await users.bulkImportMembers([{ email: addr, memberId: m.id, username: m.contactName || m.name, passwordHash: null, passwordAlgo: 'unknown', needsReset: true }]);
     }
-    const base = process.env.SITE_URL || `${req.protocol}://${req.get('host')}`;
+    const base = siteBase(req);
     const link = `${base}/api/auth/magic/verify?token=${encodeURIComponent(auth.signMagicToken(addr))}`;
     const hello = m.contactName ? `, ${m.contactName}` : '';
     const r = await email.send({
@@ -5892,7 +5929,7 @@ router.post('/admin/members', requireAdmin, async (req, res) => {
       try {
         await users.bulkImportMembers([{ email: m.email, memberId: m.id, username: m.contactName || m.name, passwordHash: null, passwordAlgo: 'unknown', needsReset: true }]);
         const token = auth.signResetToken(m.email);
-        const base = process.env.SITE_URL || `${req.protocol}://${req.get('host')}`;
+        const base = siteBase(req);
         const link = `${base}/auth/reset.html?token=${encodeURIComponent(token)}`;
         const r = await sendWelcomeLetter(m, m.email, link);
         const went = r && r.ok && !r.skipped;
@@ -5935,7 +5972,7 @@ async function attachLoginAndInvite(memberId, emailAddr, displayName, businessNa
   }
   if (!sendInvite) return made + ' (no email sent)';
   const token = auth.signResetToken(emailAddr);
-  const base = process.env.SITE_URL || `${req.protocol}://${req.get('host')}`;
+  const base = siteBase(req);
   const link = `${base}/auth/reset.html?token=${encodeURIComponent(token)}`;
   // Login-focused copy (not a "welcome" — the office sends its own welcome
   // letter when members join; this email is purely their website login).
@@ -6078,7 +6115,7 @@ router.post('/admin/leads/:id/approve-member', requireAdmin, async (req, res) =>
           // They chose their password on the application (old-site flow) — the
           // login is active right away, no set-password link needed.
           await users.bulkImportMembers([{ email: m.email, memberId: m.id, username: m.contactName || m.name, passwordHash: lead.passwordHash, passwordAlgo: 'bcrypt', needsReset: false }]);
-          const base = process.env.SITE_URL || `${req.protocol}://${req.get('host')}`;
+          const base = siteBase(req);
           const r = await email.send({
             to: m.email,
             subject: 'Your Chamber membership is approved — you can sign in now',
