@@ -1445,6 +1445,15 @@ window.MemberPortal = (function () {
         </div>` : ''}
 
         <div class="card mt-5">
+          <h3 style="margin:0 0 4px">Meeting schedule</h3>
+          <p class="member-tile__meta" style="margin:0 0 10px">One line under the group's name on its page, and in the welcome email new members get. The dates themselves come from the calendar, so if they move around, say so here (for example "Monthly \u2014 check the calendar for each meeting date").</p>
+          <input id="gmSchedule" maxlength="200" style="width:100%" value="${esc(g.meetingSchedule || '')}" placeholder="3rd Tuesday of the month \u00b7 8 AM">
+          <div class="btn-row mt-3">
+            <button type="button" class="btn btn--forest btn--sm" id="gmSaveSchedule">Save schedule</button>
+          </div>
+        </div>
+
+        <div class="card mt-5">
           <h3 style="margin:0 0 4px">Meeting notes</h3>
           <p class="member-tile__meta" style="margin:0 0 10px">Shown on your group's public page — agendas, recaps, announcements from past meetings. Newest at the top works best.</p>
           <textarea id="gmNotes" rows="6" style="width:100%">${esc(g.meetingNotes || '')}</textarea>
@@ -1563,6 +1572,18 @@ window.MemberPortal = (function () {
         }
       });
       document.getElementById('gmCancelMsg')?.addEventListener('click', () => { if (composeWrap) composeWrap.hidden = true; });
+      // Meeting schedule line (Sheryl Tratner, Nov 5 2026: the Ambassador line
+      // was wrong and only the office could change it).
+      document.getElementById('gmSaveSchedule')?.addEventListener('click', async (e) => {
+        const meetingSchedule = (document.getElementById('gmSchedule')?.value ?? '').trim();
+        e.target.disabled = true;
+        try {
+          const r = await api('/api/me/group/' + encodeURIComponent(g.slug), { method: 'PATCH', body: JSON.stringify({ meetingSchedule }) });
+          g.meetingSchedule = (r.group && r.group.meetingSchedule) ?? meetingSchedule;
+          say(meetingSchedule ? '\u2713 Schedule saved \u2014 it shows on the group page now.' : '\u2713 Schedule cleared.');
+        } catch (err) { say('Could not save the schedule \u2014 please try again.', true); }
+        finally { e.target.disabled = false; }
+      });
       // Meeting notes → the group's public page
       document.getElementById('gmSaveNotes')?.addEventListener('click', async (e) => {
         const notes = document.getElementById('gmNotes')?.value ?? '';

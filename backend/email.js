@@ -17,17 +17,27 @@
 // ---- shared config ----
 const FROM     = () => process.env.EMAIL_FROM || process.env.SMTP_FROM
   || `West Valley · Warner Center Chamber <${process.env.SMTP_USER || process.env.M365_PRIMARY_MAILBOX || 'wendy@woodlandhillscc.net'}>`;
+// "Sheryl Tratner via West Valley · Warner Center Chamber <wendy@…>": an email
+// a group leader's members reply to says whose it is, on the Chamber's own
+// verified address (Nov 2026). No name, or a From without an address, is left as is.
+export function fromWith(name, from = FROM()) {
+  const who = String(name || '').replace(/[\r\n"<>\\,;]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 60);
+  const m = String(from).match(/^\s*(.*?)\s*<([^<>\s]+@[^<>\s]+)>\s*$/);
+  if (!who || !m) return from;
+  const org = m[1].replace(/^"|"$/g, '').trim() || 'West Valley · Warner Center Chamber';
+  return `"${who} via ${org}" <${m[2]}>`;
+}
 export const notifyTo = () => process.env.CHAMBER_NOTIFY || process.env.SMTP_USER || process.env.M365_PRIMARY_MAILBOX || 'felicia@woodlandhillscc.net';
 
 // ---- Resend ----
 const RESEND_KEY  = () => process.env.RESEND_API_KEY;
 const resendReady = () => !!RESEND_KEY();
-async function sendResend({ to, subject, text, html, replyTo }) {
+async function sendResend({ to, subject, text, html, replyTo, fromName }) {
   const r = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { Authorization: `Bearer ${RESEND_KEY()}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      from: FROM(),
+      from: fromWith(fromName),
       to: [].concat(to).filter(Boolean),
       subject,
       ...(text ? { text } : {}),
@@ -97,9 +107,9 @@ async function transport() {
   });
   return _tx;
 }
-async function sendSmtp({ to, subject, text, html, replyTo }) {
+async function sendSmtp({ to, subject, text, html, replyTo, fromName }) {
   const tx = await transport();
-  const info = await tx.sendMail({ from: FROM(), to, subject, text, html, replyTo });
+  const info = await tx.sendMail({ from: fromWith(fromName), to, subject, text, html, replyTo });
   return { ok: true, id: info.messageId, provider: 'smtp' };
 }
 
@@ -107,9 +117,9 @@ async function sendSmtp({ to, subject, text, html, replyTo }) {
 export const enabled  = () => resendReady() || graphReady() || smtpReady();
 export const provider = () => (resendReady() ? 'resend' : graphReady() ? 'graph' : smtpReady() ? 'smtp' : 'none');
 
-export async function send({ to, subject, text, html, replyTo }) {
+export async function send({ to, subject, text, html, replyTo, fromName }) {
   if (!enabled()) { console.log('[email] not configured — skipped:', subject); return { skipped: true, provider: 'none' }; }
-  const args = { to, subject, text, html, replyTo };
+  const args = { to, subject, text, html, replyTo, fromName };
   try {
     if (resendReady()) return await sendResend(args);
     if (graphReady())  return await sendGraph(args);
