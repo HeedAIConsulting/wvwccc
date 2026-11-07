@@ -212,6 +212,24 @@ not the office, and is left alone.
 - Leaders edit their group's schedule line themselves: Manage group → Meeting
   schedule → Save schedule.
 
+## Ambassador jobs, ribbon cuttings, inquiries (Nov 2026)
+
+- **Breakfast/mixer jobs are automatic.** Every upcoming Chamber breakfast
+  ("Start Your Month…") and mixer ("Networking Mixer", category Mixer) the
+  office saves with no jobs gets Greeter, Name Tags, Check In, Floater and
+  Packing Items Up, two each (`withChamberJobs` on admin create/edit/duplicate;
+  `BREAKFAST_MIXER_ROLES` here and `BREAKFAST_JOBS` in admin.js must match).
+  A group's or member's event never qualifies. "No Ambassador jobs at this
+  event" (`volunteerRolesOff`) turns one off.
+- **Who signed up:** `signupSheet` feeds the top panel of Admin → Ambassadors
+  and the Ambassador Committee's Manage group page (its leaders only).
+- **Ribbon cuttings are arranged by phone.** The application and the ribbon
+  cutting pages say "Interested in a Ribbon Cutting? Call 818-347-4737." and
+  have no date picker (Felicia, Nov 7: the date is set looking at the office
+  calendar). Do not add a request form back.
+- **Inquiries have Complete** (Done status): `done_at`/`done_by` record when
+  and who, and completed ones fold into "✓ Completed" under each section.
+
 ## Receipts that do not arrive
 
 Email goes out through Resend. A customer's receipt that bounces, is

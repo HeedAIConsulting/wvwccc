@@ -1445,6 +1445,12 @@ window.MemberPortal = (function () {
           </div>`).join('')}
         </div>` : ''}
 
+        ${g.hasVolunteerSheet ? `<div class="card mt-5" id="gmVolSheet">
+          <h3 style="margin:0 0 4px">Ambassador sign-ups</h3>
+          <p class="member-tile__meta" style="margin:0 0 10px">Who is covering which job at the coming breakfasts and mixers. Ambassadors sign up from their own dashboard.</p>
+          <div data-sheet><p class="member-tile__meta">Loading…</p></div>
+        </div>` : ''}
+
         <div class="card mt-5">
           <h3 style="margin:0 0 4px">Meeting schedule</h3>
           <p class="member-tile__meta" style="margin:0 0 10px">One line under the group's name on its page, and in the welcome email new members get. The dates themselves come from the calendar, so if they move around, say so here (for example "Monthly \u2014 check the calendar for each meeting date").</p>
@@ -1573,6 +1579,25 @@ window.MemberPortal = (function () {
         }
       });
       document.getElementById('gmCancelMsg')?.addEventListener('click', () => { if (composeWrap) composeWrap.hidden = true; });
+      // Ambassador sign-ups (Felicia, Nov 7 2026: Sheryl, the Ambassador chair,
+      // could not see who had signed up for what).
+      if (g.hasVolunteerSheet) {
+        const box = document.querySelector('#gmVolSheet [data-sheet]');
+        api('/api/me/group/' + encodeURIComponent(g.slug) + '/volunteer-sheet').then((r) => {
+          const evs = r.events || [];
+          if (!box) return;
+          box.innerHTML = evs.length ? evs.map((ev) => `<div style="border:1px solid var(--line,#eee);border-radius:var(--r-md,10px);padding:12px 14px;margin-bottom:10px">
+            <strong>${esc(ev.title)}</strong>
+            <div class="member-tile__meta">${esc(fmtD(ev.date))}${ev.time ? ' · ' + esc(ev.time) : ''}${ev.venue ? ' · ' + esc(ev.venue) : ''}</div>
+            <table style="width:100%;border-collapse:collapse;margin-top:8px;font-size:.95rem">
+              ${ev.jobs.map((j) => `<tr style="border-top:1px solid var(--line,#eee)">
+                <td style="padding:6px 8px 6px 0;font-weight:600;white-space:nowrap;vertical-align:top">${esc(j.role)}</td>
+                <td style="padding:6px 0">${j.people.map((p) => `${esc(p.name)}${p.phone ? ` <span class="member-tile__meta">${esc(p.phone)}</span>` : ''}`).join('<br>')}${j.open ? `${j.people.length ? '<br>' : ''}<span class="member-tile__meta">${j.open} open</span>` : ''}</td>
+              </tr>`).join('')}
+            </table></div>`).join('')
+            : '<p class="member-tile__meta">No breakfasts or mixers with jobs on the calendar yet.</p>';
+        }).catch(() => { if (box) box.innerHTML = '<p class="member-tile__meta">Could not load the sign-ups. Refresh the page to try again.</p>'; });
+      }
       // Meeting schedule line (Sheryl Tratner, Nov 5 2026: the Ambassador line
       // was wrong and only the office could change it).
       document.getElementById('gmSaveSchedule')?.addEventListener('click', async (e) => {

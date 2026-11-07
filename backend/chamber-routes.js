@@ -961,7 +961,7 @@ router.post('/admin/events/:id/duplicate', requireAdmin, async (req, res) => {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return res.status(400).json({ error: DUP_BAD_DATE });
     const ev = (await loadEvents()).find((e) => e.id === req.params.id);
     if (!ev) return res.status(404).json({ error: 'Event not found.' });
-    const copy = duplicateOf(ev, date, 'approved');
+    const copy = withChamberJobs(duplicateOf(ev, date, 'approved'));
     await repo.upsertEvent(copy);
     res.json({ ok: true, event: copy });
   } catch (e) { console.error('admin duplicate event', e); res.status(500).json({ error: 'Could not copy that event.' }); }
@@ -1195,6 +1195,7 @@ router.get('/me/group/:slug', auth.requireAuth(), async (req, res) => {
         heroImage: g.heroImage || '', logo: g.logo || '',
         manager: { name: (g.manager && g.manager.name) || '', email: (g.manager && g.manager.email) || '' },
         members: g.members || [],
+        hasVolunteerSheet: g.id === AMBASSADOR_GROUP_ID,
       },
       events, rsvps });
   } catch (e) { console.error('me/group', e); res.status(500).json({ error: 'Could not load the group.' }); }
@@ -2494,6 +2495,9 @@ export function buildEvent(b, existing = {}) {
           needed: Math.max(1, Math.min(50, Number(r && r.needed) || 1)),
         })).filter((r) => r.role)
       : (existing.volunteerRoles || []),
+    // "No Ambassador jobs at this event" (Admin → Events). Without it a Chamber
+    // breakfast or mixer gets the five jobs back on every save (withChamberJobs).
+    volunteerRolesOff: b.volunteerRolesOff !== undefined ? !!b.volunteerRolesOff : !!existing.volunteerRolesOff,
     // Custom wording for the action button (Felicia, Jul 29 2026): "Buy Tickets"
     // is wrong when someone is buying an ad, a name badge or a sponsorship.
     // Blank = the standard label for whichever button kind is selected.
@@ -3168,6 +3172,26 @@ export async function applyNov4BlurbLines() {
    ever been given any, so Ambassadors had nothing to sign up for. The next
    three Chamber breakfasts and mixers get the five jobs, only while they still
    have none; a duplicated event carries them on. */
+/* Nov 7 2026, Felicia: "Will the tasks be static when we start adding 2027
+   events? We would like them to be." So nobody adds them: every upcoming
+   Chamber breakfast and mixer the office saves (new, edited or duplicated)
+   with no jobs gets the five. The Chamber's own are the monthly "Start Your
+   Month With a Motivating and Fun Breakfast" and the "Networking Mixer"
+   nights; a group's or member's event (VSRN's breakfast, the LAPD pancake
+   breakfast) never qualifies. Jobs the office set are kept, and "No
+   Ambassador jobs at this event" (volunteerRolesOff) leaves one without. */
+export function isChamberBreakfastOrMixer(ev) {
+  if (!ev || ev.groupSlug || ev.submittedBy || ev.source === 'member' || ev.source === 'community') return false;
+  const t = String(ev.title || '');
+  const c = String(ev.category || '').trim().toLowerCase();
+  return /start your month/i.test(t) || /networking mixer/i.test(t) || c === 'mixer' || c === 'breakfast';
+}
+export function withChamberJobs(ev, today = new Date().toISOString().slice(0, 10)) {
+  if (!isChamberBreakfastOrMixer(ev) || ev.volunteerRolesOff) return ev;
+  if (Array.isArray(ev.volunteerRoles) && ev.volunteerRoles.length) return ev;
+  if (!ev.date || ev.date < today) return ev;
+  return { ...ev, volunteerRoles: BREAKFAST_MIXER_ROLES.map((r) => ({ ...r })) };
+}
 export const BREAKFAST_MIXER_EVENTS = ['ev-msz4whul5c4', 'le-11223', 'le-office-20261216-mixer'];
 export function breakfastMixerJobsFor(ev) {
   if (!ev || !BREAKFAST_MIXER_EVENTS.includes(ev.id)) return null;
@@ -4141,6 +4165,42 @@ const tierFor = (tiers, pts) => {
 };
 // Only confirmed shifts count toward points — a no-show should not earn a tier.
 const countsForPoints = (v) => v.status !== 'no-show';
+
+/* Who is covering which job at the coming events (Felicia, Nov 7 2026: "I
+   am a bit confused ... where on the Ambassador page to look to see if they
+   signed up", and Sheryl, the Ambassador chair, could not see it at all).
+   One sheet per upcoming event that has jobs: each job, the names on it and
+   how many are still open. Admin → Ambassadors shows it at the top, and so
+   does the Ambassador Committee's Manage group page for its leaders. */
+export function signupSheet(events, signups, today = new Date().toISOString().slice(0, 10)) {
+  return (events || [])
+    .filter((e) => e && e.date && e.date >= today && (e.status || 'approved') === 'approved'
+      && Array.isArray(e.volunteerRoles) && e.volunteerRoles.length)
+    .sort((a, b) => String(a.date).localeCompare(String(b.date)))
+    .map((e) => ({
+      id: e.id, title: e.title || '', date: e.date, time: e.time || '', venue: e.venue || '',
+      jobs: e.volunteerRoles.map((r) => {
+        const who = (signups || []).filter((v) => v.eventId === e.id && v.role === r.role && v.status !== 'no-show');
+        return {
+          role: r.role, needed: r.needed,
+          people: who.map((v) => ({ name: v.name || '', email: v.email || '', phone: v.phone || '' })),
+          open: Math.max(0, r.needed - who.length),
+        };
+      }),
+    }));
+}
+const AMBASSADOR_GROUP_ID = 'grp-ambassador-committee';
+router.get('/admin/volunteer-sheet', requireAdmin, async (_req, res) => {
+  try { res.json({ ok: true, events: signupSheet(await loadEvents(), await repo.listVolunteers({})) }); }
+  catch (e) { console.error('volunteer sheet', e); res.status(500).json({ error: 'Could not load the sign-ups.' }); }
+});
+router.get('/me/group/:slug/volunteer-sheet', auth.requireAuth(), async (req, res) => {
+  try {
+    const g = await ledGroupOr403(req, res); if (!g) return;
+    if (g.id !== AMBASSADOR_GROUP_ID) return res.status(404).json({ error: 'Only the Ambassador Committee has a sign-up sheet.' });
+    res.json({ ok: true, events: signupSheet(await loadEvents(), await repo.listVolunteers({})) });
+  } catch (e) { console.error('leader volunteer sheet', e); res.status(500).json({ error: 'Could not load the sign-ups.' }); }
+});
 
 // What an ambassador can sign up for: upcoming events that have roles defined,
 // with the remaining headcount per role.
@@ -6299,7 +6359,7 @@ router.patch('/admin/leads/:id', requireAdmin, async (req, res) => {
   // real inquiry the screen caught (marking it New returns it to its section).
   if (!['new', 'read', 'done', 'spam'].includes(req.body.status)) return res.status(400).json({ error: 'bad status' });
   try {
-    const ok = await repo.setLeadStatus(req.params.id, req.body.status);
+    const ok = await repo.setLeadStatus(req.params.id, req.body.status, (req.user && req.user.sub) || '');
     if (!ok) return res.status(404).json({ error: 'not found' });
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: 'update failed' }); }
@@ -6496,7 +6556,7 @@ router.post('/admin/events', requireAdmin, async (req, res) => {
   if (!b.title) return res.status(400).json({ error: 'Title required.' });
   try {
     await ensureEventsSeeded();
-    const ev = buildEvent(b);
+    const ev = withChamberJobs(buildEvent(b));
     await repo.upsertEvent(ev);
     res.json({ ok: true, event: ev });
   } catch (e) { console.error(e); res.status(500).json({ error: 'could not create' }); }
@@ -6506,7 +6566,7 @@ router.patch('/admin/events/:id', requireAdmin, async (req, res) => {
     await ensureEventsSeeded();
     const existing = (await loadEvents()).find((e) => e.id === req.params.id);
     if (!existing) return res.status(404).json({ error: 'not found' });
-    const ev = buildEvent({ ...req.body, id: existing.id }, existing);
+    const ev = withChamberJobs(buildEvent({ ...req.body, id: existing.id }, existing));
     await repo.upsertEvent(ev);
     res.json({ ok: true, event: ev });
   } catch (e) { console.error(e); res.status(500).json({ error: 'update failed' }); }

@@ -148,6 +148,10 @@ ALTER TABLE leads ADD COLUMN IF NOT EXISTS address text;
 ALTER TABLE leads ADD COLUMN IF NOT EXISTS city    text;
 ALTER TABLE leads ADD COLUMN IF NOT EXISTS zip     text;
 ALTER TABLE leads ADD COLUMN IF NOT EXISTS reps    jsonb;      -- [{name,email}]
+-- "Complete" on Admin → Inquiries (Felicia and Diana, Nov 7 2026): who ticked
+-- it and when, so the office can see an inquiry was taken care of.
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS done_at timestamptz;
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS done_by text;
 
 -- ── Small key/value store for one-time migration markers & flags ──
 CREATE TABLE IF NOT EXISTS settings (

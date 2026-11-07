@@ -111,19 +111,10 @@
                 <div class="field"><label>Rep 4 — email</label><input name="rep4Email" type="email" maxlength="160" /></div>
               </div>
             </details>
-            <!-- Ribbon cuttings are requested HERE and only here (per the
-                 Chamber office, Jul 2026) — the request files into the admin's
-                 pending Ribbon Cutting queue alongside the application. -->
-            <div class="field" style="margin-top:var(--s-2)">
-              <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:600">
-                <input type="checkbox" name="ribbonCutting" value="yes" id="joinRibbon" style="width:auto" />
-                ✂ Request a Ribbon Cutting for your business
-              </label>
-              <div id="joinRibbonDate" class="mt-2" hidden>
-                <label>Preferred date (optional)</label>
-                <input name="ribbonDate" type="date" />
-              </div>
-            </div>
+            <!-- Felicia, Nov 7 2026: the office sets a ribbon cutting's date on the
+                 phone, looking at the Chamber calendar, so the application only
+                 points people to the office. No checkbox, no date picker. -->
+            <p class="rc-call" style="margin-top:var(--s-2);font-weight:600">Interested in a Ribbon Cutting? Call <a href="tel:+18183474737">818-347-4737</a>.</p>
             <p class="notice" id="joinDues" hidden style="border-color:var(--gold);background:var(--sand)"></p>
             <p id="joinMsg" class="notice" hidden></p>
             <div class="btn-row mt-3">
@@ -270,9 +261,6 @@
         if (msg) { msg.hidden = false; msg.textContent = 'Application received — taking you to secure payment…'; }
         setTimeout(function () { location.href = 'checkout.html?type=membership&sku=' + encodeURIComponent(sku); }, 900);
       }
-    });
-    document.getElementById('joinRibbon').addEventListener('change', function () {
-      document.getElementById('joinRibbonDate').hidden = !this.checked;
     });
   </script>
 

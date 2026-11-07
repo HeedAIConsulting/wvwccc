@@ -22,8 +22,15 @@
         <p id="adminError" class="admin-notice" hidden></p>
         <p class="admin-notice">Everyone with the Ambassador designation — they appear on the public
           <a href="../ambassadors.html" target="_blank">Ambassadors page ↗</a>. Below that: who volunteered for what,
-          and their points. Set the roles you need covered on each event in <a href="events.html">Events</a>.</p>
+          and their points. Chamber breakfasts and mixers get their jobs automatically; change them on an event in <a href="events.html">Events</a>.</p>
 
+        <!-- Felicia, Nov 7 2026: "where on the Ambassador page to look to see
+             if they signed up". The answer is now the first thing on it. -->
+        <div class="panel">
+          <div class="panel__head"><h3>Who's signed up for the next events</h3></div>
+          <p class="sub" style="padding:0 16px;margin:8px 0 0">Every upcoming breakfast and mixer with Ambassador jobs. Names appear here as soon as an Ambassador clicks a job on their dashboard.</p>
+          <div id="volSheet" style="padding:8px 16px 14px"><p class="sub">Loading…</p></div>
+        </div>
         <!-- Current ambassadors (Felicia, Aug 19 2026 call — "an admin page for
              us… to look kind of like the board" with view-profile and remove). -->
         <div class="panel">
@@ -125,7 +132,7 @@
     </div>
   </div>
   <script src="../js/api-base.js"></script>
-  <script src="admin.js?v=20261105b"></script>
+  <script src="admin.js?v=20261107a"></script>
   <script>Admin.initAmbassadors();</script>
   <script defer src="/js/support.js?v=20260804c"></script>
 </body>
