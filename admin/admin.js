@@ -2270,6 +2270,7 @@ window.Admin = (function () {
       await api(`/api/admin/leads/${encodeURIComponent(l.id)}`, { method: 'PATCH', body: JSON.stringify({ status }) });
       l.status = status;
       render();
+      load();   // picks up who completed it and when, as the server recorded it
     }
     // Membership application → live directory member in one click. Shared by
     // the row button and the detail modal.
@@ -2394,26 +2395,42 @@ window.Admin = (function () {
       const q = (searchEl?.value || '').trim().toLowerCase();
       const match = (l) => !q || [l.name, l.email, l.phone, l.company, l.reason, l.kind, l.message, l.event]
         .some((v) => String(v || '').toLowerCase().includes(q));
-      host.innerHTML = SECTIONS.map(([key, title, sub]) => {
-        const list = all.filter((l) => leadSection(l) === key && match(l));
-        const fresh = list.filter((l) => l.status === 'new').length;
-        const rows = list.length ? list.map((l) => `
-          <tr data-id="${esc(l.id)}">
+      // "Complete" (Felicia and Diana, Nov 7 2026): tick it once an inquiry is
+      // taken care of. It is the Done status, so the Mark list and the box
+      // always agree; completed ones drop into a folded list under each section.
+      const whoDone = (l) => {
+        const by = String(l.doneBy || '').split('@')[0];
+        const when = l.doneAt ? new Date(l.doneAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
+        return [when, by ? by[0].toUpperCase() + by.slice(1) : ''].filter(Boolean).join(' · ');
+      };
+      const rowHtml = (l, key) => `
+          <tr data-id="${esc(l.id)}"${l.status === 'done' ? ' style="opacity:.75"' : ''}>
+            <td style="text-align:center">${key === 'spam' ? '' : `<input type="checkbox" data-complete ${l.status === 'done' ? 'checked' : ''} title="Taken care of" style="width:18px;height:18px;cursor:pointer">${l.status === 'done' && whoDone(l) ? `<div class="sub" style="font-size:.7rem;white-space:nowrap">${esc(whoDone(l))}</div>` : ''}`}</td>
             <td class="sub" style="white-space:nowrap">${esc(String(l.received || '').slice(0, 10))}</td>
             <td><a href="#" class="name" data-open title="Open the full ${key === 'membership' ? 'application' : 'inquiry'}" style="color:inherit;text-decoration:underline;text-decoration-color:var(--gold,#c9a227);text-underline-offset:3px">${esc(l.name || l.company || '(no name)')}</a><div class="sub">${esc(l.email || '')}${l.phone ? ' · ' + esc(l.phone) : ''}</div></td>
             <td>${esc(l.reason || l.kind || '')}${l.event ? `<div class="sub">Event: ${esc(l.event)}</div>` : ''}${l.company ? '<div class="sub">' + esc(l.company) + '</div>' : ''}</td>
             <td class="sub">${(l.message || '').length > 90 ? `<details><summary style="cursor:pointer">${esc(l.message.slice(0, 90))}…</summary><div style="white-space:pre-wrap;margin-top:6px">${esc(l.message)}</div></details>` : esc(l.message || '')}</td>
             <td>${statusPill(l.status)}</td>
             <td style="white-space:nowrap">${key === 'membership' && l.status !== 'done' ? `<button class="btn btn--forest btn--sm" data-approve-member title="Creates their directory listing and emails them a set-your-password link — no manual re-entry">✓ Approve &amp; add</button> ` : ''}${key === 'ribbon' && l.status !== 'done' ? `<button class="btn btn--forest btn--sm" data-approve-event title="Creates the calendar event — dated requests go live immediately">📅 Schedule on calendar</button> ` : ''}${key === 'interest' && l.email ? `<a class="btn btn--sm" href="${appLinkMailto(l)}" title="Opens an email to them with the membership application link already written">✉ Application link</a> ` : ''}<select class="admin-select" data-mark>${markOptions(l.status)}</select></td>
-          </tr>`).join('')
-          : `<tr><td colspan="6" class="sub">${q ? 'No matches in this section.' : 'Nothing here yet.'}</td></tr>`;
+          </tr>`;
+      const head = '<thead><tr><th style="width:84px;text-align:center">Complete</th><th>Date</th><th>From</th><th>Reason</th><th>Message</th><th>Status</th><th>Mark</th></tr></thead>';
+      host.innerHTML = SECTIONS.map(([key, title, sub]) => {
+        const list = all.filter((l) => leadSection(l) === key && match(l));
+        const fresh = list.filter((l) => l.status === 'new').length;
+        const open = key === 'spam' ? list : list.filter((l) => l.status !== 'done');
+        const done = key === 'spam' ? [] : list.filter((l) => l.status === 'done');
+        const rows = open.length ? open.map((l) => rowHtml(l, key)).join('')
+          : `<tr><td colspan="7" class="sub">${q ? 'No matches in this section.' : (done.length ? 'All taken care of.' : 'Nothing here yet.')}</td></tr>`;
         return `
           <div class="panel" style="margin-bottom:16px">
             <div class="panel__head"><h3>${title} ${fresh ? `<span class="pill pill--pending" style="margin-left:6px">${fresh} new</span>` : ''}</h3></div>
             <p class="sub" style="margin:4px 0 10px">${sub}</p>
             <div style="overflow-x:auto">
-              <table class="admin-table"><thead><tr><th>Date</th><th>From</th><th>Reason</th><th>Message</th><th>Status</th><th>Mark</th></tr></thead><tbody>${rows}</tbody></table>
+              <table class="admin-table">${head}<tbody>${rows}</tbody></table>
             </div>
+            ${done.length ? `<details style="margin-top:10px"${q ? ' open' : ''}><summary style="cursor:pointer;font-weight:600">✓ Completed (${done.length})</summary>
+              <div style="overflow-x:auto;margin-top:8px"><table class="admin-table">${head}<tbody>${done.map((l) => rowHtml(l, key)).join('')}</tbody></table></div>
+            </details>` : ''}
           </div>`;
       }).join('');
       host.querySelectorAll('tr[data-id]').forEach((tr) => {
@@ -2424,6 +2441,12 @@ window.Admin = (function () {
         });
         tr.querySelector('[data-mark]')?.addEventListener('change', async (e) => {
           const l = leadOf(); if (l) await markLead(l, e.target.value);
+        });
+        tr.querySelector('[data-complete]')?.addEventListener('change', async (e) => {
+          const l = leadOf(); if (!l) return;
+          e.target.disabled = true;
+          try { await markLead(l, e.target.checked ? 'done' : 'read'); }
+          catch (err) { e.target.checked = !e.target.checked; e.target.disabled = false; alert('Could not save — please try again.'); }
         });
         tr.querySelector('[data-approve-event]')?.addEventListener('click', (e) => {
           const l = leadOf(); if (l) approveEventLead(l, e.target);
@@ -2604,6 +2627,7 @@ window.Admin = (function () {
     let flyers = [];       // extra full-size flyers
     let sponsorLogos = []; // {src, href, label}
     let volunteerRoles = []; // {role, points, needed}
+    let volunteerRolesOff = false; // "No Ambassador jobs at this event"
     let flyerUrl = '';
     let thumbnail = '';
 
@@ -3103,9 +3127,17 @@ window.Admin = (function () {
         + `<datalist id="evVolIdeas">${VOL_PRESETS.map((p) => `<option value="${esc(p.role)}"></option>`).join('')}</datalist>
            <button type="button" id="evAddVr" class="btn btn--ghost btn--sm">+ Add a role</button>
            <button type="button" id="evVrPreset" class="btn btn--ghost btn--sm" title="Greeter, Name Tags, Check In, Floater and Packing Items Up, two people each. Remove any you don't need.">+ Add the breakfast/mixer jobs</button>
-           ${volunteerRoles.length ? '<span class="sub" style="margin-left:8px">Ambassadors see these in their member portal.</span>' : '<span class="sub" style="margin-left:8px">Leave empty if you don\'t need volunteers for this event.</span>'}`;
-      volWrap.querySelector('#evAddVr').addEventListener('click', () => { volunteerRoles.push({ role: '', points: 8, needed: 1 }); renderVolunteers(); });
+           ${volunteerRoles.length ? '<span class="sub" style="margin-left:8px">Ambassadors see these in their member portal.</span>' : ''}
+           <p class="sub" style="margin:8px 0 0">Chamber breakfasts and mixers get Greeter, Name Tags, Check In, Floater and Packing Items Up automatically when you save them. Change or remove any job above; it stays the way you leave it.</p>
+           <label style="display:inline-flex;gap:6px;align-items:center;margin-top:6px;font-weight:600"><input type="checkbox" id="evVrOff" ${volunteerRolesOff ? 'checked' : ''}> No Ambassador jobs at this event</label>`;
+      volWrap.querySelector('#evVrOff').addEventListener('change', (e) => {
+        volunteerRolesOff = e.target.checked;
+        if (volunteerRolesOff) volunteerRoles = [];
+        renderVolunteers();
+      });
+      volWrap.querySelector('#evAddVr').addEventListener('click', () => { volunteerRolesOff = false; volunteerRoles.push({ role: '', points: 8, needed: 1 }); renderVolunteers(); });
       volWrap.querySelector('#evVrPreset').addEventListener('click', () => {
+        volunteerRolesOff = false;
         for (const p of BREAKFAST_JOBS) if (!volunteerRoles.some((r) => r.role === p.role)) volunteerRoles.push({ ...p });
         renderVolunteers();
       });
@@ -3219,6 +3251,7 @@ window.Admin = (function () {
       savedLinkKeys = new Set((ev && ev.ticketTypes ? ev.ticketTypes : [])
         .map((t) => String(t.linkKey || '').trim().toLowerCase()).filter(Boolean));
       volunteerRoles = ev && ev.volunteerRoles ? ev.volunteerRoles.map((r) => ({ ...r })) : [];
+      volunteerRolesOff = !!(ev && ev.volunteerRolesOff);
       renderImages(); renderLinks(); renderDocs(); renderTickets(); renderFlyers(); renderSponsors(); renderVolunteers(); renderQr(); drawFlyer(); drawThumb();
       // The AI "start a new event from a flyer" tool only applies to new events —
       // hide it while editing so it isn't mistaken for "replace this flyer".
@@ -3458,8 +3491,9 @@ window.Admin = (function () {
         sponsorLogos: sponsorLogos.filter((s) => s.src),
         documents: documents.filter((d) => d.url),
         ticketTypes: ticketTypes.filter((t) => (t.name || '').trim()),
-        volunteerRoles: volunteerRoles.filter((r) => (r.role || '').trim())
+        volunteerRoles: volunteerRolesOff ? [] : volunteerRoles.filter((r) => (r.role || '').trim())
           .map((r) => ({ role: r.role, points: Number(r.points) || 0, needed: Number(r.needed) || 1 })),
+        volunteerRolesOff,
         images, links: links.filter((l) => l.url),
       };
       // Host group — only written when the office actually changed the
@@ -3760,6 +3794,24 @@ window.Admin = (function () {
     const volRows = document.getElementById('volRows');
     if (!leaderRows) return;
 
+    // Who's signed up for the next events (Felicia, Nov 7 2026).
+    const volSheet = document.getElementById('volSheet');
+    async function paintSheet() {
+      if (!volSheet) return;
+      try {
+        const evs = (await api('/api/admin/volunteer-sheet')).events || [];
+        volSheet.innerHTML = evs.length ? evs.map((ev) => `<div style="border:1px solid var(--line,#eee);border-radius:10px;padding:10px 14px;margin-top:10px">
+          <strong>${esc(ev.title)}</strong> <span class="sub">${esc(ev.date)}${ev.time ? ' · ' + esc(ev.time) : ''}${ev.venue ? ' · ' + esc(ev.venue) : ''}</span>
+          <table class="admin-table" style="margin-top:6px">
+            <thead><tr><th style="width:170px">Job</th><th>Who</th><th style="width:90px">Open</th></tr></thead>
+            <tbody>${ev.jobs.map((j) => `<tr><td><strong>${esc(j.role)}</strong></td>
+              <td>${j.people.length ? j.people.map((p) => `${esc(p.name)}${p.phone ? ` <span class="sub">${esc(p.phone)}</span>` : ''}${p.email ? ` <span class="sub">${esc(p.email)}</span>` : ''}`).join('<br>') : '<span class="sub">Nobody yet</span>'}</td>
+              <td>${j.open ? `<strong style="color:var(--gold,#b8893c)">${j.open}</strong>` : '<span style="color:var(--green,#1E5631)">✓ covered</span>'}</td></tr>`).join('')}</tbody>
+          </table></div>`).join('')
+          : '<p class="sub">No upcoming event has Ambassador jobs yet.</p>';
+      } catch (e) { volSheet.innerHTML = '<p class="sub">Could not load the sign-ups.</p>'; }
+    }
+
     /* ── Current ambassadors (Felicia, Aug 19 2026 call): the roster itself,
        board-manager style — photo, name, view profile, remove — plus
        add-from-directory. An ambassador is anyone whose primary designation
@@ -4002,7 +4054,7 @@ window.Admin = (function () {
         ...(data.roleSuggestions || []).map((r) => r.role),
       ])].filter(Boolean);
       document.getElementById('vaRoleIdeas').innerHTML = roleNames.map((r) => `<option value="${esc(r)}"></option>`).join('');
-      paintLeader(); paintShifts(); paintTiers();
+      paintLeader(); paintShifts(); paintTiers(); paintSheet();
     }
     await load();
   }

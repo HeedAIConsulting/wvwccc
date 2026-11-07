@@ -39,8 +39,10 @@ export async function addLead(lead) {
 export async function listLeads() {
   if (db.enabled) {
     const r = await db.query('SELECT * FROM leads ORDER BY received DESC');
-    return r.rows.map(({ password_hash, rc_date, rc_time, rc_venue, rc_flyer, rc_stage, rc_event_id, ...x }) => ({
+    return r.rows.map(({ password_hash, rc_date, rc_time, rc_venue, rc_flyer, rc_stage, rc_event_id, done_at, done_by, ...x }) => ({
       ...x, received: x.received,
+      ...(done_at != null ? { doneAt: done_at } : {}),
+      ...(done_by != null ? { doneBy: done_by } : {}),
       ...(rc_date != null ? { rcDate: rc_date } : {}),
       ...(rc_time != null ? { rcTime: rc_time } : {}),
       ...(rc_venue != null ? { rcVenue: rc_venue } : {}),
@@ -74,12 +76,25 @@ export async function patchLeadRibbon(id, f) {
   for (const k of ['rcDate', 'rcTime', 'rcVenue', 'rcFlyer', 'rcStage', 'rcEventId']) if (f[k] !== undefined) l[k] = f[k];
   store.write('leads.json', leads); return true;
 }
-export async function setLeadStatus(id, status) {
-  if (db.enabled) { await db.query('UPDATE leads SET status=$1 WHERE id=$2', [status, id]); return true; }
+// `by` (the signed-in address) is recorded when an inquiry is marked done, and
+// cleared with the time when it goes back to open.
+export async function setLeadStatus(id, status, by = '') {
+  const done = status === 'done';
+  if (db.enabled) {
+    const r = await db.query(
+      `UPDATE leads SET status=$1,
+         done_at = CASE WHEN $1 = 'done' THEN COALESCE(done_at, now()) ELSE NULL END,
+         done_by = CASE WHEN $1 = 'done' THEN COALESCE(NULLIF($3, ''), done_by) ELSE NULL END
+       WHERE id=$2`, [status, id, by || '']);
+    return r.rowCount > 0;
+  }
   const leads = store.read('leads.json', []);
   const l = leads.find((x) => x.id === id);
   if (!l) return false;
-  l.status = status; store.write('leads.json', leads); return true;
+  l.status = status;
+  if (done) { l.doneAt = l.doneAt || new Date().toISOString(); if (by) l.doneBy = by; }
+  else { delete l.doneAt; delete l.doneBy; }
+  store.write('leads.json', leads); return true;
 }
 
 // ── Orders ──────────────────────────────────────────────────

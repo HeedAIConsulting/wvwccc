@@ -105,16 +105,7 @@
                 <div class="field"><label>Rep. 4 — correo</label><input name="rep4Email" type="email" maxlength="160" /></div>
               </div>
             </details>
-            <div class="field" style="margin-top:var(--s-2)">
-              <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:600">
-                <input type="checkbox" name="ribbonCutting" value="yes" id="joinRibbon" style="width:auto" />
-                ✂ Solicitar un corte de listón para su negocio
-              </label>
-              <div id="joinRibbonDate" class="mt-2" hidden>
-                <label>Fecha preferida (opcional)</label>
-                <input name="ribbonDate" type="date" />
-              </div>
-            </div>
+            <p class="rc-call" style="margin-top:var(--s-2);font-weight:600">¿Le interesa un corte de listón? Llame al <a href="tel:+18183474737">818-347-4737</a>.</p>
             <p class="notice" id="joinDues" hidden style="border-color:var(--gold);background:var(--sand)"></p>
             <p id="joinMsg" class="notice" hidden></p>
             <div class="btn-row mt-3">
@@ -260,9 +251,6 @@
         if (msg) { msg.hidden = false; msg.textContent = 'Solicitud recibida — llevándole al pago seguro…'; }
         setTimeout(function () { location.href = '../checkout.html?type=membership&sku=' + encodeURIComponent(sku); }, 900);
       }
-    });
-    document.getElementById('joinRibbon').addEventListener('change', function () {
-      document.getElementById('joinRibbonDate').hidden = !this.checked;
     });
   </script>
 </body>
