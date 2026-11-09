@@ -181,7 +181,12 @@ test('ticking Complete records who and when, and unticking clears it', async () 
 test('the inquiries page has the Complete column and the completed list', () => {
   const js = read('admin/admin.js');
   assert.match(js, /<th style="width:84px;text-align:center">Complete<\/th>/);
-  assert.match(js, /✓ Completed \(\$\{done\.length\}\)/);
+  // One Completed box, last on the page, there even before anything is ticked
+  // (Felicia, Nov 9: "I just saw a Spam section").
+  assert.match(js, /id="leadsCompleted"/);
+  assert.match(js, /host\.innerHTML = sectionsHtml \+ doneHtml;/);
+  assert.match(js, /Nothing completed yet\. Tick Complete on an inquiry above and it moves here\./);
+  assert.equal(/<details style="margin-top:10px"[^>]*><summary[^>]*>✓ Completed/.test(js), false, 'no per-section folded lists');
   assert.match(js, /markLead\(l, e\.target\.checked \? 'done' : 'read'\)/);
   const sql = read('backend/schema.sql');
   assert.match(sql, /ADD COLUMN IF NOT EXISTS done_at timestamptz/);
