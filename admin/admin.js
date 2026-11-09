@@ -2260,6 +2260,7 @@ window.Admin = (function () {
       ['spam', '🚫 Spam', 'Caught by the spam screen — kept here, never deleted. If something real landed here, mark it <strong>New</strong> and it returns to its section.'],
     ].filter(([key]) => (key === 'membership' || key === 'interest') === memberTab);
     let all = [];
+    let showAllDone = false;
     const markOptions = (s) => ['new', 'read', 'done', 'spam']
       .map((v) => `<option value="${v}"${s === v ? ' selected' : ''}>${v === 'spam' ? 'Spam' : v[0].toUpperCase() + v.slice(1)}</option>`).join('');
     // "Send the application link" mailto for interest inquiries — one click
@@ -2397,30 +2398,34 @@ window.Admin = (function () {
         .some((v) => String(v || '').toLowerCase().includes(q));
       // "Complete" (Felicia and Diana, Nov 7 2026): tick it once an inquiry is
       // taken care of. It is the Done status, so the Mark list and the box
-      // always agree; completed ones drop into a folded list under each section.
+      // always agree. Completed ones leave their section for ONE "✓ Completed"
+      // panel at the very bottom (Felicia, Nov 9: she looked for it there; a
+      // folded list under each section only appeared once something in that
+      // section was ticked, so on the first day there was nothing to find).
       const whoDone = (l) => {
         const by = String(l.doneBy || '').split('@')[0];
         const when = l.doneAt ? new Date(l.doneAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
         return [when, by ? by[0].toUpperCase() + by.slice(1) : ''].filter(Boolean).join(' · ');
       };
-      const rowHtml = (l, key) => `
+      const rowHtml = (l, key, where = '') => `
           <tr data-id="${esc(l.id)}"${l.status === 'done' ? ' style="opacity:.75"' : ''}>
             <td style="text-align:center">${key === 'spam' ? '' : `<input type="checkbox" data-complete ${l.status === 'done' ? 'checked' : ''} title="Taken care of" style="width:18px;height:18px;cursor:pointer">${l.status === 'done' && whoDone(l) ? `<div class="sub" style="font-size:.7rem;white-space:nowrap">${esc(whoDone(l))}</div>` : ''}`}</td>
             <td class="sub" style="white-space:nowrap">${esc(String(l.received || '').slice(0, 10))}</td>
             <td><a href="#" class="name" data-open title="Open the full ${key === 'membership' ? 'application' : 'inquiry'}" style="color:inherit;text-decoration:underline;text-decoration-color:var(--gold,#c9a227);text-underline-offset:3px">${esc(l.name || l.company || '(no name)')}</a><div class="sub">${esc(l.email || '')}${l.phone ? ' · ' + esc(l.phone) : ''}</div></td>
-            <td>${esc(l.reason || l.kind || '')}${l.event ? `<div class="sub">Event: ${esc(l.event)}</div>` : ''}${l.company ? '<div class="sub">' + esc(l.company) + '</div>' : ''}</td>
+            <td>${where ? `<div class="sub" style="font-weight:600">${where}</div>` : ''}${esc(l.reason || l.kind || '')}${l.event ? `<div class="sub">Event: ${esc(l.event)}</div>` : ''}${l.company ? '<div class="sub">' + esc(l.company) + '</div>' : ''}</td>
             <td class="sub">${(l.message || '').length > 90 ? `<details><summary style="cursor:pointer">${esc(l.message.slice(0, 90))}…</summary><div style="white-space:pre-wrap;margin-top:6px">${esc(l.message)}</div></details>` : esc(l.message || '')}</td>
             <td>${statusPill(l.status)}</td>
             <td style="white-space:nowrap">${key === 'membership' && l.status !== 'done' ? `<button class="btn btn--forest btn--sm" data-approve-member title="Creates their directory listing and emails them a set-your-password link — no manual re-entry">✓ Approve &amp; add</button> ` : ''}${key === 'ribbon' && l.status !== 'done' ? `<button class="btn btn--forest btn--sm" data-approve-event title="Creates the calendar event — dated requests go live immediately">📅 Schedule on calendar</button> ` : ''}${key === 'interest' && l.email ? `<a class="btn btn--sm" href="${appLinkMailto(l)}" title="Opens an email to them with the membership application link already written">✉ Application link</a> ` : ''}<select class="admin-select" data-mark>${markOptions(l.status)}</select></td>
           </tr>`;
       const head = '<thead><tr><th style="width:84px;text-align:center">Complete</th><th>Date</th><th>From</th><th>Reason</th><th>Message</th><th>Status</th><th>Mark</th></tr></thead>';
-      host.innerHTML = SECTIONS.map(([key, title, sub]) => {
+      const titleOf = Object.fromEntries(SECTIONS.map(([key, title]) => [key, title]));
+      const sectionsHtml = SECTIONS.map(([key, title, sub]) => {
         const list = all.filter((l) => leadSection(l) === key && match(l));
         const fresh = list.filter((l) => l.status === 'new').length;
         const open = key === 'spam' ? list : list.filter((l) => l.status !== 'done');
-        const done = key === 'spam' ? [] : list.filter((l) => l.status === 'done');
+        const doneHere = key === 'spam' ? 0 : list.length - open.length;
         const rows = open.length ? open.map((l) => rowHtml(l, key)).join('')
-          : `<tr><td colspan="7" class="sub">${q ? 'No matches in this section.' : (done.length ? 'All taken care of.' : 'Nothing here yet.')}</td></tr>`;
+          : `<tr><td colspan="7" class="sub">${q ? 'No matches in this section.' : (doneHere ? 'All taken care of — see ✓ Completed at the bottom.' : 'Nothing here yet.')}</td></tr>`;
         return `
           <div class="panel" style="margin-bottom:16px">
             <div class="panel__head"><h3>${title} ${fresh ? `<span class="pill pill--pending" style="margin-left:6px">${fresh} new</span>` : ''}</h3></div>
@@ -2428,11 +2433,22 @@ window.Admin = (function () {
             <div style="overflow-x:auto">
               <table class="admin-table">${head}<tbody>${rows}</tbody></table>
             </div>
-            ${done.length ? `<details style="margin-top:10px"${q ? ' open' : ''}><summary style="cursor:pointer;font-weight:600">✓ Completed (${done.length})</summary>
-              <div style="overflow-x:auto;margin-top:8px"><table class="admin-table">${head}<tbody>${done.map((l) => rowHtml(l, key)).join('')}</tbody></table></div>
-            </details>` : ''}
           </div>`;
       }).join('');
+      // Every completed inquiry on this tab, most recently completed first.
+      const done = all.filter((l) => l.status === 'done' && titleOf[leadSection(l)] && leadSection(l) !== 'spam' && match(l))
+        .sort((a, b) => String(b.doneAt || b.received || '').localeCompare(String(a.doneAt || a.received || '')));
+      const shown = showAllDone ? done : done.slice(0, 50);
+      const doneHtml = `
+          <div class="panel" id="leadsCompleted" style="margin-bottom:16px;border-color:var(--green,#1E5631)">
+            <div class="panel__head"><h3>✓ Completed <span class="sub">(${done.length})</span></h3></div>
+            <p class="sub" style="margin:4px 0 10px">Inquiries someone ticked <strong>Complete</strong> on, with the date and who. Untick one and it goes back to its section above.</p>
+            ${done.length ? `<div style="overflow-x:auto"><table class="admin-table">${head}<tbody>${shown.map((l) => rowHtml(l, leadSection(l), titleOf[leadSection(l)])).join('')}</tbody></table></div>
+              ${done.length > shown.length ? `<button type="button" class="btn btn--ghost btn--sm" data-done-all style="margin-top:10px">Show all ${done.length}</button>` : ''}`
+            : `<p class="sub" style="margin:0 0 6px">${q ? 'No completed inquiries match.' : 'Nothing completed yet. Tick Complete on an inquiry above and it moves here.'}</p>`}
+          </div>`;
+      host.innerHTML = sectionsHtml + doneHtml;
+      host.querySelector('[data-done-all]')?.addEventListener('click', () => { showAllDone = true; render(); });
       host.querySelectorAll('tr[data-id]').forEach((tr) => {
         const leadOf = () => all.find((x) => x.id === tr.dataset.id);
         tr.querySelector('[data-open]')?.addEventListener('click', (e) => {
