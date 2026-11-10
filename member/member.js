@@ -1423,7 +1423,7 @@ window.MemberPortal = (function () {
                 ${ev.rsvpCount ? `<button type="button" class="btn btn--gold btn--sm" data-rsvps>RSVPs · ${ev.rsvpAttending} attending</button>` : '<span class="member-tile__meta" style="align-self:center">No RSVPs yet</span>'}
                 ${ev.canManage ? `<button type="button" class="btn btn--gold btn--sm" data-dup="${esc(ev.id)}">Duplicate</button>
                 <a class="btn btn--ghost btn--sm" href="event.html?edit=${encodeURIComponent(ev.id)}">Edit</a>
-                <button type="button" class="btn btn--ghost btn--sm" data-del style="color:var(--red,#b00020)">Remove</button>` : '<span class="member-tile__meta" style="align-self:center" title="On your page because it matches your group\u2019s name — the Chamber office owns it">office event</span>'}
+                <button type="button" class="btn btn--ghost btn--sm" data-del style="color:var(--red,#b00020)">Remove</button>` : '<span class="member-tile__meta" style="align-self:center;max-width:260px">Posted for your group by someone else, so it has no Edit here. To change or remove it, ask the Chamber office (818-347-4737) to set your group as its host.</span>'}
               </div>
             </div>
             <div data-rsvplist hidden style="margin-top:10px;border-top:1px solid var(--line,#eee);padding-top:8px"></div>
@@ -1441,7 +1441,7 @@ window.MemberPortal = (function () {
             ${ev.canManage ? `<span style="display:flex;gap:6px;flex-wrap:wrap">
               <button type="button" class="btn btn--gold btn--sm" data-dup="${esc(ev.id)}">Duplicate</button>
               <a class="btn btn--ghost btn--sm" href="event.html?edit=${encodeURIComponent(ev.id)}">Edit</a>
-            </span>` : '<span class="member-tile__meta" title="This one is on your page because it matches your group\u2019s name, but the Chamber office owns it">office event</span>'}
+            </span>` : '<span class="member-tile__meta" style="max-width:260px">Posted for your group by someone else, so it has no Edit here. To change or remove it, ask the Chamber office (818-347-4737) to set your group as its host.</span>'}
           </div>`).join('')}
         </div>` : ''}
 

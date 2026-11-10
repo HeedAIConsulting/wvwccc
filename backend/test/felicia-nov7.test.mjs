@@ -184,11 +184,38 @@ test('the inquiries page has the Complete column and the completed list', () => 
   // One Completed box, last on the page, there even before anything is ticked
   // (Felicia, Nov 9: "I just saw a Spam section").
   assert.match(js, /id="leadsCompleted"/);
-  assert.match(js, /host\.innerHTML = sectionsHtml \+ doneHtml;/);
+  assert.match(js, /host\.innerHTML = sectionsHtml \+ doneHtml \+ trashHtml;/);
   assert.match(js, /Nothing completed yet\. Tick Complete on an inquiry above and it moves here\./);
   assert.equal(/<details style="margin-top:10px"[^>]*><summary[^>]*>✓ Completed/.test(js), false, 'no per-section folded lists');
   assert.match(js, /markLead\(l, e\.target\.checked \? 'done' : 'read'\)/);
   const sql = read('backend/schema.sql');
   assert.match(sql, /ADD COLUMN IF NOT EXISTS done_at timestamptz/);
   assert.match(sql, /ADD COLUMN IF NOT EXISTS done_by text/);
+});
+
+
+/* Diana, via Felicia, Nov 10 2026: "a Trash Check box next to the completed
+   box on all inquiries". */
+test('Trash moves an inquiry out of the way, keeps it, and unticking brings it back', async () => {
+  const id = 'lead-trash-' + T;
+  await repo.addLead({ id, kind: 'general', name: 'Junk Person', email: 'junk@example.com', reason: 'General', message: 'Buy SEO', status: 'new', received: new Date().toISOString() });
+  assert.equal((await adm('/api/admin/leads/' + id, { method: 'PATCH', body: JSON.stringify({ status: 'trash' }) })).status, 200);
+  let l = (await repo.listLeads()).find((x) => x.id === id);
+  assert.equal(l.status, 'trash', 'kept, not deleted');
+  assert.equal(l.doneAt, undefined);
+  await adm('/api/admin/leads/' + id, { method: 'PATCH', body: JSON.stringify({ status: 'read' }) });
+  l = (await repo.listLeads()).find((x) => x.id === id);
+  assert.equal(l.status, 'read');
+  const js = read('admin/admin.js');
+  assert.match(js, /<th style="width:60px;text-align:center">Trash<\/th>/);
+  assert.match(js, /id="leadsTrash"/);
+  assert.match(js, /host\.innerHTML = sectionsHtml \+ doneHtml \+ trashHtml;/);
+  assert.match(js, /markLead\(l, e\.target\.checked \? 'trash' : 'read'\)/);
+  assert.match(js, /isRibbonLead\(l\) && l\.status !== 'trash'/, 'a trashed ribbon request leaves Ribbon Cuttings too');
+});
+
+test('a leader sees why an event has no Edit and who to ask', () => {
+  const js = read('member/member.js');
+  assert.equal(/>office event</.test(js), false);
+  assert.match(js, /ask the Chamber office \(818-347-4737\) to set your group as its host/);
 });

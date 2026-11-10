@@ -6357,7 +6357,9 @@ router.get('/admin/leads', requireAdmin, async (_req, res) => {
 router.patch('/admin/leads/:id', requireAdmin, async (req, res) => {
   // 'spam' both ways: the office can flag junk the screen missed, and rescue a
   // real inquiry the screen caught (marking it New returns it to its section).
-  if (!['new', 'read', 'done', 'spam'].includes(req.body.status)) return res.status(400).json({ error: 'bad status' });
+  // 'trash' (Diana, via Felicia, Nov 10 2026): out of the way, never deleted;
+  // unticking it in the 🗑 Trash box brings it back.
+  if (!['new', 'read', 'done', 'spam', 'trash'].includes(req.body.status)) return res.status(400).json({ error: 'bad status' });
   try {
     const ok = await repo.setLeadStatus(req.params.id, req.body.status, (req.user && req.user.sub) || '');
     if (!ok) return res.status(404).json({ error: 'not found' });
