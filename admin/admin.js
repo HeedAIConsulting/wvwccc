@@ -2261,8 +2261,9 @@ window.Admin = (function () {
     ].filter(([key]) => (key === 'membership' || key === 'interest') === memberTab);
     let all = [];
     let showAllDone = false;
-    const markOptions = (s) => ['new', 'read', 'done', 'spam']
-      .map((v) => `<option value="${v}"${s === v ? ' selected' : ''}>${v === 'spam' ? 'Spam' : v[0].toUpperCase() + v.slice(1)}</option>`).join('');
+    let showAllTrash = false;
+    const markOptions = (s) => ['new', 'read', 'done', 'spam', 'trash']
+      .map((v) => `<option value="${v}"${s === v ? ' selected' : ''}>${v[0].toUpperCase() + v.slice(1)}</option>`).join('');
     // "Send the application link" mailto for interest inquiries — one click
     // opens the office's own mail with the join link already written.
     const appLinkMailto = (l) => `mailto:${esc(l.email)}?subject=${encodeURIComponent('Joining the West Valley · Warner Center Chamber of Commerce')}&body=${encodeURIComponent(
@@ -2409,7 +2410,8 @@ window.Admin = (function () {
       };
       const rowHtml = (l, key, where = '') => `
           <tr data-id="${esc(l.id)}"${l.status === 'done' ? ' style="opacity:.75"' : ''}>
-            <td style="text-align:center">${key === 'spam' ? '' : `<input type="checkbox" data-complete ${l.status === 'done' ? 'checked' : ''} title="Taken care of" style="width:18px;height:18px;cursor:pointer">${l.status === 'done' && whoDone(l) ? `<div class="sub" style="font-size:.7rem;white-space:nowrap">${esc(whoDone(l))}</div>` : ''}`}</td>
+            <td style="text-align:center">${key === 'spam' || l.status === 'trash' ? '' : `<input type="checkbox" data-complete ${l.status === 'done' ? 'checked' : ''} title="Taken care of" style="width:18px;height:18px;cursor:pointer">${l.status === 'done' && whoDone(l) ? `<div class="sub" style="font-size:.7rem;white-space:nowrap">${esc(whoDone(l))}</div>` : ''}`}</td>
+            <td style="text-align:center">${key === 'spam' ? '' : `<input type="checkbox" data-trash ${l.status === 'trash' ? 'checked' : ''} title="${l.status === 'trash' ? 'Untick to bring it back' : 'Move to Trash'}" style="width:18px;height:18px;cursor:pointer">`}</td>
             <td class="sub" style="white-space:nowrap">${esc(String(l.received || '').slice(0, 10))}</td>
             <td><a href="#" class="name" data-open title="Open the full ${key === 'membership' ? 'application' : 'inquiry'}" style="color:inherit;text-decoration:underline;text-decoration-color:var(--gold,#c9a227);text-underline-offset:3px">${esc(l.name || l.company || '(no name)')}</a><div class="sub">${esc(l.email || '')}${l.phone ? ' · ' + esc(l.phone) : ''}</div></td>
             <td>${where ? `<div class="sub" style="font-weight:600">${where}</div>` : ''}${esc(l.reason || l.kind || '')}${l.event ? `<div class="sub">Event: ${esc(l.event)}</div>` : ''}${l.company ? '<div class="sub">' + esc(l.company) + '</div>' : ''}</td>
@@ -2417,15 +2419,15 @@ window.Admin = (function () {
             <td>${statusPill(l.status)}</td>
             <td style="white-space:nowrap">${key === 'membership' && l.status !== 'done' ? `<button class="btn btn--forest btn--sm" data-approve-member title="Creates their directory listing and emails them a set-your-password link — no manual re-entry">✓ Approve &amp; add</button> ` : ''}${key === 'ribbon' && l.status !== 'done' ? `<button class="btn btn--forest btn--sm" data-approve-event title="Creates the calendar event — dated requests go live immediately">📅 Schedule on calendar</button> ` : ''}${key === 'interest' && l.email ? `<a class="btn btn--sm" href="${appLinkMailto(l)}" title="Opens an email to them with the membership application link already written">✉ Application link</a> ` : ''}<select class="admin-select" data-mark>${markOptions(l.status)}</select></td>
           </tr>`;
-      const head = '<thead><tr><th style="width:84px;text-align:center">Complete</th><th>Date</th><th>From</th><th>Reason</th><th>Message</th><th>Status</th><th>Mark</th></tr></thead>';
+      const head = '<thead><tr><th style="width:84px;text-align:center">Complete</th><th style="width:60px;text-align:center">Trash</th><th>Date</th><th>From</th><th>Reason</th><th>Message</th><th>Status</th><th>Mark</th></tr></thead>';
       const titleOf = Object.fromEntries(SECTIONS.map(([key, title]) => [key, title]));
       const sectionsHtml = SECTIONS.map(([key, title, sub]) => {
         const list = all.filter((l) => leadSection(l) === key && match(l));
         const fresh = list.filter((l) => l.status === 'new').length;
-        const open = key === 'spam' ? list : list.filter((l) => l.status !== 'done');
-        const doneHere = key === 'spam' ? 0 : list.length - open.length;
+        const open = key === 'spam' ? list : list.filter((l) => l.status !== 'done' && l.status !== 'trash');
+        const doneHere = key === 'spam' ? 0 : list.filter((l) => l.status === 'done').length;
         const rows = open.length ? open.map((l) => rowHtml(l, key)).join('')
-          : `<tr><td colspan="7" class="sub">${q ? 'No matches in this section.' : (doneHere ? 'All taken care of — see ✓ Completed at the bottom.' : 'Nothing here yet.')}</td></tr>`;
+          : `<tr><td colspan="8" class="sub">${q ? 'No matches in this section.' : (doneHere ? 'All taken care of — see ✓ Completed at the bottom.' : 'Nothing here yet.')}</td></tr>`;
         return `
           <div class="panel" style="margin-bottom:16px">
             <div class="panel__head"><h3>${title} ${fresh ? `<span class="pill pill--pending" style="margin-left:6px">${fresh} new</span>` : ''}</h3></div>
@@ -2447,7 +2449,21 @@ window.Admin = (function () {
               ${done.length > shown.length ? `<button type="button" class="btn btn--ghost btn--sm" data-done-all style="margin-top:10px">Show all ${done.length}</button>` : ''}`
             : `<p class="sub" style="margin:0 0 6px">${q ? 'No completed inquiries match.' : 'Nothing completed yet. Tick Complete on an inquiry above and it moves here.'}</p>`}
           </div>`;
-      host.innerHTML = sectionsHtml + doneHtml;
+      // 🗑 Trash (Diana, via Felicia, Nov 10 2026): last of all. Nothing in it
+      // is deleted; untick Trash on a row and it returns to its section.
+      const trashed = all.filter((l) => l.status === 'trash' && titleOf[leadSection(l)] && match(l))
+        .sort((a, b) => String(b.received || '').localeCompare(String(a.received || '')));
+      const trashShown = showAllTrash ? trashed : trashed.slice(0, 50);
+      const trashHtml = `
+          <div class="panel" id="leadsTrash" style="margin-bottom:16px">
+            <div class="panel__head"><h3>🗑 Trash <span class="sub">(${trashed.length})</span></h3></div>
+            <p class="sub" style="margin:4px 0 10px">Inquiries someone put in the trash. Nothing here is deleted; untick <strong>Trash</strong> on a row and it goes back to its section.</p>
+            ${trashed.length ? `<div style="overflow-x:auto"><table class="admin-table">${head}<tbody>${trashShown.map((l) => rowHtml(l, leadSection(l), titleOf[leadSection(l)])).join('')}</tbody></table></div>
+              ${trashed.length > trashShown.length ? `<button type="button" class="btn btn--ghost btn--sm" data-trash-all style="margin-top:10px">Show all ${trashed.length}</button>` : ''}`
+            : `<p class="sub" style="margin:0 0 6px">${q ? 'Nothing in the trash matches.' : 'The trash is empty.'}</p>`}
+          </div>`;
+      host.innerHTML = sectionsHtml + doneHtml + trashHtml;
+      host.querySelector('[data-trash-all]')?.addEventListener('click', () => { showAllTrash = true; render(); });
       host.querySelector('[data-done-all]')?.addEventListener('click', () => { showAllDone = true; render(); });
       host.querySelectorAll('tr[data-id]').forEach((tr) => {
         const leadOf = () => all.find((x) => x.id === tr.dataset.id);
@@ -2457,6 +2473,12 @@ window.Admin = (function () {
         });
         tr.querySelector('[data-mark]')?.addEventListener('change', async (e) => {
           const l = leadOf(); if (l) await markLead(l, e.target.value);
+        });
+        tr.querySelector('[data-trash]')?.addEventListener('change', async (e) => {
+          const l = leadOf(); if (!l) return;
+          e.target.disabled = true;
+          try { await markLead(l, e.target.checked ? 'trash' : 'read'); }
+          catch (err) { e.target.checked = !e.target.checked; e.target.disabled = false; alert('Could not save — please try again.'); }
         });
         tr.querySelector('[data-complete]')?.addEventListener('change', async (e) => {
           const l = leadOf(); if (!l) return;
@@ -2541,7 +2563,7 @@ window.Admin = (function () {
         </div>`;
     }
     function render() {
-      const ribbons = all.filter(isRibbonLead);
+      const ribbons = all.filter((l) => isRibbonLead(l) && l.status !== 'trash' && l.status !== 'spam');
       wrap.innerHTML = STAGES.map(([key, title, blurb]) => {
         const list = ribbons.filter((l) => stageOf(l) === key);
         return `

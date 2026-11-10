@@ -227,8 +227,15 @@ not the office, and is left alone.
   cutting pages say "Interested in a Ribbon Cutting? Call 818-347-4737." and
   have no date picker (Felicia, Nov 7: the date is set looking at the office
   calendar). Do not add a request form back.
-- **Inquiries have Complete** (Done status): `done_at`/`done_by` record when
-  and who, and completed ones fold into "✓ Completed" under each section.
+- **Inquiries have Complete and Trash.** Complete is the Done status
+  (`done_at`/`done_by` record when and who); Trash is status `trash`. Each
+  moves the row out of its section into one box at the bottom of the page
+  ("✓ Completed", then "🗑 Trash"), always shown even when empty (Felicia
+  looked for it there on Nov 9). Nothing is deleted; unticking restores it.
+- **An event a group leader cannot edit** (Marcia Israel, Nov 10) is one
+  posted for the group by someone else — usually the community-calendar form —
+  so it has no `groupSlug`. The office fixes it: Admin → Events → Edit →
+  Host group. The leader page now says so instead of "office event".
 
 ## Receipts that do not arrive
 
