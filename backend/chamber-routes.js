@@ -24,6 +24,7 @@ import { BIZBUZZ_KEY, cleanBizBuzz, loadBizBuzz } from './bizbuzz.js';
 import { readWebsite, memberWebsite } from './website-field.js';
 import { searchGuides, referralFor, expand } from './explore.js';
 import { siteBase, greetingName } from './site-base.js';
+import { listOfficeBlocks, unblockOffice } from './email-events.js';
 
 const router = express.Router();
 
@@ -5804,6 +5805,21 @@ router.get('/admin/approvals-feed', requireAdmin, async (_req, res) => {
     const items = await pendingApprovals();
     res.json({ ok: true, count: items.length, items });
   } catch (e) { console.error('approvals-feed', e); res.status(500).json({ error: 'Could not load the approvals list.' }); }
+});
+
+// A Chamber mailbox the email service has stopped sending to (Felicia, Nov 16
+// 2026). The dashboard shows each one in red with an Unblock button.
+router.get('/admin/office-mail', requireAdmin, async (_req, res) => {
+  try { res.json({ ok: true, blocked: await listOfficeBlocks() }); }
+  catch (e) { console.error('office-mail', e); res.status(500).json({ error: 'Could not check office email.' }); }
+});
+router.post('/admin/office-mail/unblock', requireAdmin, async (req, res) => {
+  try {
+    const out = await unblockOffice((req.body || {}).address);
+    if (!out.ok) return res.status(out.status || 500).json({ error: out.error });
+    console.log(`[office-mail] ${out.address} unblocked by ${(req.user && req.user.sub) || 'staff'}`);
+    res.json(out);
+  } catch (e) { console.error('office-mail unblock', e); res.status(500).json({ error: 'Could not unblock that address.' }); }
 });
 
 router.get('/admin/summary', requireAdmin, async (_req, res) => {
