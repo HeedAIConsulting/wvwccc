@@ -91,6 +91,141 @@ export function alertFor({ type, data }, order, eventTitle = '') {
   return { subject: `Receipt not delivered — ${name} (order ${ref})`, text: lines.join('\n') };
 }
 
+/* The office's own mailbox (Felicia, Nov 16 2026: "I am not receiving the
+   generated payment receipts ... I am also not receiving RSVP's for our Nov
+   Mixer"). On Nov 12 one copy to felicia@ bounced with "550 Mailbox does not
+   exist!", Resend suppressed the address for good, and every receipt copy and
+   RSVP after it was dropped for four days. Nobody was told, because the alert
+   for an undelivered email goes to that same mailbox.
+
+   Now any bounce, suppression or failure to a Chamber address is recorded in
+   one settings key, OFFICE_KEY, keyed by address. The first one emails
+   OFFICE_ALERT_TO (default Diana; never the blocked address itself), and
+   Admin → Dashboard shows a red notice with an Unblock button until it is
+   cleared. */
+export const OFFICE_KEY = 'officeMailBlocks';
+export const OFFICE_DOMAIN = 'woodlandhillscc.net';
+export const isOfficeAddress = (a) => String(a || '').trim().toLowerCase().endsWith('@' + OFFICE_DOMAIN);
+const officeAlertTo = (blocked) => String(process.env.OFFICE_ALERT_TO || 'diana@woodlandhillscc.net')
+  .split(',').map((a) => a.trim().toLowerCase()).filter((a) => a && a !== blocked);
+
+export function readBlocks(raw) {
+  try { const v = JSON.parse(raw || '{}'); return v && typeof v === 'object' && !Array.isArray(v) ? v : {}; }
+  catch { return {}; }
+}
+// One event folded into the record for its address. Returns null when this
+// email was already counted (Resend reports a bounce and then a suppression).
+export function foldBlock(prev, { type, data = {} }, now = new Date().toISOString()) {
+  const id = String(data.email_id || '');
+  const seen = (prev && prev.emailIds) || [];
+  if (id && seen.includes(id)) return null;
+  const detail = (data.bounce && Array.isArray(data.bounce.diagnosticCode) && data.bounce.diagnosticCode[0])
+    || (data.bounce && data.bounce.message) || (data.failed && data.failed.reason) || '';
+  return {
+    since: (prev && prev.since) || data.created_at || now,
+    last: data.created_at || now,
+    count: ((prev && prev.count) || 0) + 1,
+    firstReason: (prev && prev.firstReason) || (type === 'email.suppressed'
+      ? 'An earlier email to this address bounced, so the email service stopped sending to it.'
+      : String(detail).replace(/^smtp;\s*/i, '') || type),
+    lastSubject: String(data.subject || '').slice(0, 200),
+    emailIds: (id ? seen.concat(id) : seen).slice(-200),
+  };
+}
+export function officeAlert(address, block) {
+  const when = new Date(block.since).toLocaleString('en-US', { timeZone: 'America/Los_Angeles', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  return {
+    subject: `Website email to ${address} is not being delivered`,
+    text: [
+      `Since ${when}, email from the Chamber website to ${address} is not arriving.`,
+      `That includes copies of payment receipts and RSVP notices.`,
+      '',
+      `Why: ${block.firstReason}`,
+      `Last one not delivered: "${block.lastSubject}"`,
+      '',
+      'Everything is still on the website: payments in Admin → Pay Log, RSVPs in',
+      'Admin → Inquiries and on each event in Admin → Events.',
+      '',
+      'Once the mailbox is working, open Admin → Dashboard and click',
+      `"Unblock ${address}" in the red notice at the top.`,
+    ].join('\n'),
+  };
+}
+async function recordOfficeBlocks(event) {
+  const { data = {} } = event;
+  const to = (Array.isArray(data.to) ? data.to : [data.to]).map((a) => String(a || '').trim().toLowerCase()).filter(isOfficeAddress);
+  if (!to.length) return;
+  const blocks = readBlocks(await repo.getSetting(OFFICE_KEY));
+  const fresh = [];
+  for (const addr of to) {
+    const next = foldBlock(blocks[addr], event);
+    if (!next) continue;
+    if (!blocks[addr]) fresh.push(addr);
+    blocks[addr] = next;
+  }
+  await repo.setSetting(OFFICE_KEY, JSON.stringify(blocks));
+  for (const addr of fresh) {
+    const { subject, text } = officeAlert(addr, blocks[addr]);
+    const rcpt = officeAlertTo(addr);
+    if (rcpt.length) await email.send({ to: rcpt, subject, text });
+    console.warn(`[email-events] office address blocked: ${addr} (${blocks[addr].firstReason})`);
+  }
+}
+
+// Everything the dashboard notice needs, newest first.
+export async function listOfficeBlocks() {
+  await seedKnownBlocks();
+  const blocks = readBlocks(await repo.getSetting(OFFICE_KEY));
+  return Object.entries(blocks)
+    .map(([address, b]) => ({ address, since: b.since, last: b.last, count: b.count, reason: b.firstReason, lastSubject: b.lastSubject }))
+    .sort((a, b) => String(b.since).localeCompare(String(a.since)));
+}
+
+/* Felicia's address was suppressed on Nov 13 2026 00:17 UTC, before this code
+   existed, so no event recorded it. Seeded once on production only, and only
+   when nothing is recorded for her yet. 18 = the 2 bounces plus the 16 the
+   email service dropped up to Nov 16. Unblock clears it like any other. */
+const SEED_MARKER = 'officeMailBlocks-seed-20261116';
+async function seedKnownBlocks() {
+  if (!process.env.DATABASE_URL) return;
+  if (await repo.getSetting(SEED_MARKER)) return;
+  const blocks = readBlocks(await repo.getSetting(OFFICE_KEY));
+  const addr = 'felicia@woodlandhillscc.net';
+  if (!blocks[addr]) {
+    blocks[addr] = {
+      since: '2026-11-13T00:11:00.000Z', last: '2026-11-16T18:03:00.000Z', count: 18,
+      firstReason: '550 Mailbox does not exist!',
+      lastSubject: 'Paid Receipt For Tickets 12814630994', emailIds: [],
+    };
+    await repo.setSetting(OFFICE_KEY, JSON.stringify(blocks));
+  }
+  await repo.setSetting(SEED_MARKER, new Date().toISOString());
+}
+
+/* Admin → Dashboard → Unblock. Takes the address off Resend's suppression
+   list, then forgets the record. A 404 from Resend means it was not on the
+   list (already removed by hand), which is the outcome wanted. Any other
+   answer leaves the notice up and says why. */
+export async function unblockOffice(address, fetchImpl = globalThis.fetch) {
+  const addr = String(address || '').trim().toLowerCase();
+  if (!isOfficeAddress(addr)) return { ok: false, status: 400, error: 'Only a Chamber address can be unblocked here.' };
+  const key = process.env.RESEND_API_KEY;
+  if (!key) return { ok: false, status: 503, error: 'The email service key is not set on the server.' };
+  const r = await fetchImpl(`https://api.resend.com/suppressions/${encodeURIComponent(addr)}`, {
+    method: 'DELETE', headers: { Authorization: `Bearer ${key}` },
+  });
+  if (!r.ok && r.status !== 404) {
+    let detail = '';
+    try { const j = await r.json(); detail = j && (j.message || j.name) ? ` (${j.message || j.name})` : ''; } catch {}
+    console.error(`[email-events] unblock ${addr} failed: ${r.status}${detail}`);
+    return { ok: false, status: 502, error: `The email service would not unblock ${addr}: ${r.status}${detail}. Ask Michael to remove it in Resend → Suppressions.` };
+  }
+  const blocks = readBlocks(await repo.getSetting(OFFICE_KEY));
+  delete blocks[addr];
+  await repo.setSetting(OFFICE_KEY, JSON.stringify(blocks));
+  return { ok: true, address: addr, wasSuppressed: r.status !== 404 };
+}
+
 async function titleForSku(sku) {
   const id = (/^ticket:([^:]+):/.exec(String(sku || '')) || [])[1];
   if (!id) return '';
@@ -110,6 +245,10 @@ export async function handleEmailEvent(req, res) {
   const { type, data = {} } = event || {};
   res.json({ ok: true });
 
+  if (UNDELIVERED.has(type)) {
+    try { await recordOfficeBlocks(event); }
+    catch (e) { console.error('[email-events] office block record failed', e); }
+  }
   try {
     if (!UNDELIVERED.has(type)) return;
     const ref = receiptRef(data.subject);

@@ -651,8 +651,50 @@ window.Admin = (function () {
   }
 
   // ── Dashboard ──
+  /* A Chamber mailbox the email service has stopped sending to (Felicia,
+     Nov 16 2026: four days of receipt copies and mixer RSVPs never reached
+     her, and nothing on the site said so). Red, at the top, until someone
+     clicks Unblock. */
+  async function renderMailBlocked() {
+    const box = document.getElementById('mailBlocked');
+    if (!box) return;
+    let blocked = [];
+    try { ({ blocked } = await api('/api/admin/office-mail')); } catch (e) { return; }
+    if (!blocked || !blocked.length) { box.hidden = true; box.innerHTML = ''; return; }
+    const when = (iso) => new Date(iso).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+    box.hidden = false;
+    box.innerHTML = blocked.map((b) => `<div class="mail-blocked" data-blocked="${esc(b.address)}">
+      <h2>⚠ Email to ${esc(b.address)} is not being delivered</h2>
+      <p>Since ${esc(when(b.since))}, the website's email to this address has not arrived: ${esc(String(b.count))} ${b.count === 1 ? 'email' : 'emails'} so far, including copies of payment receipts and RSVP notices. Customers still get their own receipts.</p>
+      <p>Nothing is lost. Everything those emails said is here:</p>
+      <ul>
+        <li>Payments: <a href="payments.html">Pay Log</a></li>
+        <li>RSVPs: <a href="leads.html">Inquiries</a> → Event RSVPs, or <a href="events.html">Events</a> → RSVPs / $ on the event</li>
+      </ul>
+      <p>Why: ${esc(b.reason || 'the email service reported it as undeliverable')}</p>
+      <p>Once the mailbox is receiving email again, click Unblock so the website starts sending to it.</p>
+      <button type="button" class="btn btn--forest btn--sm" data-unblock="${esc(b.address)}">Unblock ${esc(b.address)}</button>
+      <span class="mb-msg" data-msg style="margin-left:10px"></span>
+    </div>`).join('');
+    box.querySelectorAll('[data-unblock]').forEach((btn) => btn.addEventListener('click', async () => {
+      const msg = btn.parentElement.querySelector('[data-msg]');
+      btn.disabled = true; msg.textContent = 'Unblocking…';
+      try {
+        const r = await fetch(apiBase + '/api/admin/office-mail/unblock', {
+          method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ address: btn.dataset.unblock }),
+        });
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(j.error || `Error ${r.status}`);
+        msg.textContent = `Unblocked. New email to ${j.address} will be sent again.`;
+        setTimeout(renderMailBlocked, 2500);
+      } catch (e) { msg.textContent = e.message; btn.disabled = false; }
+    }));
+  }
+
   async function initDashboard() {
     mountShell('dashboard');
+    renderMailBlocked();
     try {
       const s = await api('/api/admin/summary');
       const g = s.glance || {};

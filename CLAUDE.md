@@ -253,6 +253,25 @@ The request must carry Resend's Svix signature, checked against
 route answers 503. Resend suppresses an address for good after a hard bounce,
 so a customer who mistypes once gets no receipt at that address again.
 
+### When the office's own mailbox is blocked (Nov 16 2026)
+
+The receipt alert above goes to `notifyTo()`, Felicia, so it could not report
+her own address being blocked. On Nov 12 one copy to felicia@ bounced ("550
+Mailbox does not exist!"), Resend suppressed her for good, and 18 receipt copies
+and RSVPs went nowhere for four days. Cause: the apex MX of woodlandhillscc.net
+(Cloudflare DNS) carried a stray `10 feedback-smtp.us-east-1.amazonses.com`
+next to Microsoft 365's `0 …mail.protection.outlook.com`. That MX belongs only
+on `send.` (Resend's bounce domain); on the apex it catches the Chamber's mail
+whenever Microsoft defers.
+
+Now any undelivered event to an `@woodlandhillscc.net` address is recorded in
+the settings key `officeMailBlocks` (one JSON map by address, deduped by email
+id). The first one emails `OFFICE_ALERT_TO` (default Diana, never the blocked
+address), and Admin → Dashboard shows a red notice with **Unblock**, which calls
+Resend `DELETE /suppressions/{email}` (404 counts as done) and clears it.
+Felicia's Nov 13 block predates the code and is seeded once on production
+(`officeMailBlocks-seed-20261116`). Tests: `office-mail-blocked.test.mjs`.
+
 ## One-time migrations
 
 Data corrections run once, keyed by a settings marker
