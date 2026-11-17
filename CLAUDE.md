@@ -269,8 +269,9 @@ the settings key `officeMailBlocks` (one JSON map by address, deduped by email
 id). The first one emails `OFFICE_ALERT_TO` (default Diana, never the blocked
 address), and Admin → Dashboard shows a red notice with **Unblock**, which calls
 Resend `DELETE /suppressions/{email}` (404 counts as done) and clears it.
-Felicia's Nov 13 block predates the code and is seeded once on production
-(`officeMailBlocks-seed-20261116`). Tests: `office-mail-blocked.test.mjs`.
+Felicia's block predates the code: `seedFelicia` folds its start (Nov 12
+23:36 UTC) and the 18 earlier drops into her record once on production
+(`officeMailBlocks-seed-20261116`), on the first dashboard load. Tests: `office-mail-blocked.test.mjs`.
 
 ## One-time migrations
 
