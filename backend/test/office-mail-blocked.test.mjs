@@ -142,3 +142,21 @@ test('the dashboard shows the notice, where the data is, and the Unblock button'
   assert.match(routes, /router\.get\('\/admin\/office-mail', requireAdmin/);
   assert.match(routes, /router\.post\('\/admin\/office-mail\/unblock', requireAdmin/);
 });
+
+test("Felicia's earlier block is folded into a record a live event already started", () => {
+  const live = { since: '2026-11-16T23:51:27.905Z', last: '2026-11-16T23:51:27.905Z', count: 1,
+    firstReason: 'An earlier email to this address bounced, so the email service stopped sending to it.',
+    lastSubject: 'New RSVP — Monica Battisti', emailIds: ['01a1e6c5'] };
+  const merged = mod.seedFelicia(live);
+  assert.equal(merged.since, '2026-11-12T23:36:24.000Z');
+  assert.equal(merged.count, 19);
+  assert.equal(merged.last, live.last);
+  assert.equal(merged.lastSubject, live.lastSubject);
+  assert.equal(merged.firstReason, '550 Mailbox does not exist!');
+  assert.deepEqual(merged.emailIds, ['01a1e6c5'], 'later events still dedupe');
+  // With no record at all: the 18 alone.
+  assert.equal(mod.seedFelicia(undefined).count, 18);
+  // Already starting at or before Nov 12: left alone.
+  const early = { ...live, since: '2026-11-12T20:00:00.000Z' };
+  assert.equal(mod.seedFelicia(early), early);
+});

@@ -182,23 +182,33 @@ export async function listOfficeBlocks() {
 }
 
 /* Felicia's address was suppressed on Nov 13 2026 00:17 UTC, before this code
-   existed, so no event recorded it. Seeded once on production only, and only
-   when nothing is recorded for her yet. 18 = the 2 bounces plus the 16 the
-   email service dropped up to Nov 16. Unblock clears it like any other. */
+   existed, so no event recorded the start. 18 office emails were dropped from
+   the first bounce (Nov 12 23:36 UTC) until this code went live. Applied once
+   on production only. If a live event already created her record (it did:
+   Monica Battisti's RSVP, Nov 16 23:51 UTC, counted 1), the start and the 18
+   are folded into it rather than replacing it. Unblock clears it like any
+   other. */
 const SEED_MARKER = 'officeMailBlocks-seed-20261116';
+const FELICIA_START = '2026-11-12T23:36:24.000Z';
+const FELICIA_EARLIER = 18;
+export function seedFelicia(prev) {
+  if (prev && String(prev.since) <= FELICIA_START) return prev;
+  return {
+    since: FELICIA_START,
+    last: (prev && prev.last) || '2026-11-16T19:42:12.000Z',
+    count: ((prev && prev.count) || 0) + FELICIA_EARLIER,
+    firstReason: '550 Mailbox does not exist!',
+    lastSubject: (prev && prev.lastSubject) || 'New RSVP — November 18th Networking Mixer (Lisa HABERMAN)',
+    emailIds: (prev && prev.emailIds) || [],
+  };
+}
 async function seedKnownBlocks() {
   if (!process.env.DATABASE_URL) return;
   if (await repo.getSetting(SEED_MARKER)) return;
   const blocks = readBlocks(await repo.getSetting(OFFICE_KEY));
   const addr = 'felicia@woodlandhillscc.net';
-  if (!blocks[addr]) {
-    blocks[addr] = {
-      since: '2026-11-13T00:11:00.000Z', last: '2026-11-16T18:03:00.000Z', count: 18,
-      firstReason: '550 Mailbox does not exist!',
-      lastSubject: 'Paid Receipt For Tickets 12814630994', emailIds: [],
-    };
-    await repo.setSetting(OFFICE_KEY, JSON.stringify(blocks));
-  }
+  blocks[addr] = seedFelicia(blocks[addr]);
+  await repo.setSetting(OFFICE_KEY, JSON.stringify(blocks));
   await repo.setSetting(SEED_MARKER, new Date().toISOString());
 }
 
