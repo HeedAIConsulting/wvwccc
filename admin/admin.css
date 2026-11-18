@@ -211,3 +211,18 @@ a.stat-card:hover { box-shadow: var(--sh-md, 0 8px 24px rgba(0,0,0,.10)); transf
 .mail-blocked p { margin: 0 0 8px; }
 .mail-blocked ul { margin: 0 0 10px 18px; padding: 0; }
 .mail-blocked .mb-msg { font-weight: 600; }
+
+/* Groups → Manage: one job at a time (Nov 17 2026) */
+.grp-tabs { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:10px; padding:16px 16px 0; }
+.grp-tabs button { font:inherit; font-size:1rem; font-weight:700; display:flex; flex-direction:column; align-items:center; gap:4px; padding:14px 10px; border-radius:12px; border:2px solid var(--gold-soft,#e6dcc0); background:#fff; color:var(--green-ink,#143C20); cursor:pointer; }
+.grp-tabs button span { font-size:1.6rem; line-height:1; }
+.grp-tabs button:hover { border-color:var(--green,#1E5631); }
+.grp-tabs button[aria-pressed="true"] { background:var(--green,#1E5631); border-color:var(--green,#1E5631); color:#fff; }
+.grp-h { margin:4px 0 10px; font-size:1.1rem; }
+.grp-mail { border:1px solid var(--line,#ddd); border-radius:12px; background:#fff; max-width:760px; box-shadow:0 2px 10px rgba(0,0,0,.05); }
+.grp-mail__row { display:flex; gap:10px; align-items:center; padding:10px 14px; border-bottom:1px solid var(--line,#eee); }
+.grp-mail__row > label { width:70px; flex:none; color:var(--slate-mid,#666); font-weight:600; }
+.grp-mail__row input, .grp-mail__row select { flex:1; border:0; font:inherit; font-size:1rem; padding:6px 0; background:transparent; outline:none; }
+.grp-mail__body { width:100%; min-height:240px; border:0; padding:14px; font:inherit; font-size:1rem; line-height:1.55; resize:vertical; outline:none; box-sizing:border-box; }
+.grp-mail__foot { display:flex; gap:10px; align-items:center; flex-wrap:wrap; padding:12px 14px; border-top:1px solid var(--line,#eee); background:var(--paper,#fffdf8); border-radius:0 0 12px 12px; }
+.grp-ev { display:flex; align-items:center; gap:8px; padding:10px 0; border-bottom:1px solid var(--line,#eee); flex-wrap:wrap; }

@@ -318,7 +318,10 @@ window.Chamber = (function () {
   function _hms(d) { return _pad(d.getHours()) + _pad(d.getMinutes()) + '00'; }
   function _gcal(d, allDay) { return allDay ? _ymd(d) : _ymd(d) + 'T' + _hms(d); }
   function _icsEsc(s) { return String(s || '').replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n'); }
-  function calendarMenu(ev) {
+  // big: the event's own page, right under when and where (Michael, Nov 17
+  // 2026: "there needs to be an add to calendar button on the events"). It
+  // used to be a small line at the very bottom of the page.
+  function calendarMenu(ev, big) {
     const r = _calRange(ev); if (!r) return '';
     const loc = ev.venue || ev.address || ev.neighborhood || '';
     const details = (ev.summary || '') + (ev.links && ev.links.length ? '\n\n' + ev.links.map((l) => l.label + ': ' + l.url).join('\n') : '');
@@ -334,11 +337,19 @@ window.Chamber = (function () {
     // data: URI download was silently ignored by iOS Safari and in-app
     // browsers, i.e. exactly the phones people carry to a mixer (Aug 20 2026).
     const icsHref = (window.ChamberAPI ? ChamberAPI.url('') : '') + '/api/events/' + encodeURIComponent(ev.id || '') + '.ics';
+    if (big) {
+      return `<div class="cal-row cal-row--big" style="display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 4px;align-items:center;padding:12px 14px;border-radius:12px;background:var(--cream,#f7f2e4)">
+      <strong style="font-size:1.05rem;margin-right:4px">📅 Add to my calendar</strong>
+      <a class="btn btn--forest btn--sm" target="_blank" rel="noopener" href="${g}">Google</a>
+      <a class="btn btn--forest btn--sm" target="_blank" rel="noopener" href="${o}">Outlook</a>
+      <a class="btn btn--forest btn--sm" href="${esc(icsHref)}">Apple / iPhone</a>
+    </div>`;
+    }
     return `<div class="cal-row" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;align-items:center">
-      <span class="member-tile__meta" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.04em">Add to calendar</span>
+      <span class="member-tile__meta" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.04em">📅 Add to calendar</span>
       <a class="chip" target="_blank" rel="noopener" href="${g}">Google</a>
       <a class="chip" target="_blank" rel="noopener" href="${o}">Outlook</a>
-      <a class="chip" href="${esc(icsHref)}">Apple / .ics</a>
+      <a class="chip" href="${esc(icsHref)}">Apple / iPhone</a>
     </div>`;
   }
 
@@ -597,6 +608,7 @@ window.Chamber = (function () {
             ${hostLine(ev, base)}
           </div>
           ${ctaRow}
+          ${ev.confirmed ? calendarMenu(ev, true) : ''}
           ${imgs}
           ${featuredRow}
           ${descHtml ? `<div class="ev-card__desc${ev.descriptionHtml ? ' rt-typo' : ''}"${ev.descriptionHtml ? ' style="white-space:normal"' : ''}>${descHtml}</div>` : ''}
@@ -605,7 +617,6 @@ window.Chamber = (function () {
           ${docs}
           <div id="evAlbums"></div>
           <div class="ev-card__foot">
-            ${ev.confirmed ? calendarMenu(ev) : ''}
             ${shareMenu(ev.title, shareUrl)}
           </div>
         </div>

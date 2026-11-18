@@ -266,8 +266,8 @@ window.Admin = (function () {
     { id: 'csv-export', t: 'Download a member report (CSV — pick columns & join dates)', kw: 'export csv download report members spreadsheet excel column category joindate join date zip filter sort', href: 'members.html', sel: '#csvExportBtn', tip: 'Click "⬇ Export CSV" — pick the columns (category, join date, ZIP…), optionally a joined-date range, and download. The search box and filter narrow what exports.' },
     { id: 'member-view', t: 'Open a member\'s portal view (assist a member)', kw: 'member view login as impersonate password help assist portal', href: 'members.html', sel: '#memberSearch', tip: 'Find the member → "Member view link" gives a 20-minute sign-in link. Open it in a private/incognito window to see exactly what they see.' },
     { id: 'board-manager', t: 'Manage the Board & Leadership page (people, titles, photos)', kw: 'board officers leadership page manage title headshot photo add remove president', href: 'board.html', tip: 'One place to add or remove board members, set officer titles, and upload headshots.' },
-    { id: 'group-announce', t: 'Email everyone in a group', kw: 'group email announce members notify meeting reminder agenda blast', href: 'groups.html', tip: 'Manage a group → "📣 Email group members" sends your message to the whole roster.' },
-    { id: 'group-add-meeting', t: 'Add a group\'s meeting to the calendar (one date or monthly)', kw: 'group meeting add event calendar monthly recurring schedule series network circle', href: 'groups.html', tip: 'Manage a group → the "Meetings & events" section (below the manager box) → "＋ Add a meeting". Choose Monthly to lay out the coming months in one go.' },
+    { id: 'group-announce', t: 'Email everyone in a group', kw: 'group email announce members notify meeting reminder agenda blast', href: 'groups.html', tip: 'Manage a group → ✉️ Email the group. It looks like an email: subject, message, and a meeting to attach — its date, place and Add-to-calendar buttons go under your message.' },
+    { id: 'group-add-meeting', t: 'Add a group\'s meeting to the calendar (one date or monthly)', kw: 'group meeting add event calendar monthly recurring schedule series network circle', href: 'groups.html', tip: 'Manage a group → 📅 Meetings → ＋ Add a meeting. Pick the first date, then How often — e.g. Once a month → 1st → Wed. The calendar shows every date before you add them. On Admin → Events, ⟳ Repeat does the same for any event.' },
     { id: 'support', t: 'Submit a support request to Heed', kw: 'support help ticket problem bug broken screenshot heed contact', href: 'about.html', sel: '#supportForm', tip: 'Send us a message with a screenshot — or use the 🛟 Support button on any page.' },
   ];
   function openHelp() {
@@ -3385,6 +3385,52 @@ window.Admin = (function () {
       a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent('﻿' + csv);
       a.download = name; a.click();
     }
+    /* ⟳ Repeat (Michael, Nov 17 2026: "The events need the ability to make
+       meeting times recurring without having to add it every time"). Copies
+       this event — flyer, prices, links, everything — onto each date picked,
+       through the same Duplicate the server already does one date at a time.
+       The picker is js/group-tools.js: how often, which week, which day, and
+       a calendar of every date before anything is added. */
+    function openRepeat(ev) {
+      if (!ev || !window.WVRecur) return;
+      if (document.querySelector('[data-repeat-modal]')) return;
+      const ov = document.createElement('div');
+      ov.className = 'chat-modal'; ov.setAttribute('data-repeat-modal', '');
+      ov.innerHTML = `<div class="chat-modal__box" style="max-width:780px;max-height:90vh;overflow:auto">
+        <button class="chat-modal__x" data-x aria-label="Close" type="button">×</button>
+        <h2 style="margin:0 0 4px">Repeat “${esc(ev.title)}”</h2>
+        <p class="sub" style="margin:0 0 12px">Each date becomes its own copy of this event, with everything on it. You can still change one date later without touching the others.</p>
+        <div class="field" style="max-width:260px;margin:0"><label>Start from <span class="sub">(click for a calendar)</span></label><input type="date" data-start></div>
+        <div data-recur></div>
+        <p class="sub" data-out style="margin:10px 0 0"></p>
+        <div style="display:flex;gap:10px;margin-top:12px">
+          <button type="button" class="btn btn--forest" data-go>Add these dates</button>
+          <button type="button" class="btn btn--ghost" data-x>Cancel</button>
+        </div>
+      </div>`;
+      document.body.appendChild(ov);
+      const close = () => ov.remove();
+      ov.addEventListener('click', (e) => { if (e.target === ov || e.target.closest('[data-x]')) close(); });
+      const start = ov.querySelector('[data-start]');
+      start.value = ev.date || '';
+      const picker = WVRecur.mount(ov.querySelector('[data-recur]'), { dateInput: start, how: 'monthly' });
+      const out = ov.querySelector('[data-out]');
+      ov.querySelector('[data-go]').addEventListener('click', async (e) => {
+        const dates = picker.getDates().filter((d) => d !== ev.date);
+        if (!dates.length) { out.textContent = 'No new dates are picked yet.'; return; }
+        if (!confirm(`Add ${dates.length} more date${dates.length === 1 ? '' : 's'} for "${ev.title}" (${picker.describe()})?`)) return;
+        e.target.disabled = true;
+        let made = 0, failed = 0;
+        for (const d of dates) {
+          out.textContent = `Adding ${made + failed + 1} of ${dates.length}…`;
+          try { await api(`/api/admin/events/${encodeURIComponent(ev.id)}/duplicate`, { method: 'POST', body: JSON.stringify({ date: d }) }); made++; }
+          catch (err) { failed++; }
+        }
+        close();
+        alert(`✓ ${made} date${made === 1 ? '' : 's'} added to the calendar${failed ? ` — ${failed} could not be added` : ''}.`);
+        load();
+      });
+    }
     async function openEventActivity(ev) {
       if (document.querySelector('[data-ev-activity]')) return;
       const ov = document.createElement('div');
@@ -3479,7 +3525,7 @@ window.Admin = (function () {
         <td>${e.date ? esc((e.month || '') + ' ' + (e.day || '') + (e.date.slice(0, 4) !== String(new Date().getFullYear()) ? ' ' + e.date.slice(0, 4) : '')) : '<span class="pill pill--pending">TBA</span>'}<div class="sub">${esc(e.time || '')}</div></td>
         <td>${esc(e.venue || e.neighborhood || '')}</td>
         <td>${statusPill(e.status || 'approved')}${e.featured ? ` <span class="pill pill--approved">home${Number.isFinite(Number(e.homeOrder)) && e.homeOrder ? ' #' + e.homeOrder : ''}</span>` : ''}${e.ticketed ? ' 🎟' : ''}${e.fund === 'foundation' ? ' <span class="pill" title="Ticket money from this event is deposited to the Community Benefit Foundation">CBF</span>' : ''}${e.soldOut ? ' <span class="pill pill--pending" title="Ticket sales closed — visitors see a Sold Out notice">SOLD OUT</span>' : ''}</td>
-        <td style="white-space:nowrap">${(e.status || 'approved') !== 'approved' ? '<button class="btn btn--forest btn--sm" data-publish title="Make this event live on the website right now">✓ Publish</button> ' : ''}${evPreviewLink(e)}<button class="btn btn--ghost btn--sm" data-activity title="RSVPs and payments for this event">RSVPs / $</button> <button class="btn btn--ghost btn--sm" data-edit>Edit</button> <button class="btn btn--ghost btn--sm" data-del>Delete</button></td>
+        <td style="white-space:nowrap">${(e.status || 'approved') !== 'approved' ? '<button class="btn btn--forest btn--sm" data-publish title="Make this event live on the website right now">✓ Publish</button> ' : ''}${evPreviewLink(e)}<button class="btn btn--ghost btn--sm" data-activity title="RSVPs and payments for this event">RSVPs / $</button> <button class="btn btn--ghost btn--sm" data-edit>Edit</button> <button class="btn btn--ghost btn--sm" data-repeat title="Copy this event onto more dates — every week, or the first Wednesday of every month">⟳ Repeat</button> <button class="btn btn--ghost btn--sm" data-del>Delete</button></td>
       </tr>`).join('') : `<tr><td colspan="5" class="sub">${q ? 'No events match that search.' : (evTab === 'past' ? 'No past events.' : 'No upcoming events. Create one above.')}</td></tr>`;
       rowsEl.querySelectorAll('tr[data-id]').forEach((tr) => {
         const id = tr.dataset.id;
@@ -3496,6 +3542,7 @@ window.Admin = (function () {
           catch (err) { e2.target.disabled = false; e2.target.textContent = '✓ Publish'; alert('Could not publish: ' + (err.message || 'error')); }
         });
         tr.querySelector('[data-activity]').addEventListener('click', () => openEventActivity(allEvents.find((x) => x.id === id)));
+        tr.querySelector('[data-repeat]')?.addEventListener('click', () => openRepeat(allEvents.find((x) => x.id === id)));
         tr.querySelector('[data-edit]').addEventListener('click', () => { fillForm(allEvents.find((x) => x.id === id)); showEvForm(); });
         tr.querySelector('[data-del]').addEventListener('click', async () => { if (!confirm('Delete this event?')) return; await api('/api/admin/events/' + encodeURIComponent(id), { method: 'DELETE' }); load(); });
       });
@@ -5349,6 +5396,34 @@ window.Admin = (function () {
     let heroUrl = '', logoUrl = '', photos = [];
 
     const note = (t, ok) => { msg.hidden = false; msg.textContent = t; msg.style.color = ok ? 'var(--green)' : 'inherit'; };
+    /* One job at a time (Michael, Nov 17 2026): big buttons across the top,
+       one pane underneath. All panes stay inside #groupForm. */
+    const tabsEl = document.getElementById('grpTabs');
+    let curTab = 'meetings';
+    function showTab(name) {
+      curTab = name;
+      document.querySelectorAll('#groupForm [data-tabpane]').forEach((p) => { p.hidden = p.dataset.tabpane !== name; });
+      tabsEl?.querySelectorAll('[data-tab]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.tab === name ? 'true' : 'false'));
+      if (name === 'email') renderCompose();
+      if (name === 'photos') renderMeetingPhotos();
+    }
+    tabsEl?.querySelectorAll('[data-tab]').forEach((b) => b.addEventListener('click', () => showTab(b.dataset.tab)));
+    // A required box on a hidden pane would block Save with no visible reason.
+    form.addEventListener('invalid', () => showTab('page'), true);
+    const groupId = () => form.querySelector('[name="id"]')?.value || '';
+    /* Roster edits save on the spot once the group exists (Nov 17 2026), the
+       way approvals already did. "Changes are saved when you click Save group
+       below" was one more thing to remember, three screens away. */
+    async function persistRoster(label) {
+      const gid = groupId();
+      if (!gid) { note(`${label} — click Save group to keep it.`, true); return true; }
+      try {
+        const r = await api(`/api/admin/groups/${encodeURIComponent(gid)}/members`, { method: 'POST', body: JSON.stringify({ members }) });
+        if (r && Array.isArray(r.members)) members = r.members;
+        note(`${label} ✓ Saved.`, true);
+        return true;
+      } catch (err) { note('Could not save that — please try again.'); return false; }
+    }
     const upload = async (file) => {
       const dataUrl = await downscaleImage(file, 1600, 0.85);
       const r = await api('/api/me/asset', { method: 'POST', body: JSON.stringify({ kind: 'photo', dataUrl }) });
@@ -5496,30 +5571,47 @@ window.Admin = (function () {
           const m = members.find((x) => x.id === row.dataset.mid);
           // Re-render on a role change so the email box appears the moment
           // somebody is made a leader, and goes away when they are not.
-          row.querySelector('[data-role]')?.addEventListener('change', (e) => { m.role = e.target.value; renderRoster(); });
+          row.querySelector('[data-role]')?.addEventListener('change', async (e) => { m.role = e.target.value; renderRoster(); await persistRoster(`${m.name} is now ${m.role}`); renderRoster(); });
           row.querySelector('[data-email]')?.addEventListener('input', (e) => { m.email = e.target.value.trim(); });
-          row.querySelector('[data-remove]')?.addEventListener('click', () => { members = members.filter((x) => x.id !== m.id); renderRoster(); });
+          row.querySelector('[data-email]')?.addEventListener('change', () => persistRoster(`Sign-in email for ${m.name}`));
+          row.querySelector('[data-remove]')?.addEventListener('click', async () => {
+            if (!confirm(`Take ${m.name} off this group?`)) return;
+            const before = members.slice();
+            members = members.filter((x) => x.id !== m.id); renderRoster();
+            if (!await persistRoster(`${m.name} removed`)) { members = before; }
+            renderRoster();
+          });
         });
       }
     }
-    function addMember(entry) {
-      if (entry.memberId && members.some((m) => m.memberId === entry.memberId)) { note('That member is already in the group.'); return; }
-      members.push(Object.assign({ id: 'gm-' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36), role: 'Member', status: 'active', source: entry.memberId ? 'admin' : 'manual' }, entry));
+    async function addMember(entry) {
+      // The same person from the same listing is already there; a second
+      // person from that business is not (Nov 17 2026 — people, not companies).
+      const same = (m) => String(m.name || '').trim().toLowerCase() === String(entry.name || '').trim().toLowerCase()
+        && (entry.memberId ? m.memberId === entry.memberId : !m.memberId);
+      if (members.some(same)) { note(`${entry.name} is already in the group.`); return; }
+      const row = Object.assign({ id: 'gm-' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36), role: 'Member', status: 'active', source: entry.memberId ? 'admin' : 'manual' }, entry);
+      members.push(row);
+      renderRoster();
+      if (!await persistRoster(`${entry.name} added`)) { members = members.filter((x) => x.id !== row.id); }
       renderRoster();
     }
     const searchEl = document.getElementById('grpMemberSearch');
     const suggEl = document.getElementById('grpMemberSuggest');
     if (searchEl && suggEl) {
+      // People by name (Michael, Nov 17 2026: "add people to the groups by
+      // name, not just company"): the listing's contact and its "Meet the
+      // team" people each come up on their own, with the business beside them.
       searchEl.addEventListener('input', async () => {
-        const q = searchEl.value.trim().toLowerCase();
-        if (q.length < 2) { suggEl.hidden = true; return; }
-        const list = (await directory()).filter((m) => [m.name, m.category, m.neighborhood, m.contactName].filter(Boolean).join(' ').toLowerCase().includes(q)).slice(0, 8);
-        suggEl.innerHTML = list.length ? list.map((m) => `<button type="button" data-add="${esc(m.id)}"><b>${esc(m.name)}</b><span>${esc(m.category || '')}${m.neighborhood ? ' · ' + esc(m.neighborhood) : ''}</span></button>`).join('') : '<button type="button" disabled><span>No matches</span></button>';
+        if (searchEl.value.trim().length < 2) { suggEl.hidden = true; return; }
+        const list = WVPeople.searchPeople(await directory(), searchEl.value, 10);
+        suggEl.innerHTML = list.length ? list.map((p, i) => `<button type="button" data-pick="${i}">${WVPeople.suggestionHtml(p)}</button>`).join('')
+          : '<button type="button" disabled><span>Nobody by that name in the directory — use “Add someone who isn\'t in the directory” below.</span></button>';
         suggEl.hidden = false;
-        suggEl.querySelectorAll('[data-add]').forEach((b) => b.addEventListener('click', () => {
-          const m = (_dir || []).find((x) => x.id === b.dataset.add); if (!m) return;
-          addMember({ memberId: m.id, name: m.name, business: m.category || '' });
+        suggEl.querySelectorAll('[data-pick]').forEach((b) => b.addEventListener('click', () => {
+          const p = list[+b.dataset.pick]; if (!p) return;
           searchEl.value = ''; suggEl.hidden = true;
+          addMember(WVPeople.rowFor(p));
         }));
       });
       document.addEventListener('click', (e) => { if (!e.target.closest('#grpMemberSearch,#grpMemberSuggest')) suggEl.hidden = true; });
@@ -5528,7 +5620,7 @@ window.Admin = (function () {
     if (manualBtn) manualBtn.addEventListener('click', () => {
       const nm = document.getElementById('grpManualName');
       if (!nm.value.trim()) { note('Enter a name to add.'); return; }
-      addMember({ name: nm.value.trim(), business: document.getElementById('grpManualBiz').value.trim(), email: document.getElementById('grpManualEmail').value.trim() });
+      addMember({ memberId: null, name: nm.value.trim(), business: document.getElementById('grpManualBiz').value.trim(), email: document.getElementById('grpManualEmail').value.trim() });
       nm.value = ''; document.getElementById('grpManualBiz').value = ''; document.getElementById('grpManualEmail').value = '';
     });
 
@@ -5538,15 +5630,15 @@ window.Admin = (function () {
     const mgrSugg = document.getElementById('grpMgrSuggest');
     if (mgrSearch && mgrSugg) {
       mgrSearch.addEventListener('input', async () => {
-        const q = mgrSearch.value.trim().toLowerCase();
-        if (q.length < 2) { mgrSugg.hidden = true; return; }
-        const list = (await directory()).filter((m) => [m.name, m.category, m.contactName, m.neighborhood].filter(Boolean).join(' ').toLowerCase().includes(q)).slice(0, 8);
-        mgrSugg.innerHTML = list.length ? list.map((m) => `<button type="button" data-mgr="${esc(m.id)}"><b>${esc(m.contactName || m.name)}</b><span>${esc(m.name)}${m.email ? ' · ' + esc(m.email) : ''}</span></button>`).join('') : '<button type="button" disabled><span>No matches</span></button>';
+        if (mgrSearch.value.trim().length < 2) { mgrSugg.hidden = true; return; }
+        const list = WVPeople.searchPeople(await directory(), mgrSearch.value, 10);
+        mgrSugg.innerHTML = list.length ? list.map((p, i) => `<button type="button" data-mgr="${i}">${WVPeople.suggestionHtml(p)}</button>`).join('') : '<button type="button" disabled><span>No matches</span></button>';
         mgrSugg.hidden = false;
         mgrSugg.querySelectorAll('[data-mgr]').forEach((b) => b.addEventListener('click', () => {
-          const m = (_dir || []).find((x) => x.id === b.dataset.mgr); if (!m) return;
+          const p = list[+b.dataset.mgr]; if (!p) return;
+          const m = (_dir || []).find((x) => x.id === p.memberId); if (!m) return;
           managerMemberId = m.id;
-          document.getElementById('grpMgrName').value = m.contactName || m.name || '';
+          document.getElementById('grpMgrName').value = p.person || m.contactName || m.name || '';
           document.getElementById('grpMgrEmail').value = m.email || '';
           const mgrPh = document.getElementById('grpMgrPhone');
           if (mgrPh && !mgrPh.value) mgrPh.value = m.phone || '';
@@ -5566,126 +5658,227 @@ window.Admin = (function () {
        existed ONLY on the leader's side of the site. */
     let currentGroup = null;
     let gmLastCreated = [];               // ids from the last save, for Undo
+    let gEvents = { upcoming: [], past: [] };
+    let showPast = false, showAllUp = false;
+    let albumsByEvent = new Map();        // eventId → album (id, count)
+    let compose = { subject: '', body: '', eventId: null };
 
-    const GM_WD = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const GM_NTH = ['first', 'second', 'third', 'fourth', 'fifth'];
-    const gmIso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     const gmEl = (id) => document.getElementById(id);
+    const fmtD = (s) => { const d = s ? new Date(s + 'T12:00:00') : null; return d && !isNaN(d) ? d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : (s || 'no date'); };
     function gmSay(html, ok) {
       const m = gmEl('gmMsg'); if (!m) return;
       m.hidden = false; m.innerHTML = html;
       m.style.color = ok ? 'var(--green-deep,#1E5631)' : 'var(--red,#b3261e)';
     }
-    // Same pattern reading as the leader's ⟳ tool (member/member.js), so a
-    // series the office builds lands on exactly the dates the leader would get.
-    function gmPatternOf(dstr) {
-      const d = new Date(dstr + 'T12:00:00');
-      if (isNaN(d)) return null;
-      const nth = Math.ceil(d.getDate() / 7);
-      const daysInMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
-      const isLast = d.getDate() + 7 > daysInMonth;
-      // A "5th Tuesday" almost never repeats — treat 4th/5th-and-last as "last".
-      return { weekday: d.getDay(), nth, useLast: isLast && nth >= 4, base: d };
-    }
-    function gmNthWeekdayOf(year, month, weekday, nth, useLast) {
-      if (useLast) {
-        const last = new Date(year, month + 1, 0);
-        return new Date(year, month, last.getDate() - ((last.getDay() - weekday + 7) % 7));
-      }
-      const first = new Date(year, month, 1);
-      const day = 1 + ((weekday - first.getDay() + 7) % 7) + (nth - 1) * 7;
-      if (day > new Date(year, month + 1, 0).getDate()) return null; // no 5th X this month
-      return new Date(year, month, day);
-    }
-    function gmDrawMonthly() {
-      const box = gmEl('gmMonthlyBox'); if (!box) return;
-      const on = (document.querySelector('input[name="gmRepeat"]:checked') || {}).value === 'monthly';
-      box.hidden = !on;
-      if (!on) return;
-      const lbl = gmEl('gmMonthlyLabel'); const list = gmEl('gmDates');
-      const p = gmPatternOf((gmEl('gmDate').value || ''));
-      if (!p) { lbl.textContent = 'Pick the first date above and the schedule fills in here.'; list.innerHTML = ''; return; }
-      lbl.innerHTML = `Repeats on the <strong>${p.useLast ? 'last' : GM_NTH[p.nth - 1]} ${GM_WD[p.weekday]}</strong> of each month.`;
-      const months = Math.max(1, Math.min(12, parseInt(gmEl('gmMonths').value, 10) || 6));
-      const out = [];
-      for (let i = 1; i <= months && out.length < 12; i++) {
-        const d = gmNthWeekdayOf(p.base.getFullYear(), p.base.getMonth() + i, p.weekday, p.nth, p.useLast);
-        if (d) out.push(gmIso(d));
-      }
-      list.innerHTML = out.map((s) => {
-        const d = new Date(s + 'T12:00:00');
-        return `<label class="chip" style="margin:0 6px 6px 0"><input type="checkbox" data-gmdate value="${s}" checked style="margin-right:6px">${d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</label>`;
-      }).join('') || '<span class="sub">No matching dates found.</span>';
-    }
+    /* How often (Michael, Nov 17 2026: "If it's the first Wednesday of the
+       month, they need to be able to select that as an option with a popup
+       calendar and visible options"). js/group-tools.js draws the choices and
+       a month calendar of every date it will add. */
+    const gmRecur = gmEl('gmRecur') && window.WVRecur ? WVRecur.mount(gmEl('gmRecur'), { dateInput: gmEl('gmDate') }) : null;
     function closeMeetingBox() {
       const box = gmEl('grpMeetingBox'); if (box) box.hidden = true;
-      const msg = gmEl('gmMsg'); if (msg) msg.hidden = true;
+      const m = gmEl('gmMsg'); if (m) m.hidden = true;
       gmLastCreated = [];
     }
     function openMeetingBox() {
       if (!currentGroup) return;
       ['gmTitle', 'gmDate', 'gmTime', 'gmEndTime', 'gmVenue', 'gmAddress', 'gmSummary', 'gmRsvpEmail']
         .forEach((id) => { const el = gmEl(id); if (el) el.value = ''; });
-      // Pre-fill from what the group already told us, so the common case is
-      // "pick a date, Save". The schedule line is the leader's own wording.
       gmEl('gmTitle').value = currentGroup.name || '';
       gmEl('gmCategory').value = 'Networking';
       gmEl('gmRsvp').checked = false;
       gmEl('gmRsvpEmailWrap').hidden = true;
-      const one = document.querySelector('input[name="gmRepeat"][value="none"]');
-      if (one) one.checked = true;
-      gmEl('gmMonthlyBox').hidden = true;
-      gmEl('gmDates').innerHTML = '';
-      const msg = gmEl('gmMsg'); if (msg) msg.hidden = true;
+      if (gmRecur) gmRecur.reset();
+      const m = gmEl('gmMsg'); if (m) m.hidden = true;
       gmLastCreated = [];
       const box = gmEl('grpMeetingBox');
       if (box) { box.hidden = false; box.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
       gmEl('gmTitle').focus();
     }
-    // This group's events, soonest first. Reads the same admin list the Events
-    // page does, so what she sees here is what is really on the calendar.
-    async function renderGroupEvents() {
-      const host = gmEl('grpEventList'); if (!host || !currentGroup) return;
-      host.innerHTML = '<p class="sub" style="margin:4px 0">Loading meetings…</p>';
+    // This group's events, from the same list the Events page reads.
+    async function loadGroupEvents() {
+      gEvents = { upcoming: [], past: [] };
+      if (!currentGroup) return false;
       let all = [];
-      try { all = (await api('/api/admin/events')).events || []; }
-      catch (err) { host.innerHTML = '<p class="sub" style="margin:4px 0">Could not load this group\'s meetings.</p>'; return; }
+      try { all = (await api('/api/admin/events')).events || []; } catch (err) { return false; }
       const slug = currentGroup.slug;
       const mine = all.filter((e) => e.groupSlug === slug || e.hostSlug === slug);
-      const today = new Date().toISOString().slice(0, 10);
-      const upcoming = mine.filter((e) => (e.date || '') >= today).sort((a, b) => String(a.date).localeCompare(String(b.date)));
-      const past = mine.length - upcoming.length;
-      if (!upcoming.length) {
-        host.innerHTML = `<p class="sub" style="margin:4px 0">Nothing upcoming on the calendar for this group${past ? ` (${past} past)` : ''} — use <strong>＋ Add a meeting</strong>.</p>`;
-        return;
-      }
-      host.innerHTML = upcoming.slice(0, 14).map((e) => {
-        const d = e.date ? new Date(e.date + 'T12:00:00') : null;
-        const when = d ? d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : 'no date';
-        const pend = (e.status || 'approved') !== 'approved'
-          ? ` <span class="pill pill--pending" title="Not on the public calendar yet">${esc(e.status || '')}</span>` : '';
-        return `<div data-gev="${esc(e.id)}" style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--line,#eee);flex-wrap:wrap">
-          <span style="flex:1;min-width:200px"><strong>${esc(e.title)}</strong>${pend}<div class="sub">${esc(when)}${e.time ? ' · ' + esc(e.time) : ''}${e.venue ? ' · ' + esc(e.venue) : ''}</div></span>
-          <a class="btn btn--ghost btn--sm" href="events.html?focus=${encodeURIComponent(e.id)}">Edit</a>
-          <button type="button" class="btn btn--ghost btn--sm" data-gdel style="color:var(--red)">Remove</button>
-        </div>`;
-      }).join('') + (upcoming.length > 14 ? `<p class="sub" style="margin:6px 0 0">+ ${upcoming.length - 14} more on the Events page.</p>` : '')
-        + (past ? `<p class="sub" style="margin:6px 0 0">${past} past meeting${past === 1 ? '' : 's'} not shown.</p>` : '');
+      const today = new Date().toLocaleDateString('en-CA');
+      gEvents.upcoming = mine.filter((e) => (e.date || '') >= today).sort((x, y) => String(x.date).localeCompare(String(y.date)));
+      gEvents.past = mine.filter((e) => (e.date || '') < today).sort((x, y) => String(y.date).localeCompare(String(x.date)));
+      try {
+        const albums = (await api('/api/albums')).albums || [];
+        albumsByEvent = new Map(albums.filter((al) => al.eventId).map((al) => [al.eventId, al]));
+      } catch (err) { albumsByEvent = new Map(); }
+      return true;
+    }
+    const photoBtn = (e) => {
+      const al = albumsByEvent.get(e.id);
+      return `<label class="btn btn--ghost btn--sm" style="cursor:pointer" title="Add as many photos as you like — they go into this meeting's album">📷 Add photos${al && al.count ? ` (${al.count})` : ''}<input type="file" accept="image/*" multiple hidden data-evphotos="${esc(e.id)}"></label>`;
+    };
+    const evRow = (e, isPast) => {
+      const pend = (e.status || 'approved') !== 'approved'
+        ? ` <span class="pill pill--pending" title="Not on the public calendar yet">${esc(e.status || '')}</span>` : '';
+      return `<div class="grp-ev" data-gev="${esc(e.id)}">
+        <span style="flex:1;min-width:220px"><strong>${esc(e.title)}</strong>${pend}<div class="sub">${esc(fmtD(e.date))}${e.time ? ' · ' + esc(e.time) : ''}${e.venue ? ' · ' + esc(e.venue) : ''}</div></span>
+        ${isPast ? '' : `<button type="button" class="btn btn--ghost btn--sm" data-gmail title="Email the group about this meeting — with Add to calendar buttons">✉️ Email the group about it</button>`}
+        ${photoBtn(e)}
+        <a class="btn btn--ghost btn--sm" href="events.html?focus=${encodeURIComponent(e.id)}">Edit</a>
+        <button type="button" class="btn btn--ghost btn--sm" data-gdel style="color:var(--red)">Remove</button>
+      </div>`;
+    };
+    function drawGroupEvents() {
+      const host = gmEl('grpEventList'); if (!host || !currentGroup) return;
+      const { upcoming, past } = gEvents;
+      const LIMIT = 8;
+      const shownUp = showAllUp ? upcoming : upcoming.slice(0, LIMIT);
+      host.innerHTML = `<h5 style="margin:6px 0 4px;font-size:1rem">Coming up${upcoming.length ? ` (${upcoming.length})` : ''}</h5>`
+        + (upcoming.length ? shownUp.map((e) => evRow(e, false)).join('')
+          : '<p class="sub" style="margin:4px 0">Nothing coming up — use <strong>＋ Add a meeting</strong>.</p>')
+        + (upcoming.length > LIMIT ? `<button type="button" class="btn btn--ghost btn--sm" data-allup style="margin-top:8px">${showAllUp ? 'Show fewer' : `Show all ${upcoming.length} coming up ▾`}</button>` : '')
+        // "If there are future meetings set, it should show them or at least
+        // provide an expansion option and not just '13 past meetings not
+        // shown.'" (Michael, Nov 17 2026)
+        + (past.length ? `<div style="margin-top:14px"><button type="button" class="btn btn--ghost btn--sm" data-past aria-expanded="${showPast}">${showPast ? 'Hide past meetings ▴' : `Show ${past.length} past meeting${past.length === 1 ? '' : 's'} ▾`}</button></div>`
+          + (showPast ? `<h5 style="margin:10px 0 4px;font-size:1rem">Past meetings (newest first)</h5>${past.map((e) => evRow(e, true)).join('')}` : '') : '');
+      host.querySelector('[data-allup]')?.addEventListener('click', () => { showAllUp = !showAllUp; drawGroupEvents(); });
+      host.querySelector('[data-past]')?.addEventListener('click', () => { showPast = !showPast; drawGroupEvents(); });
+      bindEventRows(host);
+    }
+    function bindEventRows(host) {
       host.querySelectorAll('[data-gev]').forEach((row) => {
+        const ev = [...gEvents.upcoming, ...gEvents.past].find((x) => x.id === row.dataset.gev); if (!ev) return;
         row.querySelector('[data-gdel]')?.addEventListener('click', async () => {
-          const ev = upcoming.find((x) => x.id === row.dataset.gev); if (!ev) return;
-          if (!confirm(`Remove "${ev.title}" on ${ev.date} from the calendar?\n\nThis deletes that one date. Other dates in the series stay.`)) return;
+          if (!confirm(`Remove "${ev.title}" on ${fmtD(ev.date)} from the calendar?\n\nThis deletes that one date. Other dates stay.`)) return;
           try { await api('/api/admin/events/' + encodeURIComponent(ev.id), { method: 'DELETE' }); renderGroupEvents(); }
           catch (err) { alert('Could not remove that meeting.'); }
         });
+        row.querySelector('[data-gmail]')?.addEventListener('click', () => { compose.eventId = ev.id; showTab('email'); });
+      });
+      host.querySelectorAll('[data-evphotos]').forEach((inp) => inp.addEventListener('change', async (e) => {
+        const files = [...e.target.files]; e.target.value = '';
+        const ev = [...gEvents.upcoming, ...gEvents.past].find((x) => x.id === inp.dataset.evphotos);
+        if (ev && files.length) await addMeetingPhotos(ev, files);
+      }));
+    }
+    async function renderGroupEvents() {
+      const host = gmEl('grpEventList'); if (!host || !currentGroup) return;
+      host.innerHTML = '<p class="sub" style="margin:4px 0">Loading meetings…</p>';
+      if (!await loadGroupEvents()) { host.innerHTML = '<p class="sub" style="margin:4px 0">Could not load this group\'s meetings.</p>'; return; }
+      drawGroupEvents();
+      if (curTab === 'photos') renderMeetingPhotos();
+    }
+
+    /* 📷 Photos for one meeting, many at once (Michael, Nov 17 2026: "the
+       ability to add multiple photos to create meeting galleries / photos
+       from the events"). The album is made the first time, named after the
+       meeting and tied to it, so it shows on that meeting's page and on the
+       group's page. Each photo goes up in two sizes, like Admin → Photo Albums. */
+    async function addMeetingPhotos(ev, files) {
+      files = files.filter((f) => /^image\//.test(f.type || '')).slice(0, 60);
+      if (!files.length) { note('Those weren’t photos — pick JPG or PNG files.'); return; }
+      note(`Uploading ${files.length} photo${files.length === 1 ? '' : 's'} for “${ev.title}”… keep this page open.`, true);
+      try {
+        let al = albumsByEvent.get(ev.id);
+        if (!al) {
+          al = (await api('/api/admin/albums', { method: 'POST', body: JSON.stringify({ title: `${ev.title} — ${fmtD(ev.date)}`, eventId: ev.id, groupSlug: currentGroup.slug, photos: [] }) })).album;
+        }
+        const urls = [];
+        let n = 0;
+        for (const f of files) {
+          n++; note(`Uploading photo ${n} of ${files.length}…`, true);
+          try {
+            const up = await api('/api/me/asset', { method: 'POST', body: JSON.stringify({ dataUrl: await downscaleImage(f, 1800, 0.85) }) });
+            if (!up || !up.url) continue;
+            let thumb = '';
+            try { thumb = (await api('/api/me/asset', { method: 'POST', body: JSON.stringify({ dataUrl: await downscaleImage(f, 400, 0.82) }) })).url || ''; } catch (e2) {}
+            urls.push({ url: up.url, thumb });
+          } catch (e2) { /* skip that one */ }
+        }
+        if (!urls.length) { note('None of those uploaded — try smaller photos.'); return; }
+        const full = (await api('/api/albums/' + encodeURIComponent(al.id))).album;
+        await api('/api/admin/albums/' + encodeURIComponent(al.id), { method: 'PATCH', body: JSON.stringify({
+          title: full.title, body: full.body, cover: full.cover, eventId: full.eventId || ev.id,
+          groupSlug: full.groupSlug || currentGroup.slug, locked: full.locked, photos: full.photos.concat(urls),
+        }) });
+        note(`✓ ${urls.length} photo${urls.length === 1 ? '' : 's'} added to “${full.title}”${urls.length < files.length ? ` (${files.length - urls.length} could not be uploaded)` : ''}. They show on the meeting's page now.`, true);
+        await renderGroupEvents();
+      } catch (err) { note('Could not add the photos — please try again.'); }
+    }
+    function renderMeetingPhotos() {
+      const host = gmEl('grpMeetingPhotos'); if (!host) return;
+      if (!currentGroup || !currentGroup.slug) { host.innerHTML = '<p class="sub">Save the group first, then add photos to its meetings.</p>'; return; }
+      const list = [...gEvents.past.slice(0, 12), ...gEvents.upcoming.slice(0, 3)];
+      host.innerHTML = list.length ? list.map((e) => {
+        const al = albumsByEvent.get(e.id);
+        return `<div class="grp-ev" data-gev="${esc(e.id)}">
+          <span style="flex:1;min-width:220px"><strong>${esc(e.title)}</strong><div class="sub">${esc(fmtD(e.date))}${al ? ` · ${al.count} photo${al.count === 1 ? '' : 's'} · <a href="../albums/${encodeURIComponent(al.id)}" target="_blank">see the album ↗</a>` : ' · no photos yet'}</div></span>
+          ${photoBtn(e)}
+        </div>`;
+      }).join('') : '<p class="sub">No meetings yet — add one under 📅 Meetings, then come back for its photos.</p>';
+      bindEventRows(host);
+    }
+
+    /* ✉️ Email the group, laid out like an email (Michael, Nov 17 2026: "it
+       needs to load like an email, not just in steps, it's too confusing").
+       It replaced three pop-up boxes in a row. A meeting can be attached: its
+       date, place and Add to calendar buttons go under the message. */
+    function renderCompose() {
+      const host = gmEl('grpCompose'); const need = gmEl('grpEmailNeedSave');
+      if (!host) return;
+      if (!groupId()) { if (need) need.hidden = false; host.innerHTML = ''; return; }
+      if (need) need.hidden = true;
+      const active = members.filter((m) => m.status !== 'pending');
+      const dirEmail = new Map((_dir || []).map((m) => [m.id, m.email || '']));
+      const hasEmail = (m) => !!(m.email || dirEmail.get(m.memberId));
+      if (compose.eventId === null) compose.eventId = (gEvents.upcoming[0] || {}).id || '';
+      const evOpts = [...gEvents.upcoming.slice(0, 12), ...gEvents.past.slice(0, 4)];
+      host.innerHTML = `<div class="grp-mail">
+        <div class="grp-mail__row"><label>To</label>
+          <span style="flex:1">All <strong>${active.length}</strong> member${active.length === 1 ? '' : 's'} of ${esc(currentGroup ? currentGroup.name : 'this group')}
+          ${active.length ? '<button type="button" class="btn btn--ghost btn--sm" data-who style="margin-left:6px">See who</button>' : ''}</span></div>
+        <div data-wholist hidden class="sub" style="padding:8px 14px 10px 94px;border-bottom:1px solid var(--line,#eee)">
+          ${active.map((m) => `${esc(m.name)}${m.business ? ' · ' + esc(m.business) : ''}${hasEmail(m) ? '' : ' <span style="color:var(--red)">(no email on file — skipped)</span>'}`).join('<br>')}
+        </div>
+        <div class="grp-mail__row"><label for="gcSubject">Subject</label><input id="gcSubject" maxlength="160" placeholder="e.g. Our meeting this month" value="${esc(compose.subject)}"></div>
+        <div class="grp-mail__row"><label for="gcEvent">Meeting</label>
+          <select id="gcEvent"><option value="">No meeting attached</option>
+            ${evOpts.map((e) => `<option value="${esc(e.id)}"${e.id === compose.eventId ? ' selected' : ''}>${esc(e.title)} — ${esc(fmtD(e.date))}${e.time ? ' · ' + esc(e.time) : ''}</option>`).join('')}
+          </select></div>
+        <textarea id="gcBody" class="grp-mail__body" maxlength="5000" placeholder="Hi everyone,&#10;&#10;Write your message here.">${esc(compose.body)}</textarea>
+        <div class="grp-mail__foot">
+          <button type="button" class="btn btn--forest" id="gcSend"${active.length ? '' : ' disabled'}>Send to ${active.length} member${active.length === 1 ? '' : 's'}</button>
+          <span class="sub" id="gcHint"></span>
+        </div>
+      </div>
+      <p id="gcMsg" class="sub" style="margin:10px 0 0" hidden></p>`;
+      const hint = () => { gmEl('gcHint').textContent = gmEl('gcEvent').value ? 'The meeting’s date, place and “Add to calendar” buttons go under your message.' : 'Each member gets their own copy — addresses are never shared.'; };
+      hint();
+      host.querySelector('[data-who]')?.addEventListener('click', () => { const w = host.querySelector('[data-wholist]'); w.hidden = !w.hidden; });
+      gmEl('gcSubject').addEventListener('input', (e) => { compose.subject = e.target.value; });
+      gmEl('gcBody').addEventListener('input', (e) => { compose.body = e.target.value; });
+      gmEl('gcEvent').addEventListener('change', (e) => { compose.eventId = e.target.value; hint(); });
+      gmEl('gcSend').addEventListener('click', async (e) => {
+        const out = gmEl('gcMsg');
+        const say2 = (t, ok) => { out.hidden = false; out.textContent = t; out.style.color = ok ? 'var(--green)' : 'var(--red,#b3261e)'; };
+        const subject = compose.subject.trim(); const message = compose.body.trim();
+        if (!subject) { say2('Add a subject first.'); gmEl('gcSubject').focus(); return; }
+        if (!message) { say2('Write the message first.'); gmEl('gcBody').focus(); return; }
+        if (!confirm(`Send “${subject}” to the ${active.length} member${active.length === 1 ? '' : 's'} of ${currentGroup ? currentGroup.name : 'this group'} now?`)) return;
+        e.target.disabled = true; const lbl = e.target.textContent; e.target.textContent = 'Sending…';
+        try {
+          const r = await api(`/api/admin/groups/${encodeURIComponent(groupId())}/announce`, { method: 'POST', body: JSON.stringify({ subject, message, eventId: compose.eventId || '' }) });
+          compose = { subject: '', body: '', eventId: null };
+          renderCompose();
+          const out2 = gmEl('gcMsg'); out2.hidden = false; out2.style.color = 'var(--green)';
+          out2.textContent = `✓ Sent to ${r.sent} member${r.sent === 1 ? '' : 's'}${r.skipped ? ` — ${r.skipped} had no email on file` : ''}.`;
+        } catch (err) { say2('Could not send — please try again.'); e.target.disabled = false; e.target.textContent = lbl; }
       });
     }
+
     gmEl('grpAddMeeting')?.addEventListener('click', openMeetingBox);
     gmEl('gmCancel')?.addEventListener('click', closeMeetingBox);
     gmEl('gmRsvp')?.addEventListener('change', (e) => { gmEl('gmRsvpEmailWrap').hidden = !e.target.checked; });
-    document.querySelectorAll('input[name="gmRepeat"]').forEach((r) => r.addEventListener('change', gmDrawMonthly));
-    gmEl('gmDate')?.addEventListener('change', gmDrawMonthly);
-    gmEl('gmMonths')?.addEventListener('change', gmDrawMonthly);
     // This block sits INSIDE #groupForm (one form per page). Enter in a meeting
     // field would otherwise submit the group form and quietly close the panel.
     gmEl('grpMeetingBox')?.addEventListener('keydown', (e) => {
@@ -5695,15 +5888,11 @@ window.Admin = (function () {
     gmEl('gmSave')?.addEventListener('click', async (e) => {
       if (!currentGroup || !currentGroup.slug) { gmSay('Save the group first, then add its meetings.'); return; }
       const title_ = (gmEl('gmTitle').value || '').trim();
-      const date1 = gmEl('gmDate').value;
       if (!title_) { gmSay('Give the meeting a name.'); return; }
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(date1)) { gmSay('Pick a date for the meeting.'); return; }
+      const dates = gmRecur ? gmRecur.getDates() : (gmEl('gmDate').value ? [gmEl('gmDate').value] : []);
+      if (!dates.length) { gmSay(gmRecur && gmRecur.repeating() ? 'No dates are picked — choose the first date above, or click a date in the calendar back on.' : 'Pick a date for the meeting — click the date box for a calendar.'); return; }
       const rsvp = gmEl('gmRsvp').checked;
-      const monthly = (document.querySelector('input[name="gmRepeat"]:checked') || {}).value === 'monthly';
-      const dates = monthly
-        ? [...new Set([date1, ...[...gmEl('gmDates').querySelectorAll('[data-gmdate]:checked')].map((c) => c.value)])].sort()
-        : [date1];
-      if (dates.length > 1 && !confirm(`Add ${dates.length} dates for "${title_}" to the Chamber calendar?\n\nEach one becomes its own event under ${currentGroup.name}.`)) return;
+      if (dates.length > 1 && !confirm(`Add ${dates.length} dates for "${title_}" to the Chamber calendar (${gmRecur.describe()})?`)) return;
       const base = {
         title: title_,
         category: gmEl('gmCategory').value || 'Networking',
@@ -5713,12 +5902,9 @@ window.Admin = (function () {
         address: (gmEl('gmAddress').value || '').trim(),
         summary: (gmEl('gmSummary').value || '').trim(),
         description: (gmEl('gmSummary').value || '').trim(),
-        // The office IS the approver, so what it posts is published — unlike a
-        // leader's submission, which waits under Events → Needs publish.
+        // The office IS the approver, so what it posts is published.
         status: 'approved', showOnCalendar: true, featured: false, homeOrder: null,
-        // Same opt-in rule as the leader form (Felicia, Aug 12 2026): a meeting
-        // starts with NO button rather than a default RSVP that collects
-        // nothing. Blank address falls back to the manager, then the office.
+        // Same opt-in RSVP rule as the leader form (Felicia, Aug 12 2026).
         hideCta: !rsvp, ticketed: false, alsoRsvp: false, soldOut: false,
         rsvpEmail: rsvp ? ((gmEl('gmRsvpEmail').value || '').trim()
           || (gmEl('grpMgrEmail').value || '').trim()) : '',
@@ -5740,10 +5926,10 @@ window.Admin = (function () {
       btn.disabled = false; btn.textContent = lbl;
       gmLastCreated = made;
       if (!made.length) { gmSay('Could not add the meeting — please try again.'); return; }
-      // Undo matters most here: a mis-read schedule can put 12 wrong dates on
-      // the public calendar in one click, and picking them back off the Events
-      // page one at a time is exactly the chore this button exists to prevent.
-      gmSay(`✓ ${made.length === 1 ? 'Meeting added' : made.length + ' dates added'} to the calendar under <strong>${esc(currentGroup.name)}</strong>${failed ? ` — ${failed} could not be saved` : ''}. <button type="button" id="gmUndo" class="btn btn--ghost btn--sm" style="margin-left:8px">Undo</button>`, true);
+      gmSay(`✓ ${made.length === 1 ? 'Meeting added' : made.length + ' dates added'} to the calendar under <strong>${esc(currentGroup.name)}</strong>${failed ? ` — ${failed} could not be saved` : ''}.
+        <button type="button" id="gmTell" class="btn btn--gold btn--sm" style="margin-left:8px">✉️ Email the group about it</button>
+        <button type="button" id="gmUndo" class="btn btn--ghost btn--sm" style="margin-left:4px">Undo</button>`, true);
+      gmEl('gmTell')?.addEventListener('click', () => { compose.eventId = made[0]; showTab('email'); });
       gmEl('gmUndo')?.addEventListener('click', async (e2) => {
         if (!gmLastCreated.length) return;
         if (!confirm(`Remove the ${gmLastCreated.length} meeting${gmLastCreated.length === 1 ? '' : 's'} you just added?`)) return;
@@ -5754,19 +5940,12 @@ window.Admin = (function () {
         renderGroupEvents();
       });
       renderGroupEvents();
-      // The panel stays OPEN on purpose. Closing it here (the first cut did,
-      // for series) threw away the Undo button and its ids in the exact case
-      // Undo exists for — a twelve-date series read off the wrong weekday.
-      // Only the date and the generated list reset; venue and time carry over,
-      // because the next meeting she adds is usually the same place and hour.
+      // The panel stays open for Undo; only the date and the repeat reset.
       gmEl('gmDate').value = '';
-      gmEl('gmDates').innerHTML = '';
-      gmEl('gmMonthlyBox').hidden = true;
-      const oneOff = document.querySelector('input[name="gmRepeat"][value="none"]');
-      if (oneOff) oneOff.checked = true;
+      if (gmRecur) gmRecur.reset();
     });
 
-    const fill = (g) => {
+    const fill = (g, tab) => {
       title.textContent = g ? `Manage — ${g.name}` : 'New group';
       // The open group, for the meetings builder below — it needs the slug to
       // attribute an event, which a brand-new unsaved group does not have yet.
@@ -5788,11 +5967,15 @@ window.Admin = (function () {
       showLeaderAccess(g);
       renderRoster();
       renderPhotos();
-      // Meetings need a saved group to hang off (slug + attribution), so the
-      // whole section stays out of the way until the group exists.
+      // Meetings need a saved group to hang off (slug + attribution).
       const meetSec = document.getElementById('grpMeetingsSection');
       if (meetSec) meetSec.hidden = !(g && g.slug);
+      const needSave = document.getElementById('grpMeetingsNeedSave');
+      if (needSave) needSave.hidden = !!(g && g.slug);
       closeMeetingBox();
+      compose = { subject: '', body: '', eventId: null };
+      showPast = false; showAllUp = false; gEvents = { upcoming: [], past: [] };
+      showTab(tab || (g && g.slug ? 'meetings' : 'page'));
       if (g && g.slug) renderGroupEvents();
       document.getElementById('grpHeroPrev').textContent = heroUrl ? '✓ hero set' : '';
       // Managing ONE group: the all-groups list hides and the management panel
@@ -5850,23 +6033,6 @@ window.Admin = (function () {
         out.textContent = `✓ Reset link sent to ${addr} (tell them to check spam too).`;
       } catch (err) { out.textContent = 'Could not send: ' + (err.message || 'error'); }
       e.target.disabled = false;
-    });
-
-    // 📣 Email everyone in the current group (announcements, reminders, agendas).
-    document.getElementById('grpAnnounce')?.addEventListener('click', async () => {
-      const gid = form.querySelector('[name="id"]').value;
-      if (!gid) { note('Save the group first, then you can email its members.'); return; }
-      const activeCount = members.filter((m) => m.status !== 'pending').length;
-      if (!activeCount) { note('This group has no members to email yet.'); return; }
-      const subject = prompt(`Email all ${activeCount} members of this group.\n\nSubject:`, '');
-      if (!subject || !subject.trim()) return;
-      const message = prompt('Message (plain text — meeting time, agenda, announcement):', '');
-      if (!message || !message.trim()) return;
-      if (!confirm(`Send "${subject.trim()}" to the members of this group now?\n(Members without an email on file are skipped — the result tells you how many.)`)) return;
-      try {
-        const r = await api(`/api/admin/groups/${encodeURIComponent(gid)}/announce`, { method: 'POST', body: JSON.stringify({ subject: subject.trim(), message: message.trim() }) });
-        note(`✓ Sent to ${r.sent} member${r.sent === 1 ? '' : 's'}${r.skipped ? ` — ${r.skipped} had no email on file` : ''}.`, true);
-      } catch (err) { note('Could not send: ' + (err.message || 'error')); }
     });
 
     /* Whether the group's own leader can run it without the office (Diana,
@@ -5979,8 +6145,11 @@ window.Admin = (function () {
       const btns = [...document.querySelectorAll('[type="submit"][form="groupForm"], #groupForm [type="submit"]')];
       btns.forEach((b) => { b.disabled = true; });
       try {
-        await api('/api/admin/groups', { method: 'POST', body: JSON.stringify(body) });
-        note('Saved ✓', true); backToList();
+        const r = await api('/api/admin/groups', { method: 'POST', body: JSON.stringify(body) });
+        // Stay on the group, on the same job (a new group opens on Meetings,
+        // which is what is usually next). ← All groups goes back to the list.
+        if (r && r.group) { fill(r.group, body.id ? curTab : 'meetings'); note('Saved ✓', true); }
+        else { note('Saved ✓', true); backToList(); }
       } catch (err) { note('Save failed — check required fields.'); }
       finally { btns.forEach((b) => { b.disabled = false; }); }
     });

@@ -71,27 +71,8 @@
         </div>
 
         <div id="recurrenceBlock">
-          <h3 class="mt-5">Repeats?</h3>
-          <div class="field">
-            <label class="chip" style="margin-right:8px"><input type="radio" name="recurrence" value="none" checked style="margin-right:6px">One time</label>
-            <label class="chip" style="margin-right:8px"><input type="radio" name="recurrence" value="weekly" style="margin-right:6px">Every week</label>
-            <label class="chip"><input type="radio" name="recurrence" value="monthly" style="margin-right:6px">Monthly (e.g. first Monday)</label>
-          </div>
-          <div class="field" id="untilField" hidden><label>Repeat weekly until</label><input data-ev="until" type="date" />
-            <div class="member-tile__meta">One entry will be added for each week from the date above through this date.</div>
-          </div>
-          <div class="field" id="monthlyField" hidden>
-            <div id="monthlyLabel" style="margin-bottom:8px"></div>
-            <label>For the next
-              <select id="monthlyMonths" style="width:auto;display:inline-block;margin:0 4px">
-                <option value="3">3 months</option>
-                <option value="6" selected>6 months</option>
-                <option value="12">12 months</option>
-              </select>
-            </label>
-            <div class="member-tile__meta" style="margin:6px 0 8px">Confirm the dates below — uncheck any that shouldn't be created. Each one becomes its own event you can still edit later (venue changes, holidays, and so on).</div>
-            <div id="monthlyDates"></div>
-          </div>
+          <h3 class="mt-5">Does it repeat?</h3>
+          <div id="recurPicker"></div>
         </div>
 
         <div id="actionButtonBlock">
@@ -124,7 +105,8 @@
   <script src="../js/partials.js?v=20261102a"></script>
   <script src="../js/api-base.js?v=20260818a"></script>
   <script src="../js/rich-editor.js?v=20260915b"></script>
-  <script src="member.js?v=20261110a"></script>
+  <script src="../js/group-tools.js?v=20261117a"></script>
+  <script src="member.js?v=20261117a"></script>
   <script>ChamberPartials.mount({ active: '', depth: 1, lang: 'en' }); MemberPortal.initEventForm();</script>
   <script defer src="/js/support.js?v=20260804c"></script>
 </body>
