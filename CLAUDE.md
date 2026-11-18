@@ -237,6 +237,41 @@ not the office, and is left alone.
   so it has no `groupSlug`. The office fixes it: Admin → Events → Edit →
   Host group. The leader page now says so instead of "office event".
 
+## Group management, one job at a time (Nov 17 2026)
+
+Michael's seven asks, all on Admin → Groups → Manage and the leader's own
+Manage group page (`member/group.html`, built in `member.js` `initGroupManage`):
+
+- **Tabs, not one long page.** Big buttons: 📅 Meetings, 👥 Members,
+  ✉️ Email the group, 📷 Photos, (admin only: 🧑‍💼 Leader), 📝 Group page.
+  Admin panes are `[data-tabpane]` sections inside the one `#groupForm`; a
+  required field on a hidden pane switches to it (`invalid` listener).
+- **People by name.** `js/group-tools.js` `WVPeople` splits each listing into
+  its `contactName` and its "Meet the team" people. A pick becomes a roster row
+  named after the person with the business beside it; two people from one
+  business are two rows. Email still resolves from the listing's address.
+  Admin roster edits now save on the spot (`persistRoster`).
+- **Email the group** looks like an email (To / Subject / Meeting / message),
+  no `prompt()` steps. `eventId` attaches one of the group's own approved
+  meetings (`eventsOfGroup`); `backend/calendar-links.js` `eventEmailBlock`
+  puts its date, place and Google / Outlook / Apple buttons under the message.
+  RSVP confirmations carry the same block.
+- **Repeating meetings.** `WVRecur.mount` (group-tools.js): Just once / Every
+  week / Every other week / Once a month → 1st…Last → day, plus month
+  calendars of every date (click to skip). Used by Admin → Groups → Add a
+  meeting, the leader's event form (`body.dates`, max 24) and Admin → Events
+  → **⟳ Repeat** (copies via `/admin/events/:id/duplicate`). Once a month for
+  "6 months" is six meetings.
+- **Past meetings** sit behind "Show N past meetings ▾", never "not shown".
+- **📷 Add photos** on a meeting takes many files at once into that meeting's
+  album (`eventId` on the album; the leader route only ties it to the group's
+  own event and reuses an existing one).
+- The event page shows **📅 Add to my calendar** under the date and place.
+
+`js/group-tools.js` must load before `admin.js` / `member.js` on
+admin/groups, admin/events, member/group and member/event (tested in
+`groups-nov17.test.mjs`).
+
 ## Receipts that do not arrive
 
 Email goes out through Resend. A customer's receipt that bounces, is

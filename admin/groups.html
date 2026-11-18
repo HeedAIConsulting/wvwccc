@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="../css/chamber.css" />
-  <link rel="stylesheet" href="admin.css?v=20261116a" />
+  <link rel="stylesheet" href="admin.css?v=20261117a" />
 </head>
 <body class="admin">
   <div class="admin-shell">
@@ -20,7 +20,7 @@
       <div class="admin-topbar"><h1>Groups &amp; Networks</h1></div>
       <div class="admin-content">
 
-        <div class="admin-notice">Groups appear at <strong>/groups/</strong> on the site. Click <strong>Manage</strong> on any group to approve join requests, add members, email the roster, and edit the page.</div>
+        <div class="admin-notice">Groups appear at <strong>/groups/</strong> on the site. Click <strong>Manage</strong> on a group, then pick what you want to do: Meetings, Members, Email the group, Photos.</div>
 
         <!-- Groups list FIRST (per the office — the groups were buried under the
              form). While a group is open for managing, this list hides so the
@@ -53,138 +53,130 @@
               <button type="button" class="btn btn--ghost btn--sm" id="grpBackBtn">← All groups</button>
             </div>
           </div>
+          <!-- One job at a time (Michael, Nov 17 2026: "The group management UX
+               is too long and difficult to understand ... improve the UI for the
+               many older members who don't understand a long list of options /
+               words"). The page used to be one 2,400px column. Now a row of big
+               buttons, one per job, and only that job underneath. Everything is
+               still inside the one #groupForm, so Save group saves all of it. -->
+          <nav class="grp-tabs" id="grpTabs" aria-label="What do you want to do?">
+            <button type="button" data-tab="meetings" aria-pressed="false"><span>📅</span>Meetings</button>
+            <button type="button" data-tab="members" aria-pressed="false"><span>👥</span>Members</button>
+            <button type="button" data-tab="email" aria-pressed="false"><span>✉️</span>Email the group</button>
+            <button type="button" data-tab="photos" aria-pressed="false"><span>📷</span>Photos</button>
+            <button type="button" data-tab="leader" aria-pressed="false"><span>🧑‍💼</span>Leader</button>
+            <button type="button" data-tab="page" aria-pressed="false"><span>📝</span>Group page</button>
+          </nav>
           <form id="groupForm" class="admin-form" style="padding:16px">
             <input type="hidden" name="id" />
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-              <div class="field" style="grid-column:1/-1;margin:0"><label>Group name *</label><input name="name" required maxlength="120" placeholder="Young Professionals Network (YPN)" /></div>
-              <div class="field" style="grid-column:1/-1;margin:0"><label>Tagline <span class="sub">(one line under the name)</span></label><input name="tagline" maxlength="200" /></div>
-              <div class="field" style="margin:0"><label>Meeting schedule</label><input name="meetingSchedule" maxlength="200" placeholder="3rd Tuesday of the month · 8 AM" /></div>
-              <div class="field" style="margin:0"><label>Contact email</label><input name="contactEmail" type="email" maxlength="160" /></div>
-              <div class="field" style="margin:0"><label>Event match <span class="sub">(events whose title contains this show on the page)</span></label><input name="eventMatch" maxlength="120" placeholder="Home Improvement" /></div>
-              <div class="field" style="margin:0"><label>Status</label><select name="status" class="admin-select"><option value="approved">Published</option><option value="draft">Draft (hidden)</option></select></div>
-              <div class="field" style="grid-column:1/-1;margin:0"><label>Description</label><textarea name="description" rows="4"></textarea></div>
-              <div class="field" style="grid-column:1/-1;margin:0"><label>Meeting notes <span class="sub">(shown on the group page — agendas, recaps, announcements)</span></label><textarea name="meetingNotes" rows="5"></textarea></div>
-            </div>
 
-            <div style="margin-top:16px;border-top:1px solid var(--line,#eee);padding-top:14px">
-              <h4 style="margin:0 0 8px">Group / Network manager <span class="sub">(receives this group's join requests &amp; meeting RSVPs)</span></h4>
+            <section data-tabpane="page" hidden>
+              <h4 class="grp-h">The group's public page</h4>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                <div class="field" style="grid-column:1/-1;margin:0"><label>Group name *</label><input name="name" required maxlength="120" placeholder="Young Professionals Network (YPN)" /></div>
+                <div class="field" style="grid-column:1/-1;margin:0"><label>Tagline <span class="sub">(one line under the name)</span></label><input name="tagline" maxlength="200" /></div>
+                <div class="field" style="margin:0"><label>When it meets <span class="sub">(one line, e.g. 3rd Tuesday · 8 AM)</span></label><input name="meetingSchedule" maxlength="200" placeholder="3rd Tuesday of the month · 8 AM" /></div>
+                <div class="field" style="margin:0"><label>Contact email</label><input name="contactEmail" type="email" maxlength="160" /></div>
+                <div class="field" style="grid-column:1/-1;margin:0"><label>About the group</label><textarea name="description" rows="4"></textarea></div>
+                <div class="field" style="grid-column:1/-1;margin:0"><label>Meeting notes <span class="sub">(shown on the group page — agendas, recaps, announcements)</span></label><textarea name="meetingNotes" rows="5"></textarea></div>
+              </div>
+              <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-top:14px">
+                <label class="btn btn--gold btn--sm" style="cursor:pointer">Upload banner photo<input type="file" accept="image/*" hidden id="grpHero"></label>
+                <span id="grpHeroPrev" class="sub"></span>
+                <label class="btn btn--gold btn--sm" style="cursor:pointer">Upload group logo<input type="file" accept="image/*" hidden id="grpLogo"></label>
+                <span id="grpLogoPrev" class="sub"></span>
+              </div>
+              <details style="margin-top:14px">
+                <summary class="sub" style="cursor:pointer">More settings</summary>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px">
+                  <div class="field" style="margin:0"><label>Event match <span class="sub">(events whose title contains this show on the page)</span></label><input name="eventMatch" maxlength="120" placeholder="Home Improvement" /></div>
+                  <div class="field" style="margin:0"><label>Status</label><select name="status" class="admin-select"><option value="approved">Published</option><option value="draft">Draft (hidden)</option></select></div>
+                </div>
+              </details>
+            </section>
+
+            <section data-tabpane="leader" hidden>
+              <h4 class="grp-h">Who runs the group <span class="sub">(gets its join requests and meeting RSVPs)</span></h4>
               <div class="field" style="position:relative;margin:0 0 10px">
-                <label>Find a member to set as manager <span class="sub">(optional — fills name &amp; email)</span></label>
-                <input id="grpMgrSearch" autocomplete="off" placeholder="Search the directory…" />
+                <label>Find the leader in the directory <span class="sub">(type their name — fills in name and email)</span></label>
+                <input id="grpMgrSearch" autocomplete="off" placeholder="Type a person's name or business…" />
                 <div id="grpMgrSuggest" class="sp-suggest" hidden></div>
               </div>
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-                <div class="field" style="margin:0"><label>Manager name</label><input id="grpMgrName" maxlength="160" placeholder="Jane Doe" /></div>
-                <div class="field" style="margin:0"><label>Manager email <span class="sub">(the address they sign in with &mdash; this is what gives them their own Manage group page)</span></label><input id="grpMgrEmail" type="email" maxlength="160" placeholder="jane@example.com" /></div>
-                <div class="field" style="margin:0"><label>Manager phone <span class="sub">(office reference — not shown on the public page)</span></label><input id="grpMgrPhone" maxlength="40" placeholder="(818) 555-0134" /></div>
+                <div class="field" style="margin:0"><label>Leader's name</label><input id="grpMgrName" maxlength="160" placeholder="Jane Doe" /></div>
+                <div class="field" style="margin:0"><label>Leader's email <span class="sub">(the address they sign in with &mdash; this gives them their own Manage group page)</span></label><input id="grpMgrEmail" type="email" maxlength="160" placeholder="jane@example.com" /></div>
+                <div class="field" style="margin:0"><label>Leader's phone <span class="sub">(for the office only)</span></label><input id="grpMgrPhone" maxlength="40" placeholder="(818) 555-0134" /></div>
               </div>
-              <!-- Leader locked out? One click emails them a reset link (per
-                   Felicia, Jul 2026 — there was no reset action anywhere here). -->
               <div style="display:flex;gap:10px;align-items:center;margin-top:10px;flex-wrap:wrap">
-                <!-- "I should be able to go into Groups, click Manage, and
-                     assist from there" (Felicia, Aug 20 2026) — so the
-                     see-their-view button lives here too, not only in Members. -->
                 <button type="button" class="btn btn--forest btn--sm" id="grpLeaderView" title="See the website exactly as this group's leader sees it — for walking them through their page">👁 See the leader's view</button>
-                <button type="button" class="btn btn--ghost btn--sm" id="grpMgrReset" title="Emails the manager a set-a-new-password link (expires in 1 hour)">✉ Send password-reset email</button>
+                <button type="button" class="btn btn--ghost btn--sm" id="grpMgrReset" title="Emails the leader a set-a-new-password link (expires in 1 hour)">✉ Send password-reset email</button>
                 <span class="sub" id="grpMgrResetMsg"></span>
               </div>
               <div class="sub" id="grpLeaderAccess" style="margin:10px 0 0"></div>
               <p class="sub" style="margin:8px 0 0">Use <strong>👁 See the leader's view</strong> to walk a leader through their page over the phone — it shows you their screen without signing you out of here.</p>
-            </div>
+            </section>
 
-            <!-- Meetings & events (Felicia, Aug 24 2026): "add items to the
-                 group like meetings and messages" from Groups → Manage.
-                 Messages already lived here (📣 Email group members); dated
-                 meetings did not — the office had to go to Admin → Events and
-                 remember to set the Host group, or borrow the leader's own
-                 view. This posts straight to the calendar already attributed
-                 to this group, and carries the same monthly generator the
-                 leaders have on their side (which until now existed ONLY
-                 there). NOT a nested <form> — this whole panel is already
-                 inside #groupForm, so every control is type="button" and every
-                 field is addressed by id, never name. -->
-            <div style="margin-top:18px;border-top:1px solid var(--line,#eee);padding-top:14px" id="grpMeetingsSection" hidden>
-              <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px">
-                <h4 style="margin:0">Meetings &amp; events</h4>
-                <button type="button" class="btn btn--gold btn--sm" id="grpAddMeeting" title="Put a meeting on the Chamber calendar for this group — published under the group's name, no Host group to remember">＋ Add a meeting</button>
-              </div>
-              <div id="grpEventList"></div>
-
-              <div id="grpMeetingBox" hidden style="margin-top:12px;border:1px solid var(--gold-soft,#e6dcc0);border-radius:10px;padding:14px;background:var(--paper,#fffdf8)">
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-                  <div class="field" style="grid-column:1/-1;margin:0"><label>Meeting name *</label><input id="gmTitle" maxlength="200" placeholder="Monthly Meeting" /></div>
-                  <div class="field" style="margin:0"><label>Date *</label><input id="gmDate" type="date" /></div>
-                  <div class="field" style="margin:0"><label>Start time</label><input id="gmTime" maxlength="40" placeholder="8:00 AM" /></div>
-                  <div class="field" style="margin:0"><label>End time</label><input id="gmEndTime" maxlength="40" placeholder="9:30 AM" /></div>
-                  <div class="field" style="margin:0"><label>Venue</label><input id="gmVenue" maxlength="160" placeholder="Fairwinds Woodland Hills" /></div>
-                  <div class="field" style="margin:0"><label>Category</label>
-                    <select id="gmCategory" class="admin-select">
-                      <option selected>Networking</option><option>Community</option><option>Workshop</option><option>Mixer</option><option>Fundraiser</option><option>Ribbon Cutting</option><option>Event</option>
-                    </select></div>
-                  <div class="field" style="grid-column:1/-1;margin:0"><label>Address</label><input id="gmAddress" maxlength="200" placeholder="21030 Erwin St, Woodland Hills" /></div>
-                  <div class="field" style="grid-column:1/-1;margin:0"><label>What is it? <span class="sub">(a couple of sentences — shown on the event page)</span></label><textarea id="gmSummary" rows="3" maxlength="600"></textarea></div>
+            <!-- Meetings (Felicia, Aug 24 2026; repeat picker Nov 17 2026). NOT
+                 a nested <form> — this pane is inside #groupForm, so every
+                 control is type="button" and every field is addressed by id. -->
+            <section data-tabpane="meetings" hidden>
+              <p class="sub" id="grpMeetingsNeedSave" hidden>Save the group first (📝 Group page → <strong>Save group</strong>), then add its meetings here.</p>
+              <div id="grpMeetingsSection" hidden>
+                <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px">
+                  <h4 class="grp-h" style="margin:0">Meetings</h4>
+                  <button type="button" class="btn btn--gold" id="grpAddMeeting" title="Put a meeting on the Chamber calendar for this group">＋ Add a meeting</button>
                 </div>
 
-                <div style="margin-top:12px">
-                  <label style="display:block;margin-bottom:6px"><strong>Repeats</strong></label>
-                  <label class="chip" style="margin-right:8px"><input type="radio" name="gmRepeat" value="none" checked style="margin-right:6px">One time</label>
-                  <label class="chip"><input type="radio" name="gmRepeat" value="monthly" style="margin-right:6px">Monthly (e.g. third Monday)</label>
-                  <div id="gmMonthlyBox" hidden style="margin-top:10px">
-                    <p class="sub" id="gmMonthlyLabel" style="margin:0 0 6px"></p>
-                    <label class="sub">Create the next
-                      <select id="gmMonths" class="admin-select" style="width:auto;display:inline-block;padding:3px 8px">
-                        <option>3</option><option selected>6</option><option>9</option><option>12</option>
-                      </select> months
-                    </label>
-                    <div id="gmDates" style="margin-top:8px"></div>
-                    <p class="sub" style="margin:6px 0 0">Uncheck any date the group is skipping (holidays). Each date is its own event, so a venue can change later without touching the rest.</p>
+                <div id="grpMeetingBox" hidden style="margin:0 0 14px;border:1px solid var(--gold-soft,#e6dcc0);border-radius:10px;padding:14px;background:var(--paper,#fffdf8)">
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                    <div class="field" style="grid-column:1/-1;margin:0"><label>Meeting name *</label><input id="gmTitle" maxlength="200" placeholder="Monthly Meeting" /></div>
+                    <div class="field" style="margin:0"><label>First date * <span class="sub">(click for a calendar)</span></label><input id="gmDate" type="date" /></div>
+                    <div class="field" style="margin:0"><label>Start time</label><input id="gmTime" maxlength="40" placeholder="8:00 AM" /></div>
+                    <div class="field" style="margin:0"><label>End time</label><input id="gmEndTime" maxlength="40" placeholder="9:30 AM" /></div>
+                    <div class="field" style="margin:0"><label>Venue</label><input id="gmVenue" maxlength="160" placeholder="Fairwinds Woodland Hills" /></div>
+                    <div class="field" style="grid-column:1/-1;margin:0"><label>Address</label><input id="gmAddress" maxlength="200" placeholder="21030 Erwin St, Woodland Hills" /></div>
+                    <div class="field" style="grid-column:1/-1;margin:0"><label>What is it? <span class="sub">(a couple of sentences — shown on the event page)</span></label><textarea id="gmSummary" rows="3" maxlength="600"></textarea></div>
+                  </div>
+
+                  <div id="gmRecur"></div>
+
+                  <details style="margin-top:12px">
+                    <summary class="sub" style="cursor:pointer">More options (category, RSVPs)</summary>
+                    <div style="margin-top:10px">
+                      <div class="field" style="margin:0 0 10px;max-width:260px"><label>Category</label>
+                        <select id="gmCategory" class="admin-select">
+                          <option selected>Networking</option><option>Community</option><option>Workshop</option><option>Mixer</option><option>Fundraiser</option><option>Ribbon Cutting</option><option>Event</option>
+                        </select></div>
+                      <label class="chip"><input type="checkbox" id="gmRsvp" style="margin-right:6px">Collect RSVPs</label>
+                      <span id="gmRsvpEmailWrap" hidden style="margin-left:8px">
+                        <input id="gmRsvpEmail" type="email" maxlength="160" placeholder="RSVPs emailed to…" style="width:250px;padding:6px 10px;border:1px solid var(--gold-soft,#e6dcc0);border-radius:8px;font:inherit" />
+                      </span>
+                      <p class="sub" style="margin:6px 0 0">Leave RSVPs off for a standing meeting the group just shows up to. Blank address = the group's leader, then the office.</p>
+                    </div>
+                  </details>
+
+                  <p id="gmMsg" class="sub" style="margin:10px 0 0" hidden></p>
+                  <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
+                    <button type="button" class="btn btn--forest" id="gmSave">Add to the calendar</button>
+                    <button type="button" class="btn btn--ghost" id="gmCancel">Cancel</button>
                   </div>
                 </div>
 
-                <div style="margin-top:12px">
-                  <label class="chip"><input type="checkbox" id="gmRsvp" style="margin-right:6px">Collect RSVPs</label>
-                  <span id="gmRsvpEmailWrap" hidden style="margin-left:8px">
-                    <input id="gmRsvpEmail" type="email" maxlength="160" placeholder="RSVPs emailed to…" style="width:250px;padding:6px 10px;border:1px solid var(--gold-soft,#e6dcc0);border-radius:8px;font:inherit" />
-                  </span>
-                  <p class="sub" style="margin:6px 0 0">Leave RSVPs off for a standing meeting the group just shows up to. Blank address = the group's manager, then the office.</p>
-                </div>
-
-                <p id="gmMsg" class="sub" style="margin:10px 0 0" hidden></p>
-                <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
-                  <button type="button" class="btn btn--forest btn--sm" id="gmSave">Add to the calendar</button>
-                  <button type="button" class="btn btn--ghost btn--sm" id="gmCancel">Cancel</button>
-                </div>
+                <div id="grpEventList"></div>
               </div>
-            </div>
+            </section>
 
-            <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-top:12px">
-              <label class="btn btn--gold btn--sm" style="cursor:pointer">Upload banner photo<input type="file" accept="image/*" hidden id="grpHero"></label>
-              <span id="grpHeroPrev" class="sub"></span>
-              <label class="btn btn--gold btn--sm" style="cursor:pointer">Upload group logo<input type="file" accept="image/*" hidden id="grpLogo"></label>
-              <span id="grpLogoPrev" class="sub"></span>
-              <label class="btn btn--ghost btn--sm" style="cursor:pointer">Add photos<input type="file" accept="image/*" multiple hidden id="grpPhotos"></label>
-              <span id="grpPhotosPrev" class="sub"></span>
-            </div>
-            <div id="grpPhotoList" style="margin-top:10px;display:flex;flex-direction:column;gap:8px"></div>
-
-            <div style="margin-top:18px;border-top:1px solid var(--line,#eee);padding-top:14px">
-              <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px">
-                <h4 style="margin:0">Members <span class="sub" id="grpMemberCount"></span></h4>
-                <button type="button" class="btn btn--gold btn--sm" id="grpAnnounce" title="Email everyone in this group — meeting reminders, agendas, announcements">📣 Email group members</button>
-              </div>
+            <section data-tabpane="members" hidden>
+              <h4 class="grp-h">Members <span class="sub" id="grpMemberCount"></span></h4>
               <div id="grpPending"></div>
-              <!-- Diana, Sep 24 2026, via Felicia: two co-leaders should each
-                   sign in with their own address. Setting a role to Leader,
-                   Chair or Co-Chair opens a sign-in box on that row. -->
-              <p class="sub" style="margin:0 0 8px;max-width:78ch">Set somebody&rsquo;s role to <strong>Leader</strong>, <strong>Chair</strong> or <strong>Co-Chair</strong> and a <strong>Sign-in email</strong> box appears on their row. Fill it in and that person gets their own <em>Manage group</em> page &mdash; roster, group email, meetings and RSVPs. As many co-leaders as you like, each with their own address. Somebody added from the directory already signs in with their member login, so their row asks for nothing.</p>
-              <div id="grpRoster"></div>
-              <div class="field" style="position:relative;margin:12px 0 0">
-                <label>Add an existing member <span class="sub">(from your directory)</span></label>
-                <input id="grpMemberSearch" autocomplete="off" placeholder="Search by business name, category, or area…" />
+              <div class="field" style="position:relative;margin:0 0 14px">
+                <label>Add a person <span class="sub">(type their name — or their business)</span></label>
+                <input id="grpMemberSearch" autocomplete="off" placeholder="Type a person's name, e.g. Maria…" />
                 <div id="grpMemberSuggest" class="sp-suggest" hidden></div>
               </div>
-              <details style="margin-top:8px">
-                <summary class="sub" style="cursor:pointer">＋ Add someone manually (not in the directory)</summary>
+              <div id="grpRoster"></div>
+              <details style="margin-top:10px">
+                <summary class="sub" style="cursor:pointer">＋ Add someone who isn't in the directory</summary>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px">
                   <div class="field" style="margin:0"><label>Name *</label><input id="grpManualName" maxlength="160" /></div>
                   <div class="field" style="margin:0"><label>Business</label><input id="grpManualBiz" maxlength="160" /></div>
@@ -192,8 +184,28 @@
                   <div class="field" style="margin:0;align-self:end"><button type="button" class="btn btn--ghost btn--sm" id="grpManualAdd">Add to group</button></div>
                 </div>
               </details>
-              <p class="sub" style="margin:8px 0 0">Roster changes are saved when you click <strong>Save group</strong> below.</p>
-            </div>
+              <!-- Diana, Sep 24 2026: co-leaders each sign in with their own address. -->
+              <p class="sub" style="margin:12px 0 0;max-width:78ch">Make someone a <strong>Leader</strong>, <strong>Chair</strong> or <strong>Co-Chair</strong> and a <strong>Sign-in email</strong> box appears on their row &mdash; that person then gets their own <em>Manage group</em> page. As many co-leaders as you like, each with their own address. Somebody added from the directory already signs in with their member login.</p>
+            </section>
+
+            <section data-tabpane="email" hidden>
+              <p class="sub" id="grpEmailNeedSave" hidden>Save the group first, then you can email its members.</p>
+              <div id="grpCompose"></div>
+            </section>
+
+            <section data-tabpane="photos" hidden>
+              <h4 class="grp-h">Meeting photos</h4>
+              <p class="sub" style="margin:0 0 10px">Pick a meeting and add as many photos as you like at once. They go into that meeting's album, which shows on the meeting's page and the group's page.</p>
+              <div id="grpMeetingPhotos"><p class="sub">Save the group first, then add photos to its meetings.</p></div>
+              <details style="margin-top:16px">
+                <summary class="sub" style="cursor:pointer">Photo strip on the group page (older photos)</summary>
+                <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-top:10px">
+                  <label class="btn btn--ghost btn--sm" style="cursor:pointer">Add photos<input type="file" accept="image/*" multiple hidden id="grpPhotos"></label>
+                  <span id="grpPhotosPrev" class="sub"></span>
+                </div>
+                <div id="grpPhotoList" style="margin-top:10px;display:flex;flex-direction:column;gap:8px"></div>
+              </details>
+            </section>
 
             <p id="grpMsg" class="sub" style="margin:10px 0 0" hidden></p>
             <div style="display:flex;gap:10px;margin-top:14px">
@@ -207,7 +219,8 @@
     </div>
   </div>
   <script src="../js/api-base.js"></script>
-  <script src="admin.js?v=20261116a"></script>
+  <script src="../js/group-tools.js?v=20261117a"></script>
+  <script src="admin.js?v=20261117a"></script>
   <script>Admin.initGroups();</script>
   <script defer src="/js/support.js?v=20260804c"></script>
 </body>

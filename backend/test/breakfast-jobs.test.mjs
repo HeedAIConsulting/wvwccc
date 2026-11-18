@@ -48,12 +48,13 @@ test('every label the members’ event guide names is on the real pages', () => 
   const dash = read('member/member.js');
   const login = read('auth/login.html');
   const header = read('js/partials.js');
+  const recur = read('js/group-tools.js');
   const on = {
     'Member Login': header, 'Email me a sign-in link': login, 'Email me a link': login,
     'Your events on the calendar': dash, '＋ Add an event': dash, 'Edit': dash, 'Duplicate': dash,
     'awaiting the office': dash, 'Posting as': form, 'Event name': form, 'Date': form, 'Category': form,
     'Start time': form, 'End time': form, 'Location / venue': form, 'Address': form, 'Description': form,
-    '🔗 Link': form, 'Repeats?': form, 'Every week': form, 'Monthly (e.g. first Monday)': form, 'One time': form,
+    '🔗 Link': form, 'Does it repeat?': form, 'Every week': recur, 'Every other week': recur, 'Once a month': recur, '1st': recur, 'Just once': recur,
     'RSVP button': form, 'Add an RSVP button': form, 'Email RSVPs to': form, 'Flyer': form, 'Add to calendar': form,
   };
   for (const m of guide.matchAll(/<strong>([^<]+)<\/strong>/g)) {

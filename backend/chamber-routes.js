@@ -24,6 +24,7 @@ import { BIZBUZZ_KEY, cleanBizBuzz, loadBizBuzz } from './bizbuzz.js';
 import { readWebsite, memberWebsite } from './website-field.js';
 import { searchGuides, referralFor, expand } from './explore.js';
 import { siteBase, greetingName } from './site-base.js';
+import { eventEmailBlock } from './calendar-links.js';
 import { listOfficeBlocks, unblockOffice } from './email-events.js';
 
 const router = express.Router();
@@ -1250,11 +1251,23 @@ router.post('/me/group/:slug/albums', auth.requireAuth(), async (req, res) => {
     if (bad) return res.status(400).json({ error: bad });
     let who = req.user.name || req.user.sub;
     try { who = (await loadMembersFull()).members.find((m) => m.id === req.user.mid)?.name || who; } catch (e) {}
+    // A meeting's own album (Nov 17 2026): tied to the event only when the
+    // event is one of THIS group's, and reused if that meeting has one.
+    let eventId = '';
+    if (req.body && req.body.eventId) {
+      const ev = eventsOfGroup(g, await loadEvents()).find((e) => e.id === String(req.body.eventId));
+      if (ev) {
+        eventId = ev.id;
+        const have = (await loadAlbums()).find((p) => (p.meta || {}).eventId === ev.id);
+        if (have) return res.json({ ok: true, album: albumOut(have, false) });
+      }
+    }
     const id = 'alb-' + Date.now().toString(36);
     const album = await saveAlbum(id, {
       title,
       body: String((req.body && req.body.body) || '').slice(0, 2000),
       groupSlug: g.slug,
+      eventId,
       locked: false,
       authorName: who,
     }, null);
@@ -1269,7 +1282,7 @@ router.post('/me/group/:slug/announce', auth.requireAuth(), async (req, res) => 
   if (!subject || !message) return res.status(400).json({ error: 'Subject and message are required.' });
   try {
     const g = await ledGroupOr403(req, res); if (!g) return;
-    res.json({ ok: true, ...(await sendGroupAnnouncement(g, subject, message, req)) });
+    res.json({ ok: true, ...(await sendGroupAnnouncement(g, subject, message, req, req.body && req.body.eventId)) });
   } catch (e) { console.error('me group announce', e); res.status(500).json({ error: 'could not send' }); }
 });
 
@@ -3402,7 +3415,11 @@ router.delete('/admin/groups/:id', requireAdmin, async (req, res) => {
 // announcements). Roster entries added from the directory carry only a
 // memberId — their email resolves from the member roster/login at send time.
 // Shared by the admin route and the group leader's own announce.
-async function sendGroupAnnouncement(g, subject, message, req) {
+/* `eventId` (optional, Nov 17 2026) attaches one of the group's own meetings:
+   its date, place and Google / Outlook / Apple calendar buttons go under the
+   message. Only an approved event of THIS group is accepted, so the route can
+   never be used to mail details of something else. */
+async function sendGroupAnnouncement(g, subject, message, req, eventId = '') {
   const { members: dir } = await loadMembersFull();
   const emailById = new Map(dir.filter((m) => m.email).map((m) => [m.id, m.email]));
   const roster = (g.members || []).filter((m) => m.status !== 'pending');
@@ -3411,12 +3428,25 @@ async function sendGroupAnnouncement(g, subject, message, req) {
     const addr = String(m.email || emailById.get(m.memberId) || '').toLowerCase();
     if (/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(addr) && !targets.has(addr)) targets.set(addr, m.name || '');
   }
-  const groupUrl = `${siteBase(req)}/groups/${g.slug}`;
-  const text = `${message}\n\n—\n${g.name} · West Valley · Warner Center Chamber of Commerce\n${g.meetingSchedule ? `Meets: ${g.meetingSchedule}\n` : ''}${groupUrl}`;
+  const base = siteBase(req);
+  const groupUrl = `${base}/groups/${g.slug}`;
+  let block = { html: '', text: '' };
+  if (eventId) {
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+    const ev = eventsOfGroup(g, await loadEvents())
+      .find((e) => e.id === String(eventId) && (e.status || 'approved') === 'approved');
+    if (ev) block = eventEmailBlock(ev, base, { heading: ev.date >= today ? 'Coming up' : 'Meeting' });
+  }
+  const text = `${message}${block.text ? `\n\n${block.text}` : ''}\n\n—\n${g.name} · West Valley · Warner Center Chamber of Commerce\n${g.meetingSchedule ? `Meets: ${g.meetingSchedule}\n` : ''}${groupUrl}`;
+  const html = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.55;color:#111;max-width:600px">
+    ${message.split(/\n{2,}/).map((para) => `<p style="margin:0 0 12px">${esc(para).replace(/\n/g, '<br>')}</p>`).join('')}
+    ${block.html}
+    <p style="margin:18px 0 0;padding-top:10px;border-top:1px solid #ddd;color:#666;font-size:12px">${esc(g.name)} · West Valley · Warner Center Chamber of Commerce${g.meetingSchedule ? `<br>Meets: ${esc(g.meetingSchedule)}` : ''}<br><a href="${esc(groupUrl)}" style="color:#1E5631">${esc(groupUrl)}</a></p>
+  </div>`;
   let sent = 0;
   for (const [addr] of targets) {
     // Individually addressed (never expose the roster in To/CC); best-effort per recipient.
-    const r = await email.send({ to: addr, subject: `[${g.name}] ${subject}`, text, replyTo: (g.manager && g.manager.email) || undefined,
+    const r = await email.send({ to: addr, subject: `[${g.name}] ${subject}`, text, html, replyTo: (g.manager && g.manager.email) || undefined,
       fromName: (g.manager && g.manager.email && g.manager.name) || '' }).catch(() => null);
     if (r && r.ok) sent++;
   }
@@ -3429,7 +3459,7 @@ router.post('/admin/groups/:id/announce', requireAdmin, async (req, res) => {
   try {
     const g = (await loadGroups()).find((x) => x.id === req.params.id || x.slug === req.params.id);
     if (!g) return res.status(404).json({ error: 'group not found' });
-    res.json({ ok: true, ...(await sendGroupAnnouncement(g, subject, message, req)) });
+    res.json({ ok: true, ...(await sendGroupAnnouncement(g, subject, message, req, req.body && req.body.eventId)) });
   } catch (e) { console.error('group announce', e); res.status(500).json({ error: 'could not send' }); }
 });
 
@@ -5285,7 +5315,10 @@ router.post('/contact', async (req, res) => {
           '<p style="margin:14px 0 0;color:#666;font-size:12px">West Valley &middot; Warner Center Chamber of Commerce &middot; (818)&nbsp;347-4737</p>');
         const guestText = text.replace(/\n—\nAlso filed under Admin → Inquiries on the Chamber website\.\n$/,
           '\n—\nWest Valley · Warner Center Chamber of Commerce · (818) 347-4737\n');
-        email.send({ to: lead.email, subject: guestSubject, text: guestText, html: guestHtml })
+        // The calendar buttons go in the confirmation too (Nov 17 2026): the
+        // moment someone has said yes is when they put it in their diary.
+        const cal = eventEmailBlock(rsvpEvent, siteBase(req));
+        email.send({ to: lead.email, subject: guestSubject, text: guestText + (cal.text ? `\n${cal.text}\n` : ''), html: guestHtml + cal.html })
           .then((r) => { if (r && (r.skipped || r.ok === false)) console.error('rsvp guest confirmation not sent', r.error || 'mailer not configured'); });
       }
     }

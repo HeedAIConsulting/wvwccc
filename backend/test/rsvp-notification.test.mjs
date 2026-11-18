@@ -90,7 +90,11 @@ test('the person who RSVPd gets their own confirmation copy (Aug 20 2026)', () =
   assert.ok(guest.text.includes('THANK YOU'), 'the guest copy keeps the receipt layout');
   assert.ok(!/pay at the door/i.test(guest.text));
   assert.ok(!/Admin/.test(guest.text), 'the guest copy must not carry the admin footer');
-  assert.ok(!guest.text.includes('le-11343'), 'the guest copy leaked the internal event id');
+  // The event's public page and .ics links carry its id (Add to calendar,
+  // Nov 17 2026); anywhere else it would be a leak of submitted text.
+  assert.ok(!guest.text.replace(/https?:\/\/\S+/g, '').includes('le-11343'), 'the guest copy leaked the internal event id');
+  assert.match(guest.text, /Add to your calendar:\nGoogle: https:\/\/calendar\.google\.com\//);
+  assert.match(guest.html, /Apple \/ iPhone<\/a>/);
 });
 
 test('no guest confirmation when the RSVP does not reference a real event (relay guard)', async () => {
