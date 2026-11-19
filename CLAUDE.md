@@ -272,6 +272,24 @@ Manage group page (`member/group.html`, built in `member.js` `initGroupManage`):
 admin/groups, admin/events, member/group and member/event (tested in
 `groups-nov17.test.mjs`).
 
+## Ambassadors RSVP once; group emails name who they missed (Nov 19 2026)
+
+- **A job sign-up is the Ambassador's RSVP** (Diana, via Felicia, Nov 18).
+  `POST /me/volunteer` calls `rsvpFromAmbassadorSignup`: it files an ordinary
+  RSVP lead (message starts `Ambassador sign-up:`), sends the office the same
+  THANK YOU / GUEST INFO receipt a website RSVP sends (`rsvpReceiptParts`,
+  Registration "Ambassador — Greeter"), and the Ambassador a confirmation with
+  calendar buttons. One RSVP per person per event. Cancelling their last job
+  there moves only that auto RSVP to Trash; an RSVP they made themselves is
+  never touched. Trash and spam RSVPs no longer count anywhere (`countsAsRsvp`).
+- **A roster row with no email anywhere** (no address on the row, none on the
+  listing it was picked from) is skipped by every group email. Felicia's and
+  Diana's own listings have no email, so Sheryl's Nov 17 invite missed them.
+  Both Members pages now say "No email on file — group emails skip them" with
+  a box to type one, and a send names who it skipped (`skippedNames`).
+  A staff login (felicia@, diana@) cannot become a member login: the 409 on
+  create-login is correct, and they do not need one.
+
 ## Receipts that do not arrive
 
 Email goes out through Resend. A customer's receipt that bounces, is
