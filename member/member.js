@@ -360,7 +360,7 @@ window.MemberPortal = (function () {
         });
         const d = await r.json().catch(() => ({}));
         if (!r.ok || d.ok === false) { say(d.error || 'Could not sign you up.', true); b.disabled = false; return; }
-        say(`You're down for "${b.dataset.vrole}" — thank you!`);
+        say(`You're down for "${b.dataset.vrole}" — thank you!${d.rsvp ? ' That also RSVPs you for the event; a confirmation is on its way to your email.' : ''}`);
         mountVolunteer();
       } catch (e) { say('Could not reach the Chamber right now.', true); b.disabled = false; }
     }));
@@ -368,7 +368,7 @@ window.MemberPortal = (function () {
       // A logged contribution and a booked shift are removed the same way, but
       // they are not the same thing to the person doing it.
       const isLog = !!b.closest('[data-logrow]');
-      if (!confirm(isLog ? 'Remove this from your tracker?' : 'Cancel this volunteer shift?')) return;
+      if (!confirm(isLog ? 'Remove this from your tracker?' : 'Cancel this volunteer shift? If it is your only job at this event, your RSVP is cancelled with it.')) return;
       try {
         await api('/api/me/volunteer/' + encodeURIComponent(b.dataset.vcancel), { method: 'DELETE' });
         mountVolunteer();
@@ -1288,6 +1288,10 @@ window.MemberPortal = (function () {
     const g = data.group;
     const fmtD = (s) => { const d = s ? new Date(s + 'T12:00:00') : null; return d && !isNaN(d) ? d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : (s || 'no date'); };
     let members = (g.members || []).slice();
+    // Rows a group email would skip (no address anywhere). The server says
+    // so on load; a roster save returns rows without the flag, so it is kept
+    // here by row id.
+    const noEmail = new Set(members.filter((m) => m.noEmail).map((m) => m.id));
 
     // Roster changes write through immediately (like the admin page since
     // Jul 29) — an approval that only changed the screen came back as pending.
@@ -1395,6 +1399,11 @@ window.MemberPortal = (function () {
             <div data-mid="${esc(m.id)}" style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line,#eee);flex-wrap:wrap">
               <span style="flex:1;min-width:200px"><strong>${esc(m.name)}</strong>${m.business ? ` <span class="member-tile__meta">· ${esc(m.business)}</span>` : ''}${(m.role && m.role !== 'Member') ? ` <span class="badge badge--gold" style="font-size:.62rem;vertical-align:middle">${esc(m.role)}</span>` : ''}</span>
               <button type="button" class="btn btn--ghost btn--sm" data-remove style="color:var(--red,#b00020)">Remove</button>
+              ${noEmail.has(m.id) ? `<div style="flex-basis:100%;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                <span class="member-tile__meta" style="color:var(--red,#b00020)">No email on file — group emails skip them.</span>
+                <input type="email" data-addemail maxlength="160" placeholder="Their email" style="flex:1;min-width:200px;max-width:300px">
+                <button type="button" class="btn btn--forest btn--sm" data-saveemail>Save email</button>
+              </div>` : ''}
             </div>`).join('') : '<p class="member-tile__meta">Nobody on the list yet — type a name above.</p>'}
           </div>
           <details style="margin-top:10px">
@@ -1644,7 +1653,7 @@ window.MemberPortal = (function () {
           const r = await api('/api/me/group/' + encodeURIComponent(g.slug) + '/announce', { method: 'POST', body: JSON.stringify({ subject, message, eventId: draft.eventId || '' }) });
           draft = { subject: '', body: '', eventId: null };
           render();
-          say(`✓ Sent to ${r.sent} member${r.sent === 1 ? '' : 's'}${r.skipped ? ` — ${r.skipped} had no email on file` : ''}.`);
+          say(`✓ Sent to ${r.sent} member${r.sent === 1 ? '' : 's'}.${r.skipped ? ` Not sent to ${(r.skippedNames || []).join(', ') || r.skipped + ' member' + (r.skipped === 1 ? '' : 's')}: no email on file. Add one under Members, then send again.` : ''}`);
         } catch (err) { say('Could not send the email — please try again.', true); e.target.disabled = false; }
       });
       // Duplicate a past event onto a new date. Copying, never moving: the
@@ -1667,9 +1676,17 @@ window.MemberPortal = (function () {
         } catch (e) { say(e.message || 'Could not copy that event.', true); b.disabled = false; b.textContent = was; }
       }));
 
-      // Roster: remove
+      // Roster: remove, and add an email to a row that has none
       wrap.querySelectorAll('#gmRoster [data-mid]').forEach((row) => {
         const m = members.find((x) => x.id === row.dataset.mid);
+        row.querySelector('[data-saveemail]')?.addEventListener('click', async () => {
+          const v = (row.querySelector('[data-addemail]')?.value || '').trim();
+          if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)) { say('Type their full email address first.', true); return; }
+          const before = m.email;
+          m.email = v;
+          if (await saveRoster()) { noEmail.delete(m.id); render(); say(`✓ ${m.name} will get the group's emails from now on.`); }
+          else { m.email = before; }
+        });
         row.querySelector('[data-remove]')?.addEventListener('click', async () => {
           if (!confirm(`Take ${m.name} off the group's member list?`)) return;
           const before = members.slice();
@@ -1718,6 +1735,7 @@ window.MemberPortal = (function () {
           role: 'Member', status: 'active', source: 'manual',
         };
         members.push(entry);
+        if (!entry.email) noEmail.add(entry.id);
         if (await saveRoster()) { render(); say(`${entry.name} added ✓.${welcomeNote()}`); }
         else { members = members.filter((x) => x.id !== entry.id); }
       });

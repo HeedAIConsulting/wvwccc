@@ -3451,6 +3451,7 @@ window.Admin = (function () {
         // RSVPs land as leads with the event field (raw id or resolved title).
         const title = String(ev.title || '').toLowerCase();
         const rsvps = (leadsR.leads || []).filter((l) => {
+          if (l.status === 'spam' || l.status === 'trash') return false;
           const le = String(l.event || '').toLowerCase();
           return le && (le === String(ev.id).toLowerCase() || le === title || le.includes(title.slice(0, 40)));
         });
@@ -5551,6 +5552,13 @@ window.Admin = (function () {
            directory already signs in with their own member login, so their
            row says so rather than asking for an address it does not need. */
         const LEADS = (role) => /^(leader|chair|co-chair)$/i.test(String(role || ''));
+        /* A row no group email can reach (Felicia, Nov 17 2026: she and Diana
+           were added from listings with no address, so Sheryl's invite skipped
+           them). Known once the directory has loaded; a box on the row fixes
+           it there and then. */
+        const dirEmail = new Map((_dir || []).map((d) => [d.id, d.email || '']));
+        const unreachable = (m) => !!_dir && !String(m.email || '').includes('@') && !String(dirEmail.get(m.memberId) || '').includes('@');
+        if (!_dir && active.some((m) => m.memberId)) directory().then(() => renderRoster());
         rosEl.innerHTML = active.length ? active.map((m) => `<div data-mid="${esc(m.id)}" style="padding:6px 0;border-bottom:1px solid var(--line,#eee)">
           <div style="display:flex;align-items:center;gap:8px">
             <span style="flex:1"><strong>${esc(m.name)}</strong>${m.business ? ` <span class="sub">· ${esc(m.business)}</span>` : ''}${m.memberId ? '' : ' <span class="sub">(manual)</span>'}</span>
@@ -5565,7 +5573,10 @@ window.Admin = (function () {
                         style="flex:1;max-width:320px;padding:3px 6px" placeholder="name@example.com"
                         value="${esc(m.email || '')}">
                  ${m.email ? '' : '<span class="sub" style="color:var(--red)">No address — they cannot open their Manage group page.</span>'}
-               </div>`) : ''}
+               </div>`) : (unreachable(m) ? `<div style="display:flex;align-items:center;gap:8px;margin:4px 0 2px 2px;flex-wrap:wrap">
+                 <span class="sub" style="color:var(--red)">No email on file — group emails skip them.</span>
+                 <input class="admin-select" data-email type="email" maxlength="160" style="flex:1;max-width:280px;padding:3px 6px" placeholder="Add their email">
+               </div>` : '')}
         </div>`).join('') : '<p class="sub" style="margin:4px 0">No members yet — add from the directory or manually below.</p>';
         rosEl.querySelectorAll('[data-mid]').forEach((row) => {
           const m = members.find((x) => x.id === row.dataset.mid);
@@ -5573,7 +5584,7 @@ window.Admin = (function () {
           // somebody is made a leader, and goes away when they are not.
           row.querySelector('[data-role]')?.addEventListener('change', async (e) => { m.role = e.target.value; renderRoster(); await persistRoster(`${m.name} is now ${m.role}`); renderRoster(); });
           row.querySelector('[data-email]')?.addEventListener('input', (e) => { m.email = e.target.value.trim(); });
-          row.querySelector('[data-email]')?.addEventListener('change', () => persistRoster(`Sign-in email for ${m.name}`));
+          row.querySelector('[data-email]')?.addEventListener('change', async () => { await persistRoster(`${LEADS(m.role) ? 'Sign-in email' : 'Email'} for ${m.name}`); renderRoster(); });
           row.querySelector('[data-remove]')?.addEventListener('click', async () => {
             if (!confirm(`Take ${m.name} off this group?`)) return;
             const before = members.slice();
@@ -5871,7 +5882,7 @@ window.Admin = (function () {
           compose = { subject: '', body: '', eventId: null };
           renderCompose();
           const out2 = gmEl('gcMsg'); out2.hidden = false; out2.style.color = 'var(--green)';
-          out2.textContent = `✓ Sent to ${r.sent} member${r.sent === 1 ? '' : 's'}${r.skipped ? ` — ${r.skipped} had no email on file` : ''}.`;
+          out2.textContent = `✓ Sent to ${r.sent} member${r.sent === 1 ? '' : 's'}.${r.skipped ? ` Not sent to ${(r.skippedNames || []).join(', ') || r.skipped + ' member' + (r.skipped === 1 ? '' : 's')}: no email on file. Add one under Members, then send again.` : ''}`;
         } catch (err) { say2('Could not send — please try again.'); e.target.disabled = false; e.target.textContent = lbl; }
       });
     }

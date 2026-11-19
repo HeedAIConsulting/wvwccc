@@ -1055,6 +1055,146 @@ function rsvpsForEvent(ev, rsvpLeads) {
 // Head count for one RSVP — the public form writes "Attending: N" into the
 // message; a lead without it is one person.
 const rsvpQty = (l) => { const m = /attending:\s*(\d+)/i.exec(String(l.message || '')); return m ? Math.max(1, Math.min(50, parseInt(m[1], 10))) : 1; };
+// An RSVP the office threw away (Trash) or that was screened as spam does
+// not count toward anyone's head count.
+const countsAsRsvp = (l) => l && l.kind === 'rsvp' && l.status !== 'spam' && l.status !== 'trash';
+
+/* Who a group's RSVPs go to: its manager, its contact address and every
+   roster Leader / Chair / Co-Chair — never the office inbox, which the caller
+   adds when nobody is found. Roster rows from the directory carry only a
+   memberId, so those resolve against the listing. */
+async function groupLeaderAddresses(g) {
+  const out = [];
+  const ok = (a) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(a || ''));
+  const add = (a) => {
+    const addr = String(a || '').trim().toLowerCase();
+    if (ok(addr) && addr !== String(email.notifyTo()).toLowerCase() && !out.includes(addr)) out.push(addr);
+  };
+  add(g.manager && g.manager.email);
+  add(g.contactEmail);
+  try {
+    const { members: dir } = await loadMembersFull();
+    const emailById = new Map(dir.filter((m) => m.email).map((m) => [m.id, m.email]));
+    for (const m of (g.members || [])) {
+      if (m.status === 'pending') continue;
+      if (!/^(leader|chair|co-chair)$/i.test(String(m.role || ''))) continue;
+      add(m.email || emailById.get(m.memberId));
+    }
+  } catch (e) { /* manager/contact address still gets it */ }
+  return out;
+}
+
+/* The RSVP receipt — THANK YOU / GUEST INFO, laid out like the old site's
+   (Felicia, Aug 18 2026). Used for a website RSVP and for an Ambassador's job
+   sign-up, so both reach the office looking the same. */
+function rsvpReceiptParts({ lead, evTitle, tier = '', qty = 1, groupName = '', guests = [] }) {
+  const eh = (v) => String(v ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const row = (k, v) => (v ? `<tr><td style="padding:2px 16px 2px 0;font-weight:bold;vertical-align:top;white-space:nowrap">${k}:</td><td style="padding:2px 0">${eh(v)}</td></tr>` : '');
+  const html = `
+        <div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#111;max-width:560px;border:1px solid #ccc;padding:20px 24px">
+          <img src="https://woodlandhillscc.net/images/wvwccc-logo-200.png" alt="WVWC Chamber of Commerce" width="72" style="display:block;margin:0 0 12px">
+          <p style="color:#188038;font-weight:bold;margin:0">THANK YOU</p>
+          <table style="border-collapse:collapse;font-size:14px;margin-top:10px">
+            ${row('Name', lead.name)}
+            ${row('Event', evTitle)}
+            ${row('Registration', tier)}
+            ${row('RSVP Qty', String(qty))}
+            ${groupName ? row('Group', groupName) : ''}
+          </table>
+          <p style="font-weight:bold;text-decoration:underline;margin:16px 0 4px">GUEST INFO</p>
+          <table style="border-collapse:collapse;font-size:14px">
+            ${row('Company', lead.company)}
+            ${row('Name', lead.name)}
+            ${row('Email', lead.email)}
+            ${row('Phone', lead.phone)}
+          </table>
+          ${guests.length ? guests.map((g) => `
+          <table style="border-collapse:collapse;font-size:14px;margin-top:10px">
+            ${row('Name', g.name)}
+            ${row('Email', g.email)}
+            ${row('Phone', g.phone)}
+          </table>`).join('') : ''}
+          <p style="margin:14px 0 0;color:#666;font-size:12px">Also filed under Admin &rarr; Inquiries on the Chamber website.</p>
+        </div>`;
+  const text = `THANK YOU\n\n`
+    + `Name: ${lead.name || '—'}\nEvent: ${evTitle || '—'}\n`
+    + `${tier ? `Registration: ${tier}\n` : ''}RSVP Qty: ${qty}\n${groupName ? `Group: ${groupName}\n` : ''}`
+    + `\nGUEST INFO\n`
+    + `Company: ${lead.company || '—'}\nName: ${lead.name || '—'}\nEmail: ${lead.email}\nPhone: ${lead.phone || '—'}\n`
+    + guests.map((g) => `\nName: ${g.name || '—'}\nEmail: ${g.email || '—'}\nPhone: ${g.phone || '—'}\n`).join('')
+    + `\n—\nAlso filed under Admin → Inquiries on the Chamber website.\n`;
+  return { html, text };
+}
+// The same receipt as the person's own copy: no admin footer.
+function guestCopy({ html, text }) {
+  return {
+    html: html.replace(/<p style="margin:14px 0 0;color:#666;font-size:12px">.*?<\/p>/s,
+      '<p style="margin:14px 0 0;color:#666;font-size:12px">West Valley &middot; Warner Center Chamber of Commerce &middot; (818)&nbsp;347-4737</p>'),
+    text: text.replace(/\n—\nAlso filed under Admin → Inquiries on the Chamber website\.\n$/,
+      '\n—\nWest Valley · Warner Center Chamber of Commerce · (818) 347-4737\n'),
+  };
+}
+
+/* An Ambassador's job sign-up is their RSVP too (Diana, via Felicia, Nov 18
+   2026: "Diana would like the Ambassadors to only have to RSVP once so when
+   they sign up for a task it will populate the overall event RSVP as well ...
+   I would still like to get that generated receipt.").
+
+   The sign-up files an ordinary RSVP for the event — so it counts on the
+   event's RSVPs / $ and in Inquiries → Event RSVPs — and sends the same
+   receipt a website RSVP sends, to the same people (the office, or a group's
+   leaders for a group's own meeting, plus the event's own RSVP address), and
+   the Ambassador their confirmation. Somebody who already RSVP'd to that
+   event is not filed twice. Returns the lead, or null when nothing was filed. */
+export const AMBASSADOR_RSVP_MARK = 'Ambassador sign-up:';
+async function rsvpFromAmbassadorSignup(ev, vol, business, req) {
+  if (!ev || (ev.status || 'approved') !== 'approved') return null;
+  const addr = String(vol.email || '').trim().toLowerCase();
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(addr)) return null;
+  const leads = (await repo.listLeads()).filter(countsAsRsvp);
+  if (rsvpsForEvent(ev, leads).some((l) => String(l.email || '').trim().toLowerCase() === addr)) return null;
+  const evTitle = `${ev.title || 'Chamber event'}${ev.date ? ` (${ev.date})` : ''}`;
+  const lead = {
+    id: 'lead-' + Date.now().toString(36) + Math.floor(Math.random() * 1e3).toString(36),
+    kind: 'rsvp', reason: 'RSVP',
+    name: String(vol.name || '').slice(0, 160), email: addr, phone: String(vol.phone || '').slice(0, 40),
+    company: String(business || '').slice(0, 160),
+    event: `${evTitle} [${ev.id}]`,
+    message: `${AMBASSADOR_RSVP_MARK} ${vol.role}\nAttending: 1`,
+    status: 'new', received: new Date().toISOString(),
+  };
+  await repo.addLead(lead);
+  let groupName = ''; let to = [];
+  try {
+    const g = groupOfEvent(ev, await loadGroups());
+    if (g) { groupName = g.name; to = await groupLeaderAddresses(g); }
+  } catch (e) {}
+  if (!to.length) to.push(email.notifyTo());
+  if (ev.rsvpEmail) to.push(String(ev.rsvpEmail).trim().toLowerCase());
+  const parts = rsvpReceiptParts({ lead, evTitle, tier: `Ambassador — ${vol.role}`, qty: 1, groupName });
+  const subject = `${groupName ? `[${groupName}] ` : ''}New RSVP — ${evTitle}${lead.name ? ` (${lead.name})` : ''}`.replace(/[\r\n]+/g, ' ');
+  for (const rcpt of [...new Set(to)]) {
+    email.send({ to: rcpt, replyTo: addr, subject, text: parts.text, html: parts.html })
+      .catch((e) => console.error('ambassador rsvp notify failed', rcpt, e));
+  }
+  const mine = guestCopy(parts);
+  const cal = eventEmailBlock(ev, siteBase(req));
+  email.send({ to: addr, subject: `Your RSVP is confirmed — ${evTitle}`.replace(/[\r\n]+/g, ' ').slice(0, 200),
+    text: mine.text + (cal.text ? `\n${cal.text}\n` : ''), html: mine.html + cal.html })
+    .catch((e) => console.error('ambassador rsvp confirmation failed', e));
+  return lead;
+}
+// Cancelling the last job at an event takes the RSVP it filed off the count
+// (moved to Trash, so nothing is lost). An RSVP the person made themselves is
+// never touched.
+async function dropAmbassadorRsvp(ev, addr, by) {
+  const a = String(addr || '').trim().toLowerCase();
+  if (!ev || !a) return 0;
+  const mine = rsvpsForEvent(ev, (await repo.listLeads()).filter(countsAsRsvp))
+    .filter((l) => String(l.email || '').trim().toLowerCase() === a && String(l.message || '').startsWith(AMBASSADOR_RSVP_MARK));
+  for (const l of mine) await repo.setLeadStatus(l.id, 'trash', by || 'Ambassador cancelled');
+  return mine.length;
+}
 
 /* ── Welcome-to-the-group email (Michael, Aug 20 2026) ──
    Anyone ADDED to a group's roster — approved from a join request, picked
@@ -1163,7 +1303,7 @@ router.get('/me/group/:slug', auth.requireAuth(), async (req, res) => {
       .sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')))
       .slice(0, 60);
     let rsvpLeads = [];
-    try { rsvpLeads = (await repo.listLeads()).filter((l) => l.kind === 'rsvp' && l.status !== 'spam'); } catch (e) {}
+    try { rsvpLeads = (await repo.listLeads()).filter(countsAsRsvp); } catch (e) {}
     const rsvps = {};
     const events = mine.map((e) => {
       const list = rsvpsForEvent(e, rsvpLeads).map((l) => ({
@@ -1196,7 +1336,11 @@ router.get('/me/group/:slug', auth.requireAuth(), async (req, res) => {
         meetingSchedule: g.meetingSchedule || '', meetingNotes: g.meetingNotes || '',
         heroImage: g.heroImage || '', logo: g.logo || '',
         manager: { name: (g.manager && g.manager.name) || '', email: (g.manager && g.manager.email) || '' },
-        members: g.members || [],
+        // noEmail marks the rows a group email would skip (Felicia, Nov 17
+        // 2026: she and Diana were added from listings with no address, so
+        // Sheryl's invite never reached them). Only the flag is sent, never a
+        // listing's address.
+        members: await withNoEmailFlags(g.members || []),
         hasVolunteerSheet: g.id === AMBASSADOR_GROUP_ID,
       },
       events, rsvps });
@@ -3411,6 +3555,15 @@ router.delete('/admin/groups/:id', requireAdmin, async (req, res) => {
   catch (e) { res.status(500).json({ error: 'delete failed' }); }
 });
 
+// Roster rows a group email cannot reach: no address on the row, and none on
+// the directory listing it was picked from.
+async function withNoEmailFlags(roster) {
+  let emailById = new Map();
+  try { emailById = new Map((await loadMembersFull()).members.filter((m) => m.email).map((m) => [m.id, m.email])); } catch (e) {}
+  const ok = (a) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(a || '').trim());
+  return roster.map((m) => ({ ...m, noEmail: !ok(m.email) && !ok(emailById.get(m.memberId)) }));
+}
+
 // 📣 Email every active member of a group (meeting reminders, agendas,
 // announcements). Roster entries added from the directory carry only a
 // memberId — their email resolves from the member roster/login at send time.
@@ -3450,7 +3603,12 @@ async function sendGroupAnnouncement(g, subject, message, req, eventId = '') {
       fromName: (g.manager && g.manager.email && g.manager.name) || '' }).catch(() => null);
     if (r && r.ok) sent++;
   }
-  return { sent, skipped: roster.length - targets.size, total: roster.length };
+  // Who was skipped, by name, so the sender can add their address under
+  // Members instead of wondering why someone says they got nothing.
+  const reached = new Set(targets.keys());
+  const skippedNames = roster.filter((m) => !reached.has(String(m.email || emailById.get(m.memberId) || '').toLowerCase()))
+    .map((m) => m.name).filter(Boolean).slice(0, 50);
+  return { sent, skipped: roster.length - targets.size, total: roster.length, skippedNames };
 }
 router.post('/admin/groups/:id/announce', requireAdmin, async (req, res) => {
   const subject = String((req.body && req.body.subject) || '').trim().slice(0, 160);
@@ -4305,7 +4463,7 @@ router.post('/me/volunteer', auth.requireAuth(), async (req, res) => {
     const taken = existing.filter((v) => v.role === role.role && v.status !== 'no-show').length;
     if (taken >= role.needed) return res.status(409).json({ error: 'That role is already fully covered — thank you though! Try another one.' });
     const m = await myMember(mid);
-    await repo.addVolunteer({
+    const vol = {
       id: 'vol-' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36),
       eventId: ev.id, eventTitle: ev.title || '', eventDate: ev.date || '',
       memberId: mid,
@@ -4313,8 +4471,14 @@ router.post('/me/volunteer', auth.requireAuth(), async (req, res) => {
       email: (m && m.email) || req.user.sub, phone: (m && m.phone) || '',
       role: role.role, points: Number(role.points) || 0,
       status: 'signed-up', note: String(b.note || '').slice(0, 300),
-    });
-    res.json({ ok: true });
+    };
+    await repo.addVolunteer(vol);
+    // The sign-up is their RSVP too. The person signed in is who is coming,
+    // so their own sign-in address carries it.
+    let rsvp = null;
+    try { rsvp = await rsvpFromAmbassadorSignup(ev, { ...vol, email: req.user.sub || vol.email }, m && m.name, req); }
+    catch (e) { console.error('ambassador rsvp', e); }
+    res.json({ ok: true, rsvp: !!rsvp });
   } catch (e) { console.error('volunteer signup', e); res.status(500).json({ error: 'Could not sign you up — please try again.' }); }
 });
 
@@ -4373,8 +4537,16 @@ router.delete('/me/volunteer/:id', auth.requireAuth(), async (req, res) => {
     const mid = req.user.mid;
     if (!mid) return res.status(404).json({ error: 'That sign-up is not yours.' });
     const mine = await repo.listVolunteers({ memberId: mid });
-    if (!mine.some((v) => v.id === req.params.id)) return res.status(404).json({ error: 'That sign-up is not yours.' });
+    const gone = mine.find((v) => v.id === req.params.id);
+    if (!gone) return res.status(404).json({ error: 'That sign-up is not yours.' });
     await repo.deleteVolunteer(req.params.id);
+    // No jobs left at that event → the RSVP the sign-up filed comes off too.
+    if (gone.eventId && !mine.some((v) => v.id !== gone.id && v.eventId === gone.eventId)) {
+      try {
+        const ev = (await loadEvents()).find((e) => e.id === gone.eventId);
+        await dropAmbassadorRsvp(ev, req.user.sub, 'Ambassador cancelled their sign-up');
+      } catch (e) { console.error('ambassador rsvp drop', e); }
+    }
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: 'Could not cancel that sign-up.' }); }
 });
@@ -5156,24 +5328,7 @@ router.post('/contact', async (req, res) => {
       if (g) {
         groupName = g.name;
         lead.reason = lead.reason || `Group: ${g.name}`;
-        const ok = (a) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(a || ''));
-        const add = (a) => {
-          const addr = String(a || '').trim().toLowerCase();
-          if (ok(addr) && addr !== String(email.notifyTo()).toLowerCase() && !leaderTo.includes(addr)) leaderTo.push(addr);
-        };
-        add(g.manager && g.manager.email);
-        add(g.contactEmail);
-        // Roster leaders too (Leader / Chair / Co-Chair). Entries added from the
-        // directory carry only a memberId, so resolve those against the roster.
-        try {
-          const { members: dir } = await loadMembersFull();
-          const emailById = new Map(dir.filter((m) => m.email).map((m) => [m.id, m.email]));
-          for (const m of (g.members || [])) {
-            if (m.status === 'pending') continue;
-            if (!/^(leader|chair|co-chair)$/i.test(String(m.role || ''))) continue;
-            add(m.email || emailById.get(m.memberId));
-          }
-        } catch (e) { /* manager/contact address still gets it */ }
+        leaderTo.push(...await groupLeaderAddresses(g));
       }
     } catch (e) {}
   }
@@ -5248,8 +5403,6 @@ router.post('/contact', async (req, res) => {
       let html = '';
       let text = body;
       if (lead.kind === 'rsvp') {
-        const eh = (v) => String(v ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-        const row = (k, v) => (v ? `<tr><td style="padding:2px 16px 2px 0;font-weight:bold;vertical-align:top;white-space:nowrap">${k}:</td><td style="padding:2px 0">${eh(v)}</td></tr>` : '');
         const evTitle = String(b.eventTitle || lead.event || '').replace(/\s*\[[^\]]*\]\s*$/, '');
         const qty = Math.max(1, Math.min(50, parseInt(b.quantity, 10) || 1));
         const tier = String(b.ticketType || '').slice(0, 120);
@@ -5258,43 +5411,7 @@ router.post('/contact', async (req, res) => {
           email: String((a && a.email) || '').slice(0, 160),
           phone: String((a && a.phone) || '').slice(0, 40),
         })).filter((a) => a.name || a.email || a.phone);
-        html = `
-        <div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#111;max-width:560px;border:1px solid #ccc;padding:20px 24px">
-          <img src="https://woodlandhillscc.net/images/wvwccc-logo-200.png" alt="WVWC Chamber of Commerce" width="72" style="display:block;margin:0 0 12px">
-          <p style="color:#188038;font-weight:bold;margin:0">THANK YOU</p>
-          <table style="border-collapse:collapse;font-size:14px;margin-top:10px">
-            ${row('Name', lead.name)}
-            ${row('Event', evTitle)}
-            ${row('Registration', tier)}
-            ${row('RSVP Qty', String(qty))}
-            ${groupName ? row('Group', groupName) : ''}
-          </table>
-          <p style="font-weight:bold;text-decoration:underline;margin:16px 0 4px">GUEST INFO</p>
-          <table style="border-collapse:collapse;font-size:14px">
-            ${row('Company', lead.company)}
-            ${row('Name', lead.name)}
-            ${row('Email', lead.email)}
-            ${row('Phone', lead.phone)}
-          </table>
-          ${guests.length ? guests.map((g) => `
-          <table style="border-collapse:collapse;font-size:14px;margin-top:10px">
-            ${row('Name', g.name)}
-            ${row('Email', g.email)}
-            ${row('Phone', g.phone)}
-          </table>`).join('') : ''}
-          <p style="margin:14px 0 0;color:#666;font-size:12px">Also filed under Admin &rarr; Inquiries on the Chamber website.</p>
-        </div>`;
-        /* "* This is an RSVP only. Please pay at the door." used to close this
-           receipt — removed entirely (Felicia, Aug 19 2026 call: members who
-           attend free were being told to pay). When an event really does take
-           money at the door, that belongs in the event description. */
-        text = `THANK YOU\n\n`
-          + `Name: ${lead.name || '—'}\nEvent: ${evTitle || '—'}\n`
-          + `${tier ? `Registration: ${tier}\n` : ''}RSVP Qty: ${qty}\n${groupName ? `Group: ${groupName}\n` : ''}`
-          + `\nGUEST INFO\n`
-          + `Company: ${lead.company || '—'}\nName: ${lead.name || '—'}\nEmail: ${lead.email}\nPhone: ${lead.phone || '—'}\n`
-          + guests.map((g) => `\nName: ${g.name || '—'}\nEmail: ${g.email || '—'}\nPhone: ${g.phone || '—'}\n`).join('')
-          + `\n—\nAlso filed under Admin → Inquiries on the Chamber website.\n`;
+        ({ html, text } = rsvpReceiptParts({ lead, evTitle, tier, qty, groupName, guests }));
       }
       // Individually addressed so leaders never see each other's addresses.
       for (const to of [...new Set(recipients)]) {
@@ -5311,10 +5428,7 @@ router.post('/contact', async (req, res) => {
       // addresses under the Chamber's own domain.
       if (lead.kind === 'rsvp' && rsvpEvent && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(lead.email || ''))) {
         const guestSubject = `Your RSVP is confirmed — ${String(rsvpEvent.title || 'Chamber event').replace(/[\r\n]+/g, ' ').slice(0, 140)}${rsvpEvent.date ? ` (${rsvpEvent.date})` : ''}`;
-        const guestHtml = html.replace(/<p style="margin:14px 0 0;color:#666;font-size:12px">.*?<\/p>/s,
-          '<p style="margin:14px 0 0;color:#666;font-size:12px">West Valley &middot; Warner Center Chamber of Commerce &middot; (818)&nbsp;347-4737</p>');
-        const guestText = text.replace(/\n—\nAlso filed under Admin → Inquiries on the Chamber website\.\n$/,
-          '\n—\nWest Valley · Warner Center Chamber of Commerce · (818) 347-4737\n');
+        const { html: guestHtml, text: guestText } = guestCopy({ html, text });
         // The calendar buttons go in the confirmation too (Nov 17 2026): the
         // moment someone has said yes is when they put it in their diary.
         const cal = eventEmailBlock(rsvpEvent, siteBase(req));
