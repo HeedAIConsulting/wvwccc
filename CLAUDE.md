@@ -289,6 +289,11 @@ admin/groups, admin/events, member/group and member/event (tested in
   a box to type one, and a send names who it skipped (`skippedNames`).
   A staff login (felicia@, diana@) cannot become a member login: the 409 on
   create-login is correct, and they do not need one.
+- **Sheryl's "who signed up for which job"** is its own button, 🙋 Ambassador
+  sign-ups, on the Ambassador Committee's Manage group page (leaders only;
+  `signups` pane, shown when `hasVolunteerSheet`). It had sat at the foot of
+  Meetings since the Nov 17 tabs and she could not find it. Same list as the
+  top of Admin → Ambassadors.
 
 ## Receipts that do not arrive
 
