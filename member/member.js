@@ -1328,7 +1328,7 @@ window.MemberPortal = (function () {
       const active = members.filter((m) => m.status !== 'pending');
       const events = data.events || [];
       const pastEvents = data.pastEvents || [];
-      if (!['meetings', 'members', 'email', 'photos', 'page'].includes(tab)) tab = 'meetings';
+      if (!['meetings', 'members', 'email', 'photos', 'page', ...(g.hasVolunteerSheet ? ['signups'] : [])].includes(tab)) tab = 'meetings';
       const T = (id, icon, label, dot) => `<button type="button" data-tab="${id}" aria-pressed="${tab === id}"><span class="i">${icon}</span>${label}${dot ? `<span class="dot">${dot}</span>` : ''}</button>`;
       const photoBtn = (ev) => `<label class="btn btn--ghost btn--sm" style="cursor:pointer;margin:0">📷 Add photos<input type="file" accept="image/*" multiple hidden data-evphotos="${esc(ev.id)}"></label>`;
       const noEdit = '<span class="member-tile__meta" style="align-self:center;max-width:260px">Posted for your group by someone else, so it has no Edit here. To change or remove it, ask the Chamber office (818-347-4737) to set your group as its host.</span>';
@@ -1371,11 +1371,17 @@ window.MemberPortal = (function () {
             ${ev.canManage ? `<button type="button" class="btn btn--ghost btn--sm" data-dup="${esc(ev.id)}">Copy to another date</button>
               <a class="btn btn--ghost btn--sm" href="event.html?edit=${encodeURIComponent(ev.id)}">Edit</a>` : ''}</span>
           </div>`).join('')}` : ''}` : ''}
-          ${g.hasVolunteerSheet ? `<div class="card mt-5" id="gmVolSheet">
-            <h3 style="margin:0 0 4px">Ambassador sign-ups</h3>
-            <p class="member-tile__meta" style="margin:0 0 10px">Who is covering which job at the coming breakfasts and mixers. Ambassadors sign up from their own dashboard.</p>
+`,
+
+        /* Its own button (Felicia, Nov 19 2026: Sheryl was still asking which
+           Ambassador signed up for which job — the list had ended up at the
+           foot of Meetings, under every meeting). Ambassador Committee only. */
+        signups: `
+          <div id="gmVolSheet">
+            <h3 style="margin:0 0 4px">Who signed up for which job</h3>
+            <p class="member-tile__meta" style="margin:0 0 10px">Every coming breakfast and mixer, each job, who is covering it and how many places are still open. Ambassadors sign up from their own dashboard, and a sign-up is also their RSVP.</p>
             <div data-sheet><p class="member-tile__meta">Loading…</p></div>
-          </div>` : ''}`,
+          </div>`,
 
         members: `
           ${pending.length ? `
@@ -1481,6 +1487,7 @@ window.MemberPortal = (function () {
           </p>
           <nav class="wv-tabs" aria-label="What do you want to do?">
             ${T('meetings', '📅', 'Meetings')}
+            ${g.hasVolunteerSheet ? T('signups', '🙋', 'Ambassador sign-ups') : ''}
             ${T('members', '👥', 'Members', pending.length || '')}
             ${T('email', '✉️', 'Email the group')}
             ${T('photos', '📷', 'Photos')}

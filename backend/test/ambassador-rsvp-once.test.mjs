@@ -227,3 +227,12 @@ test('both Members pages flag a row no group email reaches, with a box to fix it
   assert.match(admin, /No email on file — group emails skip them\./);
   assert.match(admin, /Not sent to \$\{\(r\.skippedNames \|\| \[\]\)\.join\(', '\)/);
 });
+
+test('Sheryl\'s sign-up list has its own button, not the foot of Meetings', () => {
+  const js = read('member/member.js');
+  assert.match(js, /\$\{g\.hasVolunteerSheet \? T\('signups', '🙋', 'Ambassador sign-ups'\) : ''\}/);
+  assert.match(js, /\.\.\.\(g\.hasVolunteerSheet \? \['signups'\] : \[\]\)/);
+  const meetings = js.slice(js.indexOf('        meetings: `'), js.indexOf('        signups: `'));
+  assert.equal(meetings.includes('gmVolSheet'), false, 'no longer buried under the meetings');
+  assert.match(js, /signups: `\n\s+<div id="gmVolSheet">/);
+});
