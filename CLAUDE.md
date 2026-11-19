@@ -294,6 +294,11 @@ admin/groups, admin/events, member/group and member/event (tested in
   `signups` pane, shown when `hasVolunteerSheet`). It had sat at the foot of
   Meetings since the Nov 17 tabs and she could not find it. Same list as the
   top of Admin → Ambassadors.
+- **Admin → Ambassadors → "Who's signed up"** shows Taken ("1 of 2") and Open
+  per job, and each event has **✏️ Change jobs or how many**, which opens
+  Admin → Events on that event (`?focus=<id>&jobs=1`) scrolled to the
+  "Ambassador jobs" field. The editor's columns are labelled Job / Points /
+  People needed (Felicia, Nov 19: she could not find where to ask for more).
 
 ## Receipts that do not arrive
 
