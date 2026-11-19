@@ -3198,10 +3198,14 @@ window.Admin = (function () {
     ]);
     function renderVolunteers() {
       if (!volWrap) return;
-      volWrap.innerHTML = volunteerRoles.map((r, i) => `<div style="display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap;align-items:center">
+      // Visible column names (Felicia, Nov 19 2026: she could not find where
+      // to ask for more Ambassadors — "how many" was only a tooltip).
+      volWrap.innerHTML = (volunteerRoles.length ? `<div class="sub" style="display:flex;gap:6px;margin-bottom:2px;font-weight:600">
+          <span style="flex:2;min-width:180px">Job</span><span style="width:90px">Points</span><span style="width:95px">People needed</span></div>` : '')
+        + volunteerRoles.map((r, i) => `<div style="display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap;align-items:center">
         <input data-vr="${i}" data-f="role" list="evVolIdeas" placeholder="Task (e.g. Greeter)" value="${esc(r.role || '')}" style="flex:2;min-width:180px">
         <input data-vr="${i}" data-f="points" type="number" min="0" max="100" placeholder="Points" value="${esc(r.points != null ? r.points : '')}" style="width:90px" title="Points an ambassador earns for this shift">
-        <input data-vr="${i}" data-f="needed" type="number" min="1" max="50" placeholder="How many" value="${esc(r.needed != null ? r.needed : 1)}" style="width:95px" title="How many people you need for this task">
+        <input data-vr="${i}" data-f="needed" type="number" min="1" max="50" placeholder="How many" value="${esc(r.needed != null ? r.needed : 1)}" style="width:95px" title="How many Ambassadors you need for this job. Raise it and the extra places open on their dashboards straight away.">
         <button type="button" data-rmvr="${i}" class="btn btn--ghost btn--sm">×</button>
       </div>`).join('')
         + `<datalist id="evVolIdeas">${VOL_PRESETS.map((p) => `<option value="${esc(p.role)}"></option>`).join('')}</datalist>
@@ -3557,7 +3561,20 @@ window.Admin = (function () {
         if (focusId && !load._focused) {
           load._focused = true;
           const ev = allEvents.find((x) => x.id === focusId);
-          if (ev) { fillForm(ev); showEvForm(); }
+          if (ev) {
+            fillForm(ev); showEvForm();
+            // From Admin → Ambassadors, "Change jobs or how many": land on the jobs.
+            if (new URLSearchParams(location.search).get('jobs')) {
+              setTimeout(() => {
+                const box = document.getElementById('evVolunteers');
+                const field = box && box.closest('.field');
+                if (!field) return;
+                field.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                field.style.outline = '3px solid var(--gold,#b8893c)'; field.style.borderRadius = '8px';
+                setTimeout(() => { field.style.outline = ''; }, 4000);
+              }, 300);
+            }
+          }
         }
       } catch (e) { showAuthError(e); }
     }
@@ -3929,11 +3946,15 @@ window.Admin = (function () {
       try {
         const evs = (await api('/api/admin/volunteer-sheet')).events || [];
         volSheet.innerHTML = evs.length ? evs.map((ev) => `<div style="border:1px solid var(--line,#eee);border-radius:10px;padding:10px 14px;margin-top:10px">
-          <strong>${esc(ev.title)}</strong> <span class="sub">${esc(ev.date)}${ev.time ? ' · ' + esc(ev.time) : ''}${ev.venue ? ' · ' + esc(ev.venue) : ''}</span>
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+            <span><strong>${esc(ev.title)}</strong> <span class="sub">${esc(ev.date)}${ev.time ? ' · ' + esc(ev.time) : ''}${ev.venue ? ' · ' + esc(ev.venue) : ''}</span></span>
+            <a class="btn btn--ghost btn--sm" href="events.html?focus=${encodeURIComponent(ev.id)}&amp;jobs=1">✏️ Change jobs or how many</a>
+          </div>
           <table class="admin-table" style="margin-top:6px">
-            <thead><tr><th style="width:170px">Job</th><th>Who</th><th style="width:90px">Open</th></tr></thead>
+            <thead><tr><th style="width:170px">Job</th><th>Who</th><th style="width:90px">Taken</th><th style="width:90px">Open</th></tr></thead>
             <tbody>${ev.jobs.map((j) => `<tr><td><strong>${esc(j.role)}</strong></td>
               <td>${j.people.length ? j.people.map((p) => `${esc(p.name)}${p.phone ? ` <span class="sub">${esc(p.phone)}</span>` : ''}${p.email ? ` <span class="sub">${esc(p.email)}</span>` : ''}`).join('<br>') : '<span class="sub">Nobody yet</span>'}</td>
+              <td>${j.people.length} of ${j.needed}</td>
               <td>${j.open ? `<strong style="color:var(--gold,#b8893c)">${j.open}</strong>` : '<span style="color:var(--green,#1E5631)">✓ covered</span>'}</td></tr>`).join('')}</tbody>
           </table></div>`).join('')
           : '<p class="sub">No upcoming event has Ambassador jobs yet.</p>';

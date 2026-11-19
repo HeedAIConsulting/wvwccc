@@ -236,3 +236,13 @@ test('Sheryl\'s sign-up list has its own button, not the foot of Meetings', () =
   assert.equal(meetings.includes('gmVolSheet'), false, 'no longer buried under the meetings');
   assert.match(js, /signups: `\n\s+<div id="gmVolSheet">/);
 });
+
+test('Felicia can see taken and open places and get straight to changing a job', () => {
+  const js = read('admin/admin.js');
+  assert.match(js, /<th style="width:90px">Taken<\/th><th style="width:90px">Open<\/th>/);
+  assert.match(js, /\$\{j\.people\.length\} of \$\{j\.needed\}/);
+  assert.match(js, /href="events\.html\?focus=\$\{encodeURIComponent\(ev\.id\)\}&amp;jobs=1">✏️ Change jobs or how many<\/a>/);
+  assert.match(js, /get\('jobs'\)\) \{/);
+  assert.match(js, /<span style="width:95px">People needed<\/span>/);
+  assert.match(read('admin/events.html'), /<label>Ambassador jobs <span class="sub">\(each job and how many people it needs/);
+});
