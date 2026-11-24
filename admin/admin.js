@@ -3948,8 +3948,12 @@ window.Admin = (function () {
         volSheet.innerHTML = evs.length ? evs.map((ev) => `<div style="border:1px solid var(--line,#eee);border-radius:10px;padding:10px 14px;margin-top:10px">
           <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
             <span><strong>${esc(ev.title)}</strong> <span class="sub">${esc(ev.date)}${ev.time ? ' · ' + esc(ev.time) : ''}${ev.venue ? ' · ' + esc(ev.venue) : ''}</span></span>
-            <a class="btn btn--ghost btn--sm" href="events.html?focus=${encodeURIComponent(ev.id)}&amp;jobs=1">✏️ Change jobs or how many</a>
+            <span style="display:flex;gap:6px;flex-wrap:wrap">
+              ${ev.jobs.some((j) => j.open > 0) ? `<button type="button" class="btn btn--gold btn--sm" data-askamb="${esc(ev.id)}" data-asktitle="${esc(ev.title)}">📣 Ask Ambassadors to sign up</button>` : ''}
+              <a class="btn btn--ghost btn--sm" href="events.html?focus=${encodeURIComponent(ev.id)}&amp;jobs=1">✏️ Change jobs or how many</a>
+            </span>
           </div>
+          ${ev.lastAsked ? `<div class="sub" style="margin-top:4px">Last asked ${esc(new Date(ev.lastAsked.at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }))}${ev.lastAsked.by ? ` by ${esc(ev.lastAsked.by)}` : ''} — ${ev.lastAsked.sent} emailed.</div>` : ''}
           <table class="admin-table" style="margin-top:6px">
             <thead><tr><th style="width:170px">Job</th><th>Who</th><th style="width:90px">Taken</th><th style="width:90px">Open</th></tr></thead>
             <tbody>${ev.jobs.map((j) => `<tr><td><strong>${esc(j.role)}</strong></td>
@@ -3958,6 +3962,19 @@ window.Admin = (function () {
               <td>${j.open ? `<strong style="color:var(--gold,#b8893c)">${j.open}</strong>` : '<span style="color:var(--green,#1E5631)">✓ covered</span>'}</td></tr>`).join('')}</tbody>
           </table></div>`).join('')
           : '<p class="sub">No upcoming event has Ambassador jobs yet.</p>';
+        // 📣 Ask Ambassadors to sign up (Diana, via Felicia, Nov 24 2026:
+        // nobody had signed up for the Dec 2 breakfast — nothing told them).
+        volSheet.querySelectorAll('[data-askamb]').forEach((b) => b.addEventListener('click', async () => {
+          if (!confirm(`Email every Ambassador the open jobs at “${b.dataset.asktitle}”?\n\nAnyone already doing a job there is left out. Each gets their own email with a button to their dashboard.`)) return;
+          b.disabled = true; b.textContent = 'Sending…';
+          try {
+            const res = await fetch(apiBase + `/api/admin/events/${encodeURIComponent(b.dataset.askamb)}/ask-ambassadors`, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+            const r = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(r.error || 'Could not send — please try again.');
+            alert(`✓ Emailed ${r.sent} Ambassador${r.sent === 1 ? '' : 's'}.${r.alreadySignedUp ? ` ${r.alreadySignedUp} already signed up, so not asked.` : ''}${r.noEmail && r.noEmail.length ? `\n\nNo email on file, so not asked: ${r.noEmail.join(', ')}. Add one under Members.` : ''}`);
+            paintSheet();
+          } catch (e) { alert(e.message || 'Could not send — please try again.'); b.disabled = false; b.textContent = '📣 Ask Ambassadors to sign up'; }
+        }));
       } catch (e) { volSheet.innerHTML = '<p class="sub">Could not load the sign-ups.</p>'; }
     }
 

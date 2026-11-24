@@ -299,6 +299,16 @@ admin/groups, admin/events, member/group and member/event (tested in
   Admin → Events on that event (`?focus=<id>&jobs=1`) scrolled to the
   "Ambassador jobs" field. The editor's columns are labelled Job / Points /
   People needed (Felicia, Nov 19: she could not find where to ask for more).
+- **📣 Ask Ambassadors to sign up** (Diana, via Felicia, Nov 24: nobody had
+  signed up for the Dec 2 breakfast, because nothing tells an Ambassador jobs
+  are posted). On each event in Admin → Ambassadors → Who's signed up, and on
+  the committee's 🙋 Ambassador sign-ups tab. It emails every Ambassador (the
+  designation, as `isAmbassador`) who is not already doing a job there the
+  open jobs and a "Pick a job" button to `/member/`, at their sign-in address,
+  else the listing's. Individually addressed; replies go to the office (or the
+  committee manager when Sheryl sends it). The last send is kept in settings
+  `ambassadorAsk:<eventId>` and shown under the event ("Last asked … — N
+  emailed"). Covered events are refused. Ambassadors with no address are named.
 
 ## Receipts that do not arrive
 
