@@ -246,3 +246,69 @@ test('Felicia can see taken and open places and get straight to changing a job',
   assert.match(js, /<span style="width:95px">People needed<\/span>/);
   assert.match(read('admin/events.html'), /<label>Ambassador jobs <span class="sub">\(each job and how many people it needs/);
 });
+
+/* Diana, via Felicia, Nov 24 2026: nobody had signed up for the Dec 2
+   breakfast, because nothing tells an Ambassador that jobs are posted. */
+test('the ask email lists only open jobs and sends them to their dashboard', async () => {
+  const { ambassadorAskEmail } = await import('../chamber-routes.js');
+  const ev = { id: 'e1', title: 'Start Your Month Breakfast', date: '2026-12-02', time: '7:30 AM', venue: 'Fogo de Chão' };
+  const jobs = [{ role: 'Greeter', needed: 2, open: 2 }, { role: 'Check In', needed: 2, open: 0 }, { role: 'Floater', needed: 2, open: 1 }];
+  const m = ambassadorAskEmail(ev, jobs, 'https://woodlandhillscc.net', 'Martin');
+  assert.equal(m.subject, 'Ambassadors needed: Start Your Month Breakfast (Dec 2)');
+  assert.match(m.text, /^Hi Martin,\n\nWe still need Ambassadors for Start Your Month Breakfast on Wednesday, December 2 at 7:30 AM at Fogo de Chão\./);
+  assert.match(m.text, /- Greeter: 2 of 2 open\n- Floater: 1 of 2 open\n/);
+  assert.equal(m.text.includes('Check In'), false, 'a covered job is not asked for');
+  assert.match(m.html, /<a href="https:\/\/woodlandhillscc\.net\/member\/"[^>]*>Pick a job<\/a>/);
+  assert.match(m.text, /under "Volunteer at an event" on your dashboard/);
+  assert.match(ambassadorAskEmail(ev, jobs, '', '').text, /^Hi there,/);
+});
+
+test('📣 asks every Ambassador not already doing a job, and records it', async () => {
+  const ask = async () => {
+    const r = await adm(`/api/admin/events/${encodeURIComponent(eventId)}/ask-ambassadors`, { method: 'POST', body: '{}' });
+    return { status: r.status, body: await r.json() };
+  };
+  // Our Ambassador already has a job here, so is left out.
+  sent.length = 0;
+  let r = await ask();
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.ok(r.body.alreadySignedUp >= 1);
+  assert.equal(sent.some((m) => m.to === AMB_LOGIN), false, 'already signed up — not asked');
+  // Once they have no job there, they are asked — at their sign-in address.
+  for (const v of await myShifts()) await me(`/api/me/volunteer/${encodeURIComponent(v.id)}`, { method: 'DELETE' });
+  sent.length = 0;
+  r = await ask();
+  assert.equal(r.status, 200);
+  const mine = sent.find((m) => m.to === AMB_LOGIN);
+  assert.ok(mine, 'the Ambassador gets the ask');
+  assert.match(mine.subject, /^Ambassadors needed: Holiday Open House/);
+  assert.match(mine.text, /- Greeter: 2 of 2 open/);
+  assert.equal(mine.replyTo, OFFICE, 'replies go to the office');
+  assert.ok(r.body.sent >= 1);
+  assert.ok(Array.isArray(r.body.noEmail));
+  // The sign-up list shows it went.
+  const sheet = await (await adm('/api/admin/volunteer-sheet')).json();
+  const ev = sheet.events.find((e) => e.id === eventId);
+  assert.ok(ev.lastAsked && ev.lastAsked.sent === r.body.sent && ev.lastAsked.by === ADMIN);
+});
+
+test('📣 is refused for an event with nothing open, and for anyone but the office or the committee', async () => {
+  const r = await adm('/api/admin/events/no-such-event/ask-ambassadors', { method: 'POST', body: '{}' });
+  assert.equal(r.status, 404);
+  const asMember = await me(`/api/admin/events/${encodeURIComponent(eventId)}/ask-ambassadors`, { method: 'POST', body: '{}' });
+  assert.ok([401, 403].includes(asMember.status));
+  const notLeader = await me(`/api/me/group/ambassador-committee/ask-ambassadors/${encodeURIComponent(eventId)}`, { method: 'POST', body: '{}' });
+  assert.ok([403, 404].includes(notLeader.status), String(notLeader.status));
+  const src = read('backend/chamber-routes.js');
+  assert.match(src, /if \(!sheet\.jobs\.some\(\(j\) => j\.open > 0\)\) return \{ status: 400, error: 'Every job at that event is already covered\.' \};/);
+  assert.match(src, /if \(g\.id !== AMBASSADOR_GROUP_ID\) return res\.status\(404\)\.json\(\{ error: 'Only the Ambassador Committee can do this\.' \}\);/);
+});
+
+test('both sign-up lists carry the 📣 button', () => {
+  for (const f of ['admin/admin.js', 'member/member.js']) {
+    const js = read(f);
+    assert.match(js, /data-askamb="\$\{esc\(ev\.id\)\}"/, f);
+    assert.match(js, /📣 Ask Ambassadors to sign up/, f);
+    assert.match(js, /ev\.lastAsked \?/, f);
+  }
+});

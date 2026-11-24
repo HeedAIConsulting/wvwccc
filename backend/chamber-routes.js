@@ -4380,15 +4380,125 @@ export function signupSheet(events, signups, today = new Date().toISOString().sl
 }
 const AMBASSADOR_GROUP_ID = 'grp-ambassador-committee';
 router.get('/admin/volunteer-sheet', requireAdmin, async (_req, res) => {
-  try { res.json({ ok: true, events: signupSheet(await loadEvents(), await repo.listVolunteers({})) }); }
+  try { res.json({ ok: true, events: await sheetWithAsks(signupSheet(await loadEvents(), await repo.listVolunteers({}))) }); }
   catch (e) { console.error('volunteer sheet', e); res.status(500).json({ error: 'Could not load the sign-ups.' }); }
 });
 router.get('/me/group/:slug/volunteer-sheet', auth.requireAuth(), async (req, res) => {
   try {
     const g = await ledGroupOr403(req, res); if (!g) return;
     if (g.id !== AMBASSADOR_GROUP_ID) return res.status(404).json({ error: 'Only the Ambassador Committee has a sign-up sheet.' });
-    res.json({ ok: true, events: signupSheet(await loadEvents(), await repo.listVolunteers({})) });
+    res.json({ ok: true, events: await sheetWithAsks(signupSheet(await loadEvents(), await repo.listVolunteers({}))) });
   } catch (e) { console.error('leader volunteer sheet', e); res.status(500).json({ error: 'Could not load the sign-ups.' }); }
+});
+
+/* ── Ask Ambassadors to sign up (Diana, via Felicia, Nov 24 2026) ──
+   Nobody had signed up for the Dec 2 breakfast, because nothing tells an
+   Ambassador that jobs are posted: they only see them if they sign in. One
+   click from Admin → Ambassadors, or from the Ambassador Committee's own
+   sign-up list, emails every Ambassador the open jobs at that event with a
+   button to their dashboard. Anyone already doing a job there is left out,
+   each email is individually addressed, and the last send is recorded so
+   the next person can see it went. */
+const ambIsAmbassador = (m) => String(m.leaderStatus || '') === 'Ambassador'
+  || (Array.isArray(m.designations) && m.designations.includes('Ambassador'));
+const okAddr = (a) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(a || '').trim());
+
+export function ambassadorAskEmail(ev, jobs, base, firstName = '') {
+  const eh = (v) => String(v ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const site = String(base || 'https://woodlandhillscc.net').replace(/\/$/, '');
+  const portal = `${site}/member/`;
+  const d = /^\d{4}-\d{2}-\d{2}$/.test(String(ev.date || '')) ? new Date(ev.date + 'T12:00:00Z') : null;
+  const day = d ? d.toLocaleDateString('en-US', { timeZone: 'UTC', weekday: 'long', month: 'long', day: 'numeric' }) : '';
+  const short = d ? d.toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric' }) : '';
+  const when = [day, ev.time].filter(Boolean).join(' at ');
+  const open = (jobs || []).filter((j) => j.open > 0);
+  const title = ev.title || 'our next event';
+  const subject = `Ambassadors needed: ${title}${short ? ` (${short})` : ''}`.replace(/[\r\n]+/g, ' ').slice(0, 160);
+  const hi = `Hi ${firstName || 'there'},`;
+  const lead = `We still need Ambassadors for ${title}${when ? ` on ${when}` : ''}${ev.venue ? ` at ${ev.venue}` : ''}.`;
+  const how = 'Sign in, and under "Volunteer at an event" on your dashboard click the job you want. Signing up for a job also RSVPs you for the event.';
+  const text = `${hi}\n\n${lead}\n\nStill open:\n${open.map((j) => `- ${j.role}: ${j.open} of ${j.needed} open`).join('\n')}\n\n${how}\n\nPick a job: ${portal}\n\n—\nWest Valley · Warner Center Chamber of Commerce · (818) 347-4737\n`;
+  const html = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.55;color:#111;max-width:600px">
+    <p style="margin:0 0 12px">${eh(hi)}</p>
+    <p style="margin:0 0 12px">${eh(lead)}</p>
+    <table style="border-collapse:collapse;font-size:15px;margin:0 0 14px">
+      ${open.map((j) => `<tr><td style="padding:4px 18px 4px 0;font-weight:bold">${eh(j.role)}</td><td style="padding:4px 0;color:#7a6a3a">${j.open} of ${j.needed} open</td></tr>`).join('')}
+    </table>
+    <p style="margin:0 0 16px">${eh(how)}</p>
+    <p style="margin:0 0 18px"><a href="${eh(portal)}" style="display:inline-block;padding:11px 20px;border-radius:8px;background:#1E5631;color:#ffffff;text-decoration:none;font-weight:bold">Pick a job</a></p>
+    <p style="margin:18px 0 0;padding-top:10px;border-top:1px solid #ddd;color:#666;font-size:12px">West Valley · Warner Center Chamber of Commerce · (818) 347-4737</p>
+  </div>`;
+  return { subject, text, html };
+}
+
+// Who gets the ask: every Ambassador not already doing a job at this event.
+// Their sign-in address first (that is where they sign up), else the listing's.
+async function ambassadorAskTargets(ev) {
+  const [{ members }, userList, signups] = await Promise.all([
+    loadMembersFull(), users.listUsers().catch(() => []), repo.listVolunteers({ eventId: ev.id }),
+  ]);
+  const doing = new Set(signups.filter((v) => v.status !== 'no-show').map((v) => v.memberId));
+  const loginsBy = new Map();
+  for (const u of userList) {
+    if (!u.memberId || !okAddr(u.email) || u.status === 'rejected') continue;
+    if (!loginsBy.has(u.memberId)) loginsBy.set(u.memberId, []);
+    loginsBy.get(u.memberId).push(String(u.email).toLowerCase());
+  }
+  const to = new Map(); const noEmail = []; let already = 0;
+  for (const m of members.filter(ambIsAmbassador)) {
+    if (doing.has(m.id)) { already++; continue; }
+    const addrs = loginsBy.get(m.id) || (okAddr(m.email) ? [String(m.email).toLowerCase()] : []);
+    if (!addrs.length) { noEmail.push(m.contactName || m.name); continue; }
+    const first = String(m.contactName || '').trim().split(/\s+/)[0] || '';
+    for (const a of addrs) if (!to.has(a)) to.set(a, first);
+  }
+  return { to, noEmail, already };
+}
+
+const ASK_KEY = (id) => `ambassadorAsk:${id}`;
+async function lastAmbassadorAsk(id) {
+  try { const v = await repo.getSetting(ASK_KEY(id)); return v ? JSON.parse(v) : null; } catch (e) { return null; }
+}
+async function sheetWithAsks(sheet) {
+  return Promise.all(sheet.map(async (e) => ({ ...e, lastAsked: await lastAmbassadorAsk(e.id) })));
+}
+
+async function askAmbassadors(evId, req, { by = '', replyTo, fromName = '' } = {}) {
+  const ev = (await loadEvents()).find((e) => e.id === String(evId));
+  if (!ev) return { status: 404, error: 'That event no longer exists.' };
+  const sheet = signupSheet([ev], await repo.listVolunteers({ eventId: ev.id }))[0];
+  if (!sheet) return { status: 400, error: 'That event has no Ambassador jobs, or it has already happened.' };
+  if (!sheet.jobs.some((j) => j.open > 0)) return { status: 400, error: 'Every job at that event is already covered.' };
+  const { to, noEmail, already } = await ambassadorAskTargets(ev);
+  const base = siteBase(req);
+  let sent = 0;
+  for (const [addr, first] of to) {
+    const m = ambassadorAskEmail(ev, sheet.jobs, base, first);
+    const r = await email.send({ to: addr, subject: m.subject, text: m.text, html: m.html, replyTo, fromName })
+      .catch((e) => { console.error('ambassador ask', addr, e); return null; });
+    if (r && r.ok) sent++;
+  }
+  const record = { at: new Date().toISOString(), by, sent };
+  try { await repo.setSetting(ASK_KEY(ev.id), JSON.stringify(record)); } catch (e) {}
+  return { ok: true, sent, alreadySignedUp: already, noEmail: noEmail.slice(0, 50), lastAsked: record };
+}
+
+router.post('/admin/events/:id/ask-ambassadors', requireAdmin, async (req, res) => {
+  try {
+    const r = await askAmbassadors(req.params.id, req, { by: (req.user && req.user.sub) || 'office', replyTo: email.notifyTo() });
+    res.status(r.status || 200).json(r.status ? { error: r.error } : r);
+  } catch (e) { console.error('ask ambassadors', e); res.status(500).json({ error: 'Could not send — please try again.' }); }
+});
+router.post('/me/group/:slug/ask-ambassadors/:eventId', auth.requireAuth(), async (req, res) => {
+  try {
+    const g = await ledGroupOr403(req, res); if (!g) return;
+    if (g.id !== AMBASSADOR_GROUP_ID) return res.status(404).json({ error: 'Only the Ambassador Committee can do this.' });
+    const lead = g.manager && okAddr(g.manager.email) ? g.manager : null;
+    const r = await askAmbassadors(req.params.eventId, req, {
+      by: req.user.sub, replyTo: (lead && lead.email) || req.user.sub, fromName: (lead && lead.name) || '',
+    });
+    res.status(r.status || 200).json(r.status ? { error: r.error } : r);
+  } catch (e) { console.error('leader ask ambassadors', e); res.status(500).json({ error: 'Could not send — please try again.' }); }
 });
 
 // What an ambassador can sign up for: upcoming events that have roles defined,

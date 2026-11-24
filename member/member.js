@@ -1586,6 +1586,8 @@ window.MemberPortal = (function () {
           box.innerHTML = evs.length ? evs.map((ev) => `<div style="border:1px solid var(--line,#eee);border-radius:var(--r-md,10px);padding:12px 14px;margin-bottom:10px">
             <strong>${esc(ev.title)}</strong>
             <div class="member-tile__meta">${esc(fmtD(ev.date))}${ev.time ? ' · ' + esc(ev.time) : ''}${ev.venue ? ' · ' + esc(ev.venue) : ''}</div>
+            ${ev.jobs.some((j) => j.open > 0) ? `<div style="margin:8px 0 2px"><button type="button" class="btn btn--gold btn--sm" data-askamb="${esc(ev.id)}" data-asktitle="${esc(ev.title)}">📣 Ask Ambassadors to sign up</button></div>` : ''}
+            ${ev.lastAsked ? `<div class="member-tile__meta">Last asked ${esc(new Date(ev.lastAsked.at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }))} — ${ev.lastAsked.sent} emailed.</div>` : ''}
             <table style="width:100%;border-collapse:collapse;margin-top:8px;font-size:.95rem">
               ${ev.jobs.map((j) => `<tr style="border-top:1px solid var(--line,#eee)">
                 <td style="padding:6px 8px 6px 0;font-weight:600;white-space:nowrap;vertical-align:top">${esc(j.role)}</td>
@@ -1593,6 +1595,17 @@ window.MemberPortal = (function () {
               </tr>`).join('')}
             </table></div>`).join('')
             : '<p class="member-tile__meta">No breakfasts or mixers with jobs on the calendar yet.</p>';
+          box.querySelectorAll('[data-askamb]').forEach((b) => b.addEventListener('click', async () => {
+            if (!confirm(`Email every Ambassador the open jobs at “${b.dataset.asktitle}”?\n\nAnyone already doing a job there is left out. Replies come to you.`)) return;
+            b.disabled = true; b.textContent = 'Sending…';
+            try {
+              const res = await fetch(base + '/api/me/group/' + encodeURIComponent(g.slug) + '/ask-ambassadors/' + encodeURIComponent(b.dataset.askamb), { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+              const r = await res.json().catch(() => ({}));
+              if (!res.ok) throw new Error(r.error || 'Could not send — please try again.');
+              say(`✓ Emailed ${r.sent} Ambassador${r.sent === 1 ? '' : 's'}.${r.alreadySignedUp ? ` ${r.alreadySignedUp} already signed up, so not asked.` : ''}${r.noEmail && r.noEmail.length ? ` No email on file for ${r.noEmail.join(', ')} — the Chamber office can add one.` : ''}`);
+              b.textContent = '✓ Sent';
+            } catch (e) { say(e.message || 'Could not send — please try again.', true); b.disabled = false; b.textContent = '📣 Ask Ambassadors to sign up'; }
+          }));
         }).catch(() => { if (box) box.innerHTML = '<p class="member-tile__meta">Could not load the sign-ups. Refresh the page to try again.</p>'; });
       }
       // Meeting schedule line (Sheryl Tratner, Nov 5 2026: the Ambassador line
