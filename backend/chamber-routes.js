@@ -3605,10 +3605,22 @@ async function sendGroupAnnouncement(g, subject, message, req, eventId = '') {
   }
   // Who was skipped, by name, so the sender can add their address under
   // Members instead of wondering why someone says they got nothing.
-  const reached = new Set(targets.keys());
-  const skippedNames = roster.filter((m) => !reached.has(String(m.email || emailById.get(m.memberId) || '').toLowerCase()))
-    .map((m) => m.name).filter(Boolean).slice(0, 50);
-  return { sent, skipped: roster.length - targets.size, total: roster.length, skippedNames };
+  // A row can also share its address with another row — the same person
+  // added twice, once by name and once by business (Sheryl, Nov 24 2026: the
+  // page said "Not sent to 2 members: no email on file" when all 23 people
+  // had it and 2 of the 25 rows were repeats). Those are reported as sharing,
+  // not as missing.
+  const addrOf = (m) => String(m.email || emailById.get(m.memberId) || '').trim().toLowerCase();
+  const missing = roster.filter((m) => !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(addrOf(m)));
+  const skippedNames = missing.map((m) => m.name).filter(Boolean).slice(0, 50);
+  const byAddr = new Map();
+  for (const m of roster) {
+    const a = addrOf(m); if (!targets.has(a)) continue;
+    if (!byAddr.has(a)) byAddr.set(a, []);
+    byAddr.get(a).push(m.name || '');
+  }
+  const sharedNames = [...byAddr.values()].filter((names) => names.length > 1).slice(0, 25);
+  return { sent, skipped: missing.length, total: roster.length, skippedNames, sharedNames };
 }
 router.post('/admin/groups/:id/announce', requireAdmin, async (req, res) => {
   const subject = String((req.body && req.body.subject) || '').trim().slice(0, 160);
@@ -4374,6 +4386,7 @@ export function signupSheet(events, signups, today = new Date().toISOString().sl
           role: r.role, needed: r.needed,
           people: who.map((v) => ({ name: v.name || '', email: v.email || '', phone: v.phone || '' })),
           open: Math.max(0, r.needed - who.length),
+          extra: Math.max(0, who.length - r.needed),   // signed up beyond the target
         };
       }),
     }));
@@ -4411,18 +4424,19 @@ export function ambassadorAskEmail(ev, jobs, base, firstName = '') {
   const day = d ? d.toLocaleDateString('en-US', { timeZone: 'UTC', weekday: 'long', month: 'long', day: 'numeric' }) : '';
   const short = d ? d.toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric' }) : '';
   const when = [day, ev.time].filter(Boolean).join(' at ');
-  const open = (jobs || []).filter((j) => j.open > 0);
+  const all = jobs || [];
+  const line = (j) => (j.open > 0 ? `${j.open} of ${j.needed} still needed` : 'covered, more welcome');
   const title = ev.title || 'our next event';
   const subject = `Ambassadors needed: ${title}${short ? ` (${short})` : ''}`.replace(/[\r\n]+/g, ' ').slice(0, 160);
   const hi = `Hi ${firstName || 'there'},`;
-  const lead = `We still need Ambassadors for ${title}${when ? ` on ${when}` : ''}${ev.venue ? ` at ${ev.venue}` : ''}.`;
+  const lead = `We're asking every Ambassador to help at ${title}${when ? ` on ${when}` : ''}${ev.venue ? ` at ${ev.venue}` : ''}. Please pick a job, even if it already shows as covered.`;
   const how = 'Sign in, and under "Volunteer at an event" on your dashboard click the job you want. Signing up for a job also RSVPs you for the event.';
-  const text = `${hi}\n\n${lead}\n\nStill open:\n${open.map((j) => `- ${j.role}: ${j.open} of ${j.needed} open`).join('\n')}\n\n${how}\n\nPick a job: ${portal}\n\n—\nWest Valley · Warner Center Chamber of Commerce · (818) 347-4737\n`;
+  const text = `${hi}\n\n${lead}\n\nThe jobs:\n${all.map((j) => `- ${j.role}: ${line(j)}`).join('\n')}\n\n${how}\n\nPick a job: ${portal}\n\n—\nWest Valley · Warner Center Chamber of Commerce · (818) 347-4737\n`;
   const html = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.55;color:#111;max-width:600px">
     <p style="margin:0 0 12px">${eh(hi)}</p>
     <p style="margin:0 0 12px">${eh(lead)}</p>
     <table style="border-collapse:collapse;font-size:15px;margin:0 0 14px">
-      ${open.map((j) => `<tr><td style="padding:4px 18px 4px 0;font-weight:bold">${eh(j.role)}</td><td style="padding:4px 0;color:#7a6a3a">${j.open} of ${j.needed} open</td></tr>`).join('')}
+      ${all.map((j) => `<tr><td style="padding:4px 18px 4px 0;font-weight:bold">${eh(j.role)}</td><td style="padding:4px 0;color:#7a6a3a">${eh(line(j))}</td></tr>`).join('')}
     </table>
     <p style="margin:0 0 16px">${eh(how)}</p>
     <p style="margin:0 0 18px"><a href="${eh(portal)}" style="display:inline-block;padding:11px 20px;border-radius:8px;background:#1E5631;color:#ffffff;text-decoration:none;font-weight:bold">Pick a job</a></p>
@@ -4468,7 +4482,6 @@ async function askAmbassadors(evId, req, { by = '', replyTo, fromName = '' } = {
   if (!ev) return { status: 404, error: 'That event no longer exists.' };
   const sheet = signupSheet([ev], await repo.listVolunteers({ eventId: ev.id }))[0];
   if (!sheet) return { status: 400, error: 'That event has no Ambassador jobs, or it has already happened.' };
-  if (!sheet.jobs.some((j) => j.open > 0)) return { status: 400, error: 'Every job at that event is already covered.' };
   const { to, noEmail, already } = await ambassadorAskTargets(ev);
   const base = siteBase(req);
   let sent = 0;
@@ -4570,8 +4583,9 @@ router.post('/me/volunteer', auth.requireAuth(), async (req, res) => {
     if (existing.some((v) => v.memberId === mid && v.role === role.role)) {
       return res.status(409).json({ error: 'You are already signed up for that role at this event.' });
     }
-    const taken = existing.filter((v) => v.role === role.role && v.status !== 'no-show').length;
-    if (taken >= role.needed) return res.status(409).json({ error: 'That role is already fully covered — thank you though! Try another one.' });
+    // No cap (Sheryl, Nov 24 2026: "I want the ambassadors to be able to
+    // volunteer no matter how many have already said so"). "People needed"
+    // is the target the office sets, not a limit.
     const m = await myMember(mid);
     const vol = {
       id: 'vol-' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36),
