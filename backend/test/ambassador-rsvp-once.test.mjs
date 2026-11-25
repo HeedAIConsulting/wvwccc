@@ -249,15 +249,15 @@ test('Felicia can see taken and open places and get straight to changing a job',
 
 /* Diana, via Felicia, Nov 24 2026: nobody had signed up for the Dec 2
    breakfast, because nothing tells an Ambassador that jobs are posted. */
-test('the ask email lists only open jobs and sends them to their dashboard', async () => {
+test('the ask email lists every job, covered ones too, and sends them to their dashboard', async () => {
   const { ambassadorAskEmail } = await import('../chamber-routes.js');
   const ev = { id: 'e1', title: 'Start Your Month Breakfast', date: '2026-12-02', time: '7:30 AM', venue: 'Fogo de Chão' };
   const jobs = [{ role: 'Greeter', needed: 2, open: 2 }, { role: 'Check In', needed: 2, open: 0 }, { role: 'Floater', needed: 2, open: 1 }];
   const m = ambassadorAskEmail(ev, jobs, 'https://woodlandhillscc.net', 'Martin');
   assert.equal(m.subject, 'Ambassadors needed: Start Your Month Breakfast (Dec 2)');
-  assert.match(m.text, /^Hi Martin,\n\nWe still need Ambassadors for Start Your Month Breakfast on Wednesday, December 2 at 7:30 AM at Fogo de Chão\./);
-  assert.match(m.text, /- Greeter: 2 of 2 open\n- Floater: 1 of 2 open\n/);
-  assert.equal(m.text.includes('Check In'), false, 'a covered job is not asked for');
+  assert.match(m.text, /^Hi Martin,\n\nWe're asking every Ambassador to help at Start Your Month Breakfast on Wednesday, December 2 at 7:30 AM at Fogo de Chão\. Please pick a job, even if it already shows as covered\./);
+  // Sheryl, Nov 24: every Ambassador, however many have already said yes.
+  assert.match(m.text, /- Greeter: 2 of 2 still needed\n- Check In: covered, more welcome\n- Floater: 1 of 2 still needed\n/);
   assert.match(m.html, /<a href="https:\/\/woodlandhillscc\.net\/member\/"[^>]*>Pick a job<\/a>/);
   assert.match(m.text, /under "Volunteer at an event" on your dashboard/);
   assert.match(ambassadorAskEmail(ev, jobs, '', '').text, /^Hi there,/);
@@ -282,7 +282,7 @@ test('📣 asks every Ambassador not already doing a job, and records it', async
   const mine = sent.find((m) => m.to === AMB_LOGIN);
   assert.ok(mine, 'the Ambassador gets the ask');
   assert.match(mine.subject, /^Ambassadors needed: Holiday Open House/);
-  assert.match(mine.text, /- Greeter: 2 of 2 open/);
+  assert.match(mine.text, /- Greeter: 2 of 2 still needed/);
   assert.equal(mine.replyTo, OFFICE, 'replies go to the office');
   assert.ok(r.body.sent >= 1);
   assert.ok(Array.isArray(r.body.noEmail));
@@ -292,7 +292,7 @@ test('📣 asks every Ambassador not already doing a job, and records it', async
   assert.ok(ev.lastAsked && ev.lastAsked.sent === r.body.sent && ev.lastAsked.by === ADMIN);
 });
 
-test('📣 is refused for an event with nothing open, and for anyone but the office or the committee', async () => {
+test('📣 is refused for anyone but the office or the committee, never for being covered', async () => {
   const r = await adm('/api/admin/events/no-such-event/ask-ambassadors', { method: 'POST', body: '{}' });
   assert.equal(r.status, 404);
   const asMember = await me(`/api/admin/events/${encodeURIComponent(eventId)}/ask-ambassadors`, { method: 'POST', body: '{}' });
@@ -300,7 +300,7 @@ test('📣 is refused for an event with nothing open, and for anyone but the off
   const notLeader = await me(`/api/me/group/ambassador-committee/ask-ambassadors/${encodeURIComponent(eventId)}`, { method: 'POST', body: '{}' });
   assert.ok([403, 404].includes(notLeader.status), String(notLeader.status));
   const src = read('backend/chamber-routes.js');
-  assert.match(src, /if \(!sheet\.jobs\.some\(\(j\) => j\.open > 0\)\) return \{ status: 400, error: 'Every job at that event is already covered\.' \};/);
+  assert.equal(src.includes("Every job at that event is already covered"), false);
   assert.match(src, /if \(g\.id !== AMBASSADOR_GROUP_ID\) return res\.status\(404\)\.json\(\{ error: 'Only the Ambassador Committee can do this\.' \}\);/);
 });
 
@@ -310,5 +310,55 @@ test('both sign-up lists carry the 📣 button', () => {
     assert.match(js, /data-askamb="\$\{esc\(ev\.id\)\}"/, f);
     assert.match(js, /📣 Ask Ambassadors to sign up/, f);
     assert.match(js, /ev\.lastAsked \?/, f);
+  }
+});
+
+/* Sheryl, Nov 24 2026: "I want the ambassadors to be able to volunteer no
+   matter how many have already said so." People needed is a target. */
+test('an Ambassador can take a job that is already covered', async () => {
+  for (const v of await myShifts()) await me(`/api/me/volunteer/${encodeURIComponent(v.id)}`, { method: 'DELETE' });
+  for (const name of ['Covered One', 'Covered Two']) {
+    const r = await adm('/api/admin/volunteers', { method: 'POST', body: JSON.stringify({ name, eventId, role: 'Check In' }) });
+    assert.equal(r.status, 200, await r.text());
+  }
+  const sheetBefore = (await (await adm('/api/admin/volunteer-sheet')).json()).events.find((e) => e.id === eventId);
+  assert.equal(sheetBefore.jobs.find((j) => j.role === 'Check In').open, 0);
+  const r = await signUp('Check In');
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  const job = (await (await adm('/api/admin/volunteer-sheet')).json()).events.find((e) => e.id === eventId).jobs.find((j) => j.role === 'Check In');
+  assert.equal(job.people.length, 3);
+  assert.equal(job.extra, 1);
+  const js = read('member/member.js');
+  assert.match(js, / · covered, join in/);
+  assert.equal(/\$\{isMine \|\| full \? 'disabled' : ''\}/.test(js), false, 'a covered job is not greyed out');
+  assert.match(read('admin/admin.js'), /✓ covered\$\{j\.extra \? ` \(\+\$\{j\.extra\}\)` : ''\}/);
+});
+
+/* Sheryl, Nov 24 2026: "Not sent to 2 members: no email on file" when all 23
+   people had it. Two of her 25 rows were the same person twice. */
+test('a group email says who shares an address instead of calling them missing', async () => {
+  const shared = `twice-${T}@example.com`;
+  const g = await (await adm('/api/admin/groups', {
+    method: 'POST',
+    body: JSON.stringify({
+      name: `Twice Committee ${T}`, slug: `twice-committee-${T}`,
+      members: [
+        { name: 'Mercy Alpert', email: shared, role: 'Member' },
+        { name: 'Have Mercy', email: shared.toUpperCase(), role: 'Member' },
+        { name: 'Someone Else', email: `else-${T}@example.com`, role: 'Member' },
+        { name: 'No Address', memberId: `m-none-${T}`, role: 'Member' },
+      ],
+    }),
+  })).json();
+  const r = await (await adm(`/api/admin/groups/${encodeURIComponent(g.group.id)}/announce`, {
+    method: 'POST', body: JSON.stringify({ subject: 'RSVP PLEASE', message: 'Hi.' }),
+  })).json();
+  await adm(`/api/admin/groups/${encodeURIComponent(g.group.id)}`, { method: 'DELETE' });
+  assert.equal(r.sent, 2);
+  assert.equal(r.skipped, 1, 'only the row with no address is missing');
+  assert.deepEqual(r.skippedNames, ['No Address']);
+  assert.deepEqual(r.sharedNames, [['Mercy Alpert', 'Have Mercy']]);
+  for (const f of ['admin/admin.js', 'member/member.js']) {
+    assert.match(read(f), /share one email address, so each got one copy\./, f);
   }
 });

@@ -285,12 +285,14 @@ window.MemberPortal = (function () {
             <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
               ${e.roles.map((r) => {
                 const isMine = claimed.has(`${e.id}|${r.role}`);
+                // A covered job still takes more (Sheryl, Nov 24 2026: every
+                // Ambassador should be able to say they will help).
                 const full = r.open <= 0;
-                return `<button type="button" class="chip" ${isMine || full ? 'disabled' : ''}
+                return `<button type="button" class="chip" ${isMine ? 'disabled' : ''}
                   data-vsign="${esc(e.id)}" data-vrole="${esc(r.role)}"
-                  style="${isMine ? 'background:var(--green);color:#fff;border-color:var(--green)' : full ? 'opacity:.5;cursor:not-allowed' : 'cursor:pointer'}"
-                  title="${isMine ? "You're signed up for this" : full ? 'Already covered' : (showPoints ? `${r.points} points` : 'Sign up for this job')}">
-                  ${isMine ? '✓ ' : ''}${esc(r.role)}${showPoints ? ` · ${esc(r.points)} pts` : ''}${full && !isMine ? ' · covered' : (isMine ? '' : ` · ${esc(r.open)} needed`)}
+                  style="${isMine ? 'background:var(--green);color:#fff;border-color:var(--green)' : 'cursor:pointer'}"
+                  title="${isMine ? "You're signed up for this" : full ? 'Covered, but more help is welcome' : (showPoints ? `${r.points} points` : 'Sign up for this job')}">
+                  ${isMine ? '✓ ' : ''}${esc(r.role)}${showPoints ? ` · ${esc(r.points)} pts` : ''}${isMine ? '' : full ? ' · covered, join in' : ` · ${esc(r.open)} needed`}
                 </button>`;
               }).join('')}
             </div>
@@ -1320,6 +1322,10 @@ window.MemberPortal = (function () {
        too long and difficult to understand ... improve the UI for the many
        older members who don't understand a long list of options / words").
        Five big buttons; only the chosen job shows underneath. */
+    // What a group email reached, in words (Sheryl, Nov 24 2026).
+    const sentNote = (r) => `✓ Sent to ${r.sent} ${r.sent === 1 ? 'person' : 'people'}.`
+      + ((r.sharedNames || []).length ? ` ${r.sharedNames.map((n) => n.join(' and ')).join('; ')} share one email address, so each got one copy.` : '')
+      + (r.skipped ? ` Not sent to ${(r.skippedNames || []).join(', ') || r.skipped}: no email on file. Add one under Members, then send again.` : '');
     let tab = (location.hash || '').replace('#', '') || 'meetings';
     let showPastEvents = false;
     let draft = { subject: '', body: '', eventId: null };
@@ -1586,7 +1592,7 @@ window.MemberPortal = (function () {
           box.innerHTML = evs.length ? evs.map((ev) => `<div style="border:1px solid var(--line,#eee);border-radius:var(--r-md,10px);padding:12px 14px;margin-bottom:10px">
             <strong>${esc(ev.title)}</strong>
             <div class="member-tile__meta">${esc(fmtD(ev.date))}${ev.time ? ' · ' + esc(ev.time) : ''}${ev.venue ? ' · ' + esc(ev.venue) : ''}</div>
-            ${ev.jobs.some((j) => j.open > 0) ? `<div style="margin:8px 0 2px"><button type="button" class="btn btn--gold btn--sm" data-askamb="${esc(ev.id)}" data-asktitle="${esc(ev.title)}">📣 Ask Ambassadors to sign up</button></div>` : ''}
+            <div style="margin:8px 0 2px"><button type="button" class="btn btn--gold btn--sm" data-askamb="${esc(ev.id)}" data-asktitle="${esc(ev.title)}">📣 Ask Ambassadors to sign up</button></div>
             ${ev.lastAsked ? `<div class="member-tile__meta">Last asked ${esc(new Date(ev.lastAsked.at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }))} — ${ev.lastAsked.sent} emailed.</div>` : ''}
             <table style="width:100%;border-collapse:collapse;margin-top:8px;font-size:.95rem">
               ${ev.jobs.map((j) => `<tr style="border-top:1px solid var(--line,#eee)">
@@ -1673,7 +1679,7 @@ window.MemberPortal = (function () {
           const r = await api('/api/me/group/' + encodeURIComponent(g.slug) + '/announce', { method: 'POST', body: JSON.stringify({ subject, message, eventId: draft.eventId || '' }) });
           draft = { subject: '', body: '', eventId: null };
           render();
-          say(`✓ Sent to ${r.sent} member${r.sent === 1 ? '' : 's'}.${r.skipped ? ` Not sent to ${(r.skippedNames || []).join(', ') || r.skipped + ' member' + (r.skipped === 1 ? '' : 's')}: no email on file. Add one under Members, then send again.` : ''}`);
+          say(sentNote(r));
         } catch (err) { say('Could not send the email — please try again.', true); e.target.disabled = false; }
       });
       // Duplicate a past event onto a new date. Copying, never moving: the

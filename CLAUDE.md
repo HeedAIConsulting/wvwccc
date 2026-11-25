@@ -308,7 +308,18 @@ admin/groups, admin/events, member/group and member/event (tested in
   else the listing's. Individually addressed; replies go to the office (or the
   committee manager when Sheryl sends it). The last send is kept in settings
   `ambassadorAsk:<eventId>` and shown under the event ("Last asked … — N
-  emailed"). Covered events are refused. Ambassadors with no address are named.
+  emailed"). Ambassadors with no address are named.
+- **No cap on a job** (Sheryl, Nov 24: "volunteer no matter how many have
+  already said so"). People needed is the office's target, not a limit:
+  `POST /me/volunteer` takes a sign-up on a covered job, the dashboard shows
+  it as "covered, join in", the sheet shows "✓ covered (+1)" (`extra`), and
+  📣 lists every job ("covered, more welcome") and is never refused for it.
+- **A group email's count is honest.** `sendGroupAnnouncement` returns
+  `skipped`/`skippedNames` only for rows with no address, and `sharedNames`
+  for rows that share one (the same person added by name and by business).
+  Sheryl's Nov 24 "RSVP PLEASE" reached all 23 people; the page said 2 had
+  no email because Mercy Alpert/Have Mercy and Sandy Rosenholz/Senior
+  Resources were each on her roster twice.
 
 ## Receipts that do not arrive
 

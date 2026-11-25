@@ -3949,7 +3949,7 @@ window.Admin = (function () {
           <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
             <span><strong>${esc(ev.title)}</strong> <span class="sub">${esc(ev.date)}${ev.time ? ' · ' + esc(ev.time) : ''}${ev.venue ? ' · ' + esc(ev.venue) : ''}</span></span>
             <span style="display:flex;gap:6px;flex-wrap:wrap">
-              ${ev.jobs.some((j) => j.open > 0) ? `<button type="button" class="btn btn--gold btn--sm" data-askamb="${esc(ev.id)}" data-asktitle="${esc(ev.title)}">📣 Ask Ambassadors to sign up</button>` : ''}
+              <button type="button" class="btn btn--gold btn--sm" data-askamb="${esc(ev.id)}" data-asktitle="${esc(ev.title)}">📣 Ask Ambassadors to sign up</button>
               <a class="btn btn--ghost btn--sm" href="events.html?focus=${encodeURIComponent(ev.id)}&amp;jobs=1">✏️ Change jobs or how many</a>
             </span>
           </div>
@@ -3959,7 +3959,7 @@ window.Admin = (function () {
             <tbody>${ev.jobs.map((j) => `<tr><td><strong>${esc(j.role)}</strong></td>
               <td>${j.people.length ? j.people.map((p) => `${esc(p.name)}${p.phone ? ` <span class="sub">${esc(p.phone)}</span>` : ''}${p.email ? ` <span class="sub">${esc(p.email)}</span>` : ''}`).join('<br>') : '<span class="sub">Nobody yet</span>'}</td>
               <td>${j.people.length} of ${j.needed}</td>
-              <td>${j.open ? `<strong style="color:var(--gold,#b8893c)">${j.open}</strong>` : '<span style="color:var(--green,#1E5631)">✓ covered</span>'}</td></tr>`).join('')}</tbody>
+              <td>${j.open ? `<strong style="color:var(--gold,#b8893c)">${j.open}</strong>` : `<span style="color:var(--green,#1E5631)">✓ covered${j.extra ? ` (+${j.extra})` : ''}</span>`}</td></tr>`).join('')}</tbody>
           </table></div>`).join('')
           : '<p class="sub">No upcoming event has Ambassador jobs yet.</p>';
         // 📣 Ask Ambassadors to sign up (Diana, via Felicia, Nov 24 2026:
@@ -5920,7 +5920,9 @@ window.Admin = (function () {
           compose = { subject: '', body: '', eventId: null };
           renderCompose();
           const out2 = gmEl('gcMsg'); out2.hidden = false; out2.style.color = 'var(--green)';
-          out2.textContent = `✓ Sent to ${r.sent} member${r.sent === 1 ? '' : 's'}.${r.skipped ? ` Not sent to ${(r.skippedNames || []).join(', ') || r.skipped + ' member' + (r.skipped === 1 ? '' : 's')}: no email on file. Add one under Members, then send again.` : ''}`;
+          out2.textContent = `✓ Sent to ${r.sent} ${r.sent === 1 ? 'person' : 'people'}.`
+            + ((r.sharedNames || []).length ? ` ${r.sharedNames.map((n) => n.join(' and ')).join('; ')} share one email address, so each got one copy.` : '')
+            + (r.skipped ? ` Not sent to ${(r.skippedNames || []).join(', ') || r.skipped}: no email on file. Add one under Members, then send again.` : '');
         } catch (err) { say2('Could not send — please try again.'); e.target.disabled = false; e.target.textContent = lbl; }
       });
     }
