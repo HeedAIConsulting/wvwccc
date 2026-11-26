@@ -362,3 +362,49 @@ test('a group email says who shares an address instead of calling them missing',
     assert.match(read(f), /share one email address, so each got one copy\./, f);
   }
 });
+
+/* Felicia, for Diana, Nov 25 2026: sign-ups made before Nov 19 never sent a
+   receipt. The one-time catch-up files their RSVPs and sends the office the
+   receipts, once, without emailing the Ambassadors again. */
+test('the catch-up sends the office a receipt for each earlier sign-up, once', async () => {
+  const repo = await import('../repo.js');
+  const { backfillAmbassadorRsvps, AMBASSADOR_RSVP_BACKFILL_KEY } = await import('../chamber-routes.js');
+  const date = new Date(Date.now() + 30 * 864e5).toISOString().slice(0, 10);
+  const ev = (await (await adm('/api/admin/events', {
+    method: 'POST',
+    body: JSON.stringify({ title: `Earlier Breakfast ${T}`, date, status: 'approved',
+      volunteerRoles: [{ role: 'Greeter', needed: 2, points: 5 }, { role: 'Floater', needed: 2, points: 5 }] }),
+  })).json()).event;
+  for (const role of ['Greeter', 'Floater']) {
+    await repo.addVolunteer({ id: `vol-early-${role}-${T}`, eventId: ev.id, eventTitle: ev.title, eventDate: date,
+      memberId: AMBASSADOR, name: 'Early Ambassador', email: '', phone: '818-555-0100', role, points: 5, status: 'signed-up', note: '' });
+  }
+  sent.length = 0;
+  const r = await backfillAmbassadorRsvps();
+  await settle();
+  try {
+    assert.ok(r.filed.some((f) => f.startsWith('Early Ambassador') && f.endsWith('Greeter, Floater')), JSON.stringify(r));
+    const lead = (await (await adm('/api/admin/leads')).json()).leads
+      .filter((l) => l.kind === 'rsvp' && String(l.event).includes(`[${ev.id}]`));
+    assert.equal(lead.length, 1, 'one RSVP per person per event, with both jobs');
+    assert.equal(lead[0].email, AMB_LOGIN, 'filed under their sign-in address');
+    assert.match(lead[0].message, /^Ambassador sign-up: Greeter, Floater\nAttending: 1$/);
+    const receipt = sent.find((m) => m.to === OFFICE && m.subject.includes(`Earlier Breakfast ${T}`));
+    assert.ok(receipt, 'the office gets the receipt');
+    assert.match(receipt.text, /Registration: Ambassador — Greeter, Floater/);
+    assert.equal(sent.some((m) => m.to === AMB_LOGIN), false, 'the Ambassador is not emailed again');
+    assert.ok(await repo.getSetting(AMBASSADOR_RSVP_BACKFILL_KEY));
+    sent.length = 0;
+    assert.deepEqual(await backfillAmbassadorRsvps(), { skipped: true }, 'runs once');
+    await settle();
+    assert.equal(sent.length, 0);
+  } finally {
+    for (const role of ['Greeter', 'Floater']) await repo.deleteVolunteer(`vol-early-${role}-${T}`).catch(() => {});
+    await adm(`/api/admin/events/${encodeURIComponent(ev.id)}`, { method: 'DELETE' });
+  }
+});
+
+test('production runs the catch-up once, after start', () => {
+  const src = read('server.js');
+  assert.match(src, /if \(process\.env\.DATABASE_URL\) setTimeout\(\(\) => \{ backfillAmbassadorRsvps\(\); \}, 30_000\);/);
+});

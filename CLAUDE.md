@@ -320,6 +320,14 @@ admin/groups, admin/events, member/group and member/event (tested in
   Sheryl's Nov 24 "RSVP PLEASE" reached all 23 people; the page said 2 had
   no email because Mercy Alpert/Have Mercy and Sandy Rosenholz/Senior
   Resources were each on her roster twice.
+- **Catch-up receipts** (Felicia, for Diana, Nov 25: no receipts for the
+  Dec 2 and Dec 16 sign-ups, all made Nov 6 and Nov 18, before a sign-up was
+  an RSVP). `backfillAmbassadorRsvps` runs once on production 30s after
+  start (server.js, `DATABASE_URL` only), marker
+  `ambassadorRsvpBackfill-20261126` set before anything is sent. One RSVP
+  and one office receipt per person per upcoming event, all their jobs in
+  event order ("Greeter, Floater"); Ambassadors are not emailed
+  (`confirm: false`); anyone who already RSVP'd is skipped.
 
 ## Receipts that do not arrive
 
