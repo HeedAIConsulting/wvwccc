@@ -1147,7 +1147,7 @@ function guestCopy({ html, text }) {
    the Ambassador their confirmation. Somebody who already RSVP'd to that
    event is not filed twice. Returns the lead, or null when nothing was filed. */
 export const AMBASSADOR_RSVP_MARK = 'Ambassador sign-up:';
-async function rsvpFromAmbassadorSignup(ev, vol, business, req) {
+async function rsvpFromAmbassadorSignup(ev, vol, business, req, { confirm = true } = {}) {
   if (!ev || (ev.status || 'approved') !== 'approved') return null;
   const addr = String(vol.email || '').trim().toLowerCase();
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(addr)) return null;
@@ -1177,6 +1177,7 @@ async function rsvpFromAmbassadorSignup(ev, vol, business, req) {
     email.send({ to: rcpt, replyTo: addr, subject, text: parts.text, html: parts.html })
       .catch((e) => console.error('ambassador rsvp notify failed', rcpt, e));
   }
+  if (!confirm) return lead;
   const mine = guestCopy(parts);
   const cal = eventEmailBlock(ev, siteBase(req));
   email.send({ to: addr, subject: `Your RSVP is confirmed — ${evTitle}`.replace(/[\r\n]+/g, ' ').slice(0, 200),
@@ -1184,6 +1185,51 @@ async function rsvpFromAmbassadorSignup(ev, vol, business, req) {
     .catch((e) => console.error('ambassador rsvp confirmation failed', e));
   return lead;
 }
+/* One-time catch-up (Felicia, for Diana, Nov 25 2026: "We have had
+   Ambassadors sign up for December 2nd tasks and December 16th tasks and I
+   have not received any generated emails for those"). Those 11 sign-ups were
+   made Nov 6 and Nov 18, before a sign-up became an RSVP on Nov 19. This
+   files the RSVP each would have filed and sends the office its receipt,
+   once per person per upcoming event, with every job they took. The
+   Ambassadors are not emailed again. Anyone who already RSVP'd is skipped by
+   rsvpFromAmbassadorSignup itself. Run once on production, from server.js. */
+export const AMBASSADOR_RSVP_BACKFILL_KEY = 'ambassadorRsvpBackfill-20261126';
+export async function backfillAmbassadorRsvps({ today } = {}) {
+  try {
+    if (await repo.getSetting(AMBASSADOR_RSVP_BACKFILL_KEY)) return { skipped: true };
+    // Marked first: a crash halfway must never send the same receipts twice.
+    await repo.setSetting(AMBASSADOR_RSVP_BACKFILL_KEY, JSON.stringify({ at: new Date().toISOString(), started: true }));
+    const day = today || new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+    const events = new Map((await loadEvents())
+      .filter((e) => e.date && e.date >= day && (e.status || 'approved') === 'approved').map((e) => [e.id, e]));
+    const [vols, userList, { members }] = await Promise.all([
+      repo.listVolunteers({}), users.listUsers().catch(() => []), loadMembersFull(),
+    ]);
+    const login = new Map();
+    for (const u of userList) if (u.memberId && u.email && !login.has(u.memberId)) login.set(u.memberId, String(u.email).toLowerCase());
+    const business = new Map(members.map((m) => [m.id, m.name || '']));
+    const pairs = new Map();
+    for (const v of vols.filter((x) => x.status === 'signed-up' && events.has(x.eventId) && x.memberId)) {
+      const k = `${v.eventId}|${v.memberId}`;
+      if (!pairs.has(k)) pairs.set(k, { ...v, roles: [] });
+      pairs.get(k).roles.push(v.role);
+    }
+    const filed = [];
+    for (const p of pairs.values()) {
+      // In the event's own job order, as the sign-up sheet shows them.
+      const order = (events.get(p.eventId).volunteerRoles || []).map((r) => r.role);
+      const roles = [...new Set(p.roles)].sort((a, b) => (order.indexOf(a) + 1 || 99) - (order.indexOf(b) + 1 || 99));
+      const vol = { ...p, role: roles.join(', '), email: login.get(p.memberId) || p.email };
+      const lead = await rsvpFromAmbassadorSignup(events.get(p.eventId), vol, business.get(p.memberId), null, { confirm: false })
+        .catch((e) => { console.error('ambassador rsvp backfill', p.name, e); return null; });
+      if (lead) filed.push(`${p.name} — ${events.get(p.eventId).date} — ${vol.role}`);
+    }
+    await repo.setSetting(AMBASSADOR_RSVP_BACKFILL_KEY, JSON.stringify({ at: new Date().toISOString(), filed }));
+    console.log(`ambassador rsvp backfill: ${filed.length} filed`, filed);
+    return { filed };
+  } catch (e) { console.error('ambassador rsvp backfill', e); return { error: String(e && e.message) }; }
+}
+
 // Cancelling the last job at an event takes the RSVP it filed off the count
 // (moved to Trash, so nothing is lost). An RSVP the person made themselves is
 // never touched.
